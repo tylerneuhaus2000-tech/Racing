@@ -66,9 +66,11 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #tower .row{display:flex;justify-content:space-between;gap:18px;font-size:13px;padding:2px 0}
 #tower .row span:first-child{color:var(--dim);letter-spacing:.12em;font-size:10px;padding-top:3px}
 #lap{font-size:15px;font-weight:700;letter-spacing:.1em;margin-bottom:6px}
-#delta{font-size:13px;font-weight:800;letter-spacing:.08em;color:var(--green)}
-#delta.positive{color:var(--red)}
-#delta.negative{color:var(--green)}
+#delta{font-size:18px;font-weight:900;letter-spacing:.04em;color:var(--green);transition:color 0.15s,font-size 0.1s}
+#delta.positive{color:#ff3333}
+#delta.positive.slow{color:#ff6644}
+#delta.negative{color:#22c463}
+#delta.negative.fast{color:#00ff88;text-shadow:0 0 8px #00ff8880}
 #delta.neutral{color:var(--amber)}
 #damage-row{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:10px;color:var(--dim);letter-spacing:.12em}
 .dmg-label{min-width:54px}
@@ -208,7 +210,7 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
     <div class="row"><span>ZEIT</span><span id="laptime">--:--.---</span></div>
     <div class="row"><span>LETZTE</span><span id="lastlap">--:--.---</span></div>
     <div class="row"><span>BEST</span><span id="bestlap">--:--.---</span></div>
-    <div class="row"><span>DELTA</span><span id="delta">--.--</span></div>
+    <div class="row" style="border-top:1px solid #ffffff22;margin-top:4px;padding-top:4px"><span style="color:#aaa">Δ BEST</span><span id="delta">--</span></div>
     <div id="prog">0% DER RUNDE</div>
     <div id="damage-row">
       <span class="dmg-label">SCHADEN</span>
@@ -2536,10 +2538,14 @@ class Car {
     }
 
     /* --- ERS-Logik ---
-       Rekuperation: beim Bremsen lädt Batterie (max 0.20 Ladung pro Sekunde)
+       Rekuperation: beim Bremsen stark laden (0.20/s), beim Rollen ohne Gas leicht laden (0.04/s)
        Deploy: Bei input.boost UND Ladung > 0 → Zusatzkraft, entlädt 0.14/s */
     if(input.brake > 0.1 && this.vx > 5 && !this.ers.depleted){
+      /* Bremsen: starke Rekuperation */
       this.ers.charge = Math.min(1, this.ers.charge + dt*0.20*Math.min(1, input.brake));
+    } else if(input.throttle < 0.05 && input.brake <= 0.1 && this.vx > 5 && !this.ers.depleted){
+      /* Rollen / Lift-off: leichte Rekuperation (~1/5 der Bremskraft) */
+      this.ers.charge = Math.min(1, this.ers.charge + dt*0.04);
     }
     this.ers.active = false;
     if(input.boost && this.ers.charge > 0.02 && input.throttle > 0.5){
@@ -4000,9 +4006,9 @@ const HUD = {
     this.mapC=document.getElementById('minimap');
     this.mapG=this.mapC.getContext('2d');
   },
-  fmt(ms){
-    if(ms==null||!isFinite(ms)) return '--:--.---';
-    const m=Math.floor(ms/60000), s=Math.floor(ms%60000/1000), x=Math.floor(ms%1000);
+  fmt(sec){
+    if(sec==null||!isFinite(sec)) return '--:--.---';
+    const m=Math.floor(sec/60), s=Math.floor(sec%60), x=Math.floor((sec%1)*1000);
     return `${m}:${String(s).padStart(2,'0')}.${String(x).padStart(3,'0')}`;
   },
   prepMap(track){
@@ -4046,13 +4052,28 @@ const HUD = {
     this.els.lastlap.textContent=this.fmt(race.lastLap);
     this.els.bestlap.textContent=this.fmt(race.bestLap);
     if(this.els.delta){
-      const delta = totalLaps === 0 ? race.bestLapDelta : null;
-      if(delta == null || !isFinite(delta)){
-        this.els.delta.textContent='--.--';
-        this.els.delta.className='';
+      const isTT = totalLaps === 0;
+      if(!isTT){
+        this.els.delta.textContent = '';
+        this.els.delta.className = '';
+      } else if(!race._hasRef){
+        /* Erste Runde: laufende Zeit zeigen */
+        this.els.delta.textContent = this.fmt(race.curLapTime);
+        this.els.delta.className = 'neutral';
       } else {
-        this.els.delta.textContent=(delta>0?'+':'')+delta.toFixed(3)+'s';
-        this.els.delta.className = delta < 0 ? 'negative' : delta > 0 ? 'positive' : 'neutral';
+        const delta = race.bestLapDelta;
+        if(delta == null || !isFinite(delta)){
+          this.els.delta.textContent = '--';
+          this.els.delta.className = 'neutral';
+        } else {
+          const sign = delta < 0 ? '−' : '+';
+          const abs = Math.abs(delta);
+          this.els.delta.textContent = sign + abs.toFixed(3) + 's';
+          if(delta < -0.5)     this.els.delta.className = 'negative fast';
+          else if(delta < 0)   this.els.delta.className = 'negative';
+          else if(delta < 0.5) this.els.delta.className = 'positive slow';
+          else                 this.els.delta.className = 'positive';
+        }
       }
     }
     this.els.prog.textContent=(car.query?Math.round(car.query.progress*100):0)+'% DER RUNDE';
@@ -4821,8 +4842,8 @@ const Game = {
     this.race={lap:1, curLapTime:0, lapStart:performance.now(), lastLap:null,
       bestLap,
       bestLapRef:this.loadBestLapProfile(trackDef.id, CARS[this.selCar].id),
-      bestLapDelta:null,
-      lapSamples:[{progress:0, time:0}],
+      bestLapDelta:null, _hasRef: false,
+      lapSamples:[],
       halfPassed:false, prevProg:0, pos:1, total:this.allCars.length};
     /* Race-Timer + Stuck-Reset für SC-Trigger */
     this._raceTimeS = 0;
@@ -4887,9 +4908,24 @@ const Game = {
   },
   updateTTDelta(race, progress, now){
     if(this.mode !== 'tt' || !race) return;
-    const current = now - race.lapStart;
+    /* Aktuelle Rundenzeit in Sekunden */
+    const current = (now - race.lapStart) / 1000;
+    /* Nicht im Start/Zielbereich */
+    if(progress < 0.02 || progress > 0.98){ race.bestLapDelta = null; return; }
     const refTime = this.bestLapRefTime(race.bestLapRef, progress, race.bestLap);
-    race.bestLapDelta = (refTime == null || !isFinite(refTime)) ? null : current - refTime;
+    if(refTime != null && isFinite(refTime) && refTime > 0 && current > 0){
+      const delta = current - refTime;
+      /* Sanity check: Delta darf nicht absurd sein (>60s ist ein Bug) */
+      if(Math.abs(delta) < 60){
+        race.bestLapDelta = delta;
+        race._hasRef = true;
+      } else {
+        race.bestLapDelta = null;
+      }
+    } else {
+      race.bestLapDelta = null;
+      race._hasRef = false;
+    }
   },
   runCountdown(){
     const lights=[...document.querySelectorAll('#lights i')];
@@ -5103,37 +5139,40 @@ const Game = {
           }
           if(c===this.car){
             const r=this.race;
-            r.lastLap=now-r.lapStart;
-            if(r.bestLap==null||r.lastLap<r.bestLap){
-              r.bestLap=r.lastLap;
-              if(Array.isArray(r.lapSamples) && r.lapSamples.length){
-                const bestSamples = r.lapSamples.map(s => ({progress:s.progress, time:s.time}));
-                const tail = bestSamples[bestSamples.length - 1];
-                if(!tail || tail.progress < 1){
-                  bestSamples.push({progress:1, time:r.lastLap});
-                } else {
-                  bestSamples[bestSamples.length - 1] = {progress:1, time:r.lastLap};
-                }
+            r.lastLap = (now - r.lapStart) / 1000;    // in Sekunden
+            if(r.bestLap==null || r.lastLap<r.bestLap){
+              r.bestLap = r.lastLap;
+              if(Array.isArray(r.lapSamples) && r.lapSamples.length > 5){
+                /* Samples sind bereits in Sekunden, progress 0..1 */
+                const bestSamples = r.lapSamples
+                  .filter(s => s.progress > 0.01 && s.progress < 0.99)
+                  .map(s => ({progress: s.progress, time: s.time}));
+                bestSamples.unshift({progress:0, time:0});
+                bestSamples.push({progress:1, time:r.lastLap});
                 r.bestLapRef = bestSamples;
                 this.saveBestLapProfile(this.trackDef.id, CARS[this.selCar].id, bestSamples);
               }
               Store.set('best_'+this.trackDef.id+'_'+CARS[this.selCar].id, r.bestLap);
             }
             r.lapStart=now; r.lap=rd.lap;
-            r.lapSamples=[{progress:0, time:0}];
+            r.lapSamples=[];    // leer — werden ab progress>0.02 gesammelt
             r.bestLapDelta=null;
+            r._hasRef = !!(r.bestLapRef && r.bestLapRef.length > 2);
           }
         }
         rd.prevProg=p;
         rd.totalProg=(rd.lap-1)+p;
       }
     }
-    if(this.mode==='tt' && this.race){
+    if(this.mode==='tt' && this.race && this.state==='race'){
       const progress = this.car.query ? clamp(this.car.query.progress || 0, 0, 1) : 0;
-      const currentTime = now - this.race.lapStart;
-      const last = this.race.lapSamples[this.race.lapSamples.length - 1];
-      if(!last || progress - last.progress >= 0.004 || currentTime - last.time >= 40){
-        this.race.lapSamples.push({progress, time:currentTime});
+      const currentTime = (now - this.race.lapStart) / 1000;   // in Sekunden
+      /* Nur sammeln wenn wir klar auf der Strecke sind (nicht in der Startzone) */
+      if(progress > 0.02 && progress < 0.98 && currentTime > 0 && currentTime < 600){
+        const last = this.race.lapSamples[this.race.lapSamples.length - 1];
+        if(!last || progress - last.progress >= 0.002){
+          this.race.lapSamples.push({progress, time:currentTime});
+        }
       }
       this.updateTTDelta(this.race, progress, now);
     }
@@ -5148,7 +5187,7 @@ const Game = {
       this.race.pos=order.indexOf(this.car)+1;
       if(this.car.rd.finished && this.state==='race') this.finishRace(order);
     }
-    this.race.curLapTime=performance.now()-this.race.lapStart;
+    this.race.curLapTime = (performance.now() - this.race.lapStart) / 1000;
   },
 
   finishRace(order){
