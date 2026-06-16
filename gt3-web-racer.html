@@ -97,6 +97,12 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #leaderboard .lb-class.gt3{background:#55a8ff;color:#07131f}
 #leaderboard .lb-class.lmp1{background:#ff4a58;color:#1a0709}
 #leaderboard.hidden{display:none}
+#stats-bar{position:fixed;top:6px;left:50%;transform:translateX(-50%);display:flex;gap:16px;background:rgba(13,16,20,0.75);border:1px solid var(--line);padding:4px 14px;font-family:var(--mono);font-size:9px;letter-spacing:.10em;backdrop-filter:blur(3px);z-index:10}
+#stats-bar{position:fixed;top:6px;left:50%;transform:translateX(-50%);display:flex;gap:16px;background:rgba(13,16,20,0.75);border:1px solid var(--line);padding:4px 14px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.10em;backdrop-filter:blur(3px);z-index:10}
+#stats-bar span{white-space:nowrap}
+#stat-km{color:#22c463;font-weight:700}
+#stat-wall{color:#ffd400}
+#stat-car{color:#ff8844}
 #ers-row{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:10px;color:var(--dim);letter-spacing:.12em}
 #ers-bar{flex:1;height:6px;background:#1a2026;border:1px solid var(--line);position:relative}
 #ers-bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#0090e0 0%,#22c4ff 60%,#9af0ff 100%);transition:width 0.2s}
@@ -188,6 +194,16 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 
 <!-- ===================== HUD ===================== -->
 <div id="hud" class="hidden">
+  <div id="stats-bar">
+    <span id="stat-km" style="color:#22c463;font-weight:700">0.0 km</span>
+    <span id="stat-wall" style="color:#ffd400">Wand: 0</span>
+    <span id="stat-car" style="color:#ff8844">Auto: 0</span>
+  </div>
+  <div id="stats-bar">
+    <span id="stat-km">0.0 km</span>
+    <span id="stat-wall">Wand: 0</span>
+    <span id="stat-car">Auto: 0</span>
+  </div>
   <div id="tower">
     <div id="pos" class="hidden">P6 / 6</div>
     <div id="lap">RUNDE 1</div>
@@ -277,7 +293,7 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
   <div id="help" class="hidden">
     <kbd>W/↑</kbd> Gas &nbsp; <kbd>S/↓</kbd> Bremse/Rückwärts &nbsp; <kbd>A/←</kbd> <kbd>D/→</kbd> Lenken<br>
     <kbd>Shift</kbd> P2P-Boost (mit Vollgas) &nbsp; <kbd>P</kbd> Pit-Limiter<br>
-    <kbd>V</kbd> VSC (120 km/h) &nbsp; <kbd>Y</kbd> Safety Car<br>
+    <kbd>E</kbd> Respawn &nbsp; <kbd>V</kbd> VSC &nbsp; <kbd>Y</kbd> Safety Car<br>
     <kbd>C</kbd> Kamera &nbsp; <kbd>R</kbd> Neustart &nbsp; <kbd>ESC</kbd> Pause &nbsp; <kbd>H</kbd> Hilfe aus
   </div>
 </div>
@@ -413,13 +429,19 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
             <input type="range" id="ai-diff" min="0" max="100" step="5" value="60">
           </div>
           <div class="setrow" style="margin-top:8px">
-            <span>Safety Car erlauben</span><input type="checkbox" id="race-sc" checked>
+            <span>Safety Car erlauben</span><input type="checkbox" id="race-sc">
           </div>
           <div class="setrow" style="margin-top:4px">
-            <span>VSC erlauben</span><input type="checkbox" id="race-vsc" checked>
+            <span>VSC erlauben</span><input type="checkbox" id="race-vsc">
           </div>
           <div class="setrow" style="margin-top:4px">
             <span>Zuschauen (KI-Modus)</span><input type="checkbox" id="race-spectate">
+          </div>
+          <div class="setrow" style="margin-top:4px">
+            <span>Fliegender Start</span><input type="checkbox" id="race-rolling" checked>
+          </div>
+          <div class="setrow" style="margin-top:4px">
+            <span>Boxenstopps / Schaden / Reifenverschleiß</span><input type="checkbox" id="race-pitstops">
           </div>
           <button class="btn primary" id="btn-mode-race" style="margin-top:10px">Rennen starten</button>
         </div>
@@ -755,7 +777,7 @@ const TRACKS = [
 const G = 9.81;
 const PHYS_DT = 1/120;            // Fixe Physik-Schrittweite
 const SURF = { TRACK:0, KERB:1, GRASS:2 };
-const SURF_MU = [1.30, 1.08, 0.45];
+const SURF_MU = [1.30, 1.08, 0.65];
 
 const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
 const lerp  = (a,b,t)=>a+(b-a)*t;
@@ -924,6 +946,21 @@ class Input {
       if(e.code==='KeyC' && (Game.state==='race'||Game.state==='finished')) Game.cameraRig.cycle();
       if(e.code==='KeyR' && (Game.state==='race'||Game.state==='finished')) Game.restartRace();
       if(e.code==='KeyH') document.getElementById('help').classList.toggle('hidden');
+      if(e.code==='KeyE' && (Game.state==='race'||Game.state==='finished')){
+        const car=Game.car, q=Game.track.query(car.pos,car.sampleIdx), s=Game.track.samples[q.idx];
+        car.pos.copy(s.pos); car.heading=Math.atan2(s.tan.x,s.tan.z);
+        car.vx=0; car.vy=0; car.yawRate=0;
+      }
+      if(e.code==='KeyE' && (Game.state==='race'||Game.state==='finished')){
+        /* Respawn: zurück auf die Strecke, mittig, richtige Richtung, Stillstand */
+        const car = Game.car;
+        const q = Game.track.query(car.pos, car.sampleIdx);
+        const s = Game.track.samples[q.idx];
+        car.pos.copy(s.pos);
+        car.pos.y = s.pos.y;
+        car.heading = Math.atan2(s.tan.x, s.tan.z);
+        car.vx = 0; car.vy = 0; car.yawRate = 0;
+      }
       if(e.code==='KeyP' && (Game.state==='race'||Game.state==='finished')){
         Game.car.pitLimiterActive = !Game.car.pitLimiterActive;
       }
@@ -1976,7 +2013,11 @@ class Car {
     this._uid = '_car_' + (Car._nextUid = (Car._nextUid || 0) + 1);
     /* --- Pit Stop System --- */
     this.pitLimiterActive = false;
-    this.totalDistance = 0;       // kumulierte Streckendistanz für VSC-Delta
+    this.totalDistance = 0;
+    this.wallContacts = 0; this.carContacts = 0; this.totalKm = 0;
+    this.wallContacts = 0;
+    this.carContacts = 0;
+    this.totalKm = 0;          // persistenter KM-Zähler (wird NICHT bei Restart resettet)
     this.pitStopState = 'idle';
     this.pitStopT = 0;
     this.pitStopsDone = 0;
@@ -2255,6 +2296,7 @@ class Car {
   /* ============== PHYSIK (Bicycle-Modell + Reibkreis + Gewichtsverlagerung) ============== */
   /* ============== PHYSIK (Assetto-Stil: Pacejka-Reifenmodell, Reibkreis, Lastverlagerung) ============== */
   step(dt, input, track, sound){
+    if(this._frozen){ this.vx=0;this.vy=0;this.yawRate=0; const q=track.query(this.pos,this.sampleIdx); this.sampleIdx=q.idx;this.query=q; return; }
     const d=this.def;
     const q=track.query(this.pos,this.sampleIdx);
     this.sampleIdx=q.idx; this.surf=q.surf; this.query=q;
@@ -2314,6 +2356,8 @@ class Car {
     }
     /* Distanz für VSC-Delta tracken */
     this.totalDistance = (this.totalDistance || 0) + Math.abs(this.vx) * dt;
+    this.totalKm = (this.totalKm || 0) + Math.abs(this.vx) * dt / 1000;
+    this.totalKm = (this.totalKm || 0) + Math.abs(this.vx) * dt / 1000;
 
     /* --- Pit-Speeding-Penalty ---
        NUR für den Spieler. NUR wenn klar tief in der Boxengasse (nicht am Rand).
@@ -2327,7 +2371,9 @@ class Car {
         const latAbs = Math.abs(q.lat);
         const clearlyInPit = latAbs > pl.innerOff + 1 && latAbs < pl.outerOff - 1;
         if(clearlyInPit && !this._pitSpeedingPenaltyGiven && this === (typeof Game !== 'undefined' ? Game.car : null)){
-          this.penaltySec = Math.max(this.penaltySec || 0, 10);
+          this.driveThroughPenaltyPending = true;
+          this.driveThroughInPit = false;
+          this.driveThroughNoticeUntil = (typeof performance!=='undefined'?performance.now():0)+5000;
           this._pitSpeedingPenaltyGiven = true;
           this._pitSpeedingNoticeUntil = (typeof performance !== 'undefined' ? performance.now() : 0) + 3500;
         }
@@ -2339,7 +2385,7 @@ class Car {
     /* --- Pit-Stop-Logik ---
        Wenn im Pit-Bereich, Limiter aktiv UND fast still → Boxenstopp startet.
        Während des Stopps ist Throttle und Brake gesperrt, danach grün. */
-    if(this.pitStopState === 'idle' && q.inPitLane && this.pitLimiterActive && this.speedKmh < 4 && !this.driveThroughPenaltyPending){
+    if(this.pitStopState === 'idle' && q.inPitLane && this.pitLimiterActive && this.speedKmh < 10 && !this.driveThroughPenaltyPending){
       /* Boxenstopp einleiten — Dauer hängt vom Gesamtschaden ab */
       const totalDmg = this.totalDamage;
       const lostCount = Object.keys(this.lostParts).length;
@@ -2447,7 +2493,7 @@ class Car {
     let muF = d.gripF/1.30 * baseMu * muFCorr;
     let muR = d.gripR/1.30 * baseMu * muRCorr;
     /* --- Reifen-Verschleiß / Schaden --- */
-    if(this.tireWear){
+    if(this.tireWear && (typeof Game==='undefined'||Game.pitStopsEnabled)){
       muF *= this.tireWear.front;
       muR *= this.tireWear.rear;
     }
@@ -2528,7 +2574,7 @@ class Car {
     const Froll = -0.013 * Fz * Math.sign(this.vx);
     let Fslope = -d.mass * G * q.slope * 0.9;
     let Fgrass = 0;
-    if(q.surf===SURF.GRASS) Fgrass = -1900 * Math.sign(this.vx) * clamp(speed,0,1);
+    if(q.surf===SURF.GRASS) Fgrass = -600 * Math.sign(this.vx) * clamp(speed,0,1);
 
     /* --- ABS: reduziert Bremskraft pro Achse, sobald Reibkreis-Reserve für Seitenkraft schwindet ---
        Behält ~50% laterale Kapazität, indem |Fx| ≤ 0.85·μFz gehalten wird (real ABS-Verhalten) */
@@ -2627,6 +2673,8 @@ class Car {
            Wir bestimmen Aufprallrichtung im Fahrzeug-Koordinatensystem.
            q2.side ist Weltvektor → in Auto-Frame transformieren */
         if(into > 1.5){
+          const _wn=typeof performance!=='undefined'?performance.now():0;
+          if(!this._wcCD||_wn-this._wcCD>500){this.wallContacts=(this.wallContacts||0)+1;this._wcCD=_wn;}
           const sideInCarX = sgn * (q2.side.x*sin + q2.side.z*cos);   // lateral component (auto-x)
           const sideInCarZ = sgn * (q2.side.x*cos - q2.side.z*sin);   // longitudinal (auto-z)
           this.applyDamageFromImpact(sideInCarX, sideInCarZ, into);
@@ -2683,7 +2731,7 @@ class Car {
     this.surf = q2.surf;
 
     /* Reifenverschleiß: abhängig von Rennlänge, Tempo, Slip und Untergrund */
-    if(this.tireWear){
+    if(this.tireWear && (typeof Game==='undefined'||Game.pitStopsEnabled)){
       const laps = (typeof Game !== 'undefined' && Game.totalLaps) ? Game.totalLaps : 3;
       const lifeLaps = (typeof Game !== 'undefined' && Game.tireWearLifeLaps) ? Game.tireWearLifeLaps() : 10;
       const distScale = clamp(laps / 3, 1, 4);
@@ -2799,6 +2847,7 @@ class Car {
   /** Verteilt Aufprallenergie auf Front/Heck/Links/Rechts.
    *  hitX/hitZ = Normale des Schlags im Fahrzeug-Frame, into = Schwere */
   applyDamageFromImpact(hitX, hitZ, into){
+    if(typeof Game!=='undefined' && !Game.pitStopsEnabled) return;
     /* Weniger empfindlich: bei light tap (into=3) → sev=8; harter Wall-Hit (into=10) → sev=25 */
     const sev = Math.min(25, into*2.6);
     const absX = Math.abs(hitX), absZ = Math.abs(hitZ);
@@ -3016,9 +3065,9 @@ class AIDriver {
        skill 0   → 7.0/8.5  (deutlich langsamer — auch mit Hypercar schlagbar)
        skill 0.5 → 10.5/12.5 (schnell, aber nicht am Limit)
        skill 1.0 → 14.0/16.5 (echtes Profi-Niveau, fast am physikalischen Limit) */
-    this.aLatBase = 7.0 + this.skill*7.0;
-    this.aBrk     = 8.5 + this.skill*8.0;
-    this.apexK    = 0.14 + this.skill*0.26;     // weniger aggressives Apex-Cutting = weniger Gras
+    this.aLatBase = 5.8 + this.skill*4.5;
+    this.aBrk     = 7.5 + this.skill*5.0;
+    this.apexK    = 0.12 + this.skill*0.22;     // weniger aggressives Apex-Cutting = weniger Gras
     /* Persönlichkeit pro KI */
     this.aggression = 0.28 + Math.random()*0.22;
     const lo = (fieldPos!=null && fieldSize>1) ? ((fieldPos - (fieldSize-1)/2) * 2.0/(fieldSize-1)) : 0;
@@ -3034,8 +3083,11 @@ class AIDriver {
   /** Skaliert AI-Grip basierend auf Fahrzeugklasse */
   classGripScale(car){
     const ct = car.def?.classType || 'gt3';
-    if(ct === 'hypercar') return 1.35;
-    if(ct === 'lmp2')     return 1.18;
+    /* Ziel-Verhältnisse auf Le Mans: GT3=130s, LMP2=120s, HYP=110s
+       → LMP2 braucht ~18% mehr Grip als GT3
+       → HYP braucht ~42% mehr Grip als GT3 */
+    if(ct === 'hypercar') return 1.52;
+    if(ct === 'lmp2')     return 1.22;
     return 1.0;
   }
 
@@ -3043,8 +3095,9 @@ class AIDriver {
   effectiveALat(car, speed){
     const cgs = this._cgs || 1;
     let aLat = this.aLatBase * cgs;
+    /* Weiches Limit: nur bei echtem Überschreiten des Reifen-Grips */
     const muF = (car.def?.gripF || 1.30) / 1.30 * 1.30;
-    const physLimit = muF * 9.81 * 0.98;
+    const physLimit = muF * 9.81 * 0.95;
     return Math.min(aLat, physLimit);
   }
 
@@ -3064,10 +3117,7 @@ class AIDriver {
 
   /** Kurvengeschwindigkeit mit Aero-Grip */
   cornerV(c, kAero){
-    let aLat = this._effALat || (this.aLatBase * (this._cgs||1));
-    /* Tight-Corner-Derate — sanfter als vorher, damit KI nicht zu langsam wird */
-    if(c > 0.05) aLat *= 0.85;       // R < 20m
-    else if(c > 0.03) aLat *= 0.93;   // R < 33m
+    const aLat = this._effALat || (this.aLatBase * (this._cgs||1));
     const denom = c - kAero;
     if(denom <= 0.0003) return 95;
     return Math.min(95, Math.sqrt(aLat / denom));
@@ -3125,6 +3175,7 @@ class AIDriver {
 
   /** Aktualisiert pitState basierend auf Strategie und aktueller Runde */
   updatePitStrategy(car, race, track){
+    if(typeof Game!=='undefined'&&!Game.pitStopsEnabled) return;
     const currentLap = race ? race.lap : 1;
 
     /* === Schadens-basierter Boxenstopp ===
@@ -3185,11 +3236,11 @@ class AIDriver {
     const seg = track.segLen;
     /* Horizont = wo wir aus aktuellem Tempo gerade noch bremsen können */
     const effBrk = this.aBrk * (this._cgs || 1);
-    /* Cap braking at physical limit too */
-    const muF = (car?.def?.gripF || 1.30) / 1.30 * 1.30;
-    const brkCap = muF * 9.81 * 0.95;
-    const effBrkCapped = Math.min(effBrk, brkCap);
-    const hor = Math.min(track.N-2, Math.ceil((30 + speed*speed/(2*effBrkCapped))/seg));
+    /* Brems-Cap: nicht über Reifen-Maximum */
+    const muFBrk = (car?.def?.gripF || 1.30) / 1.30 * 1.30;
+    const brkMax = muFBrk * 9.81 * 0.95;
+    const effBrkUse = Math.min(effBrk, brkMax);
+    const hor = Math.min(track.N-2, Math.ceil((30 + speed*speed/(2*effBrkUse))/seg));
     for(let k = 2; k < hor; k++){
       const i2 = (q.idx+k)%track.N;
       const c = Math.abs(track.samples[i2].curv);
@@ -3200,7 +3251,7 @@ class AIDriver {
       const vC = this.cornerV(Math.max(c, 0.0016), kAero);
       this.aLatBase = saveA;
       /* Kinematische Bremsgleichung: v² ≤ vC² + 2·a·s */
-      const al = Math.sqrt(vC*vC + 2*effBrkCapped*k*seg);
+      const al = Math.sqrt(vC*vC + 2*effBrkUse*k*seg);
       if(al < tgtV) tgtV = al;
     }
     /* Zusätzliche Vorsicht in engen Kurven und direkt nach dem Start */
@@ -3337,19 +3388,19 @@ class AIDriver {
     inp.steer += dS;
   }
 
-  /** Traktionskontrolle: progressiver — erlaubt mehr Throttle in Kurven */
+  /** Traktionskontrolle: leicht — nur extreme Situationen */
   applyTractionControl(car, v, kAero){
     const inp = this.input;
-    const ayNow = Math.abs(car.yawRate*v) + Math.abs(car.vy)*1.5;
-    const ayBudget = (this._effALat || this.aLatBase) + kAero*v*v;
-    /* Lenkwinkel-basierter Throttle-Limiter: sanfter als vorher */
-    const stThrLim = Math.max(0.05, 1 - Math.abs(inp.steer)*0.95);
-    /* Ay-basierter Limiter: früher Gas zurücknehmen */
-    const ayThrLim = Math.max(0.05, 1 - ayNow/(ayBudget*0.75));
-    inp.throttle = Math.min(inp.throttle, stThrLim, ayThrLim);
-    /* Oversteer-Correction: wenn Hinterachse wegrutscht, Gas raus und gegenlenken */
-    if(Math.abs(car.vy) > 1.8 + v*0.03){
-      inp.throttle *= 0.3;
+    /* Spin-Schutz: bei echtem Slide Gas stark runter */
+    if(Math.abs(car.vy) > 2.0 + Math.abs(v)*0.035){
+      inp.throttle *= 0.20;
+    }
+    /* Sanfte Throttle-Reduktion nur bei starkem Lenkeinschlag — verhindert Heck-Ausbruch
+       Bei 50% Lenkung → 100% Gas erlaubt. Bei 100% Lenkung → 70% Gas. */
+    const st = Math.abs(inp.steer);
+    if(st > 0.5){
+      const limit = 1.0 - (st - 0.5) * 0.6;     // 1.0 bei st=0.5, 0.7 bei st=1.0
+      inp.throttle = Math.min(inp.throttle, limit);
     }
   }
 
@@ -3373,7 +3424,7 @@ class AIDriver {
 
   /** Hauptkontrolle pro Tick */
   control(car, track, dt, running, others, race){
-    if(!running) return this.idle(car);
+    if(!running || car._frozen) return this.idle(car);
     const q = track.query(car.pos, car.sampleIdx);
     const v = car.vx, speed = Math.abs(v);
     const kAero = 0.55 * 9.81 * 1.3 / (car.def.topSpeed*car.def.topSpeed);
@@ -3383,12 +3434,15 @@ class AIDriver {
     /* Narrow-Track-Safety: auf engen Strecken weniger aggressiv.
        Höherer Skill = braucht MEHR Sicherheitsmarge weil die Absolutgeschwindigkeiten höher sind */
     const hw = track.def.halfWidth || 8;
-    const skillMargin = 1 + this.skill * 0.15;   // skill 1.0 braucht 15% mehr Marge
-    if(hw < 6.5) this._cgs *= clamp(0.75 / skillMargin, 0.65, 0.85);
-    else if(hw < 7.5) this._cgs *= clamp(0.88 / skillMargin, 0.78, 0.92);
-    else if(hw < 8.5) this._cgs *= clamp(0.95 / skillMargin, 0.88, 0.97);
+    const skillMargin = 1 + this.skill * 0.08;
+    if(hw < 6.5) this._cgs *= clamp(0.82 / skillMargin, 0.72, 0.88);
+    else if(hw < 7.5) this._cgs *= clamp(0.92 / skillMargin, 0.85, 0.95);
     /* Physics-capped effective lateral grip — nie über 90% des echten Auto-Grips */
     this._effALat = this.effectiveALat(car, speed);
+    /* Start-Phase: 50% Grip für 15s → kein Massencrash */
+    if(typeof Game!=='undefined' && Game._raceTimeS!=null && Game._raceTimeS<15){
+      this._effALat *= 0.50 + 0.50*clamp(Game._raceTimeS/15,0,1);
+    }
 
     /* Pit-Strategie zuerst — sonst frisst die Stuck-Recovery die in-pit→done-pit Transition,
        weil das Auto während des Stopps natürlich bei v=0 steht und als "festgefahren" gilt */
@@ -3489,6 +3543,15 @@ class AIDriver {
       tgtV *= 1.05;
     }
 
+    /* Formation (Fliegender Start): geradeaus, 60 km/h, kein Lenken */
+    if(typeof Game!=='undefined' && Game._formationPhase){
+      tgtV = Math.min(tgtV, 60/3.6);
+      this.input.steer = 0;
+    }
+    /* Green-Boost: KI beschleunigt 3s schneller als Spieler */
+    if(typeof Game!=='undefined' && Game._greenBoostUntil && performance.now() < Game._greenBoostUntil){
+      tgtV *= 1.40;     // 40% mehr Zieltempo → KI schießt aus der Formation
+    }
     /* VSC: alle KI auf 120 km/h gedrosselt */
     if(typeof Game !== 'undefined' && Game.vsc && Game.vsc.active){
       tgtV = Math.min(tgtV, 115/3.6);
@@ -3522,10 +3585,12 @@ class AIDriver {
         tx = p.x; tz = p.z;
         sampleIdxTarget = entryIdx;
       } else if(pitMode === 'exit'){
-        const exitIdx = pitInfo ? pitInfo.exitIdx : (pl.idxEnd - 6 + track.N) % track.N;
-        const p = pitPoint(exitIdx);
-        tx = p.x; tz = p.z;
-        sampleIdxTarget = exitIdx;
+        const liDist = Math.max(15, speed * 0.5);
+        const li = (q.idx + Math.round(liDist/seg)) % track.N;
+        const ts = track.samples[li];
+        tx = ts.pos.x + ts.side.x * pitMidOff;
+        tz = ts.pos.z + ts.side.z * pitMidOff;
+        sampleIdxTarget = li;
       } else if(box){
         tx = box.stopPos.x; tz = box.stopPos.z;
         sampleIdxTarget = box.sampleIdx;
@@ -3563,7 +3628,25 @@ class AIDriver {
     this.applyPedals(v, tgtV);
     this.applySteering(car, track, q, line, dt);
     this.applyTractionControl(car, v, kAero);
-    return this.input;
+
+    /* === P2P (Push-to-Pass) ===
+       KI aktiviert Boost auf Geraden wenn:
+       - Ladung > 25%
+       - Auf einer Geraden (Krümmung < 0.004)
+       - Vollgas (throttle > 0.8)
+       - Nicht unter SC/VSC */
+    const inp = this.input;
+    inp.boost = false;
+    if(car.ers && car.ers.charge > 0.25 && !car.ers.depleted){
+      const curvHere = Math.abs(track.samples[q.idx].curv);
+      const onStraight = curvHere < 0.004;
+      const fullThrottle = inp.throttle > 0.8;
+      const noYellow = !car.vscActive && !car.scActive;
+      if(onStraight && fullThrottle && noYellow){
+        inp.boost = true;
+      }
+    }
+    return inp;
   }
 }
 /* ============================ AUTO-AUTO-KOLLISION ============================ */
@@ -3576,9 +3659,10 @@ function setCarWorldVel(c,wx,wz){
   c.vx=sin*wx+cos*wz; c.vy=cos*wx-sin*wz;
 }
 function collideCars(cars){
-  const R=2.1;                                   // Wirkungsradius pro Auto
+  const R=1.8;                                   // Wirkungsradius pro Auto
   for(let i=0;i<cars.length;i++) for(let j=i+1;j<cars.length;j++){
     const a=cars[i], b=cars[j];
+    if(a._frozen||b._frozen) continue;
     let dx=b.pos.x-a.pos.x, dz=b.pos.z-a.pos.z;
     const d=Math.hypot(dx,dz);
     if(d>=R*2||d<0.001) continue;
@@ -3589,10 +3673,16 @@ function collideCars(cars){
     const [ax,az]=carWorldVel(a), [bx,bz]=carWorldVel(b);
     const rel=(bx-ax)*dx+(bz-az)*dz;
     if(rel<0){                                    // bewegen sich aufeinander zu
-      const imp=-rel*0.45;                        // weicher als vorher (0.62→0.45) — weniger Kettenreaktion
+      const imp=-rel*0.45;
       setCarWorldVel(a, ax-dx*imp, az-dz*imp);
       setCarWorldVel(b, bx+dx*imp, bz+dz*imp);
-      a.yawRate*=0.92; b.yawRate*=0.92;           // weniger Spin bei Berührung (0.85→0.92)
+      a.yawRate*=0.92; b.yawRate*=0.92;
+      /* Contact Counter */
+      const _now=typeof performance!=='undefined'?performance.now():0;
+      if(!a._ccCD)a._ccCD={};if(!b._ccCD)b._ccCD={};
+      const _idA=b._uid||'b',_idB=a._uid||'a';
+      if(!a._ccCD[_idA]||_now-a._ccCD[_idA]>500){a.carContacts=(a.carContacts||0)+1;a._ccCD[_idA]=_now;}
+      if(!b._ccCD[_idB]||_now-b._ccCD[_idB]>500){b.carContacts=(b.carContacts||0)+1;b._ccCD[_idB]=_now;}
       const impMag = Math.abs(rel);
       if(impMag>5 && typeof Game!=='undefined' && Game.sound) Game.sound.impact(Math.min(1,impMag/14));
       /* Schadensanwendung nur bei harten Berührungen */
@@ -3988,7 +4078,7 @@ const HUD = {
                        gap > 1 ? '+'+Math.floor(gap)+' Rd' :
                        '+'+(gap*30).toFixed(1)+'s';
         const name = s.isPlayer ? 'DU' : (s.car.def?.name || 'KI').substring(0,16);
-        const finishMark = s.car.rd?.finished ? ' ✓' : '';
+        const finishMark = s.car.rd?.dnf ? ' DNF' : s.car.rd?.finished ? ' ✓' : '';
         const ct = s.car.def?.classType || 'gt3';
         const cls = ct === 'hypercar' ? 'hyp' : ct === 'lmp2' ? 'lmp2' : 'gt3';
         const clsLabel = ct === 'hypercar' ? 'HYP' : ct === 'lmp2' ? 'LM2' : 'GT3';
@@ -4175,8 +4265,10 @@ const HUD = {
       }
     }
     if(this._pitRequired && typeof Game !== 'undefined'){
-      const needed = Game.mandatoryPitStop && car.pitStopsDone < 1 && Game.state === 'race';
+      const reqStops = typeof Game.mandatoryPitStop==='number'?Game.mandatoryPitStop:(Game.mandatoryPitStop?1:0);
+      const needed = reqStops>0 && car.pitStopsDone<reqStops && Game.state==='race';
       this._pitRequired.style.display = needed ? 'inline-block' : 'none';
+      if(needed) this._pitRequired.textContent = 'PITSTOP PFLICHT ('+car.pitStopsDone+'/'+reqStops+')';
     }
     /* VSC-Anzeige */
     if(this._vsc && typeof Game !== 'undefined'){
@@ -4251,6 +4343,32 @@ const HUD = {
     const lit=Math.round(r*this.leds.length);
     this.leds.forEach((el,i)=>el.classList.toggle('on',i<lit));
     document.getElementById('dash').classList.toggle('limit', r>0.97);
+    /* Stats-Bar: KM + Kontakte */
+    const statKm = document.getElementById('stat-km');
+    const statWall = document.getElementById('stat-wall');
+    const statCar = document.getElementById('stat-car');
+    /* Global KM-Zähler: persistiert über Rennen und Neuladen */
+    if(typeof Game !== 'undefined'){
+      Game._globalTotalKm = (Game._globalTotalKm || 0) + (car.totalKm || 0);
+      car.totalKm = 0;     // reset car counter, add to global
+      if(statKm) statKm.textContent = Game._globalTotalKm.toFixed(1) + ' km';
+      /* Alle 5 Sekunden speichern */
+      if(!Game._lastKmSave || performance.now() - Game._lastKmSave > 5000){
+        Store.set('totalKm', Game._globalTotalKm.toFixed(2));
+        Game._lastKmSave = performance.now();
+      }
+    }
+    if(statWall) statWall.textContent = 'Wand: ' + (car.wallContacts || 0);
+    if(statCar) statCar.textContent = 'Auto: ' + (car.carContacts || 0);
+    /* Stats-Bar */
+    const _sKm=document.getElementById('stat-km'), _sW=document.getElementById('stat-wall'), _sC=document.getElementById('stat-car');
+    if(typeof Game!=='undefined'){
+      Game._globalTotalKm=(Game._globalTotalKm||0)+(car.totalKm||0); car.totalKm=0;
+      if(_sKm) _sKm.textContent=Game._globalTotalKm.toFixed(1)+' km';
+      if(!Game._lastKS||performance.now()-Game._lastKS>5000){Store.set('totalKm',Game._globalTotalKm.toFixed(2));Game._lastKS=performance.now();}
+    }
+    if(_sW) _sW.textContent='Wand: '+(car.wallContacts||0);
+    if(_sC) _sC.textContent='Auto: '+(car.carContacts||0);
     this.drawMap(car, aiCars);
   }
 };
@@ -4275,9 +4393,12 @@ const Game = {
   },
 
   boot(){
+    this._globalTotalKm = parseFloat(Store.get('totalKm')) || 0;
     HUD.init();
     this.input=new Input();
     this.sound=new SoundManager();
+    /* Persistenter KM-Zähler laden */
+    this._globalTotalKm = parseFloat(Store.get('totalKm')) || 0;
     try{
       const raw = Store.get('controller_bindings_v1');
       if(raw) this.controllerBindings = Object.assign({}, defaultControllerBindings, JSON.parse(raw));
@@ -4610,7 +4731,7 @@ const Game = {
     /* Rennlänge in Runden — vom Menü, default 3 */
     this.totalLaps = this.mode==='race3' ? (this.raceLaps || 3) : 0;
     /* Pflicht-Pitstop ab > 5 Runden */
-    this.mandatoryPitStop = this.totalLaps > 5;
+    this.mandatoryPitStop = this.pitStopsEnabled && this.totalLaps > 5 ? Math.max(1, Math.floor(this.totalLaps / 15)) : 0;
     this.aiCars=[]; this.aiDrivers=[];
     const N=this.track.N;
     if(this.mode==='race3'){
@@ -4649,10 +4770,23 @@ const Game = {
         return 0;
       });
 
-      /* Auf Grid platzieren: Position 0 = ganz vorne (Pole) */
-      for(let i=0; i<sorted.length; i++){
-        const row = Math.floor(i/2), col = i%2;
-        sorted[i].placeAtGrid(this.track, N-6-row*5, (col?1:-1)*2.9);
+      /* Auf Grid platzieren */
+      if(this.rollingStart){
+        /* FLIEGENDER START: alle gleichzeitig, aber RIESIGE Lücken zwischen Klassen */
+        let offset = 0;
+        for(let c = 0; c <= 2; c++){
+          const classCars = sorted.filter(s => getClassRank(s) === c);
+          for(let j=0; j<classCars.length; j++){
+            const row = Math.floor(j/2), col = j%2;
+            classCars[j].placeAtGrid(this.track, N-6-(offset+row)*5, (col?1:-1)*2.9);
+          }
+          offset += Math.ceil(classCars.length/2) + 16;  // 16 Reihen = ~80m zwischen Klassen
+        }
+      } else {
+        for(let i=0; i<sorted.length; i++){
+          const row = Math.floor(i/2), col = i%2;
+          sorted[i].placeAtGrid(this.track, N-6-row*5, (col?1:-1)*2.9);
+        }
       }
 
       /* allCars-Reihenfolge beibehalten (Spieler immer Index 0 für HUD) */
@@ -4697,6 +4831,7 @@ const Game = {
     this.vsc = {active:false, startTime:0, startDist:0, deltaSec:0, totalDist:0};
     for(const c of this.allCars){
       c._stuckT = 0; c._everMoved = false; c._prevDmg = 0;
+      c._frozen = false; if(c.group) c.group.visible = true;
       if(typeof c.penaltySec !== 'number') c.penaltySec = 0;        // ausstehende Strafsekunden für nächsten Pitstop
     }
     document.getElementById('menus').classList.add('hidden');
@@ -4708,24 +4843,42 @@ const Game = {
   },
   freshRD(){ return {lap:1, prevProg:0, halfPassed:false, totalProg:0, finished:false, finishT:null}; },
   runCountdown(){
-    this.input.locked=true;
     const lights=[...document.querySelectorAll('#lights i')];
     const box=document.getElementById('lights');
     box.classList.remove('hidden');
     lights.forEach(l=>l.classList.remove('on','green'));
-    let i=0;
-    const tick=()=>{
-      if(this.state!=='countdown' && this.state!=='race') return;
-      if(i<5){ lights[i].classList.add('on'); i++; setTimeout(tick,720); }
-      else {
+
+    if(this.rollingStart){
+      /* FLIEGENDER START: alle rollen 5s bei 60 km/h geradeaus → GRÜN */
+      this._formationPhase = true;
+      this.state = 'race';
+      this.input.locked = false;
+      for(const c of this.allCars){ c.vx = 60/3.6; c._frozen = false; }
+      lights.forEach(l=>l.classList.add('on'));
+      setTimeout(()=>{
+        this._formationPhase = false;
+        this._greenBoostUntil = performance.now() + 3000;
         lights.forEach(l=>l.classList.add('green'));
-        this.input.locked=false;
-        this.state='race';
-        this.race.lapStart=performance.now();
-        setTimeout(()=>box.classList.add('hidden'),900);
-      }
-    };
-    setTimeout(tick,600);
+        this.race.lapStart = performance.now();
+        setTimeout(()=>box.classList.add('hidden'), 900);
+      }, 5000);
+    } else {
+      /* === STEHENDER START: klassische 5 Lichter === */
+      this.input.locked = true;
+      let i = 0;
+      const tick = () => {
+        if(this.state!=='countdown' && this.state!=='race') return;
+        if(i < 5){ lights[i].classList.add('on'); i++; setTimeout(tick, 720); }
+        else {
+          lights.forEach(l=>l.classList.add('green'));
+          this.input.locked = false;
+          this.state = 'race';
+          this.race.lapStart = performance.now();
+          setTimeout(()=>box.classList.add('hidden'), 900);
+        }
+      };
+      setTimeout(tick, 600);
+    }
   },
   restartRace(){
     const N=this.track.N;
@@ -4750,9 +4903,21 @@ const Game = {
         if(b === this.car) return -1;
         return 0;
       });
-      for(let i=0; i<sorted.length; i++){
-        const row = Math.floor(i/2), col = i%2;
-        sorted[i].placeAtGrid(this.track, N-6-row*5, (col?1:-1)*2.9);
+      if(this.rollingStart){
+        let offset = 0;
+        for(let c = 0; c <= 2; c++){
+          const classCars = sorted.filter(s => getClassRank(s) === c);
+          for(let j=0; j<classCars.length; j++){
+            const row = Math.floor(j/2), col = j%2;
+            classCars[j].placeAtGrid(this.track, N-6-(offset+row)*5, (col?1:-1)*2.9);
+          }
+          offset += Math.ceil(classCars.length/2) + 16;
+        }
+      } else {
+        for(let i=0; i<sorted.length; i++){
+          const row = Math.floor(i/2), col = i%2;
+          sorted[i].placeAtGrid(this.track, N-6-row*5, (col?1:-1)*2.9);
+        }
       }
     } else {
       this.car.placeAtStart(this.track);
@@ -4799,6 +4964,10 @@ const Game = {
       c.vx = 0; c.vy = 0; c.yawRate = 0;
       c.slipstreamFactor = 0;
       c.totalDistance = 0;
+      c.wallContacts = 0; c.carContacts = 0; c._ccCD = {}; c._wcCD = 0;
+      c.wallContacts = 0;
+      c.carContacts = 0;
+      /* totalKm bleibt — kumuliert über alle Rennen */
       c.vscActive = false;
       c.scActive = false;
       /* Pit-State */
@@ -4938,13 +5107,14 @@ const Game = {
       while(this.acc>=PHYS_DT && steps<8){
         /* Spieler-Input: eigener Input oder KI (Zuschauen-Modus) */
         let playerInput;
-        if(this.spectateMode){
+        if(this.spectateMode || this._formationPhase){
+          /* KI steuert das Spielerauto (Zuschauen-Modus ODER Formation) */
           if(!this._spectateAI){
             this._spectateAI = new AIDriver(this.aiDifficulty || 60, 0, 1);
             this._spectateAI.setupForRace(this.totalLaps, this.mandatoryPitStop);
           }
           playerInput = this._spectateAI.control(this.car, this.track, PHYS_DT, running, this.allCars, {lap: this.car.rd?.lap || 1});
-          this.input.update(PHYS_DT);   // trotzdem updaten für Kamera-Steuerung
+          this.input.update(PHYS_DT);
         } else {
           this.input.update(PHYS_DT);
           playerInput = this.input;
@@ -4978,7 +5148,17 @@ const Game = {
             if(eff > c.slipstreamFactor) c.slipstreamFactor = eff;
           }
         }
+        /* Spieler: 1s nach Grün nur 50% Gas (simuliert Reaktionszeit + Kupplungsmoment) */
+        if(this._greenBoostUntil && performance.now() < this._greenBoostUntil - 2000){
+          playerInput.throttle *= 0.50;
+        }
         this.car.step(PHYS_DT, playerInput, this.track, this.sound);
+        /* Formation: geradeaus, 60 km/h cap, kein Lenken */
+        if(this._formationPhase){
+          playerInput.steer = 0;
+          this.car.yawRate *= 0.90;
+          if(this.car.speedKmh > 62) this.car.vx = Math.sign(this.car.vx) * 60/3.6;
+        }
         /* KI-Gegner */
         for(let i=0;i<this.aiCars.length;i++){
           const inp=this.aiDrivers[i].control(this.aiCars[i],this.track,PHYS_DT,running,this.allCars,{lap:this.aiCars[i].rd.lap});
@@ -5017,6 +5197,12 @@ const Game = {
           let stuckCount = 0;
           for(const c of this.allCars){
             if((c._stuckT || 0) > 3) stuckCount++;
+            /* DNF: 30s stehen → Auto verschwindet (außer Spieler + aktiver Boxenstopp) */
+            if(c !== this.car && (c._stuckT||0) > 30 && !c.rd?.finished && c.pitStopState==='idle'){
+              c.rd.finished = true; c.rd.dnf = true;
+              if(c.group) c.group.visible = false;
+              c.vx=0; c.vy=0; c.pos.set(9999,-100,9999);
+            }
           }
           /* Auto-Trigger: bei 2+ stuck cars sofort Safety Car raus — aber FRÜHESTENS nach 20s Race-Zeit
              (sonst kickt der Detector beim Startgrid sofort) */
@@ -5094,7 +5280,36 @@ const Game = {
             this.car._overtakeState = {};
           }
         }
-        /* VSC-Delta für Spieler aktualisieren */
+          /* === VSC AUTO-DEPLOYMENT ===
+             Aktiviert sich automatisch wenn EIN Auto >5s stuck UND kein SC aktiv.
+             Endet automatisch wenn kein Auto mehr stuck ist (10s Cooldown). */
+          const scActive = this.safetyCar && this.safetyCar.state !== 'idle';
+          if(this.vscEnabled !== false && !scActive){
+            const anyStuck5s = this.allCars.some(c => (c._stuckT||0) > 5 && c !== this.car && !c.rd?.finished);
+            if(anyStuck5s && !this.vsc.active){
+              /* VSC aktivieren */
+              this.vsc.active = true;
+              this.vsc.startTime = performance.now()/1000;
+              this.vsc.startDist = this.car.totalDistance || 0;
+              this.vsc.deltaSec = 0;
+              this.vsc._clearTimer = 0;
+              this.flag.state = 'yellow';
+            }
+            if(this.vsc.active){
+              if(!anyStuck5s){
+                this.vsc._clearTimer = (this.vsc._clearTimer||0) + PHYS_DT;
+                if(this.vsc._clearTimer > 10){
+                  /* Situation bereinigt → VSC beenden */
+                  this.vsc.active = false;
+                  this.flag.state = 'green';
+                }
+              } else {
+                this.vsc._clearTimer = 0;
+              }
+            }
+          }
+
+          /* VSC-Delta für Spieler: wie viel schneller/langsamer als 120 km/h Referenz */
         if(vscOn){
           const v = this.vsc;
           const elapsed = performance.now()/1000 - v.startTime;
@@ -5105,6 +5320,16 @@ const Game = {
              delta > 0  → mehr Zeit gebraucht als 120-km/h-Referenz (du fährst langsam genug, SAFE)
              delta < 0  → weniger Zeit als Referenz (du warst zu schnell unterwegs → STRAFE-RISIKO) */
           v.deltaSec = elapsed - refTime;
+          /* Delta-Enforcement: wenn dauerhaft zu schnell (delta < -2.0s) → Drive-Through */
+          if(v.deltaSec < -2.0 && !this.car.driveThroughPenaltyPending && !this.car._vscPenaltyGiven){
+            this.car.driveThroughPenaltyPending = true;
+            this.car.driveThroughInPit = false;
+            this.car.driveThroughNoticeUntil = performance.now() + 5000;
+            this.car._vscPenaltyGiven = true;
+            this._penaltyNotice = {until: performance.now() + 5000};
+          }
+          /* Reset penalty flag wenn VSC beendet wird */
+          if(!this.vsc.active) this.car._vscPenaltyGiven = false;
         }
         this.acc-=PHYS_DT; steps++;
       }
@@ -5214,6 +5439,8 @@ const Game = {
       this.scEnabled = $('race-sc') ? $('race-sc').checked : true;
       this.vscEnabled = $('race-vsc') ? $('race-vsc').checked : true;
       this.spectateMode = $('race-spectate') ? $('race-spectate').checked : false;
+      this.rollingStart = $('race-rolling') ? $('race-rolling').checked : true;
+      this.pitStopsEnabled = $('race-pitstops') ? $('race-pitstops').checked : false;
       this.startRace();
     };
     $('btn-back-mode').onclick=()=>this.showScreen('screen-car');
