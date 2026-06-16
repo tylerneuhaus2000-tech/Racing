@@ -66,6 +66,10 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #tower .row{display:flex;justify-content:space-between;gap:18px;font-size:13px;padding:2px 0}
 #tower .row span:first-child{color:var(--dim);letter-spacing:.12em;font-size:10px;padding-top:3px}
 #lap{font-size:15px;font-weight:700;letter-spacing:.1em;margin-bottom:6px}
+#delta{font-size:13px;font-weight:800;letter-spacing:.08em;color:var(--green)}
+#delta.positive{color:var(--red)}
+#delta.negative{color:var(--green)}
+#delta.neutral{color:var(--amber)}
 #damage-row{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:10px;color:var(--dim);letter-spacing:.12em}
 .dmg-label{min-width:54px}
 #damage-bar{flex:1;height:6px;background:#1a2026;border:1px solid var(--line);position:relative}
@@ -204,6 +208,7 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
     <div class="row"><span>ZEIT</span><span id="laptime">--:--.---</span></div>
     <div class="row"><span>LETZTE</span><span id="lastlap">--:--.---</span></div>
     <div class="row"><span>BEST</span><span id="bestlap">--:--.---</span></div>
+    <div class="row"><span>DELTA</span><span id="delta">--.--</span></div>
     <div id="prog">0% DER RUNDE</div>
     <div id="damage-row">
       <span class="dmg-label">SCHADEN</span>
@@ -3989,7 +3994,7 @@ class CameraRig {
 const HUD = {
   els:{},
   init(){
-    for(const id of ['speed','gear','lap','laptime','lastlap','bestlap','carname','prog','camlabel','pos'])
+    for(const id of ['speed','gear','lap','laptime','lastlap','bestlap','delta','carname','prog','camlabel','pos'])
       this.els[id]=document.getElementById(id);
     this.leds=[...document.querySelectorAll('#rpmbar i')];
     this.mapC=document.getElementById('minimap');
@@ -4040,6 +4045,16 @@ const HUD = {
     this.els.laptime.textContent=this.fmt(race.curLapTime);
     this.els.lastlap.textContent=this.fmt(race.lastLap);
     this.els.bestlap.textContent=this.fmt(race.bestLap);
+    if(this.els.delta){
+      const delta = totalLaps === 0 ? race.bestLapDelta : null;
+      if(delta == null || !isFinite(delta)){
+        this.els.delta.textContent='--.--';
+        this.els.delta.className='';
+      } else {
+        this.els.delta.textContent=(delta>0?'+':'')+delta.toFixed(3)+'s';
+        this.els.delta.className = delta < 0 ? 'negative' : delta > 0 ? 'positive' : 'neutral';
+      }
+    }
     this.els.prog.textContent=(car.query?Math.round(car.query.progress*100):0)+'% DER RUNDE';
     /* === Leaderboard === */
     if(this._lbList === undefined){
@@ -4802,8 +4817,12 @@ const Game = {
         this.playerBoxArrow = {grp:arrowGrp, mat:coneMat};
       }
     }
+    const bestLap = parseFloat(Store.get('best_'+trackDef.id+'_'+CARS[this.selCar].id))||null;
     this.race={lap:1, curLapTime:0, lapStart:performance.now(), lastLap:null,
-      bestLap:parseFloat(Store.get('best_'+trackDef.id+'_'+CARS[this.selCar].id))||null,
+      bestLap,
+      bestLapRef:this.loadBestLapProfile(trackDef.id, CARS[this.selCar].id),
+      bestLapDelta:null,
+      lapSamples:[{progress:0, time:0}],
       halfPassed:false, prevProg:0, pos:1, total:this.allCars.length};
     /* Race-Timer + Stuck-Reset für SC-Trigger */
     this._raceTimeS = 0;
@@ -4822,6 +4841,56 @@ const Game = {
     this.runCountdown();
   },
   freshRD(){ return {lap:1, prevProg:0, halfPassed:false, totalProg:0, finished:false, finishT:null}; },
+  bestLapProfileKey(trackId, carId){
+    return 'bestref_' + trackId + '_' + carId;
+  },
+  loadBestLapProfile(trackId, carId){
+    try{
+      const raw = Store.get(this.bestLapProfileKey(trackId, carId));
+      const parsed = raw ? JSON.parse(raw) : null;
+      if(!Array.isArray(parsed) || !parsed.length) return null;
+      return parsed
+        .map(p => ({progress:Number(p.progress ?? p.p ?? 0), time:Number(p.time ?? p.t ?? 0)}))
+        .filter(p => isFinite(p.progress) && isFinite(p.time))
+        .sort((a,b) => a.progress - b.progress);
+    } catch(e){
+      return null;
+    }
+  },
+  saveBestLapProfile(trackId, carId, samples){
+    try{
+      if(Array.isArray(samples) && samples.length){
+        Store.set(this.bestLapProfileKey(trackId, carId), JSON.stringify(samples));
+      }
+    } catch(e){}
+  },
+  bestLapRefTime(samples, progress, fallbackLapTime){
+    progress = clamp(progress, 0, 1);
+    if(Array.isArray(samples) && samples.length){
+      if(progress <= samples[0].progress){
+        const first = samples[0];
+        return first.progress > 0 ? first.time * (progress / first.progress) : first.time;
+      }
+      for(let i = 1; i < samples.length; i++){
+        const a = samples[i - 1];
+        const b = samples[i];
+        if(progress <= b.progress){
+          const span = Math.max(1e-6, b.progress - a.progress);
+          const t = (progress - a.progress) / span;
+          return a.time + (b.time - a.time) * t;
+        }
+      }
+      return samples[samples.length - 1].time;
+    }
+    if(fallbackLapTime != null && isFinite(fallbackLapTime)) return fallbackLapTime * progress;
+    return null;
+  },
+  updateTTDelta(race, progress, now){
+    if(this.mode !== 'tt' || !race) return;
+    const current = now - race.lapStart;
+    const refTime = this.bestLapRefTime(race.bestLapRef, progress, race.bestLap);
+    race.bestLapDelta = (refTime == null || !isFinite(refTime)) ? null : current - refTime;
+  },
   runCountdown(){
     const lights=[...document.querySelectorAll('#lights i')];
     const box=document.getElementById('lights');
@@ -4862,6 +4931,8 @@ const Game = {
   },
   restartRace(){
     const N=this.track.N;
+    const prevBestLap = this.race?.bestLap || null;
+    const prevBestLapRef = this.race?.bestLapRef || null;
     if(this.mode==='race3'){
       const nAI=this.aiCars.length;
       this.aiCars.forEach((c,i)=>{
@@ -4978,7 +5049,10 @@ const Game = {
     }
 
     this.race = {lap:1, curLapTime:0, lapStart:performance.now(), lastLap:null,
-      bestLap:this.race?.bestLap || null,
+      bestLap:prevBestLap,
+      bestLapRef:prevBestLapRef,
+      bestLapDelta:null,
+      lapSamples:[{progress:0, time:0}],
       halfPassed:false, prevProg:0, pos:this.allCars.length, total:this.allCars.length};
     document.getElementById('results').classList.add('hidden');
     this.state='countdown';
@@ -5032,14 +5106,36 @@ const Game = {
             r.lastLap=now-r.lapStart;
             if(r.bestLap==null||r.lastLap<r.bestLap){
               r.bestLap=r.lastLap;
+              if(Array.isArray(r.lapSamples) && r.lapSamples.length){
+                const bestSamples = r.lapSamples.map(s => ({progress:s.progress, time:s.time}));
+                const tail = bestSamples[bestSamples.length - 1];
+                if(!tail || tail.progress < 1){
+                  bestSamples.push({progress:1, time:r.lastLap});
+                } else {
+                  bestSamples[bestSamples.length - 1] = {progress:1, time:r.lastLap};
+                }
+                r.bestLapRef = bestSamples;
+                this.saveBestLapProfile(this.trackDef.id, CARS[this.selCar].id, bestSamples);
+              }
               Store.set('best_'+this.trackDef.id+'_'+CARS[this.selCar].id, r.bestLap);
             }
             r.lapStart=now; r.lap=rd.lap;
+            r.lapSamples=[{progress:0, time:0}];
+            r.bestLapDelta=null;
           }
         }
         rd.prevProg=p;
         rd.totalProg=(rd.lap-1)+p;
       }
+    }
+    if(this.mode==='tt' && this.race){
+      const progress = this.car.query ? clamp(this.car.query.progress || 0, 0, 1) : 0;
+      const currentTime = now - this.race.lapStart;
+      const last = this.race.lapSamples[this.race.lapSamples.length - 1];
+      if(!last || progress - last.progress >= 0.004 || currentTime - last.time >= 40){
+        this.race.lapSamples.push({progress, time:currentTime});
+      }
+      this.updateTTDelta(this.race, progress, now);
     }
     /* Platzierung: Zielankunft schlägt Fortschritt */
     if(this.totalLaps){
