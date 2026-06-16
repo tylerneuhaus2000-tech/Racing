@@ -87,7 +87,11 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #leaderboard .lb-row.class-gt3{border-left:3px solid #55a8ff;padding-left:6px;background:rgba(85,168,255,0.06)}
 #leaderboard .lb-row.class-lmp1{border-left:3px solid #ff4a58;padding-left:6px;background:rgba(255,74,88,0.06)}
 #leaderboard .lb-pos{min-width:24px;font-weight:700;color:#e8ecef}
-#leaderboard .lb-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px}
+#leaderboard .lb-cls{min-width:30px;text-align:center;font-weight:700;font-size:8px;padding:1px 3px;border-radius:2px}
+#leaderboard .lb-hyp{background:#c61d2f;color:#fff}
+#leaderboard .lb-lmp2{background:#22c463;color:#111}
+#leaderboard .lb-gt3{background:#2878c8;color:#fff}
+#leaderboard .lb-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px}
 #leaderboard .lb-gap{font-variant-numeric:tabular-nums;color:#a0a8b0;min-width:48px;text-align:right}
 #leaderboard .lb-class{font-size:8px;letter-spacing:.16em;padding:1px 5px;border-radius:999px;align-self:center;margin-right:6px}
 #leaderboard .lb-class.gt3{background:#55a8ff;color:#07131f}
@@ -112,7 +116,7 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #bestlap{color:var(--green)}
 #prog{font-size:9px;color:var(--dim);letter-spacing:.15em;margin-top:6px}
 /* Minimap oben rechts */
-#minimap{position:absolute;top:184px;right:18px;background:#0a0c0fb0;border:1px solid var(--line)}
+#minimap{position:absolute;top:290px;right:18px;background:#0a0c0fb0;border:1px solid var(--line)}
 /* Dashboard unten rechts — Signatur: GT3-Schaltblitzleiste */
 #dash{position:absolute;right:24px;bottom:24px;background:var(--panel);border:1px solid var(--line);
   padding:14px 22px 16px;text-align:right;min-width:230px}
@@ -128,6 +132,17 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #speed{font-size:44px;font-weight:700;line-height:1}
 #dash .unit{font-size:11px;color:var(--dim);letter-spacing:.2em}
 #carname{font-size:10px;letter-spacing:.22em;color:var(--dim);margin-top:8px}
+#tyrebox{position:absolute;right:24px;bottom:132px;background:var(--panel);border:1px solid var(--line);
+  padding:12px 14px 10px;min-width:230px;font-family:var(--mono);backdrop-filter:blur(4px)}
+#tyrebox .tb-title{font-size:9px;letter-spacing:.24em;color:var(--red);margin-bottom:8px;font-weight:700}
+#tyrebox .tb-row{display:grid;grid-template-columns:34px 1fr 44px;align-items:center;gap:8px;margin-top:6px;font-size:10px;color:#a0a8b0}
+#tyrebox .tb-bar{height:6px;background:#1a2026;border:1px solid var(--line);position:relative}
+#tyrebox .tb-bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#22c463 0%,#ffd400 55%,#ff2e3d 100%);transition:width 0.18s}
+#tyrebox .tb-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+#tyrebox .tb-chip{padding:5px 6px 4px;background:#0c0f13;border:1px solid var(--line);font-size:9px;line-height:1.15;color:#cfd6dd}
+#tyrebox .tb-chip b{display:block;font-size:10px;letter-spacing:.08em;color:#fff}
+#tyrebox .tb-chip span{display:block;margin-top:2px;color:var(--dim)}
+#tyrebox.hidden{display:none}
 #camlabel{position:absolute;left:24px;bottom:24px;background:var(--panel);border:1px solid var(--line);
   padding:8px 14px;font-size:10px;letter-spacing:.2em;color:var(--dim)}
 /* Startampel */
@@ -159,6 +174,7 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 @media (max-width:720px){
   h1{font-size:30px}.screen{padding:26px 22px}
   #dash{right:10px;bottom:10px;min-width:0;padding:10px 14px}
+  #tyrebox{right:10px;bottom:110px;min-width:0;padding:10px 12px}
   #gear{font-size:36px}#speed{font-size:30px}
   #tower{top:10px;left:10px;min-width:0}
   #minimap{top:156px;right:10px;width:120px;height:120px}
@@ -242,6 +258,20 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
       <span><span id="speed">0</span> <span class="unit">KM/H</span></span>
     </div>
     <div id="carname">—</div>
+  </div>
+  <div id="tyrebox" class="hidden">
+    <div class="tb-title">REIFEN</div>
+    <div class="tb-row">
+      <span>AVG</span>
+      <div class="tb-bar"><i id="tyre-avg-bar"></i></div>
+      <span id="tyre-avg-pct">100%</span>
+    </div>
+    <div class="tb-grid">
+      <div class="tb-chip"><b>FL</b><span id="tyre-FL">100%</span></div>
+      <div class="tb-chip"><b>FR</b><span id="tyre-FR">100%</span></div>
+      <div class="tb-chip"><b>RL</b><span id="tyre-RL">100%</span></div>
+      <div class="tb-chip"><b>RR</b><span id="tyre-RR">100%</span></div>
+    </div>
   </div>
   <div id="camlabel">KAMERA: VERFOLGER</div>
   <div id="help" class="hidden">
@@ -372,15 +402,24 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
           <span>Startaufstellung mit dir ganz hinten, Zieldurchfahrt mit Ergebnis. Ab 6 Runden ist ein Boxenstopp Pflicht.</span>
           <div class="setrow" style="margin-top:10px">
             <span>Gegner: <strong id="ai-count-label">5</strong></span>
-            <input type="range" id="ai-count" min="1" max="20" step="1" value="5">
+            <input type="range" id="ai-count" min="1" max="50" step="1" value="5">
           </div>
           <div class="setrow" style="margin-top:8px">
             <span><strong id="race-laps-label">3 Runden</strong></span>
-            <input type="range" id="race-laps" min="1" max="20" step="1" value="3">
+            <input type="range" id="race-laps" min="1" max="100" step="1" value="3">
           </div>
           <div class="setrow" style="margin-top:8px">
             <span>KI-Schwierigkeit: <strong id="ai-diff-label">60</strong></span>
             <input type="range" id="ai-diff" min="0" max="100" step="5" value="60">
+          </div>
+          <div class="setrow" style="margin-top:8px">
+            <span>Safety Car erlauben</span><input type="checkbox" id="race-sc" checked>
+          </div>
+          <div class="setrow" style="margin-top:4px">
+            <span>VSC erlauben</span><input type="checkbox" id="race-vsc" checked>
+          </div>
+          <div class="setrow" style="margin-top:4px">
+            <span>Zuschauen (KI-Modus)</span><input type="checkbox" id="race-spectate">
           </div>
           <button class="btn primary" id="btn-mode-race" style="margin-top:10px">Rennen starten</button>
         </div>
@@ -398,6 +437,9 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
     <div class="setrow"><span>Sichtweite (Nebel)</span><input type="range" id="set-draw" min="500" max="1800" step="50" value="1100"></div>
     <div class="setrow"><span>Lautstärke</span><input type="range" id="set-vol" min="0" max="1" step="0.05" value="0.8"></div>
     <div class="setrow"><span>Ideallinie anzeigen</span><input type="checkbox" id="set-ideal" checked></div>
+    <div class="eyebrow" style="margin-top:22px">CONTROLLER</div>
+    <p class="sub">Xbox-Controller wird per Gamepad API erkannt. Klicke eine Belegung und drücke dann die gewünschte Taste oder das gewünschte Steuerkreuz.</p>
+    <div id="controller-bindings"></div>
     <div class="btnrow"><button class="btn primary" id="btn-back-settings">Fertig</button></div>
   </section>
 </div>
@@ -415,67 +457,93 @@ const Store = {
   get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
   set(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
 };
+const defaultControllerBindings = {
+  steering:{type:'axis', axis:'lx'},
+  throttle:{type:'trigger', button:7, axis:'rt'},
+  brake:{type:'trigger', button:6, axis:'lt'},
+  boost:{type:'button', button:5},
+  pitLimiter:{type:'button', button:2},
+  camera:{type:'button', button:3},
+  pause:{type:'button', button:9},
+  restart:{type:'button', button:8},
+  help:{type:'button', button:4}
+};
 
 /* ============================ FAHRZEUGDATEN ============================ */
 const CARS = [
+  /* === GT3 Klasse (blau im Leaderboard) === */
   {
-    id:'porsche', name:'Porsche 911 GT3 R',
+    id:'porsche', name:'Porsche 911 GT3 R', classType:'gt3',
     color:0xe8e8e8, accent:0xd5001c, rim:0xc8a44a,
     mass:1290, power:415000, maxForce:9200, topSpeed:287/3.6, brakeForce:11500,
     gripF:1.27, gripR:1.42, yawDamp:0.45, tractionBoost:0.10, liftOversteer:0.13,
-    desc:'Heckmotor. Brutale Traktion am Kurvenausgang — aber das Heck lebt beim Lastwechsel.',
+    desc:'GT3 · Heckmotor. Brutale Traktion am Kurvenausgang.',
     stats:{speed:0.86, grip:0.95, stab:0.70}
   },
   {
-    id:'amg', name:'Mercedes-AMG GT3',
+    id:'amg', name:'Mercedes-AMG GT3', classType:'gt3',
     color:0x15171a, accent:0xbfc6cc, rim:0x222222,
     mass:1345, power:430000, maxForce:8800, topSpeed:295/3.6, brakeForce:11200,
     gripF:1.30, gripR:1.33, yawDamp:0.95, tractionBoost:0.04, liftOversteer:0.04,
-    desc:'Frontmotor. Maximale Stabilität, Topspeed-König — fühlt sich an wie auf Schienen.',
+    desc:'GT3 · Frontmotor. Maximale Stabilität, Topspeed-König.',
     stats:{speed:0.97, grip:0.84, stab:0.96}
   },
   {
-    id:'audi', name:'Audi R8 LMS GT3',
+    id:'audi', name:'Audi R8 LMS GT3', classType:'gt3',
     color:0x59616b, accent:0xcc1122, rim:0x111111,
     mass:1315, power:422000, maxForce:9000, topSpeed:291/3.6, brakeForce:11350,
     gripF:1.32, gripR:1.35, yawDamp:0.68, tractionBoost:0.06, liftOversteer:0.07,
-    desc:'Mittelmotor. Neutral, präzise, fehlerverzeihend — die Allzweckwaffe.',
+    desc:'GT3 · Mittelmotor. Neutral, präzise, fehlerverzeihend.',
     stats:{speed:0.90, grip:0.90, stab:0.84}
   },
+  /* === LMP2 Klasse (grün im Leaderboard) === */
   {
-    id:'ferrari499p', name:'Ferrari 499P',
+    id:'oreca07', name:'Oreca 07 LMP2', classType:'lmp2',
+    color:0x1a3a5c, accent:0x22c463, rim:0xc0c0c0,
+    mass:950, power:480000, maxForce:10200, topSpeed:320/3.6, brakeForce:12500,
+    gripF:1.40, gripR:1.40, yawDamp:0.80, tractionBoost:0.06, liftOversteer:0.05,
+    desc:'LMP2 · Gibson V8 Power. Leicht, agil, starke Bremsen.',
+    stats:{speed:0.94, grip:0.94, stab:0.88}
+  },
+  {
+    id:'alpine-lmp2', name:'Alpine A470 LMP2', classType:'lmp2',
+    color:0x0055aa, accent:0xffd400, rim:0xffffff,
+    mass:945, power:475000, maxForce:10100, topSpeed:318/3.6, brakeForce:12400,
+    gripF:1.39, gripR:1.39, yawDamp:0.82, tractionBoost:0.06, liftOversteer:0.06,
+    desc:'LMP2 · Gutmütiges Fahrverhalten, zuverlässig auf Langstrecke.',
+    stats:{speed:0.93, grip:0.93, stab:0.90}
+  },
+  /* === Hypercar / LMP1 Klasse (rot im Leaderboard) === */
+  {
+    id:'ferrari499p', name:'Ferrari 499P', classType:'hypercar',
     color:0xc61d2f, accent:0xf2f2f2, rim:0x1a1a1a,
-    classType:'hypercar',
     mass:1030, power:520000, maxForce:11800, topSpeed:343/3.6, brakeForce:13200,
     gripF:1.48, gripR:1.46, yawDamp:0.88, tractionBoost:0.08, liftOversteer:0.03,
-    desc:'Hypercar. Hybrid-Punch, brutale Aerodynamik und sehr stabile Highspeed-Balance.',
+    desc:'Hypercar · Hybrid-Punch, brutale Aerodynamik.',
     stats:{speed:1.00, grip:0.98, stab:0.92}
   },
   {
-    id:'toyota-gr010', name:'Toyota GR010 Hybrid',
+    id:'toyota-gr010', name:'Toyota GR010 Hybrid', classType:'hypercar',
     color:0x16181c, accent:0xd8a42a, rim:0xe8ecef,
-    classType:'hypercar',
     mass:1040, power:520000, maxForce:11650, topSpeed:340/3.6, brakeForce:13100,
     gripF:1.47, gripR:1.45, yawDamp:0.92, tractionBoost:0.07, liftOversteer:0.03,
-    desc:'Hypercar. Sehr konstant, sehr effizient und auf langen Stints bärenstark.',
+    desc:'Hypercar · Sehr konstant, extrem effizient auf Langstrecke.',
     stats:{speed:0.99, grip:0.97, stab:0.95}
   },
   {
-    id:'porsche963', name:'Porsche 963',
+    id:'porsche963', name:'Porsche 963', classType:'hypercar',
     color:0xe8ecef, accent:0x1a1a1a, rim:0xc8a44a,
-    classType:'hypercar',
     mass:1035, power:515000, maxForce:11750, topSpeed:342/3.6, brakeForce:13150,
     gripF:1.46, gripR:1.45, yawDamp:0.78, tractionBoost:0.08, liftOversteer:0.04,
-    desc:'Hypercar. Neutraler Grundcharakter, stark auf Bremse und in schnellen Richtungswechseln.',
+    desc:'Hypercar · Neutral, stark auf Bremse und in Richtungswechseln.',
     stats:{speed:0.98, grip:0.96, stab:0.90}
   },
   {
-    id:'alpinea424', name:'Alpine A424',
+    id:'alpinea424', name:'Alpine A424', classType:'hypercar',
     color:0x123dff, accent:0xffcc00, rim:0xffffff,
-    classType:'hypercar',
     mass:1045, power:505000, maxForce:11450, topSpeed:336/3.6, brakeForce:12900,
     gripF:1.44, gripR:1.42, yawDamp:0.85, tractionBoost:0.07, liftOversteer:0.04,
-    desc:'Hypercar. Wendiger Charakter mit gutem Einlenken und viel Vertrauen auf Turn-in.',
+    desc:'Hypercar · Wendiger Charakter mit gutem Einlenken.',
     stats:{speed:0.96, grip:0.95, stab:0.89}
   },
 ];
@@ -608,6 +676,78 @@ const TRACKS = [
       innerOff: 12,
       outerOff: 24
     }
+  },
+  /* === LE MANS (vereinfacht, ~7km, mit Mulsanne-Gerade) === */
+  {
+    id:'lemans', name:'Le Mans (Circuit de la Sarthe)', sub:'Langstrecken-Klassiker · Mulsanne-Gerade · 2 Schikanen · ~7km',
+    halfWidth: 8.0, sky: 0xa0c0e0, hill: 0x4a7a3d, grass: [0x3f7a33, 0x356b2b],
+    wallDist: 30, vergeW: 26,
+    pts: [
+      /* Start/Ziel-Gerade */
+      [-900,-500, 0],[-600,-500, 0],[-300,-500, 0],[   0,-500, 0],[ 300,-500, 0],
+      /* Dunlop-Kurve */
+      [ 480,-470, 0],[ 580,-390, 0],[ 600,-280, 0],
+      /* Esses */
+      [ 560,-160, 0],[ 480, -50, 0],[ 440, 60, 0],
+      /* Tertre Rouge → Mulsanne-Gerade (extrem lang!) */
+      [ 480, 200, 0],[ 520, 400, 0],[ 540, 700, 0],[ 550,1000, 0],[ 555,1300, 0],
+      /* Erste Mulsanne-Schikane */
+      [ 530,1450, 0],[ 480,1520, 0],[ 520,1600, 0],[ 555,1700, 0],
+      /* Zweite Mulsanne-Schikane */
+      [ 540,2000, 0],[ 490,2080, 0],[ 530,2150, 0],[ 555,2300, 0],
+      /* Mulsanne-Ecke */
+      [ 520,2500, 0],[ 400,2580, 0],[ 250,2600, 0],
+      /* Indianapolis + Arnage */
+      [ 100,2560, 0],[ -30,2480, 0],[ -80,2340, 0],[-120,2200, 0],
+      [-200,2100, 0],[-320,2080, 0],
+      /* Porsche-Kurven */
+      [-460,2020, 0],[-550,1900, 0],[-580,1750, 0],[-540,1600, 0],
+      /* Ford-Schikane → zurück zur Geraden */
+      [-500,1450, 0],[-520,1300, 0],[-560,1100, 0],[-600, 800, 0],
+      [-650, 500, 0],[-700, 200, 0],[-750, -50, 0],[-800,-250, 0],
+      [-850,-380, 0],[-900,-450, 0]
+    ],
+    pitLane: { side: -1, idxStart: 8, idxEnd: 300, innerOff: 9.5, outerOff: 19.5 }
+  },
+  /* === Monza Ovale (einfach, schnell) === */
+  {
+    id:'monza', name:'Circuito Ovale', sub:'Highspeed-Oval · 2 Hairpins · ~3.5km · ideal für Slipstream',
+    halfWidth: 9.0, sky: 0x87b5e8, hill: 0x57803f, grass: [0x4a8038, 0x3e702e],
+    wallDist: 25, vergeW: 22,
+    pts: [
+      [-600,-200, 0],[-300,-200, 0],[   0,-200, 0],[ 300,-200, 0],[ 600,-200, 0],
+      [ 750,-150, 0],[ 830, -50, 0],[ 850,  80, 0],[ 800, 200, 0],[ 700, 280, 0],
+      [ 550, 300, 0],[ 300, 300, 0],[   0, 300, 0],[-300, 300, 0],[-550, 300, 0],
+      [-700, 280, 0],[-800, 200, 0],[-850,  80, 0],[-830, -50, 0],[-750,-150, 0]
+    ],
+    pitLane: { side: -1, idxStart: 8, idxEnd: 120, innerOff: 10.5, outerOff: 20.5 }
+  },
+  /* === Stadtlkurs Monaco-Style (eng, technisch) === */
+  {
+    id:'city', name:'Stadtkurs Marina', sub:'Enger Straßenkurs · Haarnadelkurve · Tunnel · ~3km',
+    halfWidth: 5.5, sky: 0x90b8e8, hill: 0x5a7a4a, grass: [0x44804a, 0x3a7040],
+    wallDist: 12, vergeW: 5,
+    pts: [
+      [-400,-200, 0],[-200,-200, 0],[   0,-200, 0],[ 200,-200, 0],[ 350,-180, 0],
+      [ 420,-100, 0],[ 440,  20, 0],[ 400, 130, 0],[ 300, 180, 0],
+      [ 180, 200, 0],[  80, 260, 0],[   0, 320, 0],[ -60, 260, 0],[-100, 180, 0],
+      [-180, 120, 0],[-280, 100, 0],[-370,  50, 0],[-420, -30, 0],[-440,-120, 0]
+    ],
+    pitLane: { side: -1, idxStart: 6, idxEnd: 80, innerOff: 7.0, outerOff: 14.5 }
+  },
+  /* === Wüstenkurs (breit, flach, lange Geraden) === */
+  {
+    id:'desert', name:'Desert Grand Prix', sub:'Wüstenrennstrecke · 3 DRS-Zonen · breite Auslaufzonen · ~5km',
+    halfWidth: 10.0, sky: 0xd8c898, hill: 0xc0a070, grass: [0xb0904a, 0xa08040],
+    wallDist: 40, vergeW: 35,
+    pts: [
+      [-700,-300, 0],[-400,-300, 0],[-100,-300, 0],[ 200,-300, 0],[ 500,-300, 0],
+      [ 680,-250, 0],[ 780,-140, 0],[ 800,  20, 0],[ 740, 160, 0],
+      [ 600, 240, 0],[ 400, 280, 0],[ 200, 320, 0],[   0, 380, 0],
+      [-200, 400, 0],[-400, 380, 0],[-580, 320, 0],[-700, 200, 0],
+      [-760,  50, 0],[-780,-120, 0],[-750,-230, 0]
+    ],
+    pitLane: { side: -1, idxStart: 8, idxEnd: 150, innerOff: 11.5, outerOff: 22.0 }
   },
 ];
 
@@ -775,6 +915,8 @@ class Input {
     this.throttle = 0;     // 0..1, progressiv
     this.brake = 0;        // 0..1, progressiv
     this.locked = true;    // bis Startampel grün
+    this._lastButtonState = {};
+    this.boostPulseT = 0;
     addEventListener('keydown', e=>{
       this.keys[e.code]=true;
       if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
@@ -785,7 +927,7 @@ class Input {
       if(e.code==='KeyP' && (Game.state==='race'||Game.state==='finished')){
         Game.car.pitLimiterActive = !Game.car.pitLimiterActive;
       }
-      if(e.code==='KeyV' && Game.state==='race'){
+      if(e.code==='KeyV' && Game.state==='race' && Game.vscEnabled !== false){
         const v = Game.vsc;
         v.active = !v.active;
         if(v.active){
@@ -794,7 +936,7 @@ class Input {
           v.deltaSec = 0;
         }
       }
-      if(e.code==='KeyY' && (Game.state==='race'||Game.state==='countdown') && Game.safetyCar){
+      if(e.code==='KeyY' && (Game.state==='race'||Game.state==='countdown') && Game.safetyCar && Game.scEnabled !== false){
         if(Game.safetyCar.canDeploy()){
           Game.safetyCar.deploy();
           if(Game.flag) Game.flag.state = 'sc';
@@ -806,22 +948,84 @@ class Input {
     addEventListener('keyup', e=>{ this.keys[e.code]=false; });
   }
   axis(neg,pos){ return (this.keys[pos]?1:0)-(this.keys[neg]?1:0); }
+  pollGamepad(){
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for(const pad of pads){
+      if(pad && pad.connected) return pad;
+    }
+    return null;
+  }
+  gamepadButtonValue(pad, idx){
+    const btn = pad && pad.buttons && pad.buttons[idx];
+    return btn ? (typeof btn.value === 'number' ? btn.value : (btn.pressed ? 1 : 0)) : 0;
+  }
+  gamepadAxisValue(pad, idx, fallback=0){
+    return pad && pad.axes && pad.axes.length > idx ? pad.axes[idx] : fallback;
+  }
+  triggerValue(pad, binding, buttonIdx, axisIdx){
+    if(!pad || !binding) return 0;
+    const btnVal = buttonIdx != null ? this.gamepadButtonValue(pad, buttonIdx) : 0;
+    const axisVal = axisIdx != null ? clamp((this.gamepadAxisValue(pad, axisIdx, -1) + 1) / 2, 0, 1) : 0;
+    return Math.max(btnVal, axisVal);
+  }
   update(dt){
     if(this.locked){ this.steer=lerp(this.steer,0,dt*6); this.throttle=0; this.brake=0; return; }
+    const pad = this.pollGamepad();
+    const bind = Game.controllerBindings || defaultControllerBindings;
+    if(pad && Game.bindingAction) Game.captureControllerBinding(pad);
+    const edge = (idx) => {
+      const key = `${pad?.index ?? 0}:${idx}`;
+      const pressed = !!(pad && pad.buttons && pad.buttons[idx] && pad.buttons[idx].pressed);
+      const last = !!this._lastButtonState[key];
+      this._lastButtonState[key] = pressed;
+      return pressed && !last;
+    };
+    if(pad){
+      if((bind.pause?.button != null && edge(bind.pause.button)) && (Game.state==='race'||Game.state==='finished'||Game.state==='pause')) Game.togglePause();
+      if((bind.camera?.button != null && edge(bind.camera.button)) && (Game.state==='race'||Game.state==='finished')) Game.cameraRig.cycle();
+      if((bind.restart?.button != null && edge(bind.restart.button)) && (Game.state==='race'||Game.state==='finished')) Game.restartRace();
+      if((bind.help?.button != null && edge(bind.help.button))) document.getElementById('help').classList.toggle('hidden');
+      if((bind.pitLimiter?.button != null && edge(bind.pitLimiter.button)) && (Game.state==='race'||Game.state==='finished')){
+        Game.car.pitLimiterActive = !Game.car.pitLimiterActive;
+      }
+      if(bind.boost?.button != null && edge(bind.boost.button)){
+        this.boostPulseT = 0.35;
+      }
+    }
     // Lenkung: progressives Einlenken, schnellere Rückstellung Richtung Mitte
     const sIn = (this.keys['KeyA']||this.keys['ArrowLeft']?1:0)-(this.keys['KeyD']||this.keys['ArrowRight']?1:0);
-    if(sIn!==0){
-      const towardCenter = Math.sign(sIn)!==Math.sign(this.steer) && this.steer!==0;
-      this.steer = clamp(this.steer + sIn*dt*(towardCenter?5.5:2.6), -1, 1);
+    let gpSteer = 0;
+    if(pad){
+      const steerAxis = bind.steering?.axis === 'lx' ? 0 : (bind.steering?.axis === 'rx' ? 2 : 0);
+      const lx = this.gamepadAxisValue(pad, steerAxis, 0);
+      const dpadLeft = this.gamepadButtonValue(pad, 14) > 0.5 ? 1 : 0;
+      const dpadRight = this.gamepadButtonValue(pad, 15) > 0.5 ? 1 : 0;
+      gpSteer = Math.abs(lx) > 0.12 ? -lx : (dpadLeft - dpadRight);
+    }
+    const steerInput = sIn !== 0 ? sIn : gpSteer;
+    if(steerInput!==0){
+      const towardCenter = Math.sign(steerInput)!==Math.sign(this.steer) && this.steer!==0;
+      this.steer = clamp(this.steer + steerInput*dt*(towardCenter?5.1:2.3), -1, 1);
     } else {
-      this.steer = Math.abs(this.steer)<0.02 ? 0 : this.steer - Math.sign(this.steer)*dt*4.2;
+      this.steer = Math.abs(this.steer)<0.02 ? 0 : this.steer - Math.sign(this.steer)*dt*4.8;
     }
     const tIn = (this.keys['KeyW']||this.keys['ArrowUp'])?1:0;
     const bIn = (this.keys['KeyS']||this.keys['ArrowDown'])?1:0;
-    this.throttle = clamp(this.throttle + (tIn? dt*3.2 : -dt*6.0), 0, 1);
-    this.brake    = clamp(this.brake    + (bIn? dt*4.5 : -dt*8.0), 0, 1);
+    const gpThrottle = pad ? this.triggerValue(pad, bind.throttle, 7, 5) : 0;
+    const gpBrake = pad ? this.triggerValue(pad, bind.brake, 6, 4) : 0;
+    const throttleHeld = tIn || gpThrottle > 0.05;
+    const brakeHeld = bIn || gpBrake > 0.05;
+    this.throttle = clamp(this.throttle + (throttleHeld? dt*3.0 : -dt*5.2), 0, 1);
+    this.brake    = clamp(this.brake    + (brakeHeld? dt*4.0 : -dt*7.2), 0, 1);
+    if(pad){
+      this.throttle = Math.max(this.throttle, gpThrottle);
+      this.brake = Math.max(this.brake, gpBrake);
+    }
     /* ERS-Boost: Shift halten = aktiv (gilt nur wenn Throttle > 0.5) */
-    this.boost = !!(this.keys['ShiftLeft']||this.keys['ShiftRight']);
+    this.boostPulseT = Math.max(0, this.boostPulseT - dt);
+    const kbBoost = !!(this.keys['ShiftLeft']||this.keys['ShiftRight']);
+    const gpBoost = this.boostPulseT > 0 && this.throttle > 0.5;
+    this.boost = kbBoost || gpBoost;
   }
 }
 
@@ -1069,30 +1273,31 @@ class Track {
       }
       for(let i=0;i<N;i++) idealOff[i] = smoothed[i];
     }
-    /* Mesh erzeugen: Tri-Strip 0.6m breites Band auf Bodenebene */
+    /* Mesh erzeugen: breites, klar sichtbares Band über der Strecke */
     const positions = [], colors = [], indices = [];
-    const bandW = 0.3;
+    const bandW = 0.95;
     for(let i=0;i<=N;i++){
       const idx = i%N;
       const s = S[idx];
       const off = idealOff[idx];
       const cx = s.pos.x + s.side.x*off;
       const cz = s.pos.z + s.side.z*off;
-      const y = s.pos.y + 0.04;
+      const y = s.pos.y + 0.28;
       /* Farbe nach v_target im Verhältnis zum lokalen Limit */
       const v = vTarget[idx];
       const vMax = vCornerRaw[idx];
-      /* "Action" = Wie stark muss ich Bremsen/Lupfen?
-         Wenn v_target<<vMax → starkes Bremsen (rot)
-         Wenn v_target~vMax UND vMax<60 → Kurve, lupfen (gelb)
-         Wenn v_target~vMax UND vMax>=70 → Vollgas (grün) */
-      let r=0.2, g=0.85, b=0.25;
-      if(v < vMax*0.7){
-        /* Bremsen — Rot */
-        r=0.95; g=0.15; b=0.20;
-      } else if(v < 60){
-        /* Kurve, lupfen — Gelb */
-        r=0.95; g=0.78; b=0.15;
+      const brakeNeed = clamp((vMax - vTarget[idx]) / Math.max(vMax, 1), 0, 1);
+      /* Klarere Logik:
+         - Rot: hier ist deutliche Bremsung nötig
+         - Gelb: kurzes Lupfen / Einrollen
+         - Grün: Vollgas / Flat-out */
+      let r=0.18, g=0.84, b=0.26;
+      if(brakeNeed > 0.28){
+        r=0.98; g=0.14; b=0.18;
+      } else if(brakeNeed > 0.12){
+        r=0.98; g=0.78; b=0.12;
+      } else if(vMax < 68){
+        r=0.95; g=0.72; b=0.12;
       }
       positions.push(cx - s.side.x*bandW, y, cz - s.side.z*bandW);
       positions.push(cx + s.side.x*bandW, y, cz + s.side.z*bandW);
@@ -1107,9 +1312,16 @@ class Track {
     geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     geo.setIndex(indices);
     geo.computeVertexNormals();
-    const mat = new THREE.MeshBasicMaterial({vertexColors:true, transparent:true, opacity:0.7});
+    const mat = new THREE.MeshBasicMaterial({
+      vertexColors:true,
+      transparent:true,
+      opacity:1.0,
+      depthTest:false,
+      depthWrite:false
+    });
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.renderOrder = 2;
+    mesh.renderOrder = 100;
+    mesh.frustumCulled = false;
     this.idealLineMesh = mesh;
     this.group.add(mesh);
     this.idealLineVisible = true;
@@ -1772,6 +1984,8 @@ class Car {
     this.driveThroughInPit = false;
     this.driveThroughNoticeUntil = 0;
     this.tireWear = {front:1, rear:1, FL:1, FR:1, RL:1, RR:1};
+    this.pitServiceFlashT = 0;
+    this.pitServiceIntensity = 0;
     /* --- ERS / Hybrid-Boost ---
        Batterie 0..1 (1 = voll). Lädt beim Bremsen über Rekuperation,
        entlädt beim Halten der Boost-Taste. */
@@ -1829,6 +2043,32 @@ class Car {
       add(new THREE.BoxGeometry(0.34,0.10,0.05), headMat,-0.72,0.50,2.26, 0,0,0, 'headL');
       this.tail=add(new THREE.BoxGeometry(1.7,0.08,0.05),
         new THREE.MeshBasicMaterial({color:0x4d0000}), 0,0.54,-2.31, 0,0,0, 'tail');
+    } else if(this.def.classType === 'lmp2'){
+      /* LMP2: flacher als GT3, offenes Cockpit, weniger Aero als Hypercar */
+      add(new THREE.BoxGeometry(2.00,0.26,4.50), bodyMat, 0,0.34,0);
+      add(new THREE.BoxGeometry(1.98,0.12,4.55), darkMat, 0,0.16,0);
+      add(new THREE.BoxGeometry(1.88,0.22,1.6), bodyMat, 0,0.52,1.0);
+      const cab=add(new THREE.BoxGeometry(1.40,0.38,1.3), glassMat, 0,0.72,-0.1);
+      add(new THREE.BoxGeometry(1.32,0.05,0.08), glassMat, 0,0.92,0.55);
+      add(new THREE.BoxGeometry(2.08,0.12,0.65), accMat, 0,0.28,2.12, 0,0,0, 'splitter');
+      add(new THREE.BoxGeometry(1.72,0.08,0.28), accMat, 0,0.44,2.16, 0,0,0, 'frontAccent');
+      add(new THREE.BoxGeometry(0.38,0.04,4.50), accMat, 0,0.48,0);
+      add(new THREE.BoxGeometry(1.92,0.14,0.65), darkMat, 0,0.26,-2.18, 0,0,0, 'diffuser');
+      const wingGrp = new THREE.Group();
+      const wingPostL = new THREE.Mesh(new THREE.BoxGeometry(0.07,0.38,0.07), darkMat); wingPostL.position.set( 0.68, 0.92,-2.02); wingPostL.castShadow=true;
+      const wingPostR = new THREE.Mesh(new THREE.BoxGeometry(0.07,0.38,0.07), darkMat); wingPostR.position.set(-0.68, 0.92,-2.02); wingPostR.castShadow=true;
+      const wingBlade = new THREE.Mesh(new THREE.BoxGeometry(1.85,0.04,0.40), accMat); wingBlade.position.set(0,1.14,-2.06); wingBlade.rotation.x=-0.14; wingBlade.castShadow=true;
+      wingGrp.add(wingPostL, wingPostR, wingBlade);
+      g.add(wingGrp);
+      this.parts.rearWing = wingGrp;
+      this.partMounts.rearWing = {pos:wingGrp.position.clone(), quat:wingGrp.quaternion.clone(), opacity:1};
+      add(new THREE.BoxGeometry(0.22,0.08,0.12), bodyMat, 0.98,0.80,0.60, 0,0,0, 'mirrorR');
+      add(new THREE.BoxGeometry(0.22,0.08,0.12), bodyMat,-0.98,0.80,0.60, 0,0,0, 'mirrorL');
+      const headMat=new THREE.MeshBasicMaterial({color:0xf6f3df});
+      add(new THREE.BoxGeometry(0.30,0.10,0.05), headMat, 0.68,0.44,2.22, 0,0,0, 'headR');
+      add(new THREE.BoxGeometry(0.30,0.10,0.05), headMat,-0.68,0.44,2.22, 0,0,0, 'headL');
+      this.tail=add(new THREE.BoxGeometry(1.6,0.08,0.05),
+        new THREE.MeshBasicMaterial({color:0x4d0000}), 0,0.48,-2.28, 0,0,0, 'tail');
     } else {
       // GT3: klassisches, höheres Silhouettenprofil
       add(new THREE.BoxGeometry(1.96,0.46,4.55), bodyMat, 0,0.50,0);
@@ -1867,8 +2107,8 @@ class Car {
     const rimG=new THREE.CylinderGeometry(0.21,0.21,0.34,12);
     /* Reifenprofil-Streifen für sichtbare Rotation */
     const treadG=new THREE.BoxGeometry(0.33,0.05,0.08);
-    const tireMat=new THREE.MeshLambertMaterial({color:0x141414});
-    const rimMat=new THREE.MeshPhongMaterial({color:this.def.rim||0xc8ccd2, shininess:120});
+    const tireMat=new THREE.MeshLambertMaterial({color:0x141414, transparent:true, opacity:1});
+    const rimMat=new THREE.MeshPhongMaterial({color:this.def.rim||0xc8ccd2, shininess:120, transparent:true, opacity:1});
     const treadMat=new THREE.MeshLambertMaterial({color:0x0a0a0a});
     this.wheels=[];
     const wp=[[0.92,1.42,true,'FR'],[-0.92,1.42,true,'FL'],[0.92,-1.42,false,'RR'],[-0.92,-1.42,false,'RL']];
@@ -1891,8 +2131,112 @@ class Car {
       inner.add(t, r);
       outer.add(inner);
       g.add(outer);
-      this.wheels.push({outer, inner, front, side, spin:0, baseY:0.36, susp:0});
+      this.wheels.push({outer, inner, tire:t, rim:r, front, side, spin:0, baseY:0.36, susp:0});
     }
+    /* Pit-Service-Effekt: Ringe + Lichtschwaden beim Reifenwechsel */
+    this.pitServiceFX = new THREE.Group();
+    this.pitServiceFX.visible = false;
+    this.pitServiceFX.rings = [];
+    const ringGeos = [
+      new THREE.TorusGeometry(0.50,0.045,8,20),
+      new THREE.TorusGeometry(0.56,0.035,8,22)
+    ];
+    const ringCols = [0xffd400, 0x22c4ff, 0xffffff];
+    const ringPos = [[0.92,0.36,1.42],[-0.92,0.36,1.42],[0.92,0.36,-1.42],[-0.92,0.36,-1.42]];
+    ringPos.forEach((p, i)=>{
+      const m = new THREE.MeshBasicMaterial({color:ringCols[i%ringCols.length], transparent:true, opacity:0});
+      const ring = new THREE.Mesh(ringGeos[i%2], m);
+      ring.rotation.y = Math.PI/2;
+      ring.position.set(p[0], p[1], p[2]);
+      this.pitServiceFX.add(ring);
+      this.pitServiceFX.rings.push(ring);
+    });
+    const core = new THREE.Mesh(
+      new THREE.SphereGeometry(0.18, 12, 12),
+      new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0})
+    );
+    core.position.set(0,0.78,0);
+    this.pitServiceFX.add(core);
+    this.pitServiceFX.core = core;
+    g.add(this.pitServiceFX);
+    /* === COCKPIT-INTERIEUR (nur sichtbar in Cockpit-Kamera) === */
+    const cockpit = new THREE.Group();
+    cockpit.visible = false;     // wird von CameraRig gesteuert
+    const ct = this.def.classType || 'gt3';
+    const cockY = ct === 'hypercar' ? 0.68 : ct === 'lmp2' ? 0.62 : 0.92;
+    const cockFwd = ct === 'hypercar' ? -0.15 : ct === 'lmp2' ? -0.20 : -0.05;
+    const dashMat = new THREE.MeshPhongMaterial({color:0x1a1d22, shininess:20});
+    const wheelMat = new THREE.MeshPhongMaterial({color:0x222222, shininess:40});
+    const carbonMat = new THREE.MeshPhongMaterial({color:0x2a2a2a, shininess:60});
+    const screenMat = new THREE.MeshBasicMaterial({color:0x0a2830});
+    const redMat = new THREE.MeshBasicMaterial({color:0xff2020});
+    /* Dashboard-Panel (breites, flaches Board) */
+    const dash = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.28, 0.50), dashMat);
+    dash.position.set(0, cockY + 0.12, cockFwd + 0.85);
+    dash.rotation.x = -0.25;
+    cockpit.add(dash);
+    /* Display-Screen auf dem Dashboard */
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.18), screenMat);
+    screen.position.set(0, cockY + 0.24, cockFwd + 0.73);
+    screen.rotation.x = -0.30;
+    cockpit.add(screen);
+    /* Tachometer-Punkte (LED-Leiste oben am Dashboard) */
+    for(let i = 0; i < 8; i++){
+      const led = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.02, 0.02),
+        i < 3 ? new THREE.MeshBasicMaterial({color:0x22c463}) :
+        i < 6 ? new THREE.MeshBasicMaterial({color:0xffd400}) :
+                 redMat);
+      led.position.set(-0.14 + i*0.04, cockY + 0.32, cockFwd + 0.71);
+      cockpit.add(led);
+    }
+    /* === LENKRAD === */
+    const wheelGrp = new THREE.Group();
+    wheelGrp.position.set(0, cockY + 0.14, cockFwd + 0.55);
+    wheelGrp.rotation.x = -0.50;    // leicht nach hinten geneigt
+    /* Lenkradkranz (abgeflachter Torus) */
+    const rim1 = new THREE.Mesh(new THREE.TorusGeometry(0.155, 0.018, 8, 24), carbonMat);
+    wheelGrp.add(rim1);
+    /* Abflachung oben + unten (zwei Querbalken simulieren D-Shape) */
+    const flatTop = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.022, 0.032), carbonMat);
+    flatTop.position.set(0, 0.12, 0);
+    wheelGrp.add(flatTop);
+    const flatBot = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.022, 0.032), carbonMat);
+    flatBot.position.set(0, -0.12, 0);
+    wheelGrp.add(flatBot);
+    /* Speichen (3 Stück: links, rechts, unten) */
+    const spokeMat = wheelMat;
+    const spokeGeo = new THREE.BoxGeometry(0.025, 0.10, 0.018);
+    const sL = new THREE.Mesh(spokeGeo, spokeMat); sL.position.set(-0.10, 0, 0); sL.rotation.z = 0.3;
+    const sR = new THREE.Mesh(spokeGeo, spokeMat); sR.position.set( 0.10, 0, 0); sR.rotation.z = -0.3;
+    const sB = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.08, 0.018), spokeMat);
+    sB.position.set(0, -0.06, 0);
+    wheelGrp.add(sL, sR, sB);
+    /* Naben-Center mit Marken-Plakette */
+    const hub = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.016), carbonMat);
+    wheelGrp.add(hub);
+    /* Schaltwippen (links rot, rechts grün) */
+    const paddleGeo = new THREE.BoxGeometry(0.05, 0.015, 0.04);
+    const paddleL = new THREE.Mesh(paddleGeo, new THREE.MeshBasicMaterial({color:0xff4444}));
+    paddleL.position.set(-0.12, 0.04, -0.02);
+    const paddleR = new THREE.Mesh(paddleGeo, new THREE.MeshBasicMaterial({color:0x44ff44}));
+    paddleR.position.set( 0.12, 0.04, -0.02);
+    wheelGrp.add(paddleL, paddleR);
+    cockpit.add(wheelGrp);
+    this._cockpitWheelGrp = wheelGrp;
+    /* A-Säulen (links + rechts, rahmen die Windschutzscheibe ein) */
+    const pillarMat = new THREE.MeshLambertMaterial({color:0x111111});
+    const pillarGeo = new THREE.BoxGeometry(0.06, 0.55, 0.06);
+    const pillarL = new THREE.Mesh(pillarGeo, pillarMat);
+    pillarL.position.set(-0.72, cockY + 0.35, cockFwd + 0.70);
+    pillarL.rotation.z = 0.12;
+    cockpit.add(pillarL);
+    const pillarR = new THREE.Mesh(pillarGeo, pillarMat);
+    pillarR.position.set( 0.72, cockY + 0.35, cockFwd + 0.70);
+    pillarR.rotation.z = -0.12;
+    cockpit.add(pillarR);
+    g.add(cockpit);
+    this._cockpitGrp = cockpit;
+
     this.body=g;
     this.scene.add(g);
   }
@@ -1914,6 +2258,7 @@ class Car {
     const d=this.def;
     const q=track.query(this.pos,this.sampleIdx);
     this.sampleIdx=q.idx; this.surf=q.surf; this.query=q;
+    this._track = track;
 
     /* --- Pit-Limiter ---
        Bei aktiviertem Pitlimiter wird Topspeed hart auf 60 km/h gedeckelt.
@@ -1971,17 +2316,25 @@ class Car {
     this.totalDistance = (this.totalDistance || 0) + Math.abs(this.vx) * dt;
 
     /* --- Pit-Speeding-Penalty ---
-       Nur wenn man wirklich in der Boxengasse bleibt und das Limit deutlich überschreitet. */
-    if(q.inPitLane && this.speedKmh > 75 && !this.pitLimiterActive && this.pitStopState === 'idle'){
-      if(!this._pitSpeedingPenaltyGiven){
-        this.penaltySec = Math.max(this.penaltySec || 0, 10);
-        this._pitSpeedingPenaltyGiven = true;
-        this._pitSpeedingNoticeUntil = (typeof performance !== 'undefined' ? performance.now() : 0) + 3500;
+       NUR für den Spieler. NUR wenn klar tief in der Boxengasse (nicht am Rand).
+       Einmal pro Rennen maximal — Flag wird NICHT bei Verlassen resettet. */
+    if(q.inPitLane && this.speedKmh > 80 && !this.pitLimiterActive && this.pitStopState === 'idle'){
+      /* Nur strafen wenn die laterale Position KLAR im Pit-Lane-Bereich ist,
+         nicht bloß am Rand der Detection-Zone */
+      const pl = this._track?.def?.pitLane || (typeof Game !== 'undefined' && Game.track?.def?.pitLane);
+      if(pl){
+        const pitMid = (pl.innerOff + pl.outerOff) / 2;
+        const latAbs = Math.abs(q.lat);
+        const clearlyInPit = latAbs > pl.innerOff + 1 && latAbs < pl.outerOff - 1;
+        if(clearlyInPit && !this._pitSpeedingPenaltyGiven && this === (typeof Game !== 'undefined' ? Game.car : null)){
+          this.penaltySec = Math.max(this.penaltySec || 0, 10);
+          this._pitSpeedingPenaltyGiven = true;
+          this._pitSpeedingNoticeUntil = (typeof performance !== 'undefined' ? performance.now() : 0) + 3500;
+        }
       }
     }
-    if(!q.inPitLane && this._pitSpeedingPenaltyGiven){
-      this._pitSpeedingPenaltyGiven = false;
-    }
+    /* Reset NUR nach erfolgreichem Boxenstopp (nicht bei Verlassen der Pit-Zone!) */
+    /* → _pitSpeedingPenaltyGiven wird in der Pit-Stop-Fertig-Logik unten resettet */
 
     /* --- Pit-Stop-Logik ---
        Wenn im Pit-Bereich, Limiter aktiv UND fast still → Boxenstopp startet.
@@ -2010,6 +2363,7 @@ class Car {
         this.damage = {front:0, rear:0, left:0, right:0};
         this.smokeT = 0;
         this.tireWear = {front:1, rear:1, FL:1, FR:1, RL:1, RR:1};
+        this.pitServiceFlashT = 1.15;
         /* ALLE verlorenen Teile wieder anbauen, kein Schaden-Filter */
         for(const tag in this.lostParts){
           const mountSpec = this.partMounts && this.partMounts[tag];
@@ -2063,7 +2417,7 @@ class Car {
     /* --- Lenkung mit Rate-Limit, geschwindigkeitsabhängig ---
        Wirkliche GT3: bei hoher Geschwindigkeit weniger Lenkwinkel, aber die echte Begrenzung
        gegen Spinnerei bei kleinem Lenken auf der Geraden macht der yawLim weiter unten */
-    const maxSteer = 0.42 / (1 + speed*0.045);   // bei 250 km/h: ~0.103 rad (5.9°)
+    const maxSteer = 0.34 / (1 + speed*0.035);   // weniger nervös, dafür besser kontrollierbar
     const tgtSteer = input.steer * maxSteer;
     const maxRate = 3.6;
     this.steer += clamp(tgtSteer - this.steer, -maxRate*dt, maxRate*dt);
@@ -2085,9 +2439,9 @@ class Car {
        Hohe ay → stärkere Lastasymmetrie → effektiver Gesamtgrip etwas geringer
        (Mu-Drop des äußeren Reifens dominiert wegen nichtlinearer Pacejka-Kurve). */
     const ayPrev = this.lastAy || 0;
-    const lateralLoadLoss = Math.min(0.10, Math.abs(ayPrev)/65);  // max 10% Verlust
-    const muFCorr = 1 - lateralLoadLoss * 0.85;
-    const muRCorr = 1 - lateralLoadLoss * 0.70;
+    const lateralLoadLoss = Math.min(0.06, Math.abs(ayPrev)/90);   // weniger Grip-Einbruch
+    const muFCorr = 1 - lateralLoadLoss * 0.55;
+    const muRCorr = 1 - lateralLoadLoss * 0.45;
 
     /* --- Reifen-Reibwerte: Untergrund × Fahrzeug × laterale Lastverlagerung --- */
     let muF = d.gripF/1.30 * baseMu * muFCorr;
@@ -2168,7 +2522,9 @@ class Car {
     }
 
     /* --- Widerstände --- */
-    const Fdrag = -cDrag * this.vx * Math.abs(this.vx);
+    /* Windschatten: bis zu 30% weniger Luftwiderstand = ~10% mehr Topspeed */
+    const slipDragMul = 1 - (this.slipstreamFactor || 0) * 0.30;
+    const Fdrag = -cDrag * slipDragMul * this.vx * Math.abs(this.vx);
     const Froll = -0.013 * Fz * Math.sign(this.vx);
     let Fslope = -d.mass * G * q.slope * 0.9;
     let Fgrass = 0;
@@ -2221,17 +2577,17 @@ class Car {
        Reifen saturierten, das Auto brach aus. */
     const sideDampGrip = baseMu/1.30;
     const maxAlpha = Math.max(this.slipFront, this.slipRear);
-    const overLimit = clamp((maxAlpha-0.20)*5, 0, 1);
-    const assistFactor = 1 - overLimit*0.50;
+    const overLimit = clamp((maxAlpha-0.30)*3.8, 0, 1);
+    const assistFactor = 1 - overLimit*0.28;
     /* Physikalisches Limit für stationäre Querbeschleunigung */
     const ayMaxAvail = G * baseMu * (1 + 0.55*(speed*speed)/(d.topSpeed*d.topSpeed));
     const yawLim = ayMaxAvail / Math.max(speed, 5);
     const yawKinRaw = this.vx/this.L*Math.tan(this.steer);
     const yawKin = clamp(yawKinRaw, -yawLim, yawLim);
     /* Korrektur stärker im Grip-Bereich, deutlich weniger im Drift */
-    this.yawRate += (yawKin - this.yawRate) * Math.min(1, dt*4.0*sideDampGrip*assistFactor);
-    this.vy *= Math.max(0, 1 - dt*2.4*sideDampGrip*assistFactor);
-    const vyCap = 0.45*Math.abs(this.vx) + 1.4;
+    this.yawRate += (yawKin - this.yawRate) * Math.min(1, dt*5.4*sideDampGrip*assistFactor);
+    this.vy *= Math.max(0, 1 - dt*3.2*sideDampGrip*assistFactor);
+    const vyCap = 0.46*Math.abs(this.vx) + 1.4;
     this.vy = clamp(this.vy, -vyCap, vyCap);
 
     /* --- Numerische Stabilisierung bei Niedrigtempo --- */
@@ -2279,47 +2635,44 @@ class Car {
     }
 
     /* --- Pit-Trennwand-Kollision ---
-       Bauliche Mauer zwischen Streckenrand und Pit-Lane. Nur an Einfahrt/Ausfahrt offen. */
+       Bauliche Mauer zwischen Streckenrand und Pit-Lane. Nur an Einfahrt/Ausfahrt offen.
+       Einfache Lösung: Auto wird sanft weggeschoben, NUR die Quer-Komponente gebremst. */
     const pl = track.def.pitLane;
     if(pl){
       let idxLen = pl.idxEnd - pl.idxStart;
       if(idxLen < 0) idxLen += track.N;
       const k = (q2.idx - pl.idxStart + track.N) % track.N;
       const inPitZone = k <= idxLen;
-      const inOpening = inPitZone && (k < 6 || k > idxLen - 6);
+      const openWidth = 8;
+      const inOpening = inPitZone && (k < openWidth || k > idxLen - openWidth);
       if(inPitZone && !inOpening){
-        /* Wand liegt bei lat = pl.side * (halfW + 1.0). Auf der Pit-Seite (Vorzeichen pl.side):
-           - Wenn Auto AUF DER STRECKE ist (|lat| < halfW), darf es nicht durch die Wand zur Pit.
-           - Wenn Auto IN DER PIT ist (lat zwischen halfW+1 und outerOff), darf nicht zurück. */
-        const wallLat = pl.side * (track.halfW + 1.0);
-        /* Spieler kommt von Track-Seite (|q2.lat| innerhalb der Strecke, aber pl.side-Richtung):
-           Berechne wo Auto BEZÜGLICH wallLat ist.
-           lat positive vs negative je nach side. */
-        const onTrackSide = (pl.side === -1) ? (q2.lat > wallLat) : (q2.lat < wallLat);
-        const distToWall = pl.side === -1 ? (q2.lat - wallLat) : (wallLat - q2.lat);
-        const absDist = Math.abs(distToWall);
-        if(absDist < 1.05){
-          /* Weiche Einzäunung: Auto auf die erlaubte Seite schieben und die Querbewegung abbremsen,
-             damit es an der Boxenmauer nicht zwischen zwei Zuständen hin- und herspringt. */
-          const pushSign = onTrackSide ? 1 : -1;
-          const overlap = 1.05 - absDist;
-          const nx = q2.side.x * pl.side * pushSign;
-          const nz = q2.side.z * pl.side * pushSign;
-          this.pos.x += nx * overlap;
-          this.pos.z += nz * overlap;
+        /* Wandposition in lateraler Koordinate */
+        const wallLatAbs = track.halfW + 1.0;
+        const wallLat = pl.side * wallLatAbs;
+        /* Signed distance: positiv = Seite der Strecke, negativ = Seite der Pit */
+        const signedDist = (q2.lat - wallLat) * (-pl.side);
+        /* Auto innerhalb 1.0m der Wand → abstoßen */
+        if(Math.abs(signedDist) < 1.0){
+          const pushDist = 1.0 - Math.abs(signedDist);
+          const pushDir = signedDist >= 0 ? 1 : -1;     // weg von der Wand
+          /* Wand-Normalen-Vektor in Weltkoordinaten: side-Vektor * pl.side Richtung */
+          const wnx = q2.side.x * (-pl.side) * pushDir;
+          const wnz = q2.side.z * (-pl.side) * pushDir;
+          this.pos.x += wnx * pushDist * 1.2;
+          this.pos.z += wnz * pushDist * 1.2;
+          /* NUR die Geschwindigkeits-Komponente IN die Wand abbremsen, Längs-V bleibt */
           let wx = sin*this.vx + cos*this.vy;
           let wz = cos*this.vx - sin*this.vy;
-          const normalV = wx*nx + wz*nz;
-          if(normalV < 0){
-            wx -= nx * normalV * 1.45;
-            wz -= nz * normalV * 1.45;
+          const intoWall = wx*wnx + wz*wnz;
+          if(intoWall < 0){
+            wx -= wnx * intoWall * 1.3;
+            wz -= wnz * intoWall * 1.3;
+            /* Yaw nur leicht dämpfen, damit Auto sich noch lenken lässt */
+            this.yawRate *= 0.80;
           }
-          wx *= 0.78;
-          wz *= 0.78;
           this.vx = sin*wx + cos*wz;
           this.vy = cos*wx - sin*wz;
-          this.yawRate *= 0.38;
-          if(Math.abs(normalV) > 2.5 && sound) sound.impact(Math.abs(normalV) * 0.45);
+          if(Math.abs(intoWall) > 3 && sound) sound.impact(Math.abs(intoWall)*0.4);
         }
       }
     }
@@ -2328,12 +2681,67 @@ class Car {
     this.query = q2;
     this.sampleIdx = q2.idx;
     this.surf = q2.surf;
+
+    /* Reifenverschleiß: abhängig von Rennlänge, Tempo, Slip und Untergrund */
+    if(this.tireWear){
+      const laps = (typeof Game !== 'undefined' && Game.totalLaps) ? Game.totalLaps : 3;
+      const lifeLaps = (typeof Game !== 'undefined' && Game.tireWearLifeLaps) ? Game.tireWearLifeLaps() : 10;
+      const distScale = clamp(laps / 3, 1, 4);
+      const wearScale = clamp((4 / lifeLaps) * 0.1, 0.01, 0.2);
+      const speedLoad = clamp(Math.abs(this.vx) / 85, 0, 1);
+      const slipLoad = clamp((this.sliding || 0) * 0.018 + Math.abs(this.yawRate) * 0.004, 0, 0.05);
+      const surfLoad = q2.surf === SURF.GRASS ? 0.005 : q2.surf === SURF.KERB ? 0.002 : 0;
+      const baseWear = dt * distScale * wearScale * (0.00008 + speedLoad*0.00010 + slipLoad + surfLoad);
+      const turnBias = clamp(this.steer*1.25 + this.yawRate*0.22, -1, 1);
+      const frontLeft  = baseWear * (1.00 + Math.max(0, -turnBias)*0.45);
+      const frontRight = baseWear * (1.00 + Math.max(0,  turnBias)*0.45);
+      const rearLeft   = baseWear * (0.78 + Math.max(0, -turnBias)*0.22);
+      const rearRight  = baseWear * (0.78 + Math.max(0,  turnBias)*0.22);
+      this.tireWear.FL = clamp(this.tireWear.FL - frontLeft, 0.05, 1);
+      this.tireWear.FR = clamp(this.tireWear.FR - frontRight, 0.05, 1);
+      this.tireWear.RL = clamp(this.tireWear.RL - rearLeft, 0.05, 1);
+      this.tireWear.RR = clamp(this.tireWear.RR - rearRight, 0.05, 1);
+      this.tireWear.front = clamp((this.tireWear.FL + this.tireWear.FR) / 2, 0.05, 1);
+      this.tireWear.rear  = clamp((this.tireWear.RL + this.tireWear.RR) / 2, 0.05, 1);
+    }
+
     this.updateMesh(dt);
   }
 
   updateMesh(dt){
     this.group.position.copy(this.pos);
     this.group.rotation.set(0,this.heading,0);
+    const pitActive = this.pitStopState === 'active';
+    if(this.pitServiceFlashT > 0){
+      this.pitServiceFlashT = Math.max(0, this.pitServiceFlashT - dt*0.8);
+    }
+    const servicePhase = pitActive
+      ? clamp(1 - (this.pitStopT / Math.max(this.pitStopStartT || 1, 0.001)), 0, 1)
+      : this.pitServiceFlashT;
+    const serviceOn = pitActive || servicePhase > 0.001;
+    if(this.pitServiceFX){
+      this.pitServiceFX.visible = serviceOn;
+      if(serviceOn){
+        const pulse = pitActive ? servicePhase : servicePhase;
+        const t = performance.now()*0.008;
+        this.pitServiceFX.position.y = 0.02 + Math.sin(t*2.2)*0.015;
+        this.pitServiceFX.rings.forEach((ring, i)=>{
+          const mat = ring.material;
+          const hueFlip = (i % 2 === 0) ? 0xffd400 : 0x22c4ff;
+          if(mat && mat.color) mat.color.setHex(hueFlip);
+          mat.opacity = 0.12 + 0.72 * pulse * (0.55 + 0.45*Math.sin(t*3.0 + i));
+          const sc = 0.96 + pulse*0.32 + Math.sin(t*4.0 + i)*0.03;
+          ring.scale.setScalar(sc);
+          ring.rotation.z += dt * (3.8 + i*0.35);
+          ring.rotation.x = Math.sin(t*2 + i)*0.20;
+        });
+        if(this.pitServiceFX.core && this.pitServiceFX.core.material){
+          this.pitServiceFX.core.material.opacity = 0.18 + 0.82*pulse;
+          this.pitServiceFX.core.scale.setScalar(1 + pulse*1.6);
+        }
+      }
+    }
+    const serviceLift = serviceOn ? (0.03 + (pitActive ? servicePhase*0.05 : this.pitServiceFlashT*0.03)) : 0;
     /* Nick-/Wankbewegung (Gewichtsverlagerung sichtbar machen) */
     /* Karosserie-Bewegungen (Roll/Pitch) — sanfter, weniger Wackeln */
     const ay = this.lastAy || 0;
@@ -2345,6 +2753,7 @@ class Car {
     this.bodyRoll = lerp(this.bodyRoll||0, rollTgt, 1-Math.exp(-dt*6));
     this.group.rotation.x = this.bodyPitch;
     this.group.rotation.z = this.bodyRoll;
+    this.group.position.y = this.pos.y + serviceLift;
 
     /* Räder: Spin im inneren, Lenkwinkel im äußeren Group + Aufhängungs-Höhe pro Rad
        Aufhängung: vorne+hinten reagieren auf Pitch (Lastverlagerung längs),
@@ -2356,8 +2765,20 @@ class Car {
       const slipMul = (this.wheelSpin && !w.front) ? 2.4 : 1;
       w.spin += baseSpin * dt * slipMul;
       w.inner.rotation.x = w.spin;
+      if(pitActive || this.pitServiceFlashT > 0){
+        const svc = servicePhase || this.pitServiceFlashT;
+        w.inner.rotation.x += dt * (1.8 + svc*4.0);
+        w.inner.scale.setScalar(1 + svc*0.02);
+      } else {
+        w.inner.scale.setScalar(1);
+      }
       /* Lenken nur vorne */
       w.outer.rotation.y = w.front ? this.steer : 0;
+      if(w.tire && w.rim && (pitActive || this.pitServiceFlashT > 0)){
+        const svc = servicePhase || this.pitServiceFlashT;
+        w.tire.material.opacity = 0.95 - svc*0.08;
+        w.rim.material.color.setHex(svc > 0.5 ? 0x22c4ff : this.def.rim || 0xc8ccd2);
+      }
       /* Aufhängungstravel — kompremiert/dekomprimiert pro Rad
          Lange: vorne weniger Y bei Beschleunigung, hinten weniger bei Bremsen
          Kurz: außenkurven-Rad geht runter, innenkurven-Rad hoch */
@@ -2367,6 +2788,10 @@ class Car {
                     + -latSign  * this.bodyRoll  * 0.30;   // roll comp.
       w.susp = lerp(w.susp, suspTgt, 1-Math.exp(-dt*15));
       w.outer.position.y = w.baseY + w.susp;
+    }
+    /* Cockpit-Lenkrad dreht mit dem tatsächlichen Lenkeinschlag */
+    if(this._cockpitWheelGrp){
+      this._cockpitWheelGrp.rotation.z = -this.steer * 2.5;   // visuell verstärkt (~450° Lenkrad)
     }
     if(this.tail && this.tail.material) this.tail.material.color.setHex(this.brakeLight?0xff2020:0x550000);
   }
@@ -2587,25 +3012,40 @@ class AIDriver {
    *  Schwierigkeit beeinflusst Kurvengeschwindigkeit, Bremspunkte, Apex-Aggressivität. */
   constructor(difficulty, fieldPos, fieldSize){
     this.skill = clamp((difficulty||60)/100, 0, 1);
-    /* Grip- und Bremsbudget — deutlich schneller als alte Version, ohne AI-Selbstzerstörung:
-       skill 0   → 7.5/9    (Anfängerlevel)
-       skill 0.5 → 9.5/11   (solider Hobbyfahrer)
-       skill 1.0 → 11.5/13  (an die physikalische Grenze ohne sie zu überschreiten) */
-    this.aLatBase = 7.5 + this.skill*3.6;
-    this.aBrk     = 9   + this.skill*3.5;
-    this.apexK    = 0.18 + this.skill*0.30;
+    /* Grip-Budget: breiter Spread für echte Klassenunterschiede
+       skill 0   → 7.0/8.5  (deutlich langsamer — auch mit Hypercar schlagbar)
+       skill 0.5 → 10.5/12.5 (schnell, aber nicht am Limit)
+       skill 1.0 → 14.0/16.5 (echtes Profi-Niveau, fast am physikalischen Limit) */
+    this.aLatBase = 7.0 + this.skill*7.0;
+    this.aBrk     = 8.5 + this.skill*8.0;
+    this.apexK    = 0.14 + this.skill*0.26;     // weniger aggressives Apex-Cutting = weniger Gras
     /* Persönlichkeit pro KI */
-    this.aggression = 0.4 + Math.random()*0.4;        // wie früh attackiert sie
-    /* Persönliche Spurpräferenz innerhalb der Strecke (Variation, kein "alle auf derselben Linie") */
+    this.aggression = 0.28 + Math.random()*0.22;
     const lo = (fieldPos!=null && fieldSize>1) ? ((fieldPos - (fieldSize-1)/2) * 2.0/(fieldSize-1)) : 0;
     this.lineOff = lo;
-    /* Eingabe-Zustand */
     this.input = {steer:0, throttle:0, brake:0};
     this.stuckT=0; this.revT=0; this.turnT=0; this.fwdRescueT=0; this.lastErr=0; this.loS=0;
-    /* Pit-Strategie */
     this.plannedPitLap = null;
-    this.pitState = 'racing';     // racing | go-to-pit | in-pit | done-pit
+    this.pitState = 'racing';
     this.lapAtPlan = 0;
+    this._cgs = 1;
+  }
+
+  /** Skaliert AI-Grip basierend auf Fahrzeugklasse */
+  classGripScale(car){
+    const ct = car.def?.classType || 'gt3';
+    if(ct === 'hypercar') return 1.35;
+    if(ct === 'lmp2')     return 1.18;
+    return 1.0;
+  }
+
+  /** Effektives aLat: classScale + physikalisches Limit bei 98% */
+  effectiveALat(car, speed){
+    const cgs = this._cgs || 1;
+    let aLat = this.aLatBase * cgs;
+    const muF = (car.def?.gripF || 1.30) / 1.30 * 1.30;
+    const physLimit = muF * 9.81 * 0.98;
+    return Math.min(aLat, physLimit);
   }
 
   /** Wird einmal vor Rennstart aufgerufen */
@@ -2624,10 +3064,10 @@ class AIDriver {
 
   /** Kurvengeschwindigkeit mit Aero-Grip */
   cornerV(c, kAero){
-    /* Bei sehr engen Kurven minimaler Derate — KI nutzt jetzt fast volles Limit */
-    let aLat = this.aLatBase;
-    if(c > 0.05) aLat *= 0.88;     // R < 20m
-    else if(c > 0.025) aLat *= 0.96;
+    let aLat = this._effALat || (this.aLatBase * (this._cgs||1));
+    /* Tight-Corner-Derate — sanfter als vorher, damit KI nicht zu langsam wird */
+    if(c > 0.05) aLat *= 0.85;       // R < 20m
+    else if(c > 0.03) aLat *= 0.93;   // R < 33m
     const denom = c - kAero;
     if(denom <= 0.0003) return 95;
     return Math.min(95, Math.sqrt(aLat / denom));
@@ -2685,31 +3125,57 @@ class AIDriver {
 
   /** Aktualisiert pitState basierend auf Strategie und aktueller Runde */
   updatePitStrategy(car, race, track){
-    if(!this.plannedPitLap || this.pitState === 'done-pit') return;
     const currentLap = race ? race.lap : 1;
-    if(this.pitState === 'racing' && currentLap >= this.plannedPitLap){
+
+    /* === Schadens-basierter Boxenstopp ===
+       Bei sehr schwerem Schaden oder plattem Reifen: in die Box.
+       Cooldown: nicht sofort wieder nach dem letzten Stopp (mind. 2 Runden). */
+    if(this.pitState !== 'go-to-pit' && this.pitState !== 'in-pit'){
+      const sinceLastPit = currentLap - (this._lastPitLap || 0);
+      if(sinceLastPit >= 2){
+        const worstZone = Math.max(car.damage.front, car.damage.rear, car.damage.left, car.damage.right);
+        const heavyDamage = worstZone > 70 || car.totalDamage > 50;
+        const tireBlown = car.tireWear && (
+          car.tireWear.FL < 0.15 || car.tireWear.FR < 0.15 ||
+          car.tireWear.RL < 0.15 || car.tireWear.RR < 0.15
+        );
+        if(heavyDamage || tireBlown){
+          this.pitState = 'go-to-pit';
+          this._damagePit = true;
+        }
+      }
+    }
+
+    /* === Geplanter Pflicht-Stopp === */
+    if(this.plannedPitLap && this.pitState === 'racing' && currentLap >= this.plannedPitLap){
       this.pitState = 'go-to-pit';
     }
+
+    /* done-pit bei geplantem Stopp → nur wenn nicht gerade Schadens-Stopp nötig */
+    if(!this.plannedPitLap && this.pitState === 'done-pit' && !this._damagePit) return;
+
+    /* === Pit-Lane-Eintritt: nah an Box → bremsen === */
     if(this.pitState === 'go-to-pit' && car.query && car.query.inPitLane){
-      /* Erst auf in-pit umstellen, wenn das Auto NAHE seiner Box ist (sonst pit-driving
-         kontinuierlich anfahren, statt überall im Pit zu bremsen) */
       const box = (track && track.pitBoxes && car.assignedBox != null) ? track.pitBoxes[car.assignedBox] : null;
-      let nearBox = !box;     // ohne Box-Info → wie früher
+      let nearBox = !box;
       if(box){
         const dxB = box.stopPos.x - car.pos.x;
         const dzB = box.stopPos.z - car.pos.z;
-        nearBox = (dxB*dxB + dzB*dzB) < 25;    // 5m Radius
+        nearBox = (dxB*dxB + dzB*dzB) < 25;
       }
       if(nearBox){
         this.pitState = 'in-pit';
         car.pitLimiterActive = true;
       }
     }
+
+    /* === Stopp fertig → raus === */
     if(this.pitState === 'in-pit' && car.pitStopState === 'done'){
       this.pitState = 'done-pit';
       car.pitLimiterActive = false;
       this.plannedPitLap = null;
-      if(typeof global !== 'undefined') console.log('  [AI] in-pit → done-pit, planned cleared');
+      this._damagePit = false;
+      this._lastPitLap = currentLap;
     }
   }
 
@@ -2718,7 +3184,12 @@ class AIDriver {
     let tgtV = 95;
     const seg = track.segLen;
     /* Horizont = wo wir aus aktuellem Tempo gerade noch bremsen können */
-    const hor = Math.min(track.N-2, Math.ceil((30 + speed*speed/(2*this.aBrk))/seg));
+    const effBrk = this.aBrk * (this._cgs || 1);
+    /* Cap braking at physical limit too */
+    const muF = (car?.def?.gripF || 1.30) / 1.30 * 1.30;
+    const brkCap = muF * 9.81 * 0.95;
+    const effBrkCapped = Math.min(effBrk, brkCap);
+    const hor = Math.min(track.N-2, Math.ceil((30 + speed*speed/(2*effBrkCapped))/seg));
     for(let k = 2; k < hor; k++){
       const i2 = (q.idx+k)%track.N;
       const c = Math.abs(track.samples[i2].curv);
@@ -2729,8 +3200,13 @@ class AIDriver {
       const vC = this.cornerV(Math.max(c, 0.0016), kAero);
       this.aLatBase = saveA;
       /* Kinematische Bremsgleichung: v² ≤ vC² + 2·a·s */
-      const al = Math.sqrt(vC*vC + 2*this.aBrk*k*seg);
+      const al = Math.sqrt(vC*vC + 2*effBrkCapped*k*seg);
       if(al < tgtV) tgtV = al;
+    }
+    /* Zusätzliche Vorsicht in engen Kurven und direkt nach dem Start */
+    const curvNow = Math.abs(track.samples[q.idx].curv);
+    if(curvNow > 0.006){
+      tgtV *= 1 - clamp((curvNow - 0.006) * 10, 0, 0.18);
     }
     return tgtV;
   }
@@ -2740,29 +3216,51 @@ class AIDriver {
     let dodge = 0;
     let vCap = 95;
     if(!others) return {dodge, vCap};
+    const sin_h = Math.sin(car.heading), cos_h = Math.cos(car.heading);
+    let carsAheadClose = 0;    // Zähler: wie viele Autos innerhalb 20m vor uns?
     for(const o of others){
       if(o === car) continue;
       const dx = o.pos.x - car.pos.x, dz = o.pos.z - car.pos.z;
       const d2 = dx*dx + dz*dz;
-      if(d2 > 1200) continue;
-      /* Vor mir? */
-      const fwd = Math.sin(car.heading)*dx + Math.cos(car.heading)*dz;
-      const lat = Math.cos(car.heading)*dx - Math.sin(car.heading)*dz;
-      if(fwd > 1.5 && fwd < 35){
-        if(Math.abs(lat) < 2.6){
-          /* Gegner direkt vor mir — überholen oder dahinter bleiben */
-          dodge = (lat >= 0 ? -1 : 1) * 2.8;
-          const closing = v - o.vx;
-          if(closing > 0 && fwd < 8 + closing*1.2){
-            vCap = Math.min(vCap, o.vx + Math.max(0, fwd-5)*0.6);
+      if(d2 > 2500) continue;     // 50m Radius
+      const fwd = sin_h*dx + cos_h*dz;
+      const lat = cos_h*dx - sin_h*dz;
+      /* === Auto VORAUS === */
+      if(fwd > 0.5 && fwd < 50){
+        const absLat = Math.abs(lat);
+        /* Direkt vor mir (innerhalb ±3m Spur) */
+        if(absLat < 3.0){
+          if(fwd < 20) carsAheadClose++;
+          /* Ausweich-Richtung */
+          if(absLat < 2.2 && fwd < 35){
+            dodge = (lat >= 0 ? -1 : 1) * 2.0;
+          }
+          /* Geschwindigkeits-Cap: sanftes Annähern, KEIN Auffahren */
+          const closing = v - Math.max(o.vx, 0);
+          if(closing > 0){
+            /* Sicherheitsabstand: je schneller wir schließen, desto früher bremsen */
+            const safeGap = 4 + closing*0.8;
+            if(fwd < safeGap + closing*1.5){
+              const cap = Math.max(o.vx, 0) + Math.max(0, (fwd - safeGap)) * 0.3;
+              vCap = Math.min(vCap, cap);
+            }
           }
         }
+        /* Neben uns (±3-5m) — Seitenkollision in Kurven vermeiden */
+        if(absLat >= 2.0 && absLat < 5.0 && fwd < 8 && fwd > -3){
+          dodge += (lat > 0 ? -0.5 : 0.5);
+        }
       }
-      /* Hinter mir und versucht zu überholen → leicht verteidigen */
-      if(fwd < -1.5 && fwd > -10 && Math.abs(lat) < 3.5 && o.vx > v+1){
-        const defSide = lat > 0 ? -1 : 1;
-        dodge += defSide * 0.6 * this.aggression;
+      /* === Auto HINTER MIR (leichte Verteidigung) === */
+      if(fwd < -1.5 && fwd > -12 && Math.abs(lat) < 3.5 && o.vx > v+1){
+        dodge += (lat > 0 ? -1 : 1) * 0.3 * this.aggression;
       }
+    }
+    /* Bei vielen Autos direkt vor uns: EXTRA bremsen (Pack-Awareness) */
+    if(carsAheadClose >= 3){
+      vCap = Math.min(vCap, v * 0.75);     // 25% runter wenn ≥3 Autos vor uns
+    } else if(carsAheadClose >= 2){
+      vCap = Math.min(vCap, v * 0.88);     // 12% runter
     }
     return {dodge, vCap};
   }
@@ -2801,13 +3299,24 @@ class AIDriver {
   /** Lenkung Richtung Lookahead-Punkt — niedrige Verstärkung + Rate-Limit */
   applySteering(car, track, q, lineSpec, dt){
     const inp = this.input;
+    const speed = Math.abs(car.vx);
     /* Linie sanft slewen für ruhige Bewegung */
-    this.loS += clamp(lineSpec.target - this.loS, -dt*4.5, dt*4.5);
+    this.loS += clamp(lineSpec.target - this.loS, -dt*5.0, dt*5.0);
     let lo = this.loS;
-    /* Sicherheit: am Streckenrand nach innen ziehen */
-    const over = Math.abs(q.lat) - (track.def.halfWidth - 1.5);
-    if(over > 0) lo = clamp(lo - Math.sign(q.lat)*(over*1.2+1.2), -lineSpec.maxOff, lineSpec.maxOff);
-    const ts = track.samples[lineSpec.li];
+
+    /* === WALL AVOIDANCE: am Streckenrand aktiv nach innen ziehen === */
+    const margin = track.def.halfWidth - 1.2;
+    const over = Math.abs(q.lat) - margin;
+    if(over > 0){
+      /* Proportional + aggressiver je schneller */
+      const urgency = 1 + speed*0.015;
+      lo = clamp(lo - Math.sign(q.lat)*(over*urgency + 1.5), -lineSpec.maxOff, lineSpec.maxOff);
+    }
+
+    /* === SPEED-ADAPTIVE LOOKAHEAD: schneller = weiter voraus schauen === */
+    const liDist = Math.max(25, speed * 0.65);     // 25m @ Stillstand, 52m @ 80km/h, 85m @ 130km/h
+    const li = (q.idx + Math.round(liDist / track.segLen)) % track.N;
+    const ts = track.samples[li];
     const tx = ts.pos.x + ts.side.x*lo;
     const tz = ts.pos.z + ts.side.z*lo;
     const desired = Math.atan2(tx - car.pos.x, tz - car.pos.z);
@@ -2815,25 +3324,39 @@ class AIDriver {
     while(err > Math.PI) err -= 2*Math.PI;
     while(err < -Math.PI) err += 2*Math.PI;
     this.lastErr = err;
-    const steerCmd = clamp(err*1.15 - car.yawRate*0.35, -1, 1);
-    const dS = clamp(steerCmd - inp.steer, -4.8*dt, 4.8*dt);
+
+    /* === PD-CONTROLLER: proportional + derivative (yaw damping) ===
+       Gain steigt bei niedriger Geschwindigkeit (engere Kurven brauchen mehr Lenkeinschlag) */
+    const Kp = 1.05 + 1.55 / Math.max(speed, 5);     // etwas ruhiger
+    const Kd = 0.30 + speed*0.0015;                  // mehr Dämpfung
+    const steerCmd = clamp(err*Kp - car.yawRate*Kd, -1, 1);
+
+    /* Rate-Limit: schnellere Lenkbewegungen bei niedrigem Speed (enge Kurven) */
+    const maxRate = 4.6 + 2.4 / Math.max(speed*0.02, 0.5);
+    const dS = clamp(steerCmd - inp.steer, -maxRate*dt, maxRate*dt);
     inp.steer += dS;
   }
 
-  /** Traktionskontrolle: bei zu hohem Lenkeinschlag oder ay Gas zurücknehmen */
+  /** Traktionskontrolle: progressiver — erlaubt mehr Throttle in Kurven */
   applyTractionControl(car, v, kAero){
     const inp = this.input;
-    const ayNow = Math.abs(car.yawRate*v) + Math.abs(car.vy)*2;
-    const ayBudget = this.aLatBase + kAero*v*v;
-    const stThrLim = Math.max(0, 1 - Math.abs(inp.steer)*1.3);
-    const ayThrLim = Math.max(0, 1 - ayNow/(ayBudget*0.92));
+    const ayNow = Math.abs(car.yawRate*v) + Math.abs(car.vy)*1.5;
+    const ayBudget = (this._effALat || this.aLatBase) + kAero*v*v;
+    /* Lenkwinkel-basierter Throttle-Limiter: sanfter als vorher */
+    const stThrLim = Math.max(0.05, 1 - Math.abs(inp.steer)*0.95);
+    /* Ay-basierter Limiter: früher Gas zurücknehmen */
+    const ayThrLim = Math.max(0.05, 1 - ayNow/(ayBudget*0.75));
     inp.throttle = Math.min(inp.throttle, stThrLim, ayThrLim);
+    /* Oversteer-Correction: wenn Hinterachse wegrutscht, Gas raus und gegenlenken */
+    if(Math.abs(car.vy) > 1.8 + v*0.03){
+      inp.throttle *= 0.3;
+    }
   }
 
   /** Off-Track-Recovery: vorsichtig zurück auf die Strecke */
   offRoadRecover(car, track, q, v){
     const inp = this.input;
-    const tgtV = 12;
+    const tgtV = 9;
     const center = track.samples[(q.idx+4)%track.N];
     const desired = Math.atan2(center.pos.x - car.pos.x, center.pos.z - car.pos.z);
     let er = desired - car.heading;
@@ -2854,6 +3377,18 @@ class AIDriver {
     const q = track.query(car.pos, car.sampleIdx);
     const v = car.vx, speed = Math.abs(v);
     const kAero = 0.55 * 9.81 * 1.3 / (car.def.topSpeed*car.def.topSpeed);
+
+    /* Klassen-Skalierung: Hypercar/LMP2 nutzen mehr vom physikalischen Limit */
+    this._cgs = this.classGripScale(car);
+    /* Narrow-Track-Safety: auf engen Strecken weniger aggressiv.
+       Höherer Skill = braucht MEHR Sicherheitsmarge weil die Absolutgeschwindigkeiten höher sind */
+    const hw = track.def.halfWidth || 8;
+    const skillMargin = 1 + this.skill * 0.15;   // skill 1.0 braucht 15% mehr Marge
+    if(hw < 6.5) this._cgs *= clamp(0.75 / skillMargin, 0.65, 0.85);
+    else if(hw < 7.5) this._cgs *= clamp(0.88 / skillMargin, 0.78, 0.92);
+    else if(hw < 8.5) this._cgs *= clamp(0.95 / skillMargin, 0.88, 0.97);
+    /* Physics-capped effective lateral grip — nie über 90% des echten Auto-Grips */
+    this._effALat = this.effectiveALat(car, speed);
 
     /* Pit-Strategie zuerst — sonst frisst die Stuck-Recovery die in-pit→done-pit Transition,
        weil das Auto während des Stopps natürlich bei v=0 steht und als "festgefahren" gilt */
@@ -2936,6 +3471,23 @@ class AIDriver {
     /* Verkehr */
     const traffic = this.scanTraffic(car, others, v);
     if(traffic.vCap < tgtV) tgtV = traffic.vCap;
+
+    /* === AI WINDSCHATTEN-NUTZUNG + ÜBERHOLBOOST ===
+       Wenn die KI im Windschatten ist, hebt sie das Tempolimit an (Physik gibt sowieso
+       weniger Drag, aber die KI muss auch Gas geben statt zu bremsen).
+       Beim aktiven Überholen (dodge aktiv = neben einem Gegner) kleiner Gripboost. */
+    const slip = car.slipstreamFactor || 0;
+    if(slip > 0.2){
+      /* Im Windschatten: Zieltempo um bis zu 8% anheben (auf Geraden) */
+      const curvHere = Math.abs(track.samples[q.idx].curv);
+      if(curvHere < 0.005){     // fast gerade
+        tgtV *= 1 + slip * 0.08;
+      }
+    }
+    if(Math.abs(traffic.dodge) > 1.5){
+      /* Aktiv am Überholen (neben einem Gegner) → 5% mehr Grip-Nutzung */
+      tgtV *= 1.05;
+    }
 
     /* VSC: alle KI auf 120 km/h gedrosselt */
     if(typeof Game !== 'undefined' && Game.vsc && Game.vsc.active){
@@ -3037,14 +3589,14 @@ function collideCars(cars){
     const [ax,az]=carWorldVel(a), [bx,bz]=carWorldVel(b);
     const rel=(bx-ax)*dx+(bz-az)*dz;
     if(rel<0){                                    // bewegen sich aufeinander zu
-      const imp=-rel*0.62;                        // halbelastisch
+      const imp=-rel*0.45;                        // weicher als vorher (0.62→0.45) — weniger Kettenreaktion
       setCarWorldVel(a, ax-dx*imp, az-dz*imp);
       setCarWorldVel(b, bx+dx*imp, bz+dz*imp);
-      a.yawRate*=0.85; b.yawRate*=0.85;
+      a.yawRate*=0.92; b.yawRate*=0.92;           // weniger Spin bei Berührung (0.85→0.92)
       const impMag = Math.abs(rel);
-      if(impMag>4 && typeof Game!=='undefined' && Game.sound) Game.sound.impact(Math.min(1,impMag/14));
-      /* Schadensanwendung: bestimme Aufprallrichtung für JEDES Auto im eigenen Frame */
-      if(impMag > 2.5){
+      if(impMag>5 && typeof Game!=='undefined' && Game.sound) Game.sound.impact(Math.min(1,impMag/14));
+      /* Schadensanwendung nur bei harten Berührungen */
+      if(impMag > 4.0){
         /* Auto a wird von b angerempelt — Normale (dx,dz) zeigt von a nach b → das ist die
            Richtung in der a den Stoß empfängt. Im a-Frame: */
         const sinA=Math.sin(a.heading), cosA=Math.cos(a.heading);
@@ -3306,18 +3858,29 @@ class CameraRig {
     const fwd=new THREE.Vector3(sin,0,cos);
     const mode=this.modes[this.mode];
     let target, look, fov=64;
+    /* Cockpit-Interieur nur in Cockpit-Kamera sichtbar */
+    if(car._cockpitGrp) car._cockpitGrp.visible = (mode === 'cockpit');
     if(mode==='chase'){
       const back=7.4+car.speedKmh*0.012;
       target=car.pos.clone().addScaledVector(fwd,-back).add(new THREE.Vector3(0,2.5+car.speedKmh*0.004,0));
       look=car.pos.clone().addScaledVector(fwd,7).add(new THREE.Vector3(0,1.0,0));
       fov=62+car.speedKmh*0.05;
     } else if(mode==='cockpit'){
-      target=car.pos.clone().addScaledVector(fwd,0.25).add(new THREE.Vector3(0,1.08,0));
-      // leichte Seitenverschiebung durch Querbeschleunigung
+      /* Cockpit: Auge hinter dem Lenkrad, Dashboard sichtbar im unteren Bildbereich */
+      const ct = car.def?.classType || 'gt3';
+      /* Augenhöhe = Lenkrad-Höhe + 0.22m (Kopf über Lenkrad) */
+      const cockY = ct === 'hypercar' ? 0.92 : ct === 'lmp2' ? 0.86 : 1.16;
+      /* Auge HINTER dem Lenkrad (negativ = zurückversetzt) damit Wheel und Dash sichtbar */
+      const cockFwd = ct === 'hypercar' ? -0.15 : ct === 'lmp2' ? -0.20 : 0.0;
+      target=car.pos.clone().addScaledVector(fwd, cockFwd).add(new THREE.Vector3(0, cockY, 0));
+      /* Leichte Seitenbewegung durch Querkraft */
       const side=new THREE.Vector3(cos,0,-sin);
-      target.addScaledVector(side, clamp(car.yawRate*car.vx*0.004,-0.1,0.1));
-      look=car.pos.clone().addScaledVector(fwd,30).add(new THREE.Vector3(0,1.0,0));
-      fov=70;
+      target.addScaledVector(side, clamp(car.yawRate*car.vx*0.003,-0.08,0.08));
+      /* Head-Bob bei Unebenheiten */
+      target.y += Math.sin(performance.now()*0.008 + car.vx*0.3) * 0.006 * Math.min(1, car.speedKmh/50);
+      /* Blickpunkt: weit vorne, auf Straßenniveau → man sieht die Strecke UND das Dashboard im Vordergrund */
+      look=car.pos.clone().addScaledVector(fwd, 40).add(new THREE.Vector3(0, cockY*0.55, 0));
+      fov=75;
     } else { // TV: nächste Streckenkamera
       let best=null, bd=Infinity;
       for(const c of track.tvCams){
@@ -3406,7 +3969,6 @@ const HUD = {
     }
     if(this._lbList && aiCars){
       const allCars = [car, ...aiCars];
-      /* Race-Score: lap + progress, sortiert absteigend */
       const scored = allCars.map(c => ({
         car: c,
         score: (c.rd?.lap || 1) + (c.query?.progress || 0),
@@ -3415,18 +3977,24 @@ const HUD = {
       scored.sort((a, b) => b.score - a.score);
       const leaderScore = scored[0].score;
       let html = '';
+      /* Nur Top 15 anzeigen um Performance bei 50 Autos zu halten */
+      const showCount = Math.min(scored.length, 15);
+      /* Spieler-Position immer finden */
+      const playerIdx = scored.findIndex(s => s.isPlayer);
       scored.forEach((s, i) => {
+        if(i >= showCount && i !== playerIdx) return;     // nur Top 15 + Spieler
         const gap = leaderScore - s.score;
         const gapStr = i === 0 ? 'Lap '+(s.car.rd?.lap||1) :
                        gap > 1 ? '+'+Math.floor(gap)+' Rd' :
-                       '+'+(gap*30).toFixed(1)+'s';      // grobe Sek-Schätzung
-        const name = s.isPlayer ? 'DU' : (s.car.def?.name || 'KI').replace('KI · ', '');
+                       '+'+(gap*30).toFixed(1)+'s';
+        const name = s.isPlayer ? 'DU' : (s.car.def?.name || 'KI').substring(0,16);
         const finishMark = s.car.rd?.finished ? ' ✓' : '';
-        const cls = (s.car.def?.classType || 'gt3') === 'hypercar' ? 'lmp1' : 'gt3';
-        const clsLabel = cls === 'lmp1' ? 'LMP1' : 'GT3';
-        html += `<div class="lb-row${s.isPlayer?' you':''} class-${cls}">
+        const ct = s.car.def?.classType || 'gt3';
+        const cls = ct === 'hypercar' ? 'hyp' : ct === 'lmp2' ? 'lmp2' : 'gt3';
+        const clsLabel = ct === 'hypercar' ? 'HYP' : ct === 'lmp2' ? 'LM2' : 'GT3';
+        html += `<div class="lb-row${s.isPlayer?' you':''}">
           <span class="lb-pos">P${i+1}</span>
-          <span class="lb-class ${cls}">${clsLabel}</span>
+          <span class="lb-cls lb-${cls}">${clsLabel}</span>
           <span class="lb-name">${name}${finishMark}</span>
           <span class="lb-gap">${gapStr}</span>
         </div>`;
@@ -3443,6 +4011,41 @@ const HUD = {
       const d = car.totalDamage || 0;
       this._dmgBar.style.width = Math.min(100, d).toFixed(0)+'%';
       this._dmgPct.textContent = d.toFixed(0)+'%';
+    }
+    /* Reifenverschleiß-Panel unten rechts */
+    if(this._tyreBox === undefined){
+      this._tyreBox = document.getElementById('tyrebox');
+      this._tyreTitle = this._tyreBox ? this._tyreBox.querySelector('.tb-title') : null;
+      this._tyreAvgBar = document.getElementById('tyre-avg-bar');
+      this._tyreAvgPct = document.getElementById('tyre-avg-pct');
+      this._tyreVals = {
+        FL: document.getElementById('tyre-FL'),
+        FR: document.getElementById('tyre-FR'),
+        RL: document.getElementById('tyre-RL'),
+        RR: document.getElementById('tyre-RR')
+      };
+    }
+    if(this._tyreBox && car.tireWear){
+      this._tyreBox.classList.remove('hidden');
+      const distScale = clamp((totalLaps || 3) / 3, 1, 4);
+      const avgWear = (car.tireWear.FL + car.tireWear.FR + car.tireWear.RL + car.tireWear.RR) / 4;
+      const avgUsed = clamp((1 - avgWear) * distScale, 0, 1);
+      if(this._tyreTitle) this._tyreTitle.textContent = `REIFEN · x${distScale.toFixed(1)}`;
+      if(this._tyreAvgBar) this._tyreAvgBar.style.width = Math.round(avgUsed * 100) + '%';
+      if(this._tyreAvgPct) this._tyreAvgPct.textContent = Math.round(avgWear * 100) + '%';
+      const chipColor = (v) => {
+        if(v > 0.75) return '#22c463';
+        if(v > 0.50) return '#ffd400';
+        if(v > 0.25) return '#ff8800';
+        return '#ff2e3d';
+      };
+      ['FL','FR','RL','RR'].forEach(t => {
+        const v = car.tireWear[t];
+        if(this._tyreVals[t]){
+          this._tyreVals[t].textContent = Math.round(v * 100) + '%';
+          this._tyreVals[t].style.color = chipColor(v);
+        }
+      });
     }
     /* === Schaden-Widget (rechtes Panel) === */
     if(this._dmgPanelInit === undefined){
@@ -3547,7 +4150,8 @@ const HUD = {
         this._vscDelta   = make('vsc-delta', 'Δ +0.0s',        '#22c463');
         this._flag       = make('flag-chip', '',               '#22c463');
         this._penaltyChip= make('penalty-chip', 'DRIVE THROUGH',  '#ff2e3d');
-      } else { this._pitHint = null; this._pitLim = null; this._pitStop=null; this._pitRequired=null; this._vsc=null; this._vscDelta=null; this._flag=null; this._penaltyChip=null;}
+        this._slipChip   = make('slip-chip',    'WINDSCHATTEN',    '#00b4ff');
+      } else { this._pitHint = null; this._pitLim = null; this._pitStop=null; this._pitRequired=null; this._vsc=null; this._vscDelta=null; this._flag=null; this._penaltyChip=null; this._slipChip=null;}
     }
     if(this._pitHint){
       const inPit = car.query && car.query.inPitLane;
@@ -3628,6 +4232,20 @@ const HUD = {
         this._penaltyChip.style.display = 'none';
       }
     }
+    /* Windschatten-Anzeige */
+    if(this._slipChip){
+      const sf = car.slipstreamFactor || 0;
+      if(sf > 0.15){
+        this._slipChip.style.display = 'inline-block';
+        const pct = Math.round(sf * 100);
+        this._slipChip.textContent = 'WINDSCHATTEN · ' + pct + '%';
+        /* Farbe: blau bei schwach, cyan bei stark */
+        const bright = Math.round(80 + sf * 175);
+        this._slipChip.style.background = `rgb(0,${bright},255)`;
+      } else {
+        this._slipChip.style.display = 'none';
+      }
+    }
     /* RPM-Schaltblitz-Leiste */
     const r=clamp((car.rpmRatio-0.12)/0.88,0,1);
     const lit=Math.round(r*this.leds.length);
@@ -3642,15 +4260,28 @@ const Game = {
   state:'menu',     // menu | countdown | race | pause | finished
   shake:0,
   settings:{shadows:true, resScale:1, drawDist:1100, volume:0.8},
+  controllerBindings: deepClone(defaultControllerBindings),
   selTrack:0, selCar:0, mode:'tt',   // tt = Zeitfahren | race3 = Rennen über 3 Runden
   vsc: { active:false, startTime:0, startDist:0, deltaSec:0, totalDist:0 },
   /* Flaggenzustand: green/yellow/sc/red/chequered. Auto-Trigger via Crash-Counter. */
   flag: { state:'green', timer:0, crashIntensity:0 },
+  tireWearMultiplier: 0.1,
+  tireWearLifeLaps(){
+    const laps = this.totalLaps || 0;
+    if(laps >= 1 && laps <= 5) return 10;
+    if(laps === 6) return 4;
+    if(laps >= 7) return clamp(Math.round(laps * 0.8), 4, 10);
+    return 10;
+  },
 
   boot(){
     HUD.init();
     this.input=new Input();
     this.sound=new SoundManager();
+    try{
+      const raw = Store.get('controller_bindings_v1');
+      if(raw) this.controllerBindings = Object.assign({}, defaultControllerBindings, JSON.parse(raw));
+    } catch(e){}
 
     /* Renderer & Szene */
     const renderer=this.renderer=new THREE.WebGLRenderer({antialias:true});
@@ -3663,7 +4294,7 @@ const Game = {
       this.camera.aspect=innerWidth/innerHeight; this.camera.updateProjectionMatrix();
       renderer.setSize(innerWidth,innerHeight);
     });
-    this.camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,0.3,2000);
+    this.camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,0.08,2000);
     this.cameraRig=new CameraRig(this.camera);
     this.clock=new THREE.Clock();
     this.acc=0;
@@ -3672,7 +4303,73 @@ const Game = {
     this.buildEnvMap();
     this.wireMenus();
     this.renderEditor();
+    this.renderControllerBindings();
     requestAnimationFrame(t=>this.loop());
+  },
+
+  saveControllerBindings(){
+    try{ Store.set('controller_bindings_v1', JSON.stringify(this.controllerBindings)); } catch(e){}
+  },
+  renderControllerBindings(){
+    const host = document.getElementById('controller-bindings');
+    if(!host) return;
+    const labels = {
+      steering:'Lenkung',
+      throttle:'Gas',
+      brake:'Bremse',
+      boost:'Boost',
+      pitLimiter:'Pit-Limiter',
+      camera:'Kamera',
+      pause:'Pause',
+      restart:'Neustart',
+      help:'Hilfe'
+    };
+    const bindName = b => {
+      if(!b) return 'Nicht belegt';
+      if(b.type === 'trigger' && b.axis === 'rt') return 'RT';
+      if(b.type === 'trigger' && b.axis === 'lt') return 'LT';
+      if(b.axis === 'lx') return 'LS X';
+      if(b.axis === 'rx') return 'RS X';
+      return 'Taste ' + b.button;
+    };
+    host.innerHTML = Object.keys(labels).map(action => `
+      <div class="setrow">
+        <span>${labels[action]}</span>
+        <button class="btn" data-bind-action="${action}">${bindName(this.controllerBindings[action])}</button>
+      </div>
+    `).join('');
+    host.querySelectorAll('[data-bind-action]').forEach(btn=>{
+      btn.onclick = () => {
+        const action = btn.getAttribute('data-bind-action');
+        this.bindingAction = action;
+        btn.textContent = 'Drücke jetzt...';
+        btn.dataset.waiting = '1';
+      };
+    });
+  },
+  captureControllerBinding(pad){
+    if(!this.bindingAction || !pad) return false;
+    const action = this.bindingAction;
+    const picked = this._detectBindingFromPad(pad);
+    if(!picked) return false;
+    this.controllerBindings[action] = picked;
+    this.saveControllerBindings();
+    this.bindingAction = null;
+    this.renderControllerBindings();
+    return true;
+  },
+  _detectBindingFromPad(pad){
+    if(!pad) return null;
+    const buttons = pad.buttons || [];
+    const axes = pad.axes || [];
+    if(buttons[7]?.pressed || (typeof buttons[7]?.value === 'number' && buttons[7].value > 0.5)) return {type:'trigger', button:7, axis:'rt'};
+    if(buttons[6]?.pressed || (typeof buttons[6]?.value === 'number' && buttons[6].value > 0.5)) return {type:'trigger', button:6, axis:'lt'};
+    if(Math.abs(axes[0] || 0) > 0.35) return {type:'axis', axis:'lx'};
+    if(Math.abs(axes[2] || 0) > 0.35) return {type:'axis', axis:'rx'};
+    for(let i=0;i<buttons.length;i++){
+      if(buttons[i].pressed || (typeof buttons[i].value === 'number' && buttons[i].value > 0.5)) return {type:'button', button:i};
+    }
+    return null;
   },
 
   buildEnvMap(){
@@ -3719,6 +4416,7 @@ const Game = {
     }
 
     this.track=new Track(trackDef, scene);
+    this.track.setIdealLineVisible(true);
     this.car=new Car(CARS[this.selCar], scene, this.envMap);
     this.particles=new Particles(scene);
     this.skids=new SkidMarks(scene);
@@ -3916,34 +4614,55 @@ const Game = {
     this.aiCars=[]; this.aiDrivers=[];
     const N=this.track.N;
     if(this.mode==='race3'){
-      const nAI = clamp(this.numAI||5, 1, 20);
-      /* KI-Gegner: 2er-Startaufstellung, Spieler ganz hinten */
+      const nAI = clamp(this.numAI||5, 1, 50);
+      /* KI-Gegner erzeugen (noch nicht platziert) */
       for(let i=0;i<nAI;i++){
         const base=CARS[(this.selCar+1+i)%CARS.length];
         const def=Object.assign({}, base, this.AI_LIVERIES[i % this.AI_LIVERIES.length]);
         const car=new Car(def, this.scene, this.envMap);
-        const row=Math.floor(i/2), col=i%2;
-        car.placeAtGrid(this.track, N-6-row*5, (col?1:-1)*2.9);
         car.rd=this.freshRD();
         this.aiCars.push(car);
-        /* Schwierigkeit aus Menü ± leichte Streuung pro Fahrer (echte Felder sind heterogen) */
         const baseDiff = this.aiDifficulty != null ? this.aiDifficulty : 60;
-        const spread = (i/Math.max(1,nAI-1) - 0.5) * 30;     // ±15 Punkte
+        const spread = (i/Math.max(1,nAI-1) - 0.5) * 30;
         const drvDiff = clamp(baseDiff + spread, 0, 100);
         const driver = new AIDriver(drvDiff, i, nAI);
         driver.setupForRace(this.totalLaps, this.mandatoryPitStop);
         this.aiDrivers.push(driver);
       }
-      /* Spieler hinten */
-      const playerRow=Math.floor(nAI/2);
-      const playerCol=nAI%2;
-      this.car.placeAtGrid(this.track, N-6-playerRow*5, (playerCol?1:-1)*2.9);
+      this.car.rd=this.freshRD();
+      this.allCars=[this.car, ...this.aiCars];
+
+      /* === GRID-SORTIERUNG: HYP vorne → LMP2 Mitte → GT3 hinten ===
+         Innerhalb jeder Klasse: zufällige Reihenfolge.
+         Spieler startet am Ende seiner Klasse (hinterstes Auto der eigenen Klasse). */
+      const classOrder = {hypercar:0, lmp2:1, gt3:2};
+      const getClassRank = (c) => classOrder[c.def?.classType || 'gt3'] ?? 2;
+
+      /* Alle Autos nach Klasse sortieren, innerhalb der Klasse leicht mischen */
+      const sorted = [...this.allCars];
+      sorted.sort((a, b) => {
+        const ca = getClassRank(a), cb = getClassRank(b);
+        if(ca !== cb) return ca - cb;
+        /* Spieler INNERHALB seiner Klasse nach hinten */
+        if(a === this.car) return 1;
+        if(b === this.car) return -1;
+        return 0;
+      });
+
+      /* Auf Grid platzieren: Position 0 = ganz vorne (Pole) */
+      for(let i=0; i<sorted.length; i++){
+        const row = Math.floor(i/2), col = i%2;
+        sorted[i].placeAtGrid(this.track, N-6-row*5, (col?1:-1)*2.9);
+      }
+
+      /* allCars-Reihenfolge beibehalten (Spieler immer Index 0 für HUD) */
+      this.allCars = [this.car, ...this.aiCars];
     } else {
       this.car.placeAtStart(this.track);
+      this.car.rd=this.freshRD();
+      this.allCars=[this.car];
     }
-    this.car.rd=this.freshRD();
-    this.allCars=[this.car, ...this.aiCars];
-    /* Pit-Boxen verteilen: Spieler kriegt Box 0, KI Boxen 1..N */
+    /* Pit-Boxen verteilen */
     if(this.track && this.track.pitBoxes && this.track.pitBoxes.length){
       this.car.assignedBox = 0;
       this.aiCars.forEach((c, i) => {
@@ -4010,58 +4729,108 @@ const Game = {
   },
   restartRace(){
     const N=this.track.N;
-    const penaltySnapshot = new Map();
-    for(const c of this.allCars){
-      penaltySnapshot.set(c._uid, {
-        penaltySec: c.penaltySec || 0,
-        penaltySecConsumed: c.penaltySecConsumed || 0,
-        pitSpeedingGiven: !!c._pitSpeedingPenaltyGiven,
-        pitSpeedingUntil: c._pitSpeedingNoticeUntil || 0,
-        driveThroughPending: !!c.driveThroughPenaltyPending,
-        driveThroughInPit: !!c.driveThroughInPit,
-        driveThroughNoticeUntil: c.driveThroughNoticeUntil || 0,
-        driveThroughAutoLimiter: !!c._driveThroughAutoLimiter
-      });
-    }
     if(this.mode==='race3'){
       const nAI=this.aiCars.length;
       this.aiCars.forEach((c,i)=>{
-        const row=Math.floor(i/2), col=i%2;
-        c.placeAtGrid(this.track, N-6-row*5, (col?1:-1)*2.9);
         c.rd=this.freshRD();
         const d = this.aiDrivers[i];
         d.stuckT=0; d.revT=0; d.turnT=0; d.fwdRescueT=0;
-        d.pitState='racing'; d.loS=0;
+        d.pitState='racing'; d.loS=0; d._cgs=1; d._effALat=0;
+        d._damagePit=false; d._lastPitLap=0;
         d.setupForRace(this.totalLaps, this.mandatoryPitStop);
-        c.pitStopsDone=0; c.pitLimiterActive=false; c.pitStopState='idle';
       });
-      const playerRow=Math.floor(nAI/2);
-      const playerCol=nAI%2;
-      this.car.placeAtGrid(this.track, N-6-playerRow*5, (playerCol?1:-1)*2.9);
+      this.car.rd=this.freshRD();
+      /* Grid nach Klasse sortieren */
+      const classOrder = {hypercar:0, lmp2:1, gt3:2};
+      const getClassRank = (c) => classOrder[c.def?.classType || 'gt3'] ?? 2;
+      const sorted = [...this.allCars].sort((a,b) => {
+        const ca = getClassRank(a), cb = getClassRank(b);
+        if(ca !== cb) return ca - cb;
+        if(a === this.car) return 1;
+        if(b === this.car) return -1;
+        return 0;
+      });
+      for(let i=0; i<sorted.length; i++){
+        const row = Math.floor(i/2), col = i%2;
+        sorted[i].placeAtGrid(this.track, N-6-row*5, (col?1:-1)*2.9);
+      }
     } else {
       this.car.placeAtStart(this.track);
     }
     this.car.rd=this.freshRD();
     this.skids.reset();
     if(this.debris) this.debris.reset();
-    /* Schadens-Reset für alle Autos */
+
+    /* ========== NUKLEARER RESET ALLER AUTOS ========== */
     for(const c of this.allCars){
+      /* Schaden */
       c.damage = {front:0, rear:0, left:0, right:0};
-      c.lostParts = {};
       c.smokeT = 0;
-      const snap = penaltySnapshot.get(c._uid);
-      if(snap){
-        c.penaltySec = snap.penaltySec;
-        c.penaltySecConsumed = snap.penaltySecConsumed;
-        c._pitSpeedingPenaltyGiven = snap.pitSpeedingGiven;
-        c._pitSpeedingNoticeUntil = snap.pitSpeedingUntil;
-        c.driveThroughPenaltyPending = snap.driveThroughPending;
-        c.driveThroughInPit = snap.driveThroughInPit;
-        c.driveThroughNoticeUntil = snap.driveThroughNoticeUntil;
-        c._driveThroughAutoLimiter = snap.driveThroughAutoLimiter;
+      /* Verlorene Teile wieder anbauen */
+      for(const tag in c.lostParts){
+        const mountSpec = c.partMounts && c.partMounts[tag];
+        const partMesh = c.parts[tag];
+        if(partMesh && mountSpec){
+          partMesh.position.copy(mountSpec.pos);
+          partMesh.quaternion.copy(mountSpec.quat);
+          partMesh.visible = true;
+          partMesh.scale.set(1,1,1);
+          if(partMesh.material){ partMesh.material.opacity = 1; partMesh.material.transparent = false; }
+          if(partMesh.parent && partMesh.parent !== c.group) partMesh.parent.remove(partMesh);
+          c.group.add(partMesh);
+        }
       }
+      c.lostParts = {};
+      /* Reifen */
+      c.tireWear = {front:1, rear:1, FL:1, FR:1, RL:1, RR:1};
+      c.pitServiceFlashT = 0;
+      c.pitServiceIntensity = 0;
+      /* Strafen — ALLES auf null */
+      c.penaltySec = 0;
+      c.penaltySecConsumed = 0;
+      c._pitSpeedingPenaltyGiven = false;
+      c._pitSpeedingNoticeUntil = 0;
+      c.driveThroughPenaltyPending = false;
+      c.driveThroughInPit = false;
+      c.driveThroughNoticeUntil = 0;
+      c._driveThroughAutoLimiter = false;
+      c._overtakeState = {};
+      /* Physik-State */
+      c.vx = 0; c.vy = 0; c.yawRate = 0;
+      c.slipstreamFactor = 0;
+      c.totalDistance = 0;
+      c.vscActive = false;
+      c.scActive = false;
+      /* Pit-State */
+      c.pitStopsDone = 0;
+      c.pitLimiterActive = false;
+      c.pitStopState = 'idle';
+      c.pitStopT = 0;
+      /* Stuck */
+      c._stuckT = 0;
+      c._everMoved = false;
+      c._prevDmg = 0;
+      /* ERS */
+      if(c.ers) c.ers = {charge:0.4, active:false, depleted:false};
     }
-    this.race.lap=1; this.race.lastLap=null; this.race.halfPassed=false; this.race.prevProg=0; this.race.pos=this.allCars.length;
+
+    /* ========== GLOBALER RESET ========== */
+    this._raceTimeS = 0;
+    this.flag = {state:'green', timer:0, crashIntensity:0};
+    this.vsc = {active:false, startTime:0, startDist:0, deltaSec:0, totalDist:0};
+    this._penaltyNotice = null;
+    this._spectateAI = null;
+    /* Safety Car zurück in die Box */
+    if(this.safetyCar){
+      this.safetyCar.state = 'idle';
+      this.safetyCar.mesh.visible = false;
+      this.safetyCar.speed = 140/3.6;
+      this.safetyCar.distance = 0;
+    }
+
+    this.race = {lap:1, curLapTime:0, lapStart:performance.now(), lastLap:null,
+      bestLap:this.race?.bestLap || null,
+      halfPassed:false, prevProg:0, pos:this.allCars.length, total:this.allCars.length};
     document.getElementById('results').classList.add('hidden');
     this.state='countdown';
     document.getElementById('pause').classList.add('hidden');
@@ -4157,12 +4926,29 @@ const Game = {
   loop(){
     requestAnimationFrame(()=>this.loop());
     const dt=Math.min(this.clock.getDelta(),0.1);
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const activePad = Array.from(pads).find(p => p && p.connected);
+    if(this.bindingAction && activePad){
+      this.captureControllerBinding(activePad);
+    }
     if(this.state==='race'||this.state==='countdown'||this.state==='finished'){
       this.acc+=dt;
       let steps=0;
       const running=this.state==='race'||this.state==='finished';
       while(this.acc>=PHYS_DT && steps<8){
-        this.input.update(PHYS_DT);
+        /* Spieler-Input: eigener Input oder KI (Zuschauen-Modus) */
+        let playerInput;
+        if(this.spectateMode){
+          if(!this._spectateAI){
+            this._spectateAI = new AIDriver(this.aiDifficulty || 60, 0, 1);
+            this._spectateAI.setupForRace(this.totalLaps, this.mandatoryPitStop);
+          }
+          playerInput = this._spectateAI.control(this.car, this.track, PHYS_DT, running, this.allCars, {lap: this.car.rd?.lap || 1});
+          this.input.update(PHYS_DT);   // trotzdem updaten für Kamera-Steuerung
+        } else {
+          this.input.update(PHYS_DT);
+          playerInput = this.input;
+        }
         /* VSC + SC: alle Autos mit Speed-Cap belegen */
         const vscOn = this.vsc.active;
         const scOn = this.safetyCar && this.safetyCar.state !== 'idle';
@@ -4170,7 +4956,29 @@ const Game = {
           c.vscActive = vscOn;
           c.scActive = scOn;
         }
-        this.car.step(PHYS_DT,this.input,this.track,this.sound);
+        /* === WINDSCHATTEN (Slipstream/DRS-Effekt) ===
+           Wenn ein Auto nah hinter einem anderen fährt (Kegel 30m, ±8°),
+           sinkt dessen Luftwiderstand. Effekt: ~8 km/h mehr Topspeed. */
+        for(const c of this.allCars){
+          c.slipstreamFactor = 0;     // 0 = kein Windschatten, 1 = voller Effekt
+          if(Math.abs(c.vx) < 20) continue;     // nur bei speed > 72 km/h
+          const sin_h = Math.sin(c.heading), cos_h = Math.cos(c.heading);
+          for(const o of this.allCars){
+            if(o === c) continue;
+            const dx = o.pos.x - c.pos.x, dz = o.pos.z - c.pos.z;
+            /* Voraus-Komponente im eigenen Fahrzeug-Frame */
+            const fwd = sin_h*dx + cos_h*dz;
+            if(fwd < 3 || fwd > 35) continue;     // muss 3-35m vor mir sein
+            const lat = Math.abs(cos_h*dx - sin_h*dz);
+            if(lat > 2.5) continue;                 // muss ziemlich zentral sein
+            /* Effektstärke: näher + zentrierter = stärker */
+            const distFactor = 1 - (fwd - 3)/32;    // linear 1→0 über 3-35m
+            const latFactor  = 1 - lat/2.5;          // linear 1→0 über 0-2.5m
+            const eff = distFactor * latFactor;
+            if(eff > c.slipstreamFactor) c.slipstreamFactor = eff;
+          }
+        }
+        this.car.step(PHYS_DT, playerInput, this.track, this.sound);
         /* KI-Gegner */
         for(let i=0;i<this.aiCars.length;i++){
           const inp=this.aiDrivers[i].control(this.aiCars[i],this.track,PHYS_DT,running,this.allCars,{lap:this.aiCars[i].rd.lap});
@@ -4213,7 +5021,7 @@ const Game = {
           /* Auto-Trigger: bei 2+ stuck cars sofort Safety Car raus — aber FRÜHESTENS nach 20s Race-Zeit
              (sonst kickt der Detector beim Startgrid sofort) */
           const raceOldEnough = (this._raceTimeS || 0) > 20;
-          if(raceOldEnough && !this.vsc.active && stuckCount >= 2 && this.safetyCar && this.safetyCar.canDeploy()){
+          if(raceOldEnough && !this.vsc.active && this.scEnabled !== false && stuckCount >= 2 && this.safetyCar && this.safetyCar.canDeploy()){
             this.safetyCar.deploy();
             this.flag.state = 'sc';
             this.flag.crashIntensity = 10;
@@ -4230,43 +5038,59 @@ const Game = {
             }
           }
           /* === Strafen-Detektion: Überholen unter SC oder VSC ===
-             Pro KI-Auto wird der Status "war vor mir" gespeichert. Eine Strafe wird NUR ausgelöst
-             wenn ein Auto deutlich (>0.005 progress = ~10m) von "vor mir" auf "hinter mir" wechselt,
-             und nicht innerhalb von 3s nach der letzten Strafe für dasselbe Auto. */
+             STRENGER als vorher. Nur Drive-Through bei KLAREM, DAUERHAFTEM Überholen.
+             Kein Penalty für:
+             - Gedrehte oder stehende Autos
+             - Autos neben der Strecke oder im Pit
+             - Autos mit hoher Gierrate (drehen sich gerade)
+             - Kurze Positionsfluktuationen in Kurven */
           const underYellow = this.vsc.active || (this.safetyCar && this.safetyCar.state !== 'idle');
-          if(underYellow && this.state === 'race' && this.allCars.length > 1){
+          const raceTimeOK = (this._raceTimeS || 0) > 30;
+          if(underYellow && raceTimeOK && this.state === 'race' && this.allCars.length > 1){
             const pCar = this.car;
-          if(!pCar._overtakeState) pCar._overtakeState = {};
-          const pScore = (pCar.rd?.lap || 0) + (pCar.query?.progress || 0);
-          const nowMs = performance.now();
-          for(const o of this.allCars){
-            if(o === pCar || o.rd?.finished) continue;
-              /* Stehende oder kaum bewegende Autos zählen nicht als Überholziel */
-              if(!o.query || o.query.surf !== SURF.TRACK || o.query.inPitLane) continue;
-              if(o.speedKmh < 35) continue;
-              const id = o._uid || (o.def?.name + '_idx');
+            /* Keine Penalty-Detection wenn Spieler selbst im Pit oder in Pit-Anfahrt */
+            if(pCar.query?.inPitLane || pCar.pitLimiterActive || pCar.pitStopState !== 'idle') {
+              /* noop */
+            } else {
+            if(!pCar._overtakeState) pCar._overtakeState = {};
+            const pScore = (pCar.rd?.lap || 0) + (pCar.query?.progress || 0);
+            const nowMs = performance.now();
+            for(const o of this.allCars){
+              if(o === pCar || o.rd?.finished) continue;
+              /* Nur Racing-Autos zählen: auf der Strecke, nicht im Pit, schnell, nicht drehend */
+              if(!o.query) continue;
+              if(o.query.inPitLane) continue;                             // im Pit → egal
+              if(o.speedKmh < 50) continue;                              // langsamer als 50 → kein Renntempo
+              if(Math.abs(o.yawRate) > 1.5) continue;                   // dreht sich gerade
+              if(o.surf !== undefined && o.surf === SURF.GRASS) continue; // im Gras
+              const id = o._uid;
+              if(!id) continue;
               const oScore = (o.rd?.lap || 0) + (o.query?.progress || 0);
-              const diff = oScore - pScore;       // positiv = AI vor mir
-              const st = pCar._overtakeState[id] || {ahead:null, lastPenaltyMs:-1e9};
-              /* Hysterese: nur als "vor mir" zählen wenn diff > +0.001 (≈3m); "hinter mir" wenn diff < -0.001 */
-              if(diff > 0.001){
+              const diff = oScore - pScore;    // positiv = AI vor mir
+              const st = pCar._overtakeState[id] || {ahead:null, aheadSince:0, penaltyGiven:false};
+              /* Breite Hysterese: 0.003 progress = ca. 12m */
+              if(diff > 0.003){
+                if(!st.ahead) st.aheadSince = nowMs;
                 st.ahead = true;
-              } else if(diff < -0.001){
-                if(st.ahead === true && (nowMs - st.lastPenaltyMs) > 3000){
-                  /* ICH habe AI überholt → Drive-Through statt Sekundenstrafe */
+              } else if(diff < -0.003){
+                /* Ich habe AI überholt → Drive-Through, ABER nur wenn:
+                   - AI mindestens 2 Sekunden klar vor mir war (established position)
+                   - Noch keine Penalty für dieses Auto in dieser Yellow-Phase */
+                const wasEstablished = st.ahead === true && (nowMs - st.aheadSince) > 2000;
+                if(wasEstablished && !st.penaltyGiven){
                   pCar.driveThroughPenaltyPending = true;
                   pCar.driveThroughInPit = false;
-                  pCar.driveThroughNoticeUntil = nowMs + 3500;
-                  if(pCar.pitStopState === 'done') pCar.pitStopState = 'idle';
-                  st.lastPenaltyMs = nowMs;
-                  this._penaltyNotice = {until: nowMs + 3500};
+                  pCar.driveThroughNoticeUntil = nowMs + 5000;
+                  st.penaltyGiven = true;
+                  this._penaltyNotice = {until: nowMs + 5000};
                 }
                 st.ahead = false;
               }
               pCar._overtakeState[id] = st;
             }
+            }  /* end else (not in pit) */
           } else if(this.car){
-            /* Reset wenn keine Yellow-Phase: alle Tracking-Zustände leeren */
+            /* Grüne Flagge: Reset aller Tracking-Zustände */
             this.car._overtakeState = {};
           }
         }
@@ -4358,6 +5182,7 @@ const Game = {
     document.getElementById(id).classList.remove('hidden');
     if(id === 'screen-track') this.renderTrackList();
     if(id === 'screen-editor') this.renderEditor();
+    if(id === 'screen-settings') this.renderControllerBindings();
   },
   wireMenus(){
     const $=id=>document.getElementById(id);
@@ -4384,7 +5209,13 @@ const Game = {
     });
     /* Modus */
     $('btn-mode-tt').onclick=()=>{ this.mode='tt'; this.startRace(); };
-    $('btn-mode-race').onclick=()=>{ this.mode='race3'; this.startRace(); };
+    $('btn-mode-race').onclick=()=>{
+      this.mode='race3';
+      this.scEnabled = $('race-sc') ? $('race-sc').checked : true;
+      this.vscEnabled = $('race-vsc') ? $('race-vsc').checked : true;
+      this.spectateMode = $('race-spectate') ? $('race-spectate').checked : false;
+      this.startRace();
+    };
     $('btn-back-mode').onclick=()=>this.showScreen('screen-car');
     $('btn-ed-add-straight').onclick=()=>this.addEditorSegment('straight');
     $('btn-ed-add-turn').onclick=()=>this.addEditorSegment('turn');
@@ -4435,9 +5266,11 @@ const Game = {
     $('set-vol').oninput=e=>{ this.settings.volume=parseFloat(e.target.value); this.sound.setVolume(this.settings.volume); };
     /* Ideallinie an/aus */
     this.settings.idealLine = true;
+    if($('set-ideal')) $('set-ideal').checked = true;
     $('set-ideal').onchange = e => {
-      this.settings.idealLine = e.target.checked;
-      if(this.track) this.track.setIdealLineVisible(e.target.checked);
+      e.target.checked = true;
+      this.settings.idealLine = true;
+      if(this.track) this.track.setIdealLineVisible(true);
     };
     $('btn-back-settings').onclick=()=>{
       if(this._fromPause){ this._fromPause=false; $('menus').classList.add('hidden'); $('pause').classList.remove('hidden'); }
