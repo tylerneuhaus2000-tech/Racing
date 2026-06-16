@@ -97,7 +97,6 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #leaderboard .lb-class.gt3{background:#55a8ff;color:#07131f}
 #leaderboard .lb-class.lmp1{background:#ff4a58;color:#1a0709}
 #leaderboard.hidden{display:none}
-#stats-bar{position:fixed;top:6px;left:50%;transform:translateX(-50%);display:flex;gap:16px;background:rgba(13,16,20,0.75);border:1px solid var(--line);padding:4px 14px;font-family:var(--mono);font-size:9px;letter-spacing:.10em;backdrop-filter:blur(3px);z-index:10}
 #stats-bar{position:fixed;top:6px;left:50%;transform:translateX(-50%);display:flex;gap:16px;background:rgba(13,16,20,0.75);border:1px solid var(--line);padding:4px 14px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.10em;backdrop-filter:blur(3px);z-index:10}
 #stats-bar span{white-space:nowrap}
 #stat-km{color:#22c463;font-weight:700}
@@ -198,11 +197,6 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
     <span id="stat-km" style="color:#22c463;font-weight:700">0.0 km</span>
     <span id="stat-wall" style="color:#ffd400">Wand: 0</span>
     <span id="stat-car" style="color:#ff8844">Auto: 0</span>
-  </div>
-  <div id="stats-bar">
-    <span id="stat-km">0.0 km</span>
-    <span id="stat-wall">Wand: 0</span>
-    <span id="stat-car">Auto: 0</span>
   </div>
   <div id="tower">
     <div id="pos" class="hidden">P6 / 6</div>
@@ -3065,8 +3059,8 @@ class AIDriver {
        skill 0   → 7.0/8.5  (deutlich langsamer — auch mit Hypercar schlagbar)
        skill 0.5 → 10.5/12.5 (schnell, aber nicht am Limit)
        skill 1.0 → 14.0/16.5 (echtes Profi-Niveau, fast am physikalischen Limit) */
-    this.aLatBase = 5.8 + this.skill*4.5;
-    this.aBrk     = 7.5 + this.skill*5.0;
+    this.aLatBase = 5.8 + this.skill*6.8;
+    this.aBrk     = 7.5 + this.skill*6.0;
     this.apexK    = 0.12 + this.skill*0.22;     // weniger aggressives Apex-Cutting = weniger Gras
     /* Persönlichkeit pro KI */
     this.aggression = 0.28 + Math.random()*0.22;
@@ -3086,19 +3080,16 @@ class AIDriver {
     /* Ziel-Verhältnisse auf Le Mans: GT3=130s, LMP2=120s, HYP=110s
        → LMP2 braucht ~18% mehr Grip als GT3
        → HYP braucht ~42% mehr Grip als GT3 */
-    if(ct === 'hypercar') return 1.52;
-    if(ct === 'lmp2')     return 1.22;
+    if(ct === 'hypercar') return 1.15;     // +15% Kurve + 20% Topspeed = massiver Gesamtvorteil
+    if(ct === 'lmp2')     return 1.08;     // +8% Kurve + 11% Topspeed
     return 1.0;
   }
 
   /** Effektives aLat: classScale + physikalisches Limit bei 98% */
   effectiveALat(car, speed){
-    const cgs = this._cgs || 1;
-    let aLat = this.aLatBase * cgs;
-    /* Weiches Limit: nur bei echtem Überschreiten des Reifen-Grips */
+    let aLat = this.aLatBase * (this._cgs || 1);
     const muF = (car.def?.gripF || 1.30) / 1.30 * 1.30;
-    const physLimit = muF * 9.81 * 0.95;
-    return Math.min(aLat, physLimit);
+    return Math.min(aLat, muF * 9.81 * 0.95);
   }
 
   /** Wird einmal vor Rennstart aufgerufen */
@@ -3237,9 +3228,7 @@ class AIDriver {
     /* Horizont = wo wir aus aktuellem Tempo gerade noch bremsen können */
     const effBrk = this.aBrk * (this._cgs || 1);
     /* Brems-Cap: nicht über Reifen-Maximum */
-    const muFBrk = (car?.def?.gripF || 1.30) / 1.30 * 1.30;
-    const brkMax = muFBrk * 9.81 * 0.95;
-    const effBrkUse = Math.min(effBrk, brkMax);
+    const effBrkUse = Math.min(effBrk, (car?.def?.gripF||1.30)/1.30*1.30*9.81*0.95);
     const hor = Math.min(track.N-2, Math.ceil((30 + speed*speed/(2*effBrkUse))/seg));
     for(let k = 2; k < hor; k++){
       const i2 = (q.idx+k)%track.N;
@@ -4360,15 +4349,6 @@ const HUD = {
     }
     if(statWall) statWall.textContent = 'Wand: ' + (car.wallContacts || 0);
     if(statCar) statCar.textContent = 'Auto: ' + (car.carContacts || 0);
-    /* Stats-Bar */
-    const _sKm=document.getElementById('stat-km'), _sW=document.getElementById('stat-wall'), _sC=document.getElementById('stat-car');
-    if(typeof Game!=='undefined'){
-      Game._globalTotalKm=(Game._globalTotalKm||0)+(car.totalKm||0); car.totalKm=0;
-      if(_sKm) _sKm.textContent=Game._globalTotalKm.toFixed(1)+' km';
-      if(!Game._lastKS||performance.now()-Game._lastKS>5000){Store.set('totalKm',Game._globalTotalKm.toFixed(2));Game._lastKS=performance.now();}
-    }
-    if(_sW) _sW.textContent='Wand: '+(car.wallContacts||0);
-    if(_sC) _sC.textContent='Auto: '+(car.carContacts||0);
     this.drawMap(car, aiCars);
   }
 };
