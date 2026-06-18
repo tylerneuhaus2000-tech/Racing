@@ -3147,11 +3147,11 @@ class AIDriver {
        skill 0   → 7.0/8.5  (deutlich langsamer — auch mit Hypercar schlagbar)
        skill 0.5 → 10.5/12.5 (schnell, aber nicht am Limit)
        skill 1.0 → 14.0/16.5 (echtes Profi-Niveau, fast am physikalischen Limit) */
-    this.aLatBase = 5.8 + this.skill*6.8;
-    this.aBrk     = 7.5 + this.skill*6.0;
-    this.apexK    = 0.12 + this.skill*0.22;     // weniger aggressives Apex-Cutting = weniger Gras
+    this.aLatBase = 7.2 + this.skill*7.8;
+    this.aBrk     = 8.8 + this.skill*6.4;
+    this.apexK    = 0.18 + this.skill*0.28;     // deutlich mutiger am Apex, aber noch kontrolliert
     /* Persönlichkeit pro KI */
-    this.aggression = 0.28 + Math.random()*0.22;
+    this.aggression = 0.36 + Math.random()*0.30;
     const lo = (fieldPos!=null && fieldSize>1) ? ((fieldPos - (fieldSize-1)/2) * 2.0/(fieldSize-1)) : 0;
     this.lineOff = lo;
     this.input = {steer:0, throttle:0, brake:0};
@@ -3177,7 +3177,8 @@ class AIDriver {
   effectiveALat(car, speed){
     let aLat = this.aLatBase * (this._cgs || 1);
     const muF = (car.def?.gripF || 1.30) / 1.30 * 1.30;
-    return Math.min(aLat, muF * 9.81 * 0.95);
+    const curveConfidence = 1 + this.skill*0.10 + clamp(speed/150, 0, 0.05);
+    return Math.min(aLat * curveConfidence, muF * 9.81 * 1.03);
   }
 
   /** Wird einmal vor Rennstart aufgerufen */
@@ -3334,7 +3335,7 @@ class AIDriver {
     /* Zusätzliche Vorsicht in engen Kurven und direkt nach dem Start */
     const curvNow = Math.abs(track.samples[q.idx].curv);
     if(curvNow > 0.006){
-      tgtV *= 1 - clamp((curvNow - 0.006) * 10, 0, 0.18);
+      tgtV *= 1 - clamp((curvNow - 0.006) * 7, 0, 0.10);
     }
     return tgtV;
   }
@@ -3345,6 +3346,7 @@ class AIDriver {
     let vCap = 95;
     if(!others) return {dodge, vCap};
     const sin_h = Math.sin(car.heading), cos_h = Math.cos(car.heading);
+    const curveLoad = clamp((this.lastCurv || 0) / 0.008, 0, 1);
     let carsAheadClose = 0;    // Zähler: wie viele Autos innerhalb 20m vor uns?
     for(const o of others){
       if(o === car) continue;
@@ -3362,6 +3364,9 @@ class AIDriver {
           /* Ausweich-Richtung */
           if(absLat < 2.2 && fwd < 35){
             dodge = (lat >= 0 ? -1 : 1) * 2.0;
+          }
+          if(curveLoad > 0.25 && fwd < 28){
+            dodge += (lat >= 0 ? -1 : 1) * (0.18 + this.aggression*0.10);
           }
           /* Geschwindigkeits-Cap: sanftes Annähern, KEIN Auffahren */
           const closing = v - Math.max(o.vx, 0);
@@ -3386,9 +3391,10 @@ class AIDriver {
     }
     /* Bei vielen Autos direkt vor uns: EXTRA bremsen (Pack-Awareness) */
     if(carsAheadClose >= 3){
-      vCap = Math.min(vCap, v * 0.75);     // 25% runter wenn ≥3 Autos vor uns
+      vCap = Math.min(vCap, v * (curveLoad > 0.3 ? 0.92 : 0.82));
+      dodge += (Math.random()<0.5 ? -1 : 1) * (0.22 + this.aggression*0.12);
     } else if(carsAheadClose >= 2){
-      vCap = Math.min(vCap, v * 0.88);     // 12% runter
+      vCap = Math.min(vCap, v * (curveLoad > 0.3 ? 0.97 : 0.90));
     }
     return {dodge, vCap};
   }
@@ -3504,6 +3510,7 @@ class AIDriver {
     if(!running || car._frozen) return this.idle(car);
     const q = track.query(car.pos, car.sampleIdx);
     const v = car.vx, speed = Math.abs(v);
+    this.lastCurv = Math.abs(track.samples[q.idx].curv);
     const kAero = 0.55 * 9.81 * 1.3 / (car.def.topSpeed*car.def.topSpeed);
 
     /* Klassen-Skalierung: Hypercar/LMP2 nutzen mehr vom physikalischen Limit */
@@ -3616,8 +3623,12 @@ class AIDriver {
       }
     }
     if(Math.abs(traffic.dodge) > 1.5){
-      /* Aktiv am Überholen (neben einem Gegner) → 5% mehr Grip-Nutzung */
-      tgtV *= 1.05;
+      /* Aktiv am Überholen (neben einem Gegner) → mehr Grip und Mut */
+      tgtV *= 1.10;
+      this._effALat *= 1.08;
+    }
+    if(this.lastCurv > 0.004 && Math.abs(traffic.dodge) > 0.5){
+      tgtV *= 1.04;
     }
 
     /* Formation (Fliegender Start): geradeaus, 60 km/h, kein Lenken */
