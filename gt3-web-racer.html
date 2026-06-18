@@ -170,6 +170,14 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 /* Hilfe */
 #help{position:absolute;left:24px;bottom:70px;background:var(--panel);border:1px solid var(--line);
   padding:14px 18px;font-size:12px;z-index:21;color:var(--dim);line-height:2}
+.device-select{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 10px}
+.device-select .btn.selected{background:var(--red);border-color:var(--red);color:#fff}
+#touch-controls{position:fixed;left:0;right:0;bottom:0;z-index:35;display:flex;justify-content:space-between;gap:12px;padding:14px;pointer-events:none}
+#touch-controls .tc-group{display:flex;gap:10px;pointer-events:auto}
+#touch-controls .tc-col{display:flex;flex-direction:column;gap:10px}
+#touch-controls .tc-btn{min-width:72px;min-height:64px;padding:12px 14px;font-size:14px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border-radius:12px;background:rgba(17,21,26,0.88);border:1px solid var(--line);color:var(--txt);backdrop-filter:blur(6px);touch-action:none}
+#touch-controls .tc-btn.active{background:var(--red);border-color:var(--red);color:#fff}
+#touch-controls.hidden{display:none}
 .editor-panel{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;margin-top:18px}
 .editor-box{border:1px solid var(--line);background:#0f1419;padding:14px}
 .editor-box h3{font-size:16px;letter-spacing:.12em;margin-bottom:10px}
@@ -191,6 +199,8 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
   #minimap{top:156px;right:10px;width:120px;height:120px}
   .editor-panel{grid-template-columns:1fr}
   .segrow{grid-template-columns:74px 74px 54px 56px 56px 36px 36px 36px}
+  #touch-controls{padding:10px;gap:8px}
+  #touch-controls .tc-btn{min-width:60px;min-height:56px;padding:10px 12px;font-size:12px}
 }
 </style>
 </head>
@@ -347,6 +357,12 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
       <button class="btn" id="btn-settings">Einstellungen</button>
       <button class="btn" id="btn-editor">Strecken-Editor</button>
     </div>
+    <div class="eyebrow" style="margin-top:18px">GERÄT WÄHLEN</div>
+    <div class="device-select">
+      <button class="btn" id="btn-device-desktop">PC / Mac</button>
+      <button class="btn" id="btn-device-mobile">iPhone / iPad</button>
+    </div>
+    <p class="sub" id="device-hint">Wähle zuerst dein Gerät. Auf iPhone/iPad erscheinen große Touch-Buttons im Rennen.</p>
   </section>
 
   <section class="screen hidden" id="screen-track">
@@ -477,6 +493,26 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
     <div class="setrow"><span>Ghost / Replay in TT</span><input type="checkbox" id="set-ghosts" checked></div>
     <div class="btnrow"><button class="btn primary" id="btn-back-settings">Fertig</button></div>
   </section>
+</div>
+
+<div id="touch-controls" class="hidden">
+  <div class="tc-group">
+    <button class="tc-btn" data-touch="steer-left">Links</button>
+    <button class="tc-btn" data-touch="steer-right">Rechts</button>
+  </div>
+  <div class="tc-group tc-col">
+    <button class="tc-btn" data-touch="throttle">Gas</button>
+    <button class="tc-btn" data-touch="brake">Bremse</button>
+  </div>
+  <div class="tc-group tc-col">
+    <button class="tc-btn" data-touch="boost">Boost</button>
+    <button class="tc-btn" data-touch="pit">Pit</button>
+  </div>
+  <div class="tc-group tc-col">
+    <button class="tc-btn" data-touch="camera">Kamera</button>
+    <button class="tc-btn" data-touch="restart">Restart</button>
+    <button class="tc-btn" data-touch="pause">Pause</button>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -973,6 +1009,8 @@ class Input {
     this.locked = true;    // bis Startampel grün
     this._lastButtonState = {};
     this.boostPulseT = 0;
+    this.touch = {left:false, right:false, throttle:false, brake:false, boost:false, pit:false, camera:false, pause:false, restart:false};
+    this._touchRepeat = {};
     addEventListener('keydown', e=>{
       this.keys[e.code]=true;
       if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
@@ -1017,6 +1055,18 @@ class Input {
       }
     });
     addEventListener('keyup', e=>{ this.keys[e.code]=false; });
+  }
+  setTouch(action, down){
+    if(!this.touch) this.touch = {left:false, right:false, throttle:false, brake:false, boost:false, pit:false, camera:false, pause:false, restart:false};
+    if(action === 'steer-left') this.touch.left = down;
+    else if(action === 'steer-right') this.touch.right = down;
+    else if(action === 'throttle') this.touch.throttle = down;
+    else if(action === 'brake') this.touch.brake = down;
+    else if(action === 'boost') this.touch.boost = down;
+    else if(action === 'pit') this.touch.pit = down;
+    else if(action === 'camera') this.touch.camera = down;
+    else if(action === 'pause') this.touch.pause = down;
+    else if(action === 'restart') this.touch.restart = down;
   }
   axis(neg,pos){ return (this.keys[pos]?1:0)-(this.keys[neg]?1:0); }
   pollGamepad(){
@@ -1063,6 +1113,28 @@ class Input {
         this.boostPulseT = 0.35;
       }
     }
+    const mobileMode = Game.deviceMode === 'mobile';
+    if(mobileMode){
+      if(this.touch.pause && (Game.state==='race'||Game.state==='finished'||Game.state==='pause')){
+        this.touch.pause = false;
+        Game.togglePause();
+      }
+      if(this.touch.camera && (Game.state==='race'||Game.state==='finished')){
+        this.touch.camera = false;
+        Game.cameraRig.cycle();
+      }
+      if(this.touch.restart && (Game.state==='race'||Game.state==='finished')){
+        this.touch.restart = false;
+        Game.restartRace();
+      }
+      if(this.touch.pit && (Game.state==='race'||Game.state==='finished')){
+        this.touch.pit = false;
+        Game.car.pitLimiterActive = !Game.car.pitLimiterActive;
+      }
+      if(this.touch.boost){
+        this.boostPulseT = 0.35;
+      }
+    }
     // Lenkung: progressives Einlenken, schnellere Rückstellung Richtung Mitte
     const sIn = (this.keys['KeyA']||this.keys['ArrowLeft']?1:0)-(this.keys['KeyD']||this.keys['ArrowRight']?1:0);
     let gpSteer = 0;
@@ -1073,7 +1145,8 @@ class Input {
       const dpadRight = this.gamepadButtonValue(pad, 15) > 0.5 ? 1 : 0;
       gpSteer = Math.abs(lx) > 0.12 ? -lx : (dpadLeft - dpadRight);
     }
-    const steerInput = sIn !== 0 ? sIn : gpSteer;
+    const touchSteer = (this.touch.left ? 1 : 0) - (this.touch.right ? 1 : 0);
+    const steerInput = sIn !== 0 ? sIn : (gpSteer !== 0 ? gpSteer : touchSteer);
     if(steerInput!==0){
       const towardCenter = Math.sign(steerInput)!==Math.sign(this.steer) && this.steer!==0;
       this.steer = clamp(this.steer + steerInput*dt*(towardCenter?5.1:2.3), -1, 1);
@@ -1084,8 +1157,8 @@ class Input {
     const bIn = (this.keys['KeyS']||this.keys['ArrowDown'])?1:0;
     const gpThrottle = pad ? this.triggerValue(pad, bind.throttle, 7, 5) : 0;
     const gpBrake = pad ? this.triggerValue(pad, bind.brake, 6, 4) : 0;
-    const throttleHeld = tIn || gpThrottle > 0.05;
-    const brakeHeld = bIn || gpBrake > 0.05;
+    const throttleHeld = tIn || gpThrottle > 0.05 || this.touch.throttle;
+    const brakeHeld = bIn || gpBrake > 0.05 || this.touch.brake;
     this.throttle = clamp(this.throttle + (throttleHeld? dt*3.0 : -dt*5.2), 0, 1);
     this.brake    = clamp(this.brake    + (brakeHeld? dt*4.0 : -dt*7.2), 0, 1);
     if(pad){
@@ -1096,7 +1169,7 @@ class Input {
     this.boostPulseT = Math.max(0, this.boostPulseT - dt);
     const kbBoost = !!(this.keys['ShiftLeft']||this.keys['ShiftRight']);
     const gpBoost = this.boostPulseT > 0 && this.throttle > 0.5;
-    this.boost = kbBoost || gpBoost;
+    this.boost = kbBoost || gpBoost || this.touch.boost;
   }
 }
 
