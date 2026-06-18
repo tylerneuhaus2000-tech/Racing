@@ -201,6 +201,8 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 <div id="hud" class="hidden">
   <div id="stats-bar">
     <span id="stat-km" style="color:#22c463;font-weight:700">0.0 km</span>
+    <span id="stat-weather" style="color:#8bd3ff">Wetter: trocken</span>
+    <span id="stat-ghost" style="color:#cda6ff">Ghost: aus</span>
     <span id="stat-wall" style="color:#ffd400">Wand: 0</span>
     <span id="stat-car" style="color:#ff8844">Auto: 0</span>
   </div>
@@ -444,6 +446,9 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
           <div class="setrow" style="margin-top:4px">
             <span>Boxenstopps / Schaden / Reifenverschleiß</span><input type="checkbox" id="race-pitstops">
           </div>
+          <div class="setrow" style="margin-top:4px">
+            <span>Meisterschaft aktiv</span><input type="checkbox" id="race-championship">
+          </div>
           <button class="btn primary" id="btn-mode-race" style="margin-top:10px">Rennen starten</button>
         </div>
       </div>
@@ -463,6 +468,13 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
     <div class="eyebrow" style="margin-top:22px">CONTROLLER</div>
     <p class="sub">Xbox-Controller wird per Gamepad API erkannt. Klicke eine Belegung und drücke dann die gewünschte Taste oder das gewünschte Steuerkreuz.</p>
     <div id="controller-bindings"></div>
+    <div class="eyebrow" style="margin-top:22px">SETUP &amp; WETTER</div>
+    <div class="setrow"><span>Flügel</span><input type="range" id="set-wing" min="0" max="100" step="1" value="55"></div>
+    <div class="setrow"><span>Bremsbalance</span><input type="range" id="set-brake" min="45" max="70" step="1" value="60"></div>
+    <div class="setrow"><span>Spritmenge</span><input type="range" id="set-fuel" min="0" max="100" step="1" value="70"></div>
+    <div class="setrow"><span>Reifenmischung</span><select id="set-compound"><option value="soft">Soft</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></div>
+    <div class="setrow"><span>Dynamisches Wetter</span><input type="checkbox" id="set-dynamic-weather" checked></div>
+    <div class="setrow"><span>Ghost / Replay in TT</span><input type="checkbox" id="set-ghosts" checked></div>
     <div class="btnrow"><button class="btn primary" id="btn-back-settings">Fertig</button></div>
   </section>
 </div>
@@ -779,10 +791,31 @@ const G = 9.81;
 const PHYS_DT = 1/120;            // Fixe Physik-Schrittweite
 const SURF = { TRACK:0, KERB:1, GRASS:2 };
 const SURF_MU = [1.30, 1.08, 0.65];
+const TIRE_COMPOUNDS = {
+  soft:   { grip: 1.03, wear: 1.24, tempGain: 1.20, tempRange: [72, 103], pitDelta: -0.04 },
+  medium: { grip: 1.00, wear: 1.00, tempGain: 1.00, tempRange: [66, 96],  pitDelta: 0.00 },
+  hard:   { grip: 0.97, wear: 0.78, tempGain: 0.88, tempRange: [58, 90],  pitDelta: 0.05 }
+};
+const WEATHER_PRESETS = {
+  dry:   { name:'Trocken', rain:0.00, visibility:1.00, dusk:0.00, night:0.00, grip:1.00, rainRate:0.00 },
+  overcast:{ name:'Bewölkt', rain:0.00, visibility:0.93, dusk:0.12, night:0.00, grip:0.99, rainRate:0.00 },
+  wet:   { name:'Regen', rain:0.72, visibility:0.82, dusk:0.22, night:0.00, grip:0.78, rainRate:0.02 },
+  dusk:  { name:'Dämmerung', rain:0.00, visibility:0.88, dusk:0.55, night:0.10, grip:0.99, rainRate:0.00 },
+  night: { name:'Nacht', rain:0.00, visibility:0.68, dusk:0.85, night:0.78, grip:0.97, rainRate:0.00 }
+};
+const CHAMP_POINTS = [25,18,15,12,10,8,6,4,2,1];
 
 const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
 const lerp  = (a,b,t)=>a+(b-a)*t;
 const deg2rad = d => d * Math.PI / 180;
+const mixHex = (a,b,t)=>{
+  const ar=(a>>16)&255, ag=(a>>8)&255, ab=a&255;
+  const br=(b>>16)&255, bg=(b>>8)&255, bb=b&255;
+  const rr=Math.round(lerp(ar,br,t)), rg=Math.round(lerp(ag,bg,t)), rb=Math.round(lerp(ab,bb,t));
+  return (rr<<16)|(rg<<8)|rb;
+};
+const setupDefaults = () => ({ wing: 55, brakeBalance: 60, fuel: 70, compound: 'medium' });
+const weatherDefaults = () => ({ mode:'dynamic', preset:'dry', rain:0, lineDry:1, dusk:0, night:0, timeOfDay:0.22, visibility:1, changedAt:0 });
 
 /**
  * Kleiner Strecken-Builder für neue Layouts:
@@ -2010,6 +2043,9 @@ class Car {
     this.damage = {front:0, rear:0, left:0, right:0};
     this.lostParts = {};
     this.smokeT = 0;
+    this.retired = false;
+    this.setup = setupDefaults();
+    this.tireTemp = {FL:78, FR:78, RL:78, RR:78};
     /* Eindeutige ID pro Auto — wichtig für Penalty-State-Tracking, sonst kollidieren KI mit gleichem Auto-Modell */
     this._uid = '_car_' + (Car._nextUid = (Car._nextUid || 0) + 1);
     /* --- Pit Stop System --- */
@@ -2450,16 +2486,30 @@ class Car {
     }
 
     /* --- Untergrund & Aero --- */
+    const setup = this.setup || setupDefaults();
+    const compound = TIRE_COMPOUNDS[setup.compound] || TIRE_COMPOUNDS.medium;
+    const weather = (typeof Game !== 'undefined' && Game.weather) ? Game.weather : weatherDefaults();
     const baseMu=SURF_MU[q.surf];
     const speed=Math.abs(this.vx);
     const v2=speed*speed;
     /* Schadens-Modifikatoren */
     const dmgMods = this.damageMods();
     /* Aero-Abtrieb (Newton, real) — wirkt direkt als zusätzliche Normalkraft */
-    const FzAeroBase = 0.55 * d.mass * G * (v2/(d.topSpeed*d.topSpeed));
+    const setupMass = d.mass + setup.fuel*0.55;
+    const wingMul = 1 + (setup.wing - 55) / 260;
+    const weatherGrip = clamp((weather.grip || 1) * (1 - (weather.rain || 0)*0.18), 0.72, 1.08);
+    const lineGrip = weather.rain > 0.02 ? lerp(0.78, 1.0, weather.lineDry ?? 1) : 1.0;
+    const tempGrip = key => {
+      const t = this.tireTemp?.[key] ?? 78;
+      const [lo, hi] = compound.tempRange;
+      const opt = (lo + hi) * 0.5;
+      const half = Math.max(10, (hi - lo) * 0.5);
+      return clamp(1 - Math.abs(t - opt) / (half * 1.45), 0.78, 1.04);
+    };
+    const FzAeroBase = 0.55 * setupMass * G * (v2/(d.topSpeed*d.topSpeed)) * wingMul;
     const FzAeroF = FzAeroBase * 0.45 * dmgMods.downforceFront;
     const FzAeroR = FzAeroBase * 0.55 * dmgMods.downforceRear;
-    const cDrag = d.power / Math.pow(d.topSpeed, 3);
+    const cDrag = d.power / Math.pow(d.topSpeed, 3) * (1 + (setup.wing - 55) / 500);
 
     /* --- Lenkung mit Rate-Limit, geschwindigkeitsabhängig ---
        Wirkliche GT3: bei hoher Geschwindigkeit weniger Lenkwinkel, aber die echte Begrenzung
@@ -2470,9 +2520,9 @@ class Car {
     this.steer += clamp(tgtSteer - this.steer, -maxRate*dt, maxRate*dt);
 
     /* --- Achslasten mit Längs-Lastverlagerung --- */
-    const Fz = d.mass*G;
-    let FzF = Fz*this.b/this.L - d.mass*this.accLong*this.h/this.L;
-    let FzR = Fz*this.a/this.L + d.mass*this.accLong*this.h/this.L;
+    const Fz = setupMass*G;
+    let FzF = Fz*this.b/this.L - setupMass*this.accLong*this.h/this.L;
+    let FzR = Fz*this.a/this.L + setupMass*this.accLong*this.h/this.L;
     FzF = Math.max(FzF, Fz*0.15);
     FzR = Math.max(FzR, Fz*0.15);
     /* Aero ~45/55 vorn/hinten verteilt */
@@ -2491,8 +2541,8 @@ class Car {
     const muRCorr = 1 - lateralLoadLoss * 0.45;
 
     /* --- Reifen-Reibwerte: Untergrund × Fahrzeug × laterale Lastverlagerung --- */
-    let muF = d.gripF/1.30 * baseMu * muFCorr;
-    let muR = d.gripR/1.30 * baseMu * muRCorr;
+    let muF = d.gripF/1.30 * baseMu * muFCorr * weatherGrip * lineGrip * ((tempGrip('FL') + tempGrip('FR')) * 0.5);
+    let muR = d.gripR/1.30 * baseMu * muRCorr * weatherGrip * lineGrip * ((tempGrip('RL') + tempGrip('RR')) * 0.5);
     /* --- Reifen-Verschleiß / Schaden --- */
     if(this.tireWear && (typeof Game==='undefined'||Game.pitStopsEnabled)){
       muF *= this.tireWear.front;
@@ -2559,11 +2609,11 @@ class Car {
     }
     this.brakeLight = input.brake>0.05;
     if(input.brake>0){
-      /* Bremsbalance: bei leichter Bremse 64/36 vorn, bei Vollbremse 74/26 vorn
-         (echte Brake-Migration der GT3 — schützt die Hinterachse beim Anbremsen) */
+      /* Bremsbalance: Setup verschiebt den Grundsplit, die Pedalstellung migriert weiter nach vorn */
       const Fb = d.brakeForce * input.brake * dmgMods.brake;
       if(this.vx > 0.4){
-        const frontBias = 0.64 + 0.10*input.brake;        // 0.64..0.74
+        const setupBias = clamp((setup.brakeBalance || 60) / 100, 0.45, 0.70);
+        const frontBias = clamp(setupBias + 0.08*(input.brake - 0.5), 0.45, 0.78);
         Fbrake_F = -Fb * frontBias;
         Fbrake_R = -Fb * (1 - frontBias);
       } else {
@@ -2740,7 +2790,8 @@ class Car {
       const laps = (typeof Game !== 'undefined' && Game.totalLaps) ? Game.totalLaps : 3;
       const lifeLaps = (typeof Game !== 'undefined' && Game.tireWearLifeLaps) ? Game.tireWearLifeLaps() : 10;
       const distScale = clamp(laps / 3, 1, 4);
-      const wearScale = clamp((4 / lifeLaps) * 0.1, 0.01, 0.2);
+      const compound = TIRE_COMPOUNDS[(this.setup && this.setup.compound) || 'medium'] || TIRE_COMPOUNDS.medium;
+      const wearScale = clamp((4 / lifeLaps) * 0.1 * compound.wear, 0.01, 0.22);
       const speedLoad = clamp(Math.abs(this.vx) / 85, 0, 1);
       const slipLoad = clamp((this.sliding || 0) * 0.018 + Math.abs(this.yawRate) * 0.004, 0, 0.05);
       const surfLoad = q2.surf === SURF.GRASS ? 0.005 : q2.surf === SURF.KERB ? 0.002 : 0;
@@ -2756,6 +2807,32 @@ class Car {
       this.tireWear.RR = clamp(this.tireWear.RR - rearRight, 0.05, 1);
       this.tireWear.front = clamp((this.tireWear.FL + this.tireWear.FR) / 2, 0.05, 1);
       this.tireWear.rear  = clamp((this.tireWear.RL + this.tireWear.RR) / 2, 0.05, 1);
+    }
+
+    if(this.tireTemp){
+      const weatherHeat = (typeof Game !== 'undefined' && Game.weather) ? Game.weather : weatherDefaults();
+      const rainCool = (weatherHeat.rain || 0) * 14;
+      const speedHeat = clamp(Math.abs(this.vx) * 0.28, 0, 42);
+      const slipHeat = clamp((this.sliding || 0) * 4.0 + Math.abs(this.yawRate) * 1.8, 0, 20);
+      const wearPenalty = (1 - Math.min(1, ((this.tireWear?.front || 1) + (this.tireWear?.rear || 1)) * 0.5)) * 10;
+      const baseTemp = clamp(62 + speedHeat + slipHeat + wearPenalty - rainCool, 30, 118);
+      const steerBias = clamp(this.steer * 8, -8, 8);
+      const brakeBias = clamp((this.setup?.brakeBalance || 60) - 60, -10, 10);
+      const target = {
+        FL: baseTemp + Math.max(0, -steerBias) + Math.max(0, input.brake) * 5,
+        FR: baseTemp + Math.max(0,  steerBias) + Math.max(0, input.brake) * 5,
+        RL: baseTemp - 4 + Math.max(0, input.throttle) * 4 - brakeBias * 0.2,
+        RR: baseTemp - 4 + Math.max(0, input.throttle) * 4 + brakeBias * 0.2
+      };
+      for(const key of ['FL','FR','RL','RR']){
+        this.tireTemp[key] = lerp(this.tireTemp[key], target[key], 1 - Math.exp(-dt*1.9));
+      }
+    }
+
+    const minTire = this.tireWear ? Math.min(this.tireWear.FL||1, this.tireWear.FR||1, this.tireWear.RL||1, this.tireWear.RR||1) : 1;
+    if(!this.retired && (this.totalDamage > 92 || minTire < 0.06)){
+      this.retired = true;
+      if(typeof Game !== 'undefined' && Game.retireCar) Game.retireCar(this, this.totalDamage > 92 ? 'damage' : 'tyre');
     }
 
     this.updateMesh(dt);
@@ -3584,6 +3661,7 @@ class AIDriver {
         const p = pitPoint(entryIdx);
         tx = p.x; tz = p.z;
         sampleIdxTarget = entryIdx;
+        tgtV = Math.min(tgtV, 55/3.6);
       } else if(pitMode === 'exit'){
         const liDist = Math.max(15, speed * 0.5);
         const li = (q.idx + Math.round(liDist/seg)) % track.N;
@@ -3591,6 +3669,7 @@ class AIDriver {
         tx = ts.pos.x + ts.side.x * pitMidOff;
         tz = ts.pos.z + ts.side.z * pitMidOff;
         sampleIdxTarget = li;
+        tgtV = Math.min(tgtV, 45/3.6);
       } else if(box){
         tx = box.stopPos.x; tz = box.stopPos.z;
         sampleIdxTarget = box.sampleIdx;
@@ -3600,13 +3679,20 @@ class AIDriver {
         const ts = track.samples[li];
         tx = ts.pos.x + ts.side.x * pitMidOff;
         tz = ts.pos.z + ts.side.z * pitMidOff;
+        tgtV = Math.min(tgtV, 45/3.6);
       }
       /* Entfernung zur Box-Stop-Position */
       const dxBox = tx - car.pos.x, dzBox = tz - car.pos.z;
       const distToBox = Math.hypot(dxBox, dzBox);
+      if(box && pitMode === 'lane') tgtV = Math.min(tgtV, Math.max(0, distToBox * 0.45));
       /* Tempo runter, je näher die Box — letzte 12m sanftes Ausrollen auf 0 */
       if(distToBox < 20){
         tgtV = Math.min(tgtV, Math.max(0, distToBox*0.6));
+      }
+      if(q.inPitLane){
+        const pitLatErr = q.lat - pitMidOff;
+        tgtV = Math.min(tgtV, 42/3.6);
+        this.input.steer += clamp(-pitLatErr * 0.015, -0.08, 0.08);
       }
       const desired = Math.atan2(dxBox, dzBox);
       let err = desired - car.heading;
@@ -4000,7 +4086,7 @@ class CameraRig {
 const HUD = {
   els:{},
   init(){
-    for(const id of ['speed','gear','lap','laptime','lastlap','bestlap','delta','carname','prog','camlabel','pos'])
+    for(const id of ['speed','gear','lap','laptime','lastlap','bestlap','delta','carname','prog','camlabel','pos','stat-weather','stat-ghost'])
       this.els[id]=document.getElementById(id);
     this.leds=[...document.querySelectorAll('#rpmbar i')];
     this.mapC=document.getElementById('minimap');
@@ -4385,6 +4471,14 @@ const HUD = {
     }
     if(statWall) statWall.textContent = 'Wand: ' + (car.wallContacts || 0);
     if(statCar) statCar.textContent = 'Auto: ' + (car.carContacts || 0);
+    if(this.els['stat-weather']){
+      const w = Game.weather || weatherDefaults();
+      const label = w.name || (w.rain > 0 ? 'Regen' : 'Trocken');
+      this.els['stat-weather'].textContent = `Wetter: ${label}`;
+    }
+    if(this.els['stat-ghost']){
+      this.els['stat-ghost'].textContent = `Ghost: ${(Game.mode === 'tt' && Game.settings?.ghostReplay) ? 'an' : 'aus'}`;
+    }
     this.drawMap(car, aiCars);
   }
 };
@@ -4393,9 +4487,13 @@ const HUD = {
 const Game = {
   state:'menu',     // menu | countdown | race | pause | finished
   shake:0,
-  settings:{shadows:true, resScale:1, drawDist:1100, volume:0.8},
+  settings:{shadows:true, resScale:1, drawDist:1100, volume:0.8, weatherMode:'dynamic', ghostReplay:true},
   controllerBindings: deepClone(defaultControllerBindings),
   selTrack:0, selCar:0, mode:'tt',   // tt = Zeitfahren | race3 = Rennen über 3 Runden
+  setupProfile: setupDefaults(),
+  weather: weatherDefaults(),
+  championshipEnabled: false,
+  championship: null,
   vsc: { active:false, startTime:0, startDist:0, deltaSec:0, totalDist:0 },
   /* Flaggenzustand: green/yellow/sc/red/chequered. Auto-Trigger via Crash-Counter. */
   flag: { state:'green', timer:0, crashIntensity:0 },
@@ -4419,6 +4517,19 @@ const Game = {
       const raw = Store.get('controller_bindings_v1');
       if(raw) this.controllerBindings = Object.assign({}, defaultControllerBindings, JSON.parse(raw));
     } catch(e){}
+    try{
+      const rawSetup = Store.get('race_setup_v1');
+      if(rawSetup) this.setupProfile = Object.assign(setupDefaults(), JSON.parse(rawSetup));
+    } catch(e){}
+    try{
+      const rawSettings = Store.get('race_settings_v1');
+      if(rawSettings) this.settings = Object.assign({}, this.settings, JSON.parse(rawSettings));
+    } catch(e){}
+    try{
+      const rawChamp = Store.get('championship_v1');
+      if(rawChamp) this.championship = JSON.parse(rawChamp);
+    } catch(e){}
+    this.weather = weatherDefaults();
 
     /* Renderer & Szene */
     const renderer=this.renderer=new THREE.WebGLRenderer({antialias:true});
@@ -4446,6 +4557,246 @@ const Game = {
 
   saveControllerBindings(){
     try{ Store.set('controller_bindings_v1', JSON.stringify(this.controllerBindings)); } catch(e){}
+  },
+  saveRaceSettings(){
+    try{ Store.set('race_settings_v1', JSON.stringify({
+      shadows: this.settings.shadows,
+      resScale: this.settings.resScale,
+      drawDist: this.settings.drawDist,
+      volume: this.settings.volume,
+      weatherMode: this.settings.weatherMode,
+      ghostReplay: this.settings.ghostReplay
+    })); } catch(e){}
+  },
+  saveSetupProfile(){
+    try{ Store.set('race_setup_v1', JSON.stringify(this.setupProfile || setupDefaults())); } catch(e){}
+  },
+  applyPlayerSetup(){
+    if(!this.car) return;
+    this.car.setup = Object.assign(setupDefaults(), this.setupProfile || {});
+    if(this.aiCars && this.aiCars.length){
+      for(const c of this.aiCars){
+        c.setup = Object.assign(setupDefaults(), { wing: 50, brakeBalance: 58, fuel: 60, compound: 'medium' });
+      }
+    }
+  },
+  makeWeatherForTrack(trackDef){
+    const mode = this.settings.weatherMode || 'dynamic';
+    const roll = (mode === 'dynamic') ? Math.random() : 0.5;
+    const pool = mode === 'dynamic'
+      ? ['dry','overcast','wet','dusk','night']
+      : (mode === 'wet' ? ['wet'] : mode === 'night' ? ['night'] : mode === 'dusk' ? ['dusk'] : ['dry']);
+    const presetKey = pool[Math.min(pool.length - 1, Math.floor(roll * pool.length))];
+    const p = WEATHER_PRESETS[presetKey] || WEATHER_PRESETS.dry;
+    return {
+      mode,
+      preset:presetKey,
+      name:p.name,
+      rain:p.rain,
+      visibility:p.visibility,
+      dusk:p.dusk,
+      night:p.night,
+      grip:p.grip,
+      lineDry: p.rain > 0 ? 0.15 : 1,
+      timeOfDay: trackDef?.id === 'lemans' ? 0.74 : 0.22,
+      changedAt: performance.now(),
+      rainRate:p.rainRate
+    };
+  },
+  updateWeather(dt){
+    if(!this.weather) this.weather = weatherDefaults();
+    const w = this.weather;
+    const target = WEATHER_PRESETS[w.preset] || WEATHER_PRESETS.dry;
+    if(this.settings.weatherMode === 'dynamic'){
+      w.timeOfDay = (w.timeOfDay + dt * 0.002) % 1;
+      const dayFactor = Math.max(0, Math.sin((w.timeOfDay - 0.18) * Math.PI * 2));
+      if(w.preset === 'wet') w.rain = clamp(w.rain + dt * (target.rainRate || 0), 0.35, 0.95);
+      else if(w.rain > 0.01) w.rain = Math.max(0, w.rain - dt * 0.01);
+      const wetness = w.rain;
+      w.lineDry = clamp(w.lineDry + dt * (wetness > 0.1 ? -0.06 : 0.02), 0, 1);
+      w.visibility = clamp(target.visibility - wetness * 0.18, 0.45, 1);
+      w.dusk = clamp(target.dusk + (1 - dayFactor) * 0.22, 0, 1);
+      w.night = clamp(target.night + (1 - dayFactor) * 0.30, 0, 1);
+      if(w.rain > 0.03){
+        w.preset = 'wet';
+        w.name = 'Regen';
+      } else if(w.night > 0.6){
+        w.preset = 'night';
+        w.name = 'Nacht';
+      } else if(w.dusk > 0.4){
+        w.preset = 'dusk';
+        w.name = 'Dämmerung';
+      } else if(w.visibility < 0.94){
+        w.preset = 'overcast';
+        w.name = 'Bewölkt';
+      } else {
+        w.preset = 'dry';
+        w.name = 'Trocken';
+      }
+    } else {
+      w.preset = this.settings.weatherMode === 'wet' ? 'wet' : this.settings.weatherMode === 'night' ? 'night' : this.settings.weatherMode === 'dusk' ? 'dusk' : 'dry';
+      const p = WEATHER_PRESETS[w.preset] || WEATHER_PRESETS.dry;
+      w.name = p.name;
+      w.rain = p.rain;
+      w.visibility = p.visibility;
+      w.dusk = p.dusk;
+      w.night = p.night;
+      w.lineDry = p.rain > 0 ? 0.12 : 1;
+    }
+  },
+  applyWeatherVisuals(){
+    if(!this.scene || !this.trackDef || !this.weather) return;
+    const w = this.weather;
+    const duskMix = clamp((w.dusk || 0) * 0.7 + (w.night || 0) * 0.9 + (w.rain || 0) * 0.15, 0, 1);
+    const fogFar = this.settings.drawDist * clamp(w.visibility || 1, 0.45, 1);
+    const sky = mixHex(this.trackDef.sky || 0x87b5e8, 0x0a0c10, duskMix);
+    this.scene.background = new THREE.Color(sky);
+    if(this.scene.fog){
+      this.scene.fog.color = new THREE.Color(mixHex(this.trackDef.sky || 0x87b5e8, 0x11161d, duskMix));
+      this.scene.fog.near = 220;
+      this.scene.fog.far = fogFar;
+    }
+    if(this.sun){
+      this.sun.intensity = lerp(1.2, 0.28, duskMix) * (1 - (w.rain || 0) * 0.18);
+      this.sun.color.setHex(duskMix > 0.6 ? 0xc3d5ff : 0xfff2dd);
+    }
+    if(this.hemi){
+      this.hemi.intensity = lerp(0.9, 0.48, duskMix);
+    }
+    if(this.renderer){
+      this.renderer.toneMappingExposure = lerp(1.05, 0.65, duskMix) * (1 - (w.rain || 0) * 0.08);
+    }
+  },
+  configureGhostCar(car){
+    if(!car || !car.group) return;
+    car.isGhost = true;
+    car._frozen = true;
+    car.group.traverse(o=>{
+      if(o.material){
+        o.material.transparent = true;
+        o.material.opacity = 0.25;
+        o.material.depthWrite = false;
+      }
+      if(o.castShadow != null) o.castShadow = false;
+      if(o.receiveShadow != null) o.receiveShadow = false;
+    });
+    car.group.visible = true;
+  },
+  initGhostReplay(){
+    if(this.ghostCar && this.ghostCar.group){
+      if(this.ghostCar.group.parent) this.ghostCar.group.parent.remove(this.ghostCar.group);
+    }
+    if(!this.settings.ghostReplay || this.mode !== 'tt'){
+      this.ghostCar = null;
+      this.ghostSamples = null;
+      return;
+    }
+    this.ghostCar = new Car(CARS[this.selCar], this.scene, this.envMap);
+    this.configureGhostCar(this.ghostCar);
+    this.ghostSamples = this.race?.bestLapRef || null;
+  },
+  updateGhostReplay(){
+    if(!this.ghostCar || !this.track || !this.race || this.mode !== 'tt') return;
+    this.ghostSamples = this.race.bestLapRef || this.ghostSamples;
+    const samples = this.ghostSamples;
+    if(!samples || !samples.length){
+      this.ghostCar.group.visible = false;
+      return;
+    }
+    this.ghostCar.group.visible = true;
+    const lapTime = Math.max(1, this.race.bestLap || samples[samples.length - 1]?.time || 1);
+    const elapsed = (performance.now() - this.race.lapStart) / 1000;
+    const time = elapsed % lapTime;
+    let progress = 0;
+    if(time <= samples[0].time){
+      progress = samples[0].progress;
+    } else {
+      for(let i=1;i<samples.length;i++){
+        const a = samples[i-1], b = samples[i];
+        if(time <= b.time){
+          const span = Math.max(1e-6, b.time - a.time);
+          progress = lerp(a.progress, b.progress, clamp((time - a.time) / span, 0, 1));
+          break;
+        }
+      }
+    }
+    const idx = Math.floor(progress * this.track.N) % this.track.N;
+    const s = this.track.samples[idx];
+    const next = this.track.samples[(idx + 1) % this.track.N];
+    this.ghostCar.pos.copy(s.pos);
+    this.ghostCar.pos.y = s.pos.y + 0.02;
+    this.ghostCar.heading = Math.atan2(next.tan.x, next.tan.z);
+    this.ghostCar.updateMesh(0);
+  },
+  initChampionship(){
+    const pool = this.getTrackPool();
+    const schedule = [this.selTrack];
+    const remaining = pool.map((_, i)=>i).filter(i=>i !== this.selTrack);
+    while(schedule.length < Math.min(4, pool.length) && remaining.length){
+      const pick = remaining.splice(Math.floor(Math.random()*remaining.length), 1)[0];
+      schedule.push(pick);
+    }
+    this.championship = {
+      active:true,
+      round:0,
+      schedule,
+      standings:{},
+      totalRounds:schedule.length,
+      lastResult:null
+    };
+    try{ Store.set('championship_v1', JSON.stringify(this.championship)); } catch(e){}
+  },
+  retireCar(car, reason){
+    if(!car || car.retired) return;
+    car.retired = true;
+    const retirePos = car.pos ? car.pos.clone() : new THREE.Vector3();
+    car._frozen = true;
+    car.vx = 0; car.vy = 0; car.yawRate = 0;
+    car.driveThroughPenaltyPending = false;
+    car.driveThroughInPit = false;
+    car.pitStopState = 'idle';
+    car.rd = car.rd || this.freshRD();
+    car.rd.finished = true;
+    car.rd.dnf = true;
+    car.rd.finishT = performance.now();
+    if(car.group) car.group.visible = false;
+    if(car.pos) car.pos.set(9999, -100, 9999);
+    if(this.particles) this.particles.spawn(retirePos, true);
+    if(this.sound && reason === 'damage') this.sound.impact(10);
+    if(car === this.car && this.state === 'race'){
+      this.car.rd = this.car.rd || this.freshRD();
+      this.car.rd.finished = true;
+      this.car.rd.dnf = true;
+      this.car.rd.finishT = performance.now();
+      const order = [...this.allCars].sort((a,b)=>{
+        if(a.rd.finished&&b.rd.finished) return a.rd.finishT-b.rd.finishT;
+        if(a.rd.finished!==b.rd.finished) return a.rd.finished?-1:1;
+        return b.rd.totalProg-a.rd.totalProg;
+      });
+      this.finishRace(order);
+    }
+  },
+  awardChampionshipPoints(order){
+    if(!this.championship || !Array.isArray(order) || !order.length) return null;
+    const series = this.championship;
+    const result = [];
+    order.slice(0, CHAMP_POINTS.length).forEach((c, idx)=>{
+      const pts = CHAMP_POINTS[idx] || 0;
+      if(!series.standings[c.def.id]) series.standings[c.def.id] = 0;
+      series.standings[c.def.id] += pts;
+      result.push({car:c, pts});
+    });
+    series.round++;
+    series.lastResult = result;
+    Store.set('championship_v1', JSON.stringify(series));
+    return result;
+  },
+  nextChampionshipRound(){
+    if(!this.championship || !Array.isArray(this.championship.schedule)) return;
+    if(this.championship.round >= this.championship.schedule.length) return;
+    this.selTrack = this.championship.schedule[this.championship.round];
+    this.showScreen('screen-track');
+    this.startRace();
   },
   renderControllerBindings(){
     const host = document.getElementById('controller-bindings');
@@ -4534,7 +4885,8 @@ const Game = {
     scene.fog=new THREE.Fog(trackDef.sky, 250, this.settings.drawDist);
 
     /* Licht: Hemisphäre + Sonne mit fahrzeugfolgendem Schatten */
-    scene.add(new THREE.HemisphereLight(0xcfe4ff, 0x46603a, 0.85));
+    this.hemi = new THREE.HemisphereLight(0xcfe4ff, 0x46603a, 0.85);
+    scene.add(this.hemi);
     const sun=this.sun=new THREE.DirectionalLight(0xfff2dd, 1.25);
     sun.position.set(120,180,60);
     sun.castShadow=this.settings.shadows;
@@ -4561,6 +4913,8 @@ const Game = {
     this.safetyCar = new SafetyCar(scene, this.track);
     HUD.prepMap(this.track);
     HUD.els.carname.textContent=CARS[this.selCar].name.toUpperCase();
+    this.ghostCar = null;
+    this.ghostSamples = null;
   },
 
   /* ---------------- Rennablauf ---------------- */
@@ -4741,9 +5095,18 @@ const Game = {
   },
 
   startRace(){
+    if(this.championshipEnabled){
+      if(!this.championship || !this.championship.active || !Array.isArray(this.championship.schedule) || this.championship.round >= this.championship.schedule.length){
+        this.initChampionship();
+      }
+      const champTrackIdx = this.championship?.schedule?.[this.championship.round];
+      if(Number.isInteger(champTrackIdx)) this.selTrack = champTrackIdx;
+    }
     const trackDef = this.getSelectedTrack();
     this.trackDef = trackDef;
     this.buildScene(trackDef);
+    this.weather = this.makeWeatherForTrack(trackDef);
+    this.applyWeatherVisuals();
     /* Rennlänge in Runden — vom Menü, default 3 */
     this.totalLaps = this.mode==='race3' ? (this.raceLaps || 3) : 0;
     /* Pflicht-Pitstop ab > 5 Runden */
@@ -4812,6 +5175,7 @@ const Game = {
       this.car.rd=this.freshRD();
       this.allCars=[this.car];
     }
+    this.applyPlayerSetup();
     /* Pit-Boxen verteilen */
     if(this.track && this.track.pitBoxes && this.track.pitBoxes.length){
       this.car.assignedBox = 0;
@@ -4845,6 +5209,7 @@ const Game = {
       bestLapDelta:null, _hasRef: false,
       lapSamples:[],
       halfPassed:false, prevProg:0, pos:1, total:this.allCars.length};
+    this.initGhostReplay();
     /* Race-Timer + Stuck-Reset für SC-Trigger */
     this._raceTimeS = 0;
     this.flag = {state:'green', timer:0, crashIntensity:0};
@@ -5054,6 +5419,7 @@ const Game = {
       c.wallContacts = 0; c.carContacts = 0; c._ccCD = {}; c._wcCD = 0;
       c.wallContacts = 0;
       c.carContacts = 0;
+      c.retired = false;
       /* totalKm bleibt — kumuliert über alle Rennen */
       c.vscActive = false;
       c.scActive = false;
@@ -5193,6 +5559,7 @@ const Game = {
   finishRace(order){
     this.state='finished';
     this.input.locked=true;
+    const champPts = this.championshipEnabled ? this.awardChampionshipPoints(order) : null;
     const list=document.getElementById('resultlist');
     list.innerHTML='';
     order.forEach((c,i)=>{
@@ -5202,7 +5569,18 @@ const Game = {
       if(you) li.classList.add('you');
       list.appendChild(li);
     });
+    if(Array.isArray(champPts) && champPts.length){
+      const sep=document.createElement('li');
+      sep.style.color = '#8bd3ff';
+      sep.innerHTML = '<b>+</b> Meisterschaftspunkte vergeben';
+      list.appendChild(sep);
+    }
     document.getElementById('resfinal').textContent='P'+(order.indexOf(this.car)+1)+' VON '+order.length;
+    const resRestart = document.getElementById('btn-res-restart');
+    if(resRestart){
+      const hasNext = this.championshipEnabled && this.championship && this.championship.round < this.championship.schedule.length;
+      resRestart.textContent = hasNext ? 'Nächster Lauf' : 'Nochmal fahren';
+    }
     document.getElementById('results').classList.remove('hidden');
   },
 
@@ -5217,6 +5595,8 @@ const Game = {
     }
     if(this.state==='race'||this.state==='countdown'||this.state==='finished'){
       this.acc+=dt;
+      this.updateWeather(dt);
+      this.applyWeatherVisuals();
       let steps=0;
       const running=this.state==='race'||this.state==='finished';
       while(this.acc>=PHYS_DT && steps<8){
@@ -5462,6 +5842,7 @@ const Game = {
       this.particles.update(dt);
       if(this.debris) this.debris.step(dt);
       if(this.safetyCar) this.safetyCar.step(dt, performance.now()/1000);
+      if(this.mode==='tt' && this.settings.ghostReplay) this.updateGhostReplay();
       /* Mechaniker-Licht pro Box: rot=arbeit aktiv, grün=fertig, off=leer */
       if(this.track && this.track.pitBoxes){
         const states = new Array(this.track.pitBoxes.length).fill('off');
@@ -5526,6 +5907,17 @@ const Game = {
   },
   wireMenus(){
     const $=id=>document.getElementById(id);
+    if($('set-shadows')) $('set-shadows').checked = !!this.settings.shadows;
+    if($('set-res')) $('set-res').value = this.settings.resScale;
+    if($('set-draw')) $('set-draw').value = this.settings.drawDist;
+    if($('set-vol')) $('set-vol').value = this.settings.volume;
+    if($('set-wing')) $('set-wing').value = this.setupProfile.wing;
+    if($('set-brake')) $('set-brake').value = this.setupProfile.brakeBalance;
+    if($('set-fuel')) $('set-fuel').value = this.setupProfile.fuel;
+    if($('set-compound')) $('set-compound').value = this.setupProfile.compound || 'medium';
+    if($('set-dynamic-weather')) $('set-dynamic-weather').checked = (this.settings.weatherMode || 'dynamic') === 'dynamic';
+    if($('set-ghosts')) $('set-ghosts').checked = this.settings.ghostReplay !== false;
+    if($('race-championship')) $('race-championship').checked = !!this.championshipEnabled;
     $('btn-play').onclick=()=>this.showScreen('screen-track');
     $('btn-settings').onclick=()=>this.showScreen('screen-settings');
     $('btn-editor').onclick=()=>this.showScreen('screen-editor');
@@ -5556,6 +5948,7 @@ const Game = {
       this.spectateMode = $('race-spectate') ? $('race-spectate').checked : false;
       this.rollingStart = $('race-rolling') ? $('race-rolling').checked : true;
       this.pitStopsEnabled = $('race-pitstops') ? $('race-pitstops').checked : false;
+      this.championshipEnabled = $('race-championship') ? $('race-championship').checked : false;
       this.startRace();
     };
     $('btn-back-mode').onclick=()=>this.showScreen('screen-car');
@@ -5592,7 +5985,13 @@ const Game = {
       };
     }
     /* Ergebnis */
-    $('btn-res-restart').onclick=()=>this.restartRace();
+    $('btn-res-restart').onclick=()=>{
+      if(this.championshipEnabled && this.championship && this.championship.round < this.championship.schedule.length){
+        this.nextChampionshipRound();
+      } else {
+        this.restartRace();
+      }
+    };
     $('btn-res-menu').onclick=()=>{ $('results').classList.add('hidden'); this.toMenu(); };
     /* Pause */
     $('btn-resume').onclick=()=>this.togglePause();
@@ -5600,12 +5999,18 @@ const Game = {
     $('btn-pause-settings').onclick=()=>{ $('pause').classList.add('hidden'); this.showScreen('screen-settings'); $('menus').classList.remove('hidden'); this._fromPause=true; };
     $('btn-mainmenu').onclick=()=>this.toMenu();
     /* Einstellungen */
-    $('set-shadows').onchange=e=>{ this.settings.shadows=e.target.checked; if(this.sun) this.sun.castShadow=e.target.checked; };
+    $('set-shadows').onchange=e=>{ this.settings.shadows=e.target.checked; if(this.sun) this.sun.castShadow=e.target.checked; this.saveRaceSettings(); };
     $('set-res').oninput=e=>{ this.settings.resScale=parseFloat(e.target.value);
-      this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.75)*this.settings.resScale); };
+      this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.75)*this.settings.resScale); this.saveRaceSettings(); };
     $('set-draw').oninput=e=>{ this.settings.drawDist=parseInt(e.target.value);
-      if(this.scene&&this.scene.fog) this.scene.fog.far=this.settings.drawDist; };
-    $('set-vol').oninput=e=>{ this.settings.volume=parseFloat(e.target.value); this.sound.setVolume(this.settings.volume); };
+      if(this.scene&&this.scene.fog) this.scene.fog.far=this.settings.drawDist; this.saveRaceSettings(); };
+    $('set-vol').oninput=e=>{ this.settings.volume=parseFloat(e.target.value); this.sound.setVolume(this.settings.volume); this.saveRaceSettings(); };
+    $('set-wing').oninput=e=>{ this.setupProfile.wing=parseInt(e.target.value,10); this.saveSetupProfile(); if(this.car) this.applyPlayerSetup(); };
+    $('set-brake').oninput=e=>{ this.setupProfile.brakeBalance=parseInt(e.target.value,10); this.saveSetupProfile(); if(this.car) this.applyPlayerSetup(); };
+    $('set-fuel').oninput=e=>{ this.setupProfile.fuel=parseInt(e.target.value,10); this.saveSetupProfile(); if(this.car) this.applyPlayerSetup(); };
+    $('set-compound').onchange=e=>{ this.setupProfile.compound=e.target.value; this.saveSetupProfile(); if(this.car) this.applyPlayerSetup(); };
+    $('set-dynamic-weather').onchange=e=>{ this.settings.weatherMode = e.target.checked ? 'dynamic' : 'dry'; this.saveRaceSettings(); };
+    $('set-ghosts').onchange=e=>{ this.settings.ghostReplay = e.target.checked; this.saveRaceSettings(); };
     /* Ideallinie an/aus */
     this.settings.idealLine = true;
     if($('set-ideal')) $('set-ideal').checked = true;
