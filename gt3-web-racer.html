@@ -178,6 +178,17 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #touch-controls .tc-btn{min-width:72px;min-height:64px;padding:12px 14px;font-size:14px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border-radius:12px;background:rgba(17,21,26,0.88);border:1px solid var(--line);color:var(--txt);backdrop-filter:blur(6px);touch-action:none}
 #touch-controls .tc-btn.active{background:var(--red);border-color:var(--red);color:#fff}
 #touch-controls.hidden{display:none}
+#ers-popup{position:fixed;left:50%;bottom:160px;transform:translateX(-50%);background:rgba(12,16,22,0.9);border:1px solid var(--line);border-left:3px solid #22c4ff;padding:10px 14px;min-width:240px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;color:#d7e5f2;pointer-events:none;z-index:26;opacity:0;transition:opacity .18s}
+#ers-popup.show{opacity:1}
+#ers-popup .ep-title{font-weight:700;color:#9af0ff;margin-bottom:6px}
+#ers-popup .ep-row{display:flex;justify-content:space-between;gap:14px;padding:2px 0}
+#ers-popup .ep-row b{color:#fff}
+#lap-valid{display:none;margin-top:8px;padding:3px 6px;background:#22c463;color:#08140d;font-weight:700;font-size:9px;letter-spacing:.12em}
+#lap-valid.invalid{display:inline-block;background:#ff2e3d;color:#fff}
+body.hud-edit #hud{pointer-events:auto}
+.hud-draggable{cursor:default}
+body.hud-edit .hud-draggable{outline:1px dashed #22c4ff;outline-offset:2px;cursor:move}
+body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;left:0;background:#22c4ff;color:#07131f;font-size:9px;padding:1px 5px;letter-spacing:.1em;font-weight:700}
 .editor-panel{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;margin-top:18px}
 .editor-box{border:1px solid var(--line);background:#0f1419;padding:14px}
 .editor-box h3{font-size:16px;letter-spacing:.12em;margin-bottom:10px}
@@ -230,10 +241,11 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
       <span id="damage-pct">0%</span>
     </div>
     <div id="ers-row">
-      <span class="dmg-label">P2P</span>
+      <span class="dmg-label">ERS</span>
       <div id="ers-bar"><i></i></div>
       <span id="ers-pct">40%</span>
     </div>
+    <span id="lap-valid">RUNDE UNGUELTIG</span>
   </div>
   <div id="dmg-panel">
     <div class="dp-title">SCHADEN</div>
@@ -309,6 +321,14 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
     <kbd>E</kbd> Respawn &nbsp; <kbd>V</kbd> VSC &nbsp; <kbd>Y</kbd> Safety Car<br>
     <kbd>C</kbd> Kamera &nbsp; <kbd>R</kbd> Neustart &nbsp; <kbd>ESC</kbd> Pause &nbsp; <kbd>H</kbd> Hilfe aus
   </div>
+</div>
+
+<div id="ers-popup">
+  <div class="ep-title">ERS KONFIGURATION</div>
+  <div class="ep-row"><span>Stufe</span><b id="ep-level">BAL</b></div>
+  <div class="ep-row"><span>Energie</span><b id="ep-energy">40%</b></div>
+  <div class="ep-row"><span>Ladung</span><b id="ep-charge">normal</b></div>
+  <div class="ep-row"><span>Modus</span><b id="ep-mode">deaktiviert</b></div>
 </div>
 
 <!-- Startampel -->
@@ -440,6 +460,22 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
             <input type="range" id="ai-count" min="1" max="50" step="1" value="5">
           </div>
           <div class="setrow" style="margin-top:8px">
+            <span>Gesamtfahrzeuge (inkl. dir): <strong id="grid-total-label">6</strong></span>
+            <input type="range" id="grid-total" min="2" max="51" step="1" value="6">
+          </div>
+          <div class="setrow" style="margin-top:8px">
+            <span>HYP im Grid</span>
+            <input type="number" id="grid-hyp" min="0" max="50" step="1" value="2">
+          </div>
+          <div class="setrow" style="margin-top:4px">
+            <span>LMP2 im Grid</span>
+            <input type="number" id="grid-lmp2" min="0" max="50" step="1" value="2">
+          </div>
+          <div class="setrow" style="margin-top:4px">
+            <span>GT3 im Grid</span>
+            <input type="number" id="grid-gt3" min="0" max="50" step="1" value="1">
+          </div>
+          <div class="setrow" style="margin-top:8px">
             <span><strong id="race-laps-label">3 Runden</strong></span>
             <input type="range" id="race-laps" min="1" max="100" step="1" value="3">
           </div>
@@ -481,6 +517,12 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
     <div class="setrow"><span>Sichtweite (Nebel)</span><input type="range" id="set-draw" min="500" max="1800" step="50" value="1100"></div>
     <div class="setrow"><span>Lautstärke</span><input type="range" id="set-vol" min="0" max="1" step="0.05" value="0.8"></div>
     <div class="setrow"><span>Ideallinie anzeigen</span><input type="checkbox" id="set-ideal" checked></div>
+    <div class="eyebrow" style="margin-top:22px">KEYBINDS (TASTATUR)</div>
+    <p class="sub">Klicke eine Belegung und druecke dann die neue Taste. Wird lokal gespeichert.</p>
+    <div id="keyboard-bindings"></div>
+    <div class="btnrow" style="margin-top:10px">
+      <button class="btn" id="btn-keybind-reset">Default Keybinds</button>
+    </div>
     <div class="eyebrow" style="margin-top:22px">CONTROLLER</div>
     <p class="sub">Xbox-Controller wird per Gamepad API erkannt. Klicke eine Belegung und drücke dann die gewünschte Taste oder das gewünschte Steuerkreuz.</p>
     <div id="controller-bindings"></div>
@@ -506,6 +548,8 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
   </div>
   <div class="tc-group tc-col">
     <button class="tc-btn" data-touch="boost">Boost</button>
+    <button class="tc-btn" data-touch="ers-up">ERS +</button>
+    <button class="tc-btn" data-touch="ers-down">ERS -</button>
     <button class="tc-btn" data-touch="pit">Pit</button>
   </div>
   <div class="tc-group tc-col">
@@ -538,6 +582,42 @@ const defaultControllerBindings = {
   pause:{type:'button', button:9},
   restart:{type:'button', button:8},
   help:{type:'button', button:4}
+};
+const defaultKeybinds = {
+  throttle:'KeyW',
+  brake:'KeyS',
+  steerLeft:'KeyA',
+  steerRight:'KeyD',
+  boost:'ShiftLeft',
+  pitLimiter:'KeyP',
+  camera:'KeyC',
+  restart:'KeyR',
+  pause:'Escape',
+  help:'KeyH',
+  respawn:'KeyE',
+  safetyCar:'KeyY',
+  vsc:'KeyV',
+  ersUp:'Equal',
+  ersDown:'Minus',
+  hudEdit:'KeyU'
+};
+const keybindLabels = {
+  throttle:'Gas',
+  brake:'Bremse',
+  steerLeft:'Lenken links',
+  steerRight:'Lenken rechts',
+  boost:'Boost',
+  pitLimiter:'Pit-Limiter',
+  camera:'Kamera',
+  restart:'Neustart',
+  pause:'Pause',
+  help:'Hilfe',
+  respawn:'Respawn',
+  safetyCar:'Safety Car',
+  vsc:'VSC',
+  ersUp:'ERS +',
+  ersDown:'ERS -',
+  hudEdit:'HUD Edit'
 };
 
 /* ============================ FAHRZEUGDATEN ============================ */
@@ -820,6 +900,43 @@ const TRACKS = [
     ],
     pitLane: { side: -1, idxStart: 8, idxEnd: 150, innerOff: 11.5, outerOff: 22.0 }
   },
+  {
+    id:'highspeed-pro', name:'Nordstern High Speed', sub:'High Speed Track · lange Vollgas-Sektoren · harte Bremspunkte',
+    halfWidth:10.5, sky:0x9fc3eb, hill:0x5e8a42, grass:[0x4e8b3a,0x407531],
+    wallDist:64, vergeW:36,
+    pts:[
+      [-960,-180,2],[-620,-180,2],[-260,-170,2],[120,-150,3],[460,-130,4],[760,-70,4],
+      [900,40,5],[930,220,5],[870,400,5],[720,520,6],[500,590,7],[260,620,8],
+      [20,620,8],[-220,580,8],[-420,500,8],[-610,430,7],[-790,320,6],[-920,180,5],[-980,10,3],[-980,-120,2]
+    ],
+    pitLane:{ side:-1, idxStart:16, idxEnd:180, innerOff:12, outerOff:23 }
+  },
+  {
+    id:'technical-pro', name:'Schieferwald Technical', sub:'Technical Track · viele Richtungswechsel · mittlere Geschwindigkeiten',
+    halfWidth:9.0, sky:0x8fb8e4, hill:0x496e3a, grass:[0x3d7830,0x336828],
+    wallDist:46, vergeW:24,
+    pts:[
+      [-700,-120,4],[-420,-100,5],[-180,-50,6],[20,20,8],[170,120,10],[220,240,11],
+      [170,350,11],[40,430,12],[-120,470,13],[-260,420,12],[-360,330,11],[-470,300,10],
+      [-570,370,9],[-650,500,9],[-620,640,8],[-500,720,8],[-320,760,8],[-120,740,7],
+      [60,680,7],[190,600,7],[290,520,8],[370,410,8],[450,300,8],[520,180,8],
+      [500,70,8],[420,-10,7],[280,-60,6],[100,-80,5],[-120,-100,4],[-360,-120,4],[-560,-140,4]
+    ],
+    pitLane:{ side:1, idxStart:10, idxEnd:150, innerOff:10, outerOff:20 }
+  },
+  {
+    id:'mixed-pro', name:'Marina GP Mixed', sub:'Mixed Track · Kombination aus Highspeed, Technik und Bremszonen',
+    halfWidth:9.8, sky:0xa8c8e8, hill:0x5a8a4a, grass:[0x4a8a3d,0x3a7530],
+    wallDist:55, vergeW:30,
+    pts:[
+      [-820,-240,2],[-520,-240,2],[-220,-230,3],[70,-210,4],[330,-190,5],[560,-120,6],
+      [700,10,7],[730,180,7],[650,320,8],[500,410,9],[320,470,9],[120,520,10],
+      [-60,590,11],[-160,700,12],[-130,820,13],[-20,900,13],[150,930,12],[330,900,11],
+      [470,820,10],[560,700,9],[620,560,8],[710,470,7],[840,430,7],[960,350,6],
+      [980,210,5],[920,70,4],[780,-30,3],[620,-100,3],[440,-150,3],[220,-190,2],[-40,-220,2],[-300,-240,2],[-560,-250,2]
+    ],
+    pitLane:{ side:-1, idxStart:18, idxEnd:220, innerOff:11, outerOff:22 }
+  },
 ];
 
 /* ============================ KONSTANTEN ============================ */
@@ -840,6 +957,12 @@ const WEATHER_PRESETS = {
   night: { name:'Nacht', rain:0.00, visibility:0.68, dusk:0.85, night:0.78, grip:0.97, rainRate:0.00 }
 };
 const CHAMP_POINTS = [25,18,15,12,10,8,6,4,2,1];
+const ERS_LEVELS = [
+  {name:'CHARGE', regenMul:1.35, deployMul:0.70, drainMul:0.65, mode:'aufladen'},
+  {name:'BAL', regenMul:1.00, deployMul:1.00, drainMul:1.00, mode:'balanciert'},
+  {name:'ATTACK', regenMul:0.78, deployMul:1.20, drainMul:1.18, mode:'angriff'},
+  {name:'QUALI', regenMul:0.60, deployMul:1.34, drainMul:1.34, mode:'qualifying'}
+];
 
 const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
 const lerp  = (a,b,t)=>a+(b-a)*t;
@@ -1009,21 +1132,27 @@ class Input {
     this.locked = true;    // bis Startampel grün
     this._lastButtonState = {};
     this.boostPulseT = 0;
-    this.touch = {left:false, right:false, throttle:false, brake:false, boost:false, pit:false, camera:false, pause:false, restart:false};
+    this.touch = {left:false, right:false, throttle:false, brake:false, boost:false, pit:false, camera:false, pause:false, restart:false, ersUp:false, ersDown:false};
     this._touchRepeat = {};
+    this._isAction = (name, code) => !!(Game && Game.keybinds && Game.keybinds[name] === code);
     addEventListener('keydown', e=>{
+      if(Game && Game.keybindCaptureAction){
+        e.preventDefault();
+        Game.captureKeyboardBinding(e.code);
+        return;
+      }
       this.keys[e.code]=true;
       if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
-      if(e.code==='Escape') Game.togglePause();
-      if(e.code==='KeyC' && (Game.state==='race'||Game.state==='finished')) Game.cameraRig.cycle();
-      if(e.code==='KeyR' && (Game.state==='race'||Game.state==='finished')) Game.restartRace();
-      if(e.code==='KeyH') document.getElementById('help').classList.toggle('hidden');
-      if(e.code==='KeyE' && (Game.state==='race'||Game.state==='finished')){
+      if(this._isAction('pause', e.code)) Game.togglePause();
+      if(this._isAction('camera', e.code) && (Game.state==='race'||Game.state==='finished')) Game.cameraRig.cycle();
+      if(this._isAction('restart', e.code) && (Game.state==='race'||Game.state==='finished')) Game.restartRace();
+      if(this._isAction('help', e.code)) document.getElementById('help').classList.toggle('hidden');
+      if(this._isAction('respawn', e.code) && (Game.state==='race'||Game.state==='finished')){
         const car=Game.car, q=Game.track.query(car.pos,car.sampleIdx), s=Game.track.samples[q.idx];
         car.pos.copy(s.pos); car.heading=Math.atan2(s.tan.x,s.tan.z);
         car.vx=0; car.vy=0; car.yawRate=0;
       }
-      if(e.code==='KeyE' && (Game.state==='race'||Game.state==='finished')){
+      if(this._isAction('respawn', e.code) && (Game.state==='race'||Game.state==='finished')){
         /* Respawn: zurück auf die Strecke, mittig, richtige Richtung, Stillstand */
         const car = Game.car;
         const q = Game.track.query(car.pos, car.sampleIdx);
@@ -1033,10 +1162,10 @@ class Input {
         car.heading = Math.atan2(s.tan.x, s.tan.z);
         car.vx = 0; car.vy = 0; car.yawRate = 0;
       }
-      if(e.code==='KeyP' && (Game.state==='race'||Game.state==='finished')){
+      if(this._isAction('pitLimiter', e.code) && (Game.state==='race'||Game.state==='finished')){
         Game.car.pitLimiterActive = !Game.car.pitLimiterActive;
       }
-      if(e.code==='KeyV' && Game.state==='race' && Game.vscEnabled !== false){
+      if(this._isAction('vsc', e.code) && Game.state==='race' && Game.vscEnabled !== false){
         const v = Game.vsc;
         v.active = !v.active;
         if(v.active){
@@ -1045,7 +1174,7 @@ class Input {
           v.deltaSec = 0;
         }
       }
-      if(e.code==='KeyY' && (Game.state==='race'||Game.state==='countdown') && Game.safetyCar && Game.scEnabled !== false){
+      if(this._isAction('safetyCar', e.code) && (Game.state==='race'||Game.state==='countdown') && Game.safetyCar && Game.scEnabled !== false){
         if(Game.safetyCar.canDeploy()){
           Game.safetyCar.deploy();
           if(Game.flag) Game.flag.state = 'sc';
@@ -1053,11 +1182,14 @@ class Input {
           Game._scNotice = {until: performance.now() + 3000};
         }
       }
+      if(this._isAction('ersUp', e.code) && (Game.state==='race'||Game.state==='finished')) Game.adjustERSLevel(1);
+      if(this._isAction('ersDown', e.code) && (Game.state==='race'||Game.state==='finished')) Game.adjustERSLevel(-1);
+      if(this._isAction('hudEdit', e.code) && (Game.state==='race'||Game.state==='finished')) Game.toggleHudEditMode();
     });
     addEventListener('keyup', e=>{ this.keys[e.code]=false; });
   }
   setTouch(action, down){
-    if(!this.touch) this.touch = {left:false, right:false, throttle:false, brake:false, boost:false, pit:false, camera:false, pause:false, restart:false};
+    if(!this.touch) this.touch = {left:false, right:false, throttle:false, brake:false, boost:false, pit:false, camera:false, pause:false, restart:false, ersUp:false, ersDown:false};
     if(action === 'steer-left') this.touch.left = down;
     else if(action === 'steer-right') this.touch.right = down;
     else if(action === 'throttle') this.touch.throttle = down;
@@ -1067,6 +1199,8 @@ class Input {
     else if(action === 'camera') this.touch.camera = down;
     else if(action === 'pause') this.touch.pause = down;
     else if(action === 'restart') this.touch.restart = down;
+    else if(action === 'ers-up') this.touch.ersUp = down;
+    else if(action === 'ers-down') this.touch.ersDown = down;
   }
   axis(neg,pos){ return (this.keys[pos]?1:0)-(this.keys[neg]?1:0); }
   pollGamepad(){
@@ -1134,9 +1268,19 @@ class Input {
       if(this.touch.boost){
         this.boostPulseT = 0.35;
       }
+      if(this.touch.ersUp){
+        this.touch.ersUp = false;
+        Game.adjustERSLevel(1);
+      }
+      if(this.touch.ersDown){
+        this.touch.ersDown = false;
+        Game.adjustERSLevel(-1);
+      }
     }
     // Lenkung: progressives Einlenken, schnellere Rückstellung Richtung Mitte
-    const sIn = (this.keys['KeyA']||this.keys['ArrowLeft']?1:0)-(this.keys['KeyD']||this.keys['ArrowRight']?1:0);
+    const kb=Game.keybinds||{};
+    const sIn = ((this.keys['KeyA']||this.keys['ArrowLeft']||(kb.steerLeft&&this.keys[kb.steerLeft]))?1:0)
+              - ((this.keys['KeyD']||this.keys['ArrowRight']||(kb.steerRight&&this.keys[kb.steerRight]))?1:0);
     let gpSteer = 0;
     if(pad){
       const steerAxis = bind.steering?.axis === 'lx' ? 0 : (bind.steering?.axis === 'rx' ? 2 : 0);
@@ -1153,8 +1297,8 @@ class Input {
     } else {
       this.steer = Math.abs(this.steer)<0.02 ? 0 : this.steer - Math.sign(this.steer)*dt*4.8;
     }
-    const tIn = (this.keys['KeyW']||this.keys['ArrowUp'])?1:0;
-    const bIn = (this.keys['KeyS']||this.keys['ArrowDown'])?1:0;
+    const tIn = (this.keys['KeyW']||this.keys['ArrowUp']||(kb.throttle&&kb.throttle!=='KeyW'&&this.keys[kb.throttle]))?1:0;
+    const bIn = (this.keys['KeyS']||this.keys['ArrowDown']||(kb.brake&&kb.brake!=='KeyS'&&this.keys[kb.brake]))?1:0;
     const gpThrottle = pad ? this.triggerValue(pad, bind.throttle, 7, 5) : 0;
     const gpBrake = pad ? this.triggerValue(pad, bind.brake, 6, 4) : 0;
     const throttleHeld = tIn || gpThrottle > 0.05 || this.touch.throttle;
@@ -1167,7 +1311,7 @@ class Input {
     }
     /* ERS-Boost: Shift halten = aktiv (gilt nur wenn Throttle > 0.5) */
     this.boostPulseT = Math.max(0, this.boostPulseT - dt);
-    const kbBoost = !!(this.keys['ShiftLeft']||this.keys['ShiftRight']);
+    const kbBoost = !!(this.keys['ShiftLeft']||this.keys['ShiftRight']||(kb.boost&&kb.boost!=='ShiftLeft'&&this.keys[kb.boost]));
     const gpBoost = this.boostPulseT > 0 && this.throttle > 0.5;
     this.boost = kbBoost || gpBoost || this.touch.boost;
   }
@@ -1965,56 +2109,102 @@ class Track {
     this.group.add(pitLane);
   }
 
-  /** Findet markante Bremszonen und setzt 150/100/50-Meter-Schilder davor */
+  /** Findet Bremspunkte via Speed-Propagation und setzt 150/100/50-Meter-Schilder. */
   buildBrakingMarkers(){
     const S=this.samples, N=this.N, seg=this.segLen;
-    /* Brake-Punkte finden: Stelle wo Kurvengeschw. lokal stark fällt */
-    const A_LAT=11, A_BRK=11;
-    const vCorner = new Array(N);
+
+    /* ---- 1. Kurvengeschwindigkeiten via Pacejka-Laterallimit ---- */
+    const A_LAT=10.5, A_BRK=11.0;
+    const vCorner=new Float32Array(N);
     for(let i=0;i<N;i++){
-      const c=Math.max(Math.abs(S[i].curv), 0.0008);
-      vCorner[i] = Math.sqrt(A_LAT/c);
+      const c=Math.max(Math.abs(S[i].curv),0.0005);
+      vCorner[i]=Math.min(98,Math.sqrt(A_LAT/c));
     }
-    /* Bremspunkt = letzter Sample-Index VOR dem Kurveneingang, wo Tempo noch hoch ist */
-    const brakeAt=[];
-    for(let i=0;i<N;i++){
-      const vHere=vCorner[i], vNext=vCorner[(i+5)%N];
-      /* Signifikant: scharfe Kurve voraus und hier noch deutlich schneller */
-      if(vNext<55 && vHere-vNext>22){
-        /* Schon ein Schild nahebei? */
-        if(brakeAt.length && (i - brakeAt[brakeAt.length-1] + N)%N < 40) continue;
-        brakeAt.push(i);
+
+    /* ---- 2. Rückwärts-Bremszonenpropagation ---- */
+    const vTarget=vCorner.slice();
+    for(let pass=0;pass<4;pass++){
+      for(let i=N-1;i>=0;i--){
+        const nxt=(i+1)%N;
+        const lim=Math.sqrt(vTarget[nxt]*vTarget[nxt]+2*A_BRK*seg);
+        if(lim<vTarget[i]) vTarget[i]=lim;
       }
     }
-    /* Material-Cache: 3 Schilder pro Bremszone */
-    const matFor = n => new THREE.MeshLambertMaterial({map:Tex.brakingSign(n), side:THREE.DoubleSide});
-    const m50=matFor(50), m100=matFor(100), m150=matFor(150);
-    const signGeo=new THREE.PlaneGeometry(2.2, 2.8);
-    const poleGeo=new THREE.CylinderGeometry(0.06,0.06,2.6,6);
+
+    /* ---- 3. Bremspunkte finden ----
+       Für jedes Sample: was ist das Minimum der nächsten ~200m?
+       Wenn dieses Minimum deutlich unter der aktuellen Geschwindigkeit liegt
+       UND die Geschwindigkeit 60m hinter uns noch hoch war → Bremspunkt. */
+    const lookAhead=Math.max(4, Math.round(200/seg));
+    const lookBehind=Math.max(3, Math.round(60/seg));
+    const minGap=Math.max(20, Math.round(220/seg));
+    const brakeAt=[];
+
+    for(let i=0;i<N;i++){
+      /* Schnellstes am Anfang der Bremszone: 5 Samples davor */
+      const iBefore=Math.max(3,Math.round(12/seg));
+      const vHere=vTarget[(i-iBefore+N)%N];
+
+      /* Minimumsgeschwindigkeit in den nächsten 200m finden */
+      let vMin=vHere;
+      for(let k=0;k<lookAhead;k++) vMin=Math.min(vMin, vTarget[(i+k)%N]);
+
+      /* Kriterien:
+         - Kurve muss wirklich langsam sein (< 220 km/h = 61 m/s)
+         - Bremsanlass mindestens 40 km/h = 11 m/s
+         - 60m davor noch schnell (nicht schon am Bremsen) */
+      if(vMin>61) continue;
+      if(vHere-vMin<11) continue;
+      const vBehind=vTarget[(i-lookBehind+N)%N];
+      if(vBehind<vHere*0.97) continue; // schon am abbremsen
+
+      /* Mindestabstand zu anderen Bremspunkten */
+      let tooClose=false;
+      for(const bp of brakeAt){
+        const d=Math.min(((i-bp)+N)%N, ((bp-i)+N)%N);
+        if(d<minGap){tooClose=true;break;}
+      }
+      if(tooClose) continue;
+      brakeAt.push(i);
+    }
+
+    /* ---- 4. Schilder setzen ---- */
+    const matFor=n=>new THREE.MeshLambertMaterial({map:Tex.brakingSign(n),side:THREE.DoubleSide});
+    const mats={50:matFor(50),100:matFor(100),150:matFor(150)};
+    const signGeo=new THREE.PlaneGeometry(2.0,2.6);
+    const poleGeo=new THREE.CylinderGeometry(0.06,0.06,2.5,6);
     const poleMat=new THREE.MeshLambertMaterial({color:0x222628});
-    const dists=[50,100,150], mats=[m50,m100,m150];
-    const offsetOutside = this.halfW + 2.2;     // Abstand neben der Strecke
-    for(const bp of brakeAt){
-      for(let d=0;d<dists.length;d++){
-        const back = Math.round(dists[d]/seg);
-        const idx = ((bp - back)%N + N)%N;
-        const s = S[idx];
-        /* Beide Seiten */
-        for(const sgn of [-1,1]){
-          if(!this.clearOf(
-              s.pos.x+s.side.x*sgn*offsetOutside,
-              s.pos.z+s.side.z*sgn*offsetOutside,
-              this.halfW+1.4
-          )) continue;
-          const group=new THREE.Group();
-          const pole=new THREE.Mesh(poleGeo, poleMat);
-          pole.position.y=1.3; group.add(pole);
-          const sign=new THREE.Mesh(signGeo, mats[d]);
-          sign.position.y=2.4; group.add(sign);
-          /* Drehen, dass Schild quer zur Fahrtrichtung steht */
-          group.rotation.y = Math.atan2(s.tan.x, s.tan.z);
-          group.position.copy(s.pos).addScaledVector(s.side, sgn*offsetOutside);
-          this.group.add(group);
+    const offsetOutside=this.halfW+2.5;
+
+    for(const bpIdx of brakeAt){
+      /* Kurvenrichtung voraus: Außenseite bevorzugen */
+      let maxCurv=0;
+      for(let k=0;k<Math.round(80/seg);k++){
+        const c=S[(bpIdx+k)%N].curv;
+        if(Math.abs(c)>Math.abs(maxCurv)) maxCurv=c;
+      }
+      /* side zeigt nach links: curv>0 = Linkskurve → Außenseite ist rechts → sgn -1 */
+      const outsideSgn=maxCurv>=0?-1:1;
+
+      for(const dist of [150,100,50]){
+        const back=Math.max(1,Math.round(dist/seg));
+        const idx=((bpIdx-back)%N+N)%N;
+        const s=S[idx];
+        /* Erst Außenseite, dann Innenseite versuchen */
+        for(const sgn of [outsideSgn,-outsideSgn]){
+          const tx=s.pos.x+s.side.x*sgn*offsetOutside;
+          const tz=s.pos.z+s.side.z*sgn*offsetOutside;
+          /* Nur ablehnen wenn SEHR nahe an anderer Streckenportion */
+          if(!this.clearOf(tx,tz,this.halfW-1.0)) continue;
+          const grp=new THREE.Group();
+          const pole=new THREE.Mesh(poleGeo,poleMat); pole.position.y=1.25;
+          const sign=new THREE.Mesh(signGeo,mats[dist]); sign.position.y=2.3;
+          grp.add(pole,sign);
+          /* Schild zeigt dem heranfahrenden Fahrer entgegen */
+          grp.rotation.y=Math.atan2(s.tan.x,s.tan.z)+Math.PI;
+          grp.position.set(tx,s.pos.y,tz);
+          this.group.add(grp);
+          break;
         }
       }
     }
@@ -2140,7 +2330,15 @@ class Car {
     /* --- ERS / Hybrid-Boost ---
        Batterie 0..1 (1 = voll). Lädt beim Bremsen über Rekuperation,
        entlädt beim Halten der Boost-Taste. */
-    this.ers = {charge: 0.4, active: false, depleted: false};
+    this.hasERS = this.def.classType === 'hypercar';
+    this.ers = {
+      enabled: this.hasERS,
+      charge: this.hasERS ? 0.4 : 0,
+      active: false,
+      depleted: false,
+      level: this.hasERS ? 1 : 0,
+      mode: this.hasERS ? ERS_LEVELS[1].name : 'OFF'
+    };
     this.buildMesh(envMap);
   }
 
@@ -2663,21 +2861,31 @@ class Car {
     /* --- ERS-Logik ---
        Rekuperation: beim Bremsen stark laden (0.20/s), beim Rollen ohne Gas leicht laden (0.04/s)
        Deploy: Bei input.boost UND Ladung > 0 → Zusatzkraft, entlädt 0.14/s */
-    if(input.brake > 0.1 && this.vx > 5 && !this.ers.depleted){
-      /* Bremsen: starke Rekuperation */
-      this.ers.charge = Math.min(1, this.ers.charge + dt*0.20*Math.min(1, input.brake));
-    } else if(input.throttle < 0.05 && input.brake <= 0.1 && this.vx > 5 && !this.ers.depleted){
-      /* Rollen / Lift-off: leichte Rekuperation (~1/5 der Bremskraft) */
-      this.ers.charge = Math.min(1, this.ers.charge + dt*0.04);
-    }
     this.ers.active = false;
-    if(input.boost && this.ers.charge > 0.02 && input.throttle > 0.5){
-      this.ers.active = true;
-      this.ers.charge = Math.max(0, this.ers.charge - dt*0.14);
-      if(this.ers.charge <= 0) this.ers.depleted = true;
-      /* Zusatzschub: +30% Power, +Force boost — entspricht ~8-10 km/h Topspeed-Plus */
-      Fdrive += Math.min(d.maxForce*0.35, d.power*0.35/Math.max(speed,4));
-    } else if(this.ers.charge > 0.05){
+    if(this.hasERS){
+      const lvl = ERS_LEVELS[clamp(this.ers.level|0, 0, ERS_LEVELS.length-1)] || ERS_LEVELS[1];
+      this.ers.mode = lvl.name;
+      if(input.brake > 0.1 && this.vx > 5 && !this.ers.depleted){
+        /* Bremsen: starke Rekuperation */
+        this.ers.charge = Math.min(1, this.ers.charge + dt*0.20*Math.min(1, input.brake)*lvl.regenMul);
+      } else if(input.throttle < 0.05 && input.brake <= 0.1 && this.vx > 5 && !this.ers.depleted){
+        /* Rollen / Lift-off: leichte Rekuperation (~1/5 der Bremskraft) */
+        this.ers.charge = Math.min(1, this.ers.charge + dt*0.04*lvl.regenMul);
+      }
+      if(input.boost && this.ers.charge > 0.02 && input.throttle > 0.5){
+        this.ers.active = true;
+        this.ers.charge = Math.max(0, this.ers.charge - dt*0.14*lvl.drainMul);
+        if(this.ers.charge <= 0) this.ers.depleted = true;
+        /* Zusatzschub: dynamisch über ERS-Stufe */
+        const deployMul = lvl.deployMul;
+        Fdrive += Math.min(d.maxForce*0.35*deployMul, d.power*0.35*deployMul/Math.max(speed,4));
+      } else if(this.ers.charge > 0.05){
+        this.ers.depleted = false;
+      }
+    } else {
+      this.ers.charge = 0;
+      this.ers.level = 0;
+      this.ers.mode = 'OFF';
       this.ers.depleted = false;
     }
     this.brakeLight = input.brake>0.05;
@@ -4409,12 +4617,24 @@ const HUD = {
       this._ersBar = document.querySelector('#ers-bar i');
       this._ersPct = document.getElementById('ers-pct');
       this._ersWrap = document.getElementById('ers-bar');
+      this._ersRow = document.getElementById('ers-row');
     }
     if(this._ersBar && car.ers){
-      const c = car.ers.charge * 100;
+      const hasERS = !!car.hasERS;
+      if(this._ersRow) this._ersRow.style.display = hasERS ? 'flex' : 'none';
+      if(!hasERS){
+        const ep = document.getElementById('ers-popup');
+        if(ep) ep.classList.remove('show');
+      }
+      const c = hasERS ? car.ers.charge * 100 : 0;
       this._ersBar.style.width = c.toFixed(0)+'%';
       this._ersPct.textContent = c.toFixed(0)+'%';
-      this._ersWrap.classList.toggle('active', car.ers.active);
+      this._ersWrap.classList.toggle('active', hasERS && car.ers.active);
+    }
+    if(this._lapValidEl === undefined) this._lapValidEl = document.getElementById('lap-valid');
+    if(this._lapValidEl){
+      const invalid = totalLaps === 0 && race && race.lapValid === false;
+      this._lapValidEl.classList.toggle('invalid', invalid);
     }
     /* Pit-Lane- und Pit-Limiter-Anzeige */
     if(this._pitHint === undefined){
@@ -4572,7 +4792,12 @@ const Game = {
   state:'menu',     // menu | countdown | race | pause | finished
   shake:0,
   settings:{shadows:true, resScale:1, drawDist:1100, volume:0.8, weatherMode:'dynamic', ghostReplay:true},
+  keybinds: Object.assign({}, defaultKeybinds),
+  keybindCaptureAction: null,
   controllerBindings: deepClone(defaultControllerBindings),
+  deviceMode:'desktop',
+  hudEditMode:false,
+  gridClassCounts:{hypercar:2, lmp2:2, gt3:1},
   selTrack:0, selCar:0, mode:'tt',   // tt = Zeitfahren | race3 = Rennen über 3 Runden
   setupProfile: setupDefaults(),
   weather: weatherDefaults(),
@@ -4588,6 +4813,50 @@ const Game = {
     if(laps === 6) return 4;
     if(laps >= 7) return clamp(Math.round(laps * 0.8), 4, 10);
     return 10;
+  },
+
+  actionDown(action, keys){
+    const code = this.keybinds ? this.keybinds[action] : null;
+    return !!(code && keys && keys[code]);
+  },
+  keyName(code){
+    if(!code) return 'nicht belegt';
+    if(code.startsWith('Key')) return code.replace('Key','');
+    if(code.startsWith('Digit')) return code.replace('Digit','');
+    const map = {Minus:'-', Equal:'+', Escape:'ESC', Space:'Space', ShiftLeft:'Shift', ShiftRight:'Shift R'};
+    return map[code] || code;
+  },
+  saveKeybinds(){
+    try{ Store.set('keyboard_bindings_v1', JSON.stringify(this.keybinds)); } catch(e){}
+  },
+  saveHudLayout(layout){
+    try{ Store.set('hud_layout_v1', JSON.stringify(layout)); } catch(e){}
+  },
+  loadHudLayout(){
+    try{ return JSON.parse(Store.get('hud_layout_v1') || '{}'); } catch(e){ return {}; }
+  },
+  adjustERSLevel(delta){
+    if(!this.car || !this.car.hasERS || !this.car.ers) return;
+    const max = ERS_LEVELS.length - 1;
+    this.car.ers.level = clamp((this.car.ers.level|0) + delta, 0, max);
+    const lvl = ERS_LEVELS[this.car.ers.level];
+    this.car.ers.mode = lvl.name;
+    this.showERSPopup();
+  },
+  showERSPopup(){
+    const box = document.getElementById('ers-popup');
+    if(!box || !this.car || !this.car.ers || !this.car.hasERS) return;
+    const lvl = ERS_LEVELS[this.car.ers.level] || ERS_LEVELS[1];
+    document.getElementById('ep-level').textContent = lvl.name;
+    document.getElementById('ep-energy').textContent = Math.round((this.car.ers.charge || 0) * 100) + '%';
+    document.getElementById('ep-charge').textContent = lvl.regenMul > 1 ? 'hoch' : lvl.regenMul < 0.8 ? 'niedrig' : 'normal';
+    document.getElementById('ep-mode').textContent = lvl.mode;
+    box.classList.add('show');
+    this._ersPopupUntil = performance.now() + 1800;
+  },
+  toggleHudEditMode(){
+    this.hudEditMode = !this.hudEditMode;
+    document.body.classList.toggle('hud-edit', this.hudEditMode);
   },
 
   boot(){
@@ -4608,6 +4877,14 @@ const Game = {
     try{
       const rawSettings = Store.get('race_settings_v1');
       if(rawSettings) this.settings = Object.assign({}, this.settings, JSON.parse(rawSettings));
+    } catch(e){}
+    try{
+      const rawKeys = Store.get('keyboard_bindings_v1');
+      if(rawKeys) this.keybinds = Object.assign({}, defaultKeybinds, JSON.parse(rawKeys));
+    } catch(e){}
+    try{
+      const dm = Store.get('device_mode_v1');
+      if(dm === 'mobile' || dm === 'desktop') this.deviceMode = dm;
     } catch(e){}
     try{
       const rawChamp = Store.get('championship_v1');
@@ -4635,7 +4912,10 @@ const Game = {
     this.buildEnvMap();
     this.wireMenus();
     this.renderEditor();
+    this.renderKeyboardBindings();
     this.renderControllerBindings();
+    this.initTouchControls();
+    this.initHudEditor();
     requestAnimationFrame(t=>this.loop());
   },
 
@@ -4919,6 +5199,99 @@ const Game = {
       };
     });
   },
+  renderKeyboardBindings(){
+    const host = document.getElementById('keyboard-bindings');
+    if(!host) return;
+    const rows = Object.keys(keybindLabels).map(action => {
+      const key = this.keyName(this.keybinds[action]);
+      return `<div class="setrow"><span>${keybindLabels[action]}</span><button class="btn" data-kb-action="${action}">${key}</button></div>`;
+    });
+    host.innerHTML = rows.join('');
+    host.querySelectorAll('[data-kb-action]').forEach(btn=>{
+      btn.onclick = () => {
+        this.keybindCaptureAction = btn.getAttribute('data-kb-action');
+        btn.textContent = 'Taste druecken...';
+      };
+    });
+  },
+  captureKeyboardBinding(code){
+    if(!this.keybindCaptureAction) return;
+    this.keybinds[this.keybindCaptureAction] = code;
+    this.keybindCaptureAction = null;
+    this.saveKeybinds();
+    this.renderKeyboardBindings();
+  },
+  setDeviceMode(mode){
+    this.deviceMode = mode === 'mobile' ? 'mobile' : 'desktop';
+    try{ Store.set('device_mode_v1', this.deviceMode); } catch(e){}
+    const bDesktop = document.getElementById('btn-device-desktop');
+    const bMobile = document.getElementById('btn-device-mobile');
+    if(bDesktop) bDesktop.classList.toggle('selected', this.deviceMode === 'desktop');
+    if(bMobile) bMobile.classList.toggle('selected', this.deviceMode === 'mobile');
+    const hint = document.getElementById('device-hint');
+    if(hint) hint.textContent = this.deviceMode === 'mobile'
+      ? 'Mobile-Modus aktiv: Touch-Buttons inklusive ERS +/- werden im Rennen eingeblendet.'
+      : 'Desktop-Modus aktiv: Touch-Buttons sind deaktiviert.';
+    const tc = document.getElementById('touch-controls');
+    if(tc) tc.classList.toggle('hidden', !(this.deviceMode === 'mobile' && (this.state === 'race' || this.state === 'countdown' || this.state === 'finished')));
+  },
+  initTouchControls(){
+    const root = document.getElementById('touch-controls');
+    if(!root) return;
+    root.querySelectorAll('[data-touch]').forEach(btn=>{
+      const action = btn.getAttribute('data-touch');
+      const press = (down, ev) => {
+        ev.preventDefault();
+        if(this.input) this.input.setTouch(action, down);
+        btn.classList.toggle('active', down);
+      };
+      btn.addEventListener('pointerdown', ev => press(true, ev));
+      btn.addEventListener('pointerup', ev => press(false, ev));
+      btn.addEventListener('pointercancel', ev => press(false, ev));
+      btn.addEventListener('pointerleave', ev => press(false, ev));
+    });
+    this.setDeviceMode(this.deviceMode);
+  },
+  initHudEditor(){
+    const ids = ['tower','dash','tyrebox','leaderboard','dmg-panel','minimap'];
+    const layout = this.loadHudLayout();
+    ids.forEach(id=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.classList.add('hud-draggable');
+      const cfg = layout[id];
+      if(cfg){
+        el.style.left = cfg.left;
+        el.style.top = cfg.top;
+        el.style.right = 'auto';
+        el.style.bottom = 'auto';
+      }
+      let drag = null;
+      el.addEventListener('pointerdown', ev=>{
+        if(!this.hudEditMode) return;
+        ev.preventDefault();
+        const r = el.getBoundingClientRect();
+        drag = {dx: ev.clientX - r.left, dy: ev.clientY - r.top};
+        el.setPointerCapture(ev.pointerId);
+      });
+      el.addEventListener('pointermove', ev=>{
+        if(!drag || !this.hudEditMode) return;
+        const x = clamp(ev.clientX - drag.dx, 0, innerWidth - el.offsetWidth);
+        const y = clamp(ev.clientY - drag.dy, 0, innerHeight - el.offsetHeight);
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        el.style.right = 'auto';
+        el.style.bottom = 'auto';
+      });
+      el.addEventListener('pointerup', ()=>{
+        if(!drag) return;
+        drag = null;
+        const save = this.loadHudLayout();
+        save[id] = {left: el.style.left || '0px', top: el.style.top || '0px'};
+        this.saveHudLayout(save);
+      });
+    });
+  },
   captureControllerBinding(pad){
     if(!this.bindingAction || !pad) return false;
     const action = this.bindingAction;
@@ -5027,6 +5400,24 @@ const Game = {
 
   getTrackPool(){
     return TRACKS.concat(this.customTracks || []);
+  },
+  getCarsByClass(classType){
+    return CARS.filter(c => c.classType === classType);
+  },
+  buildAIClassPool(nAI){
+    const cfg = this.gridClassCounts || {hypercar:0,lmp2:0,gt3:nAI};
+    const requested = [
+      ...Array(Math.max(0, cfg.hypercar|0)).fill('hypercar'),
+      ...Array(Math.max(0, cfg.lmp2|0)).fill('lmp2'),
+      ...Array(Math.max(0, cfg.gt3|0)).fill('gt3')
+    ];
+    const pool = requested.slice(0, nAI);
+    while(pool.length < nAI) pool.push('gt3');
+    for(let i=pool.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool;
   },
   getSelectedTrack(){
     const pool = this.getTrackPool();
@@ -5199,9 +5590,12 @@ const Game = {
     const N=this.track.N;
     if(this.mode==='race3'){
       const nAI = clamp(this.numAI||5, 1, 50);
+      const classPool = this.buildAIClassPool(nAI);
       /* KI-Gegner erzeugen (noch nicht platziert) */
       for(let i=0;i<nAI;i++){
-        const base=CARS[(this.selCar+1+i)%CARS.length];
+        const wantedClass = classPool[i] || 'gt3';
+        const options = this.getCarsByClass(wantedClass);
+        const base = options.length ? options[i % options.length] : CARS[(this.selCar+1+i)%CARS.length];
         const def=Object.assign({}, base, this.AI_LIVERIES[i % this.AI_LIVERIES.length]);
         const car=new Car(def, this.scene, this.envMap);
         car.rd=this.freshRD();
@@ -5292,7 +5686,8 @@ const Game = {
       bestLapRef:this.loadBestLapProfile(trackDef.id, CARS[this.selCar].id),
       bestLapDelta:null, _hasRef: false,
       lapSamples:[],
-      halfPassed:false, prevProg:0, pos:1, total:this.allCars.length};
+      halfPassed:false, prevProg:0, pos:1, total:this.allCars.length,
+      lapValid:true, invalidReason:'', offTrackTime:0, hardCutScore:0, maxLatExcess:0, prevProgForLimits:0};
     this.initGhostReplay();
     /* Race-Timer + Stuck-Reset für SC-Trigger */
     this._raceTimeS = 0;
@@ -5306,6 +5701,8 @@ const Game = {
     document.getElementById('menus').classList.add('hidden');
     document.getElementById('hud').classList.remove('hidden');
     document.getElementById('results').classList.add('hidden');
+    this.setDeviceMode(this.deviceMode);
+    if(this.hudEditMode) this.toggleHudEditMode();
     this.sound.init(); this.sound.resume();
     this.state='countdown';
     this.runCountdown();
@@ -5517,7 +5914,16 @@ const Game = {
       c._everMoved = false;
       c._prevDmg = 0;
       /* ERS */
-      if(c.ers) c.ers = {charge:0.4, active:false, depleted:false};
+      if(c.ers){
+        c.ers = {
+          enabled: c.hasERS,
+          charge: c.hasERS ? 0.4 : 0,
+          active:false,
+          depleted:false,
+          level: c.hasERS ? 1 : 0,
+          mode: c.hasERS ? ERS_LEVELS[1].name : 'OFF'
+        };
+      }
     }
 
     /* ========== GLOBALER RESET ========== */
@@ -5539,7 +5945,8 @@ const Game = {
       bestLapRef:prevBestLapRef,
       bestLapDelta:null,
       lapSamples:[{progress:0, time:0}],
-      halfPassed:false, prevProg:0, pos:this.allCars.length, total:this.allCars.length};
+      halfPassed:false, prevProg:0, pos:this.allCars.length, total:this.allCars.length,
+      lapValid:true, invalidReason:'', offTrackTime:0, hardCutScore:0, maxLatExcess:0, prevProgForLimits:0};
     document.getElementById('results').classList.add('hidden');
     this.state='countdown';
     document.getElementById('pause').classList.add('hidden');
@@ -5563,8 +5970,42 @@ const Game = {
     document.getElementById('pause').classList.add('hidden');
     document.getElementById('hud').classList.add('hidden');
     document.getElementById('menus').classList.remove('hidden');
+    const tc = document.getElementById('touch-controls');
+    if(tc) tc.classList.add('hidden');
+    document.getElementById('ers-popup').classList.remove('show');
+    if(this.hudEditMode) this.toggleHudEditMode();
     this.showScreen('screen-start');
     this.sound.suspend();
+  },
+
+  updateTrackLimits(dt){
+    if(this.mode !== 'tt' || !this.race || !this.car || !this.car.query || !this.track) return;
+    const q = this.car.query;
+    const race = this.race;
+    const edge = this.track.halfW + this.track.kerbW + 0.6;
+    const latExcess = Math.max(0, Math.abs(q.lat) - edge);
+    const speed = this.car.speedKmh;
+    if(q.surf === SURF.GRASS && latExcess > 0.8 && speed > 35){
+      race.offTrackTime = (race.offTrackTime || 0) + dt;
+      race.maxLatExcess = Math.max(race.maxLatExcess || 0, latExcess);
+      if(latExcess > 4.0 && speed > 55) race.hardCutScore = (race.hardCutScore || 0) + dt * 2.2;
+    } else {
+      race.offTrackTime = Math.max(0, (race.offTrackTime || 0) - dt * 1.3);
+      race.hardCutScore = Math.max(0, (race.hardCutScore || 0) - dt * 0.8);
+    }
+    const p = clamp(q.progress || 0, 0, 1);
+    const prev = race.prevProgForLimits == null ? p : race.prevProgForLimits;
+    let dProg = p - prev;
+    if(dProg < -0.5) dProg += 1;
+    const expected = Math.max(0.0008, (Math.abs(this.car.vx) * dt / this.track.totalLen) + 0.0055);
+    if(dProg > expected * 2.8 && latExcess > 1.2){
+      race.hardCutScore = (race.hardCutScore || 0) + 0.45;
+    }
+    race.prevProgForLimits = p;
+    if((race.offTrackTime || 0) > 0.75 || (race.hardCutScore || 0) > 1.15){
+      race.lapValid = false;
+      race.invalidReason = 'track_limits';
+    }
   },
 
   updateLap(){
@@ -5590,7 +6031,7 @@ const Game = {
           if(c===this.car){
             const r=this.race;
             r.lastLap = (now - r.lapStart) / 1000;    // in Sekunden
-            if(r.bestLap==null || r.lastLap<r.bestLap){
+            if(r.lapValid !== false && (r.bestLap==null || r.lastLap<r.bestLap)){
               r.bestLap = r.lastLap;
               if(Array.isArray(r.lapSamples) && r.lapSamples.length > 5){
                 /* Samples sind bereits in Sekunden, progress 0..1 */
@@ -5608,6 +6049,12 @@ const Game = {
             r.lapSamples=[];    // leer — werden ab progress>0.02 gesammelt
             r.bestLapDelta=null;
             r._hasRef = !!(r.bestLapRef && r.bestLapRef.length > 2);
+            r.lapValid = true;
+            r.invalidReason = '';
+            r.offTrackTime = 0;
+            r.hardCutScore = 0;
+            r.maxLatExcess = 0;
+            r.prevProgForLimits = p;
           }
         }
         rd.prevProg=p;
@@ -5732,6 +6179,7 @@ const Game = {
           playerInput.throttle *= 0.50;
         }
         this.car.step(PHYS_DT, playerInput, this.track, this.sound);
+        this.updateTrackLimits(PHYS_DT);
         /* Formation: geradeaus, 60 km/h cap, kein Lenken */
         if(this._formationPhase){
           playerInput.steer = 0;
@@ -5975,6 +6423,14 @@ const Game = {
         this.sound.crowd.g.gain.setTargetAtTime(clamp(1-d/220,0,1)*0.05+0.008,this.sound.ctx.currentTime,0.3);
       }
       HUD.update(this.car,this.race,this.totalLaps,this.aiCars);
+      if(this._ersPopupUntil && performance.now() > this._ersPopupUntil){
+        const ep = document.getElementById('ers-popup');
+        if(ep) ep.classList.remove('show');
+      }
+      if(this.deviceMode === 'mobile'){
+        const tc = document.getElementById('touch-controls');
+        if(tc) tc.classList.toggle('hidden', !(this.state === 'race' || this.state === 'countdown' || this.state === 'finished'));
+      }
       this.renderer.render(this.scene,this.camera);
     } else if(this.state==='pause'){
       this.renderer.render(this.scene,this.camera);
@@ -5987,7 +6443,10 @@ const Game = {
     document.getElementById(id).classList.remove('hidden');
     if(id === 'screen-track') this.renderTrackList();
     if(id === 'screen-editor') this.renderEditor();
-    if(id === 'screen-settings') this.renderControllerBindings();
+    if(id === 'screen-settings'){
+      this.renderControllerBindings();
+      this.renderKeyboardBindings();
+    }
   },
   wireMenus(){
     const $=id=>document.getElementById(id);
@@ -6002,6 +6461,9 @@ const Game = {
     if($('set-dynamic-weather')) $('set-dynamic-weather').checked = (this.settings.weatherMode || 'dynamic') === 'dynamic';
     if($('set-ghosts')) $('set-ghosts').checked = this.settings.ghostReplay !== false;
     if($('race-championship')) $('race-championship').checked = !!this.championshipEnabled;
+    if($('btn-device-desktop')) $('btn-device-desktop').onclick = () => this.setDeviceMode('desktop');
+    if($('btn-device-mobile')) $('btn-device-mobile').onclick = () => this.setDeviceMode('mobile');
+    this.setDeviceMode(this.deviceMode);
     $('btn-play').onclick=()=>this.showScreen('screen-track');
     $('btn-settings').onclick=()=>this.showScreen('screen-settings');
     $('btn-editor').onclick=()=>this.showScreen('screen-editor');
@@ -6040,13 +6502,72 @@ const Game = {
     $('btn-ed-add-turn').onclick=()=>this.addEditorSegment('turn');
     $('btn-ed-template').onclick=()=>this.resetEditorTemplate();
     $('btn-ed-save').onclick=()=>this.saveEditorTrack();
+    if($('btn-keybind-reset')) $('btn-keybind-reset').onclick=()=>{
+      this.keybinds = Object.assign({}, defaultKeybinds);
+      this.saveKeybinds();
+      this.renderKeyboardBindings();
+    };
     /* Gegner-Slider */
     const aiSlider=$('ai-count'), aiLabel=$('ai-count-label');
     this.numAI = parseInt(aiSlider.value);
-    aiSlider.oninput=e=>{
-      this.numAI = parseInt(e.target.value);
-      aiLabel.textContent = this.numAI;
+    const totalSlider = $('grid-total');
+    const totalLabel = $('grid-total-label');
+    const hypInput = $('grid-hyp');
+    const lmp2Input = $('grid-lmp2');
+    const gt3Input = $('grid-gt3');
+    const syncGridFromAI = () => {
+      const nAI = Math.max(1, parseInt(aiSlider.value, 10) || 1);
+      const cur = this.gridClassCounts || {hypercar:2,lmp2:2,gt3:1};
+      const sum = Math.max(1, cur.hypercar + cur.lmp2 + cur.gt3);
+      let h = Math.round(nAI * (cur.hypercar / sum));
+      let l = Math.round(nAI * (cur.lmp2 / sum));
+      let g = nAI - h - l;
+      if(g < 0){ g = 0; l = Math.max(0, nAI - h); }
+      this.gridClassCounts = {hypercar:h, lmp2:l, gt3:g};
+      if(hypInput) hypInput.value = String(h);
+      if(lmp2Input) lmp2Input.value = String(l);
+      if(gt3Input) gt3Input.value = String(g);
+      if(totalSlider) totalSlider.value = String(nAI + 1);
+      if(totalLabel) totalLabel.textContent = String(nAI + 1);
+      this.numAI = nAI;
+      aiLabel.textContent = String(nAI);
     };
+    const syncAIFromGrid = () => {
+      let h = Math.max(0, parseInt(hypInput?.value || '0', 10) || 0);
+      let l = Math.max(0, parseInt(lmp2Input?.value || '0', 10) || 0);
+      let g = Math.max(0, parseInt(gt3Input?.value || '0', 10) || 0);
+      const nAI = clamp(h + l + g, 1, 50);
+      let over = h + l + g - nAI;
+      if(over > 0){
+        const take = (v) => {
+          const cut = Math.min(v, over);
+          over -= cut;
+          return v - cut;
+        };
+        g = take(g);
+        l = take(l);
+        h = take(h);
+      }
+      this.gridClassCounts = {hypercar:h, lmp2:l, gt3:g};
+      this.numAI = nAI;
+      aiSlider.value = String(nAI);
+      aiLabel.textContent = String(nAI);
+      if(totalSlider) totalSlider.value = String(nAI + 1);
+      if(totalLabel) totalLabel.textContent = String(nAI + 1);
+      if(gt3Input) gt3Input.value = String(g);
+    };
+    aiSlider.oninput=e=>{
+      aiLabel.textContent = e.target.value;
+      syncGridFromAI();
+    };
+    if(totalSlider) totalSlider.oninput = e => {
+      aiSlider.value = String(Math.max(1, (parseInt(e.target.value,10)||2) - 1));
+      syncGridFromAI();
+    };
+    if(hypInput) hypInput.oninput = syncAIFromGrid;
+    if(lmp2Input) lmp2Input.oninput = syncAIFromGrid;
+    if(gt3Input) gt3Input.oninput = syncAIFromGrid;
+    syncGridFromAI();
     /* Rennlänge */
     const lapSlider = $('race-laps'), lapLabel = $('race-laps-label');
     if(lapSlider){
