@@ -178,6 +178,25 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #touch-controls .tc-btn{min-width:72px;min-height:64px;padding:12px 14px;font-size:14px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border-radius:12px;background:rgba(17,21,26,0.88);border:1px solid var(--line);color:var(--txt);backdrop-filter:blur(6px);touch-action:none}
 #touch-controls .tc-btn.active{background:var(--red);border-color:var(--red);color:#fff}
 #touch-controls.hidden{display:none}
+/* ===== Nur iPhone/iPad (deviceMode=mobile) ===== */
+body.mobile-touch-layout #minimap{top:10px;right:10px;width:128px;height:128px}
+body.mobile-touch-layout #dash{left:50%;right:auto;bottom:108px;transform:translateX(-50%);min-width:210px;padding:10px 14px 12px;text-align:center}
+body.mobile-touch-layout #dash .main{justify-content:center}
+body.mobile-touch-layout #camlabel{left:50%;bottom:76px;transform:translateX(-50%)}
+body.mobile-touch-layout #tyrebox{right:10px;bottom:188px;min-width:0}
+body.mobile-touch-layout #touch-controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end;padding:8px 10px 10px}
+body.mobile-touch-layout #touch-controls .tc-group{justify-content:center;pointer-events:auto}
+body.mobile-touch-layout #touch-controls .tc-btn{min-width:50px;min-height:42px;padding:7px 8px;font-size:10px;border-radius:10px;letter-spacing:.04em}
+/* Lenken links */
+body.mobile-touch-layout #touch-controls .tc-group:nth-child(1){grid-column:1;grid-row:1;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* Pedale rechts */
+body.mobile-touch-layout #touch-controls .tc-group:nth-child(2){grid-column:3;grid-row:1;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+body.mobile-touch-layout #touch-controls .tc-group:nth-child(2) .tc-btn{min-width:56px;min-height:72px;border-radius:999px 999px 12px 12px;padding-top:14px;font-size:11px;letter-spacing:.1em;background:linear-gradient(180deg,rgba(46,53,63,.92),rgba(20,25,30,.92))}
+/* Utility-Buttons ganz unten */
+body.mobile-touch-layout #touch-controls .tc-group:nth-child(3){grid-column:1 / span 3;grid-row:2;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+body.mobile-touch-layout #touch-controls .tc-group:nth-child(4){grid-column:1 / span 3;grid-row:3;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+body.mobile-touch-layout #touch-controls .tc-group:nth-child(3) .tc-btn,
+body.mobile-touch-layout #touch-controls .tc-group:nth-child(4) .tc-btn{min-width:46px;min-height:36px;padding:6px 6px;font-size:9px;border-radius:9px}
 #ers-popup{position:fixed;left:50%;bottom:160px;transform:translateX(-50%);background:rgba(12,16,22,0.9);border:1px solid var(--line);border-left:3px solid #22c4ff;padding:10px 14px;min-width:240px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;color:#d7e5f2;pointer-events:none;z-index:26;opacity:0;transition:opacity .18s}
 #ers-popup.show{opacity:1}
 #ers-popup .ep-title{font-weight:700;color:#9af0ff;margin-bottom:6px}
@@ -539,8 +558,8 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 
 <div id="touch-controls" class="hidden">
   <div class="tc-group">
-    <button class="tc-btn" data-touch="steer-left">Links</button>
-    <button class="tc-btn" data-touch="steer-right">Rechts</button>
+    <button class="tc-btn" data-touch="steer-left">&lt;</button>
+    <button class="tc-btn" data-touch="steer-right">&gt;</button>
   </div>
   <div class="tc-group tc-col">
     <button class="tc-btn" data-touch="throttle">Gas</button>
@@ -5224,6 +5243,7 @@ const Game = {
   setDeviceMode(mode){
     this.deviceMode = mode === 'mobile' ? 'mobile' : 'desktop';
     try{ Store.set('device_mode_v1', this.deviceMode); } catch(e){}
+    document.body.classList.toggle('mobile-touch-layout', this.deviceMode === 'mobile');
     const bDesktop = document.getElementById('btn-device-desktop');
     const bMobile = document.getElementById('btn-device-mobile');
     if(bDesktop) bDesktop.classList.toggle('selected', this.deviceMode === 'desktop');
