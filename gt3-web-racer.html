@@ -1160,6 +1160,7 @@ const ERS_LEVELS = [
 const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
 const lerp  = (a,b,t)=>a+(b-a)*t;
 const deg2rad = d => d * Math.PI / 180;
+const wrapAngle = a => Math.atan2(Math.sin(a), Math.cos(a));
 const mixHex = (a,b,t)=>{
   const ar=(a>>16)&255, ag=(a>>8)&255, ab=a&255;
   const br=(b>>16)&255, bg=(b>>8)&255, bb=b&255;
@@ -4101,8 +4102,7 @@ class AIDriver {
     }
     const qd = track.samples[(q.idx+6)%track.N].pos;
     let errNow = Math.atan2(qd.x-car.pos.x, qd.z-car.pos.z) - car.heading;
-    while(errNow >  Math.PI) errNow -= 2*Math.PI;
-    while(errNow < -Math.PI) errNow += 2*Math.PI;
+    errNow = wrapAngle(errNow);
     if(this.turnT<=0 && Math.abs(errNow)>2.1 && Math.abs(v)<8) this.turnT = 3.0;
     if(this.turnT > 0){
       this.turnT -= dt;
@@ -4118,8 +4118,7 @@ class AIDriver {
     const center = track.samples[(q.idx+4)%track.N];
     const desired = Math.atan2(center.pos.x - car.pos.x, center.pos.z - car.pos.z);
     let er = desired - car.heading;
-    while(er >  Math.PI) er -= 2*Math.PI;
-    while(er < -Math.PI) er += 2*Math.PI;
+    er = wrapAngle(er);
     this.lastErr = er;
     const dv = tgtV - v;
     inp.throttle = clamp(dv*0.5+0.3,0,1);
@@ -4211,8 +4210,7 @@ class AIDriver {
     const tz = ts.pos.z + ts.side.z*lo;
     const desired = Math.atan2(tx - car.pos.x, tz - car.pos.z);
     let err = desired - car.heading;
-    while(err >  Math.PI) err -= 2*Math.PI;
-    while(err < -Math.PI) err += 2*Math.PI;
+    err = wrapAngle(err);
     this.lastErr = err;
 
     // PD-Regler
@@ -4270,8 +4268,7 @@ class AIDriver {
         const tz = ts.pos.z + ts.side.z*pitMidOff;
         const desired = Math.atan2(tx-car.pos.x, tz-car.pos.z);
         let err = desired - car.heading;
-        while(err >  Math.PI) err -= 2*Math.PI;
-        while(err < -Math.PI) err += 2*Math.PI;
+        err = wrapAngle(err);
         inp.steer += clamp(clamp(err*0.9-car.yawRate*0.4,-1,1)-inp.steer, -4.0*dt, 4.0*dt);
       } else { inp.steer=0; }
       inp.throttle=0; inp.brake=1;
@@ -4378,8 +4375,7 @@ class AIDriver {
       if(q.inPitLane){ const ple=q.lat-pitMidOff; tgtV=Math.min(tgtV,42/3.6); this.input.steer+=clamp(-ple*0.015,-0.08,0.08); }
       const desired=Math.atan2(dxB,dzB);
       let err=desired-car.heading;
-      while(err >  Math.PI) err -= 2*Math.PI;
-      while(err < -Math.PI) err += 2*Math.PI;
+      err = wrapAngle(err);
       const inp=this.input;
       inp.steer+=clamp(clamp(err*1.3-car.yawRate*0.35,-1,1)-inp.steer,-4.8*dt,4.8*dt);
       this.applyPedals(v,tgtV);
@@ -6590,6 +6586,8 @@ const Game = {
     }
     if(this.state==='race'||this.state==='countdown'||this.state==='finished'){
       this.acc+=dt;
+      // Prevent physics backlog bursts after tab switches or frame hitches.
+      this.acc = Math.min(this.acc, PHYS_DT * 8);
       this.updateWeather(dt);
       this.applyWeatherVisuals();
       let steps=0;
