@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tylers Spiele Welt</title>
+  <style>
+    :root {
+      --bg-1: #061822;
+      --bg-2: #0a2f3d;
+      --ink: #f8fbff;
+      --muted: #c4d3dd;
+      --line: #2f5362;
+      --card: #0c2430cc;
+      --racer: #ff3e4d;
+      --casino: #1cd68e;
+      --glow: #8fd4ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      color: var(--ink);
+      font-family: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(1100px 700px at 15% -20%, #14536b66, transparent 62%),
+        radial-gradient(900px 600px at 90% 110%, #093145, transparent 58%),
+        linear-gradient(140deg, var(--bg-1), var(--bg-2));
+    }
+
+    .page {
+      width: min(1000px, 94vw);
+      margin: 40px auto;
+      padding: 28px;
+      border: 1px solid var(--line);
+      background: #081823a8;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 20px 50px #00000066;
+    }
+
+    .eyebrow {
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      font-size: 12px;
+      color: var(--glow);
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(36px, 6vw, 62px);
+      line-height: 0.95;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      text-shadow: 0 0 24px #8fd4ff40;
+    }
+
+    .sub {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 15px;
+      max-width: 65ch;
+      line-height: 1.5;
+    }
+
+    .games {
+      margin-top: 30px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      background: var(--card);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 220px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.16s ease, border-color 0.16s ease;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: auto -30% -55% auto;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      opacity: 0.22;
+      pointer-events: none;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: #8fd4ff;
+    }
+
+    .card.racer::before { background: var(--racer); }
+    .card.casino::before { background: var(--casino); }
+
+    .index {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: #a6bac6;
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .desc {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+      min-height: 60px;
+    }
+
+    .play {
+      margin-top: auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 800;
+      font-size: 13px;
+      border: 1px solid #33535f;
+      color: #f9fcff;
+      padding: 12px 16px;
+      background: #102d3b;
+      transition: filter 0.16s ease;
+    }
+
+    .play:hover { filter: brightness(1.15); }
+
+    .racer .play {
+      border-color: #7f2630;
+      background: #5f1821;
+    }
+
+    .casino .play {
+      border-color: #1d6a4c;
+      background: #14543c;
+    }
+
+    .footer {
+      margin-top: 24px;
+      color: #99adba;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 620px) {
+      .page {
+        margin: 14px auto;
+        padding: 18px;
+      }
+
+      .card {
+        min-height: 200px;
+      }
+
+      .title {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="eyebrow">Willkommen</div>
+    <h1>Tylers Spiele Welt</h1>
+    <p class="sub">Dein eigener kleiner Game-Hub im Browser. Hier kommen nach und nach alle Spiele rein. Start ist mit Racer und Casino.</p>
+
+    <section class="games" aria-label="Spieleliste">
+      <article class="card racer">
+        <div class="index">Spiel 01</div>
+        <div class="title">GT3 Web Racer</div>
+        <p class="desc">Highspeed-Arcade-Racing mit KI-Gegnern, Wetter, Schaden und kompletter HUD-Action.</p>
+        <a class="play" href="gt3-web-racer.html">Racer starten</a>
+      </article>
+
+      <article class="card casino">
+        <div class="index">Spiel 02</div>
+        <div class="title">Casino</div>
+        <p class="desc">Dein zweites Game aus dem Anhang. Direkt aus dem Hub starten und später beliebig erweitern.</p>
+        <a class="play" href="casino-v19.html">Casino starten</a>
+      </article>
+    </section>
+
+    <p class="footer">Mehr Spiele folgen ...</p>
+  </main>
+</body>
+</html>
