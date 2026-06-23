@@ -65,6 +65,47 @@
       line-height: 1.5;
     }
 
+    .toolbar {
+      margin-top: 22px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .pill {
+      border: 1px solid #3a5d6b;
+      background: #102633;
+      color: #d6e4ed;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.14s ease, border-color 0.14s ease;
+    }
+
+    .pill:hover {
+      transform: translateY(-1px);
+      border-color: #8fd4ff;
+    }
+
+    .pill.active {
+      background: #184052;
+      border-color: #8fd4ff;
+      color: #f8fcff;
+      box-shadow: 0 0 0 1px #8fd4ff33 inset;
+    }
+
+    .meta-note {
+      color: #9cb0bc;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-left: auto;
+    }
+
     .games {
       margin-top: 30px;
       display: grid;
@@ -75,11 +116,11 @@
     .card {
       border: 1px solid var(--line);
       background: var(--card);
-      padding: 18px;
+      padding: 0;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      min-height: 220px;
+      min-height: 330px;
       position: relative;
       overflow: hidden;
       transition: transform 0.16s ease, border-color 0.16s ease;
@@ -88,12 +129,13 @@
     .card::before {
       content: "";
       position: absolute;
-      inset: auto -30% -55% auto;
-      width: 200px;
-      height: 200px;
+      inset: auto -32% -58% auto;
+      width: 230px;
+      height: 230px;
       border-radius: 50%;
-      opacity: 0.22;
+      opacity: 0.18;
       pointer-events: none;
+      z-index: 0;
     }
 
     .card:hover {
@@ -103,6 +145,84 @@
 
     .card.racer::before { background: var(--racer); }
     .card.casino::before { background: var(--casino); }
+
+    .card.geo::before { background: #5f8bff; }
+
+    .cover {
+      position: relative;
+      height: 148px;
+      border-bottom: 1px solid #2d4c59;
+      background-size: cover;
+      background-position: center;
+      overflow: hidden;
+    }
+
+    .cover::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 35%, #081823a6 100%);
+    }
+
+    .cover-racer {
+      background-image:
+        radial-gradient(240px 100px at 76% 86%, #ff404f77, transparent 66%),
+        linear-gradient(120deg, #1b2636 0%, #122132 48%, #3b1f26 100%),
+        repeating-linear-gradient(100deg, transparent 0 14px, #ffffff10 14px 16px);
+    }
+
+    .cover-casino {
+      background-image:
+        radial-gradient(180px 110px at 72% 20%, #2ce69f66, transparent 66%),
+        linear-gradient(125deg, #172a1f 0%, #0e2019 54%, #123426 100%),
+        repeating-linear-gradient(145deg, transparent 0 10px, #ffffff12 10px 11px);
+    }
+
+    .cover-geo {
+      background-image:
+        radial-gradient(180px 100px at 25% 85%, #6d92ff66, transparent 66%),
+        linear-gradient(120deg, #13263f 0%, #102232 50%, #1b3058 100%),
+        repeating-linear-gradient(90deg, transparent 0 14px, #ffffff0f 14px 15px);
+    }
+
+    .badge-new {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 2;
+      border: 1px solid #ffe58f;
+      background: #ffd75b;
+      color: #2a2108;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 4px 7px;
+    }
+
+    .cover-label {
+      position: absolute;
+      right: 10px;
+      bottom: 8px;
+      z-index: 2;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #eaf4fb;
+      background: #091823bf;
+      border: 1px solid #3a5562;
+      padding: 4px 7px;
+    }
+
+    .card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px 16px 16px;
+      position: relative;
+      z-index: 1;
+      height: 100%;
+    }
 
     .index {
       font-size: 12px;
@@ -122,7 +242,21 @@
       color: var(--muted);
       line-height: 1.45;
       font-size: 14px;
-      min-height: 60px;
+      min-height: 56px;
+    }
+
+    .cat {
+      display: inline-flex;
+      width: fit-content;
+      border: 1px solid #3d5f6d;
+      background: #0f2533;
+      color: #b6cad6;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 700;
     }
 
     .play {
@@ -162,6 +296,18 @@
       text-transform: uppercase;
     }
 
+    .empty {
+      margin-top: 22px;
+      border: 1px dashed #406272;
+      background: #0a2030;
+      color: #bfd0da;
+      padding: 14px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .empty.show { display: block; }
+
     @media (max-width: 620px) {
       .page {
         margin: 14px auto;
@@ -169,11 +315,16 @@
       }
 
       .card {
-        min-height: 200px;
+        min-height: 300px;
       }
 
       .title {
         font-size: 20px;
+      }
+
+      .meta-note {
+        margin-left: 0;
+        width: 100%;
       }
     }
   </style>
@@ -182,25 +333,110 @@
   <main class="page">
     <div class="eyebrow">Willkommen</div>
     <h1>Tylers Spiele Welt</h1>
-    <p class="sub">Dein eigener kleiner Game-Hub im Browser. Hier kommen nach und nach alle Spiele rein. Start ist mit Racer und Casino.</p>
+    <p class="sub">Dein eigener Game-Hub im Browser. Die Karten sortieren sich automatisch nach Neuheit, neue Titel bekommen ein NEU-Badge und du kannst nach Kategorien filtern.</p>
 
-    <section class="games" aria-label="Spieleliste">
-      <article class="card racer">
-        <div class="index">Spiel 01</div>
-        <div class="title">GT3 Web Racer</div>
-        <p class="desc">Highspeed-Arcade-Racing mit KI-Gegnern, Wetter, Schaden und kompletter HUD-Action.</p>
-        <a class="play" href="gt3-web-racer.html">Racer starten</a>
-      </article>
-
-      <article class="card casino">
-        <div class="index">Spiel 02</div>
-        <div class="title">Casino</div>
-        <p class="desc">Dein zweites Game aus dem Anhang. Direkt aus dem Hub starten und später beliebig erweitern.</p>
-        <a class="play" href="casino-v19.html">Casino starten</a>
-      </article>
+    <section class="toolbar" aria-label="Filter">
+      <button class="pill active" data-filter="all">Alle</button>
+      <button class="pill" data-filter="racing">Racing</button>
+      <button class="pill" data-filter="gambling">Gambling</button>
+      <button class="pill" data-filter="geo">Geo</button>
+      <span class="meta-note" id="sort-note">Sortierung: neueste zuerst</span>
     </section>
+
+    <section class="games" aria-label="Spieleliste" id="games-list"></section>
+    <div class="empty" id="empty-state">Keine Spiele in dieser Kategorie. Bald kommt mehr.</div>
 
     <p class="footer">Mehr Spiele folgen ...</p>
   </main>
+
+  <script>
+    const NEW_WINDOW_DAYS = 21;
+    const MS_PER_DAY = 86400000;
+
+    const GAMES = [
+      {
+        id: "racer",
+        order: "01",
+        title: "GT3 Web Racer",
+        description: "Highspeed-Arcade-Racing mit KI-Gegnern, Wetter, Schaden und kompletter HUD-Action.",
+        file: "gt3-web-racer.html",
+        cta: "Racer starten",
+        category: "racing",
+        label: "Racing",
+        addedAt: "2026-06-23",
+        coverClass: "cover-racer"
+      },
+      {
+        id: "casino",
+        order: "02",
+        title: "Casino",
+        description: "Kartenspiel-Feeling mit Casino-Vibe als zweites Spiel in deiner Sammlung.",
+        file: "casino-v19.html",
+        cta: "Casino starten",
+        category: "gambling",
+        label: "Gambling",
+        addedAt: "2026-06-23",
+        coverClass: "cover-casino"
+      }
+    ];
+
+    const state = {
+      filter: "all"
+    };
+
+    const listEl = document.getElementById("games-list");
+    const emptyEl = document.getElementById("empty-state");
+    const filterButtons = Array.from(document.querySelectorAll(".pill[data-filter]"));
+
+    const isNew = (dateStr) => {
+      const now = Date.now();
+      const added = new Date(dateStr + "T00:00:00").getTime();
+      if (!Number.isFinite(added)) return false;
+      return (now - added) / MS_PER_DAY <= NEW_WINDOW_DAYS;
+    };
+
+    const byNewest = (a, b) => {
+      const da = new Date(a.addedAt).getTime();
+      const db = new Date(b.addedAt).getTime();
+      return db - da;
+    };
+
+    const render = () => {
+      const filtered = GAMES
+        .filter((game) => state.filter === "all" || game.category === state.filter)
+        .sort(byNewest);
+
+      listEl.innerHTML = filtered.map((game) => {
+        const newBadge = isNew(game.addedAt) ? '<span class="badge-new">Neu</span>' : "";
+        return `
+          <article class="card ${game.id}">
+            <div class="cover ${game.coverClass}">
+              ${newBadge}
+              <span class="cover-label">Vorschau</span>
+            </div>
+            <div class="card-body">
+              <div class="index">Spiel ${game.order}</div>
+              <div class="title">${game.title}</div>
+              <span class="cat">${game.label}</span>
+              <p class="desc">${game.description}</p>
+              <a class="play" href="${game.file}">${game.cta}</a>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      emptyEl.classList.toggle("show", filtered.length === 0);
+    };
+
+    filterButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.filter = btn.dataset.filter;
+        filterButtons.forEach((b) => b.classList.toggle("active", b === btn));
+        render();
+      });
+    });
+
+    render();
+  </script>
 </body>
 </html>
