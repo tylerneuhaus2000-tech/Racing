@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geo Decoder - Blind Ranking</title>
+  <style>
+    :root {
+      --bg-a: #060b14;
+      --bg-b: #101b35;
+      --bg-c: #1a2a56;
+      --glass: #0d1730bc;
+      --line: #3f5f98;
+      --txt: #ebf2ff;
+      --muted: #b8c7e4;
+      --ok: #41e3a3;
+      --bad: #ff6887;
+      --accent: #84c0ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      color: var(--txt);
+      font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(1200px 650px at 10% -12%, #355eb655, transparent 58%),
+        radial-gradient(1000px 740px at 92% 120%, #19708a44, transparent 64%),
+        linear-gradient(150deg, var(--bg-a), var(--bg-b) 46%, var(--bg-c));
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .app {
+      width: min(760px, 100%);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      animation: fadeIn 0.35s ease;
+    }
+
+    .title {
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: clamp(28px, 5vw, 42px);
+      font-weight: 900;
+      color: #dbeaff;
+      text-shadow: 0 0 24px #90c6ff55;
+    }
+
+    .status {
+      border: 1px solid #3b5e95;
+      background: #0d1a3388;
+      backdrop-filter: blur(8px);
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      padding: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 12px;
+    }
+
+    .status div {
+      border: 1px solid #385a8a;
+      background: #0a1730;
+      padding: 8px;
+      text-align: center;
+      color: #d4e2fa;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      background: var(--glass);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 24px 48px #00000066;
+      min-height: 530px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card.animating {
+      animation: swipeOutIn 0.3s ease;
+    }
+
+    .country-box {
+      border: 1px solid #3b6097;
+      border-radius: 14px;
+      background: linear-gradient(160deg, #102245, #0c1730);
+      min-height: 170px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .country-box::after {
+      content: "";
+      position: absolute;
+      inset: auto -44px -88px auto;
+      width: 230px;
+      height: 230px;
+      border-radius: 50%;
+      background: #7fb9ff1f;
+      pointer-events: none;
+    }
+
+    .flag {
+      font-size: 62px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .country-name {
+      font-size: clamp(30px, 6vw, 46px);
+      text-transform: uppercase;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 12px;
+    }
+
+    .categories {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 9px;
+    }
+
+    .cat {
+      border: 1px solid #3a5e93;
+      background: #0c1b35;
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+      text-align: left;
+      color: #ecf3ff;
+    }
+
+    .cat:hover {
+      transform: translateY(-1px);
+      border-color: #8dc6ff;
+      background: #102444;
+    }
+
+    .cat .label {
+      font-size: 16px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .cat .pick {
+      border: 1px solid #4a75ad;
+      border-radius: 9px;
+      background: #132b50;
+      padding: 7px 10px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .cat.disabled {
+      opacity: 0.52;
+      cursor: not-allowed;
+      background: #0b1529;
+      border-color: #2f4a70;
+    }
+
+    .cat.disabled:hover {
+      transform: none;
+    }
+
+    .message {
+      min-height: 22px;
+      text-align: center;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      color: #c2d4f0;
+    }
+
+    .message.ok { color: var(--ok); }
+    .message.bad { color: var(--bad); }
+
+    .locked-board {
+      border-top: 1px solid #365987;
+      padding-top: 10px;
+    }
+
+    .locked-board h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #b6c7e2;
+      margin-bottom: 8px;
+    }
+
+    .locked-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 150px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .locked-item {
+      border: 1px solid #375a87;
+      background: #0a1930;
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #d4e2f8;
+    }
+
+    .locked-empty {
+      color: #8fa4c8;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      padding: 8px;
+      border: 1px dashed #35567f;
+      border-radius: 8px;
+      background: #0a1630;
+    }
+
+    .footer {
+      border-top: 1px solid #375987;
+      padding-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: #c2d3ee;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 12px;
+    }
+
+    .progress {
+      width: min(290px, 48vw);
+      border: 1px solid #3c5f92;
+      background: #0a1730;
+      border-radius: 999px;
+      height: 9px;
+      overflow: hidden;
+      align-self: center;
+    }
+
+    .progress i {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #44e4a5, #82c2ff);
+      transition: width 0.18s ease;
+    }
+
+    .result {
+      display: none;
+      border: 1px solid #486fa8;
+      background: #0d1e3bcc;
+      backdrop-filter: blur(10px);
+      border-radius: 14px;
+      padding: 14px;
+      animation: popIn 0.35s ease;
+    }
+
+    .result.show {
+      display: block;
+    }
+
+    .result-head {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .result-head .big {
+      font-size: clamp(30px, 6vw, 44px);
+      text-transform: uppercase;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      color: #ffe49c;
+      margin-bottom: 4px;
+    }
+
+    .result-head .score {
+      font-size: 26px;
+      color: #a2f2d1;
+      font-weight: 900;
+    }
+
+    .results-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 10px;
+      max-height: 340px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .item {
+      border: 1px solid #395d8d;
+      background: #0a1830;
+      border-radius: 10px;
+      padding: 9px;
+      line-height: 1.4;
+      font-size: 13px;
+      color: #d3e2f8;
+    }
+
+    .item .ok { color: var(--ok); font-weight: 800; }
+    .item .bad { color: var(--bad); font-weight: 800; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .stats div {
+      border: 1px solid #385a8c;
+      background: #0b1931;
+      border-radius: 9px;
+      padding: 9px;
+      font-size: 13px;
+      line-height: 1.4;
+      color: #d4e2f7;
+    }
+
+    .actions {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    .actions button,
+    .actions a {
+      border: 1px solid #4f79af;
+      background: #143969;
+      color: #edf5ff;
+      border-radius: 10px;
+      padding: 11px 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 12px;
+      font-weight: 900;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .actions .new {
+      background: #1b6d4b;
+      border-color: #45c895;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes swipeOutIn {
+      0% { transform: scale(1); opacity: 1; }
+      45% { transform: scale(0.992); opacity: 0.72; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.98); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @media (max-width: 680px) {
+      body { padding: 10px; }
+      .status { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr; }
+      .card { min-height: 500px; }
+      .country-name { font-size: clamp(24px, 8vw, 36px); }
+      .flag { font-size: 54px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1 class="title">Geo Decoder</h1>
+
+    <section class="status">
+      <div id="round-label">Runde 1/7</div>
+      <div id="score-label">⭐ Punkte: 0</div>
+      <div id="time-label">⏱ Zeit: 00:00</div>
+    </section>
+
+    <section class="card" id="game-card">
+      <div class="country-box">
+        <div class="flag" id="flag">🌍</div>
+        <div class="country-name" id="country-name">Lädt...</div>
+      </div>
+
+      <p class="subtitle">Welche Kategorie passt am besten zu diesem Land?</p>
+
+      <div class="categories" id="categories"></div>
+
+      <div class="message" id="message"></div>
+
+      <div class="locked-board">
+        <h3>Deine Einordnung (bleibt fix)</h3>
+        <div class="locked-list" id="locked-list"></div>
+      </div>
+
+      <div class="footer">
+        <span id="progress-label">Fortschritt 0/7 Kategorien</span>
+        <div class="progress"><i id="progress-fill"></i></div>
+      </div>
+    </section>
+
+    <section class="result" id="result"></section>
+  </main>
+
+  <script src="countries.js"></script>
+  <script>
+    const TARGET_CATEGORY_SLOTS = 7;
+
+    const CATEGORY_DEFS = [
+      { key: 'gdpPerCapita', label: '💰 BIP pro Kopf', direction: 'high' },
+      { key: 'crimeRisk', label: '⚖️ Kriminalität', direction: 'high' },
+      { key: 'population', label: '👥 Bevölkerung', direction: 'high' },
+      { key: 'oilProduction', label: '🛢 Ölproduktion', direction: 'high' },
+      { key: 'forestPercentage', label: '🌲 Waldfläche', direction: 'high' },
+      { key: 'averageTemperature', label: '🌡 Temperatur', direction: 'high' },
+      { key: 'olympicMedals', label: '🏅 Olympische Medaillen', direction: 'high' }
+    ];
+
+    const state = {
+      countries: [],
+      playable: [],
+      roundDeck: [],
+      categories: [],
+      rounds: [],
+      assignedByCategory: new Map(),
+      targetRounds: 0,
+      currentRound: 0,
+      currentCountry: null,
+      score: 0,
+      startedAt: 0,
+      timerId: null,
+      finished: false,
+      bestScore: Number(localStorage.getItem('geo_blind_best_score') || 0)
+    };
+
+    const ui = {
+      roundLabel: document.getElementById('round-label'),
+      scoreLabel: document.getElementById('score-label'),
+      timeLabel: document.getElementById('time-label'),
+      flag: document.getElementById('flag'),
+      countryName: document.getElementById('country-name'),
+      categories: document.getElementById('categories'),
+      message: document.getElementById('message'),
+      lockedList: document.getElementById('locked-list'),
+      progressLabel: document.getElementById('progress-label'),
+      progressFill: document.getElementById('progress-fill'),
+      gameCard: document.getElementById('game-card'),
+      result: document.getElementById('result')
+    };
+
+    function toNum(v) {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function fmtTime(sec) {
+      const s = Math.max(0, Math.floor(sec));
+      const mm = String(Math.floor(s / 60)).padStart(2, '0');
+      const ss = String(s % 60).padStart(2, '0');
+      return mm + ':' + ss;
+    }
+
+    function elapsedSec() {
+      return (Date.now() - state.startedAt) / 1000;
+    }
+
+    function setMessage(text, kind = '') {
+      ui.message.textContent = text;
+      ui.message.className = 'message' + (kind ? ' ' + kind : '');
+    }
+
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const t = a[i];
+        a[i] = a[j];
+        a[j] = t;
+      }
+      return a;
+    }
+
+    function getCountryValue(country, key) {
+      if (key === 'crimeRisk') {
+        const rank = toNum(country.corruptionRank);
+        if (!Number.isFinite(rank)) return null;
+        return rank;
+      }
+      return toNum(country[key]);
+    }
+
+    function getCountryRank(country, key) {
+      if (Number.isFinite(toNum(country?.ranks?.[key]))) return toNum(country.ranks[key]);
+      if (key === 'crimeRisk') return Number.isFinite(toNum(country.corruptionRank)) ? toNum(country.corruptionRank) : null;
+      return Number.isFinite(toNum(country?.ranks?.[key])) ? toNum(country.ranks[key]) : null;
+    }
+
+    function buildPercentiles(countries, categories) {
+      categories.forEach((cat) => {
+        const values = countries
+          .map((c) => ({ c, v: getCountryValue(c, cat.key) }))
+          .filter((x) => Number.isFinite(x.v))
+          .sort((a, b) => a.v - b.v);
+
+        const n = values.length;
+        values.forEach((x, idx) => {
+          if (!x.c._scoreMap) x.c._scoreMap = {};
+          const p = n <= 1 ? 0.5 : idx / (n - 1);
+          x.c._scoreMap[cat.key] = cat.direction === 'high' ? p : 1 - p;
+        });
+      });
+    }
+
+    function refreshHud() {
+      const maxRounds = Math.max(1, state.targetRounds || 1);
+      const shownRound = Math.min(state.currentRound + 1, maxRounds);
+      ui.roundLabel.textContent = 'Runde ' + shownRound + '/' + maxRounds;
+      ui.scoreLabel.textContent = '⭐ Punkte: ' + Math.round(state.score);
+      ui.timeLabel.textContent = '⏱ Zeit: ' + fmtTime(elapsedSec());
+      ui.progressLabel.textContent = 'Fortschritt ' + state.currentRound + '/' + maxRounds + ' Kategorien';
+      ui.progressFill.style.width = ((state.currentRound / maxRounds) * 100) + '%';
+    }
+
+    function renderLockedBoard() {
+      if (!state.rounds.length) {
+        ui.lockedList.innerHTML = '<div class="locked-empty">Noch keine Einordnung gespeichert.</div>';
+        return;
+      }
+
+      ui.lockedList.innerHTML = state.rounds.map((r, i) => {
+        return ''
+          + '<div class="locked-item">'
+          + (i + 1) + '. ' + (r.country.flag || '🏳️') + ' ' + r.country.name
+          + '<br>Deine Wahl: ' + r.chosen.label
+            + '<br>Rang in Kategorie: ' + (r.rankLabel || 'kein offizieller Rang')
+          + '<br>Punkte: +' + r.points
+          + '</div>';
+      }).join('');
+    }
+
+    function renderCategories() {
+      ui.categories.innerHTML = '';
+      for (const cat of CATEGORY_DEFS) {
+        const isEnabled = state.categories.some((c) => c.key === cat.key);
+        const assigned = state.assignedByCategory.get(cat.key);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'cat' + (isEnabled && !assigned ? '' : ' disabled');
+        btn.disabled = !isEnabled || state.finished || !!assigned;
+        if (assigned) {
+          btn.innerHTML = ''
+            + '<span class="label">' + cat.label + '</span>'
+            + '<span class="pick">' + (assigned.country.flag || '🏳️') + ' Rang ' + (assigned.rankLabel || 'kein offizieller Rang') + '</span>';
+        } else {
+          btn.innerHTML = ''
+            + '<span class="label">' + cat.label + '</span>'
+            + '<span class="pick">Wählen</span>';
+        }
+
+        btn.addEventListener('click', () => {
+          if (!isEnabled || state.finished || state.assignedByCategory.has(cat.key)) return;
+          chooseCategory(cat.key);
+        });
+
+        ui.categories.appendChild(btn);
+      }
+    }
+
+    function showCountry(country) {
+      ui.flag.textContent = country.flag || '🏳️';
+      ui.countryName.textContent = country.name;
+    }
+
+    function nextCountry() {
+      const filled = state.assignedByCategory.size;
+      if (filled >= state.targetRounds || state.currentRound >= state.targetRounds) {
+        finishGame();
+        return;
+      }
+
+      state.currentCountry = state.roundDeck[state.currentRound];
+      if (!state.currentCountry) {
+        finishGame();
+        return;
+      }
+      ui.gameCard.classList.remove('animating');
+      void ui.gameCard.offsetWidth;
+      ui.gameCard.classList.add('animating');
+      showCountry(state.currentCountry);
+      refreshHud();
+    }
+
+    function chooseCategory(categoryKey) {
+      if (state.assignedByCategory.has(categoryKey)) {
+        setMessage('Diese Kategorie ist bereits belegt und gesperrt.', 'bad');
+        return;
+      }
+
+      const chosen = CATEGORY_DEFS.find((c) => c.key === categoryKey);
+      const scoreInCategory = state.currentCountry?._scoreMap?.[categoryKey];
+      const chosenRank = getCountryRank(state.currentCountry, categoryKey);
+      const rankLabel = Number.isFinite(chosenRank) ? ('#' + chosenRank) : 'kein offizieller Rang';
+      let points = Number.isFinite(scoreInCategory) ? Math.round(20 + scoreInCategory * 80) : 25;
+      if (Number.isFinite(chosenRank) && chosenRank <= 10) points += 20;
+      else if (Number.isFinite(chosenRank) && chosenRank <= 25) points += 10;
+      state.score += points;
+
+      state.rounds.push({
+        country: state.currentCountry,
+        chosen,
+        chosenRank,
+        rankLabel,
+        points
+      });
+      state.assignedByCategory.set(categoryKey, state.rounds[state.rounds.length - 1]);
+
+      setMessage(
+        (state.currentCountry.name + ': ' + chosen.label + ' -> ' + rankLabel + ', +' + points + ' Punkte'),
+        'ok'
+      );
+
+      state.currentRound += 1;
+      renderLockedBoard();
+      renderCategories();
+      refreshHud();
+
+      setTimeout(() => {
+        nextCountry();
+      }, 620);
+    }
+
+    function bestCategoryStats() {
+      const counts = new Map();
+      for (const r of state.rounds) {
+        const key = r.chosen.key;
+        counts.set(key, (counts.get(key) || 0) + 1);
+      }
+      if (!counts.size) return 'Keine';
+      const best = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0][0];
+      const cat = CATEGORY_DEFS.find((c) => c.key === best);
+      return cat ? cat.label : 'Keine';
+    }
+
+    function finishGame() {
+      state.finished = true;
+      if (state.timerId) {
+        clearInterval(state.timerId);
+        state.timerId = null;
+      }
+
+      const totalTime = elapsedSec();
+
+      if (state.score > state.bestScore) {
+        state.bestScore = Math.round(state.score);
+        localStorage.setItem('geo_blind_best_score', String(state.bestScore));
+      }
+
+      const listHtml = state.rounds.map((r) => {
+        return ''
+          + '<div class="item">'
+          + '<div>' + (r.country.flag || '🏳️') + ' ' + r.country.name + '</div>'
+          + '<div>Deine Wahl: ' + r.chosen.label + '</div>'
+          + '<div>Rang in Wahl-Kategorie: ' + (r.rankLabel || 'kein offizieller Rang') + '</div>'
+          + '<div>Punkte: +' + r.points + '</div>'
+          + '</div>';
+      }).join('');
+
+      ui.result.innerHTML = ''
+        + '<div class="result-head">'
+        + '<div class="big">Auswertung</div>'
+        + '<div class="score">⭐ Punkte: ' + Math.round(state.score) + '</div>'
+        + '</div>'
+        + '<div class="stats">'
+        + '<div>🎯 Entscheidungen: ' + state.rounds.length + '/' + state.targetRounds + '</div>'
+        + '<div>🌍 Beste Kategorie: ' + bestCategoryStats() + '</div>'
+        + '<div>⏱ Zeit: ' + fmtTime(totalTime) + '</div>'
+        + '<div>🏆 Beste Runde: ' + state.bestScore + '</div>'
+        + '</div>'
+        + '<div class="results-list">' + listHtml + '</div>'
+        + '<div class="actions">'
+        + '<button class="new" id="new-game-btn">Neue Runde</button>'
+        + '<a href="index.html">Zur Spielewelt</a>'
+        + '</div>';
+
+      ui.result.classList.add('show');
+      document.getElementById('new-game-btn').addEventListener('click', startGame);
+      setMessage('Runde beendet. Ergebnis unten.', 'ok');
+      renderCategories();
+    }
+
+    function prepareCountries(raw) {
+      const countries = raw.map((c) => ({ ...c, _scoreMap: {} }));
+
+      const available = CATEGORY_DEFS.slice();
+
+      buildPercentiles(countries, available);
+
+      const playable = countries.filter((c) => {
+        const validCats = available.filter((cat) => Number.isFinite(c._scoreMap?.[cat.key]));
+        return validCats.length >= Math.max(3, Math.min(available.length, 4));
+      });
+
+      return { countries, available, playable };
+    }
+
+    function startGame() {
+      state.rounds = [];
+      state.assignedByCategory = new Map();
+      state.currentRound = 0;
+      state.score = 0;
+      state.finished = false;
+      state.startedAt = Date.now();
+      if (state.timerId) clearInterval(state.timerId);
+      state.timerId = setInterval(refreshHud, 1000);
+
+      state.targetRounds = Math.min(TARGET_CATEGORY_SLOTS, state.categories.length, state.playable.length);
+      state.roundDeck = shuffle(state.playable).slice(0, state.targetRounds);
+      ui.result.classList.remove('show');
+      ui.result.innerHTML = '';
+      renderLockedBoard();
+      renderCategories();
+      setMessage('Wähle pro Land die passendste Kategorie.', 'ok');
+      nextCountry();
+    }
+
+    async function loadPayload() {
+      try {
+        const res = await fetch('countries.json');
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json?.countries)) return json;
+        }
+      } catch (_) {}
+
+      if (window.__COUNTRIES_DB__ && Array.isArray(window.__COUNTRIES_DB__.countries)) {
+        return window.__COUNTRIES_DB__;
+      }
+      throw new Error('Lokale Länderdaten nicht verfügbar');
+    }
+
+    async function boot() {
+      try {
+        const payload = await loadPayload();
+        const raw = payload.countries || [];
+        const prepared = prepareCountries(raw);
+        state.countries = prepared.countries;
+        state.categories = prepared.available;
+        state.playable = prepared.playable;
+
+        if (!state.playable.length || !state.categories.length) {
+          setMessage('Nicht genug echte Daten für Blind-Ranking verfügbar.', 'bad');
+          return;
+        }
+
+        startGame();
+      } catch (err) {
+        console.error(err);
+        setMessage('Fehler beim Laden der Länderdaten.', 'bad');
+      }
+    }
+
+    boot();
+  </script>
+</body>
+</html>
