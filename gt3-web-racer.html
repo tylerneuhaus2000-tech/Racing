@@ -127,6 +127,24 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #bestlap{color:var(--green)}
 #prog{font-size:9px;color:var(--dim);letter-spacing:.15em;margin-top:6px}
 /* Minimap oben rechts */
+/* TT-Sektor-Panel */
+#tt-sectors{margin-top:4px;border-top:1px solid #ffffff18;padding-top:4px}
+#tt-sectors .sector-row{display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:1px 0}
+#tt-sectors .sector-row span:first-child{color:var(--dim);letter-spacing:.12em;font-size:9px;padding-top:2px}
+#tt-sectors .sector-row .sv{font-weight:700;font-variant-numeric:tabular-nums}
+.s-none{color:#a0a8b0}.s-best{color:#c090ff}.s-fast{color:#22c463}.s-slow{color:#ff4444}
+/* Speed Trap */
+#tt-vtrap{border-top:1px solid #ffffff18;margin-top:4px;padding-top:4px;font-size:11px}
+#tt-vtrap span:first-child{color:var(--dim);letter-spacing:.12em;font-size:9px}
+#vtrap-val{font-weight:700;color:#ffd400;font-variant-numeric:tabular-nums}
+/* Rundenhistorie */
+#tt-laphist{position:absolute;top:18px;left:250px;background:var(--panel);border-left:3px solid #8844cc;
+  padding:8px 14px;min-width:160px;font-family:var(--mono)}
+#tt-laphist-title{font-size:9px;letter-spacing:.15em;color:var(--dim);margin-bottom:5px}
+.lh-row{display:flex;justify-content:space-between;gap:14px;font-size:12px;padding:1px 0;font-variant-numeric:tabular-nums}
+.lh-row .lh-n{color:var(--dim);font-size:9px;min-width:16px;padding-top:2px}
+.lh-row .lh-t{font-weight:700}
+.lh-best .lh-t{color:#c090ff}.lh-ok .lh-t{color:#e8ecef}.lh-inv .lh-t{color:#ff4444}
 #minimap{position:absolute;top:290px;right:18px;background:#0a0c0fb0;border:1px solid var(--line)}
 /* Dashboard unten rechts — Signatur: GT3-Schaltblitzleiste */
 #dash{position:absolute;right:24px;bottom:24px;background:var(--panel);border:1px solid var(--line);
@@ -253,6 +271,12 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
     <div class="row"><span>LETZTE</span><span id="lastlap">--:--.---</span></div>
     <div class="row"><span>BEST</span><span id="bestlap">--:--.---</span></div>
     <div class="row" style="border-top:1px solid #ffffff22;margin-top:4px;padding-top:4px"><span style="color:#aaa">Δ BEST</span><span id="delta">--</span></div>
+    <div id="tt-sectors" class="hidden">
+      <div class="sector-row"><span>S1</span><span class="sv s-none" id="sv1">--</span></div>
+      <div class="sector-row"><span>S2</span><span class="sv s-none" id="sv2">--</span></div>
+      <div class="sector-row"><span>S3</span><span class="sv s-none" id="sv3">--</span></div>
+    </div>
+    <div id="tt-vtrap" class="row hidden"><span>V MAX</span><span id="vtrap-val">-- km/h</span></div>
     <div id="prog">0% DER RUNDE</div>
     <div id="damage-row">
       <span class="dmg-label">SCHADEN</span>
@@ -265,6 +289,10 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
       <span id="ers-pct">40%</span>
     </div>
     <span id="lap-valid">RUNDE UNGUELTIG</span>
+  </div>
+  <div id="tt-laphist" class="hidden">
+    <div id="tt-laphist-title">RUNDEN</div>
+    <div id="tt-laphist-list"></div>
   </div>
   <div id="dmg-panel">
     <div class="dp-title">SCHADEN</div>
@@ -847,9 +875,51 @@ const TRACKS = [
       outerOff: 24
     }
   },
-  /* === LE MANS (vereinfacht, ~7km, mit Mulsanne-Gerade) === */
+  /* === Hockenheimring (Altes Layout, ~6.8km, 1991-2001)
+     Westliche + Östliche Hochgeschwindigkeitsgerade je ~1900m durch den Wald.
+     Einfahrt Ostkurve (180°-Haarnadel) am Nordende.
+     Jim-Clark + AGIP-Schikane am Südende vor dem Motodrom.
+     Startlinie MITTE der Zielgeraden (~750m).                         === */
   {
-    id:'lemans', name:'Le Mans (Circuit de la Sarthe)', sub:'Langstrecken-Klassiker · Mulsanne-Gerade · 2 Schikanen · ~7km',
+    id:'hockenheim-alt', name:'Hockenheimring (Altes Layout)',
+    sub:'Legendärer Waldkurs · 2× 1900m Waldgeraden · Motodrom · ~6.8 km',
+    halfWidth:9.0, sky:0x607888, hill:0x3d6830, grass:[0x336028,0x2b5222],
+    wallDist:30, vergeW:26,
+    pts:[
+      /* ZIELGERADE - Osthälfte (Startlinie Mitte) */
+      [0,0,0],[130,0,0],[280,0,0],
+      /* EINFAHRT / T1 – sanfte Links (Ost → Nord) */
+      [362,-28,0],[414,-82,0],[440,-162,0],[436,-252,0],
+      /* Übergang Waldeinfahrt */
+      [490,-380,0],[510,-540,0],
+      /* WESTLICHE WALDGERADE – 1900m */
+      [514,-780,0],[516,-1060,0],[516,-1360,0],[514,-1640,0],[512,-1900,0],[510,-2030,0],
+      /* EINFAHRT OSTKURVE – 180° Haarnadel */
+      [516,-2140,0],[536,-2218,0],[572,-2262,0],[620,-2276,0],
+      [668,-2262,0],[704,-2218,0],[720,-2140,0],[722,-2040,0],
+      /* ÖSTLICHE WALDGERADE – 1900m */
+      [726,-1800,0],[728,-1520,0],[728,-1240,0],[726,-960,0],
+      [724,-680,0],[720,-440,0],[716,-260,0],[710,-140,0],
+      /* JIM-CLARK-SCHIKANE */
+      [694,-44,0],[628,14,0],[664,64,0],[716,104,0],[718,148,0],
+      /* AGIP-SCHIKANE */
+      [698,198,0],[634,228,0],[664,268,0],[718,300,0],
+      /* MOTODROM EINFAHRT → Sweeper (südlich der Zielgeraden) */
+      [712,404,0],[640,478,0],[492,524,0],[300,540,0],
+      [80,538,0],[-148,516,0],[-330,472,0],
+      [-454,402,0],[-504,312,0],[-498,218,0],
+      /* MOTODROM AUSFAHRT – zurück zur Zielgeraden */
+      [-460,132,0],[-416,60,0],
+      /* ZIELGERADE - Westhälfte */
+      [-376,0,0],[-250,0,0],[-125,0,0]
+      /* schließt zu [0,0,0] */
+    ],
+    pitLane:{ side:-1, idxStart:8, idxEnd:140, innerOff:9.5, outerOff:19.0 }
+  },
+
+  /* === Le Mans (vereinfacht, ~7km, mit Mulsanne-Gerade) === */
+  {
+    id:'lemans-long', name:'Le Mans (Mulsanne-Version)', sub:'Langstrecken-Klassiker · lange Mulsanne-Gerade · 2 Schikanen · ~7km',
     halfWidth: 8.0, sky: 0xa0c0e0, hill: 0x4a7a3d, grass: [0x3f7a33, 0x356b2b],
     wallDist: 30, vergeW: 26,
     pts: [
@@ -879,9 +949,9 @@ const TRACKS = [
     ],
     pitLane: { side: -1, idxStart: 8, idxEnd: 300, innerOff: 9.5, outerOff: 19.5 }
   },
-  /* === Monza Ovale (einfach, schnell) === */
+  /* === Circuito Ovale (Monza-Style) === */
   {
-    id:'monza', name:'Circuito Ovale', sub:'Highspeed-Oval · 2 Hairpins · ~3.5km · ideal für Slipstream',
+    id:'monza', name:'Circuito Ovale', sub:'Highspeed-Oval · 2 Haarnadeln · ~3.5km · ideal für Slipstream',
     halfWidth: 9.0, sky: 0x87b5e8, hill: 0x57803f, grass: [0x4a8038, 0x3e702e],
     wallDist: 25, vergeW: 22,
     pts: [
@@ -892,18 +962,77 @@ const TRACKS = [
     ],
     pitLane: { side: -1, idxStart: 8, idxEnd: 120, innerOff: 10.5, outerOff: 20.5 }
   },
-  /* === Stadtlkurs Monaco-Style (eng, technisch) === */
+  /* ===================================================================
+     SEGMENT-BASIERTE STRECKEN — mathematisch exakt, keine Überschneidungen,
+     Start immer auf einer Geraden, Kreis schließt sich perfekt.
+
+     Bauweise: 4 × 90°-Bögen (je 2 gegenüber mit gleichem Radius) = 360° netto.
+     Formel für perfekten Schluss:
+       T1=T3 (diagonale Paare), T2=T4 → Δx/Δz heben sich exakt auf.
+     =================================================================== */
+
+  /* Autodromo Silberpfeil · klassischer GP-Kurs · ~5.5km
+     Startlinie MITTE der Zielgeraden: Gerade geteilt in 2×800m.
+     Segment 1 = 800m nach T1; letztes Segment = 800m Anfahrt zurück zur Linie.
+     Closure-Check: T1=T3 (R=60), T2=T4 (R=150) → exakter Schluss. */
   {
-    id:'city', name:'Stadtkurs Marina', sub:'Enger Straßenkurs · Haarnadelkurve · Tunnel · ~3km',
-    halfWidth: 5.5, sky: 0x90b8e8, hill: 0x5a7a4a, grass: [0x44804a, 0x3a7040],
-    wallDist: 12, vergeW: 5,
-    pts: [
-      [-400,-200, 0],[-200,-200, 0],[   0,-200, 0],[ 200,-200, 0],[ 350,-180, 0],
-      [ 420,-100, 0],[ 440,  20, 0],[ 400, 130, 0],[ 300, 180, 0],
-      [ 180, 200, 0],[  80, 260, 0],[   0, 320, 0],[ -60, 260, 0],[-100, 180, 0],
-      [-180, 120, 0],[-280, 100, 0],[-370,  50, 0],[-420, -30, 0],[-440,-120, 0]
+    id:'silberpfeil', name:'Autodromo Silberpfeil',
+    sub:'Klassischer GP-Kurs · 2 Bremszonen · 2 schnelle Schwünge · ~5.5 km',
+    halfWidth:8.0, sky:0x8ab4de, hill:0x4a7a3d, grass:[0x3f7a33,0x2f6023],
+    wallDist:30, vergeW:22,
+    segments:[
+      {type:'straight', len:800},            // Zielgerade → T1 (ab Startlinie)
+      {type:'arc', radius:60,  deg:90, dir:1},
+      {type:'straight', len:600},
+      {type:'arc', radius:150, deg:90, dir:1},
+      {type:'straight', len:1600},           // Rückgerade
+      {type:'arc', radius:60,  deg:90, dir:1},
+      {type:'straight', len:600},
+      {type:'arc', radius:150, deg:90, dir:1},
+      {type:'straight', len:800}             // Anfahrt zur Startlinie
     ],
-    pitLane: { side: -1, idxStart: 6, idxEnd: 80, innerOff: 7.0, outerOff: 14.5 }
+    heading:0, startX:0, startZ:0, startY:0,
+    pitLane:{ side:-1, startPct:0.5, endPct:13, innerOff:9.5, outerOff:19.0 }
+  },
+
+  /* Superspeedway Oval · ~3.7km · Startlinie Mitte der Hauptgeraden
+     Hauptgerade 1200m geteilt in 2×600m; beide 180°-Sweeper R=200. */
+  {
+    id:'superspeedway', name:'Superspeedway Oval',
+    sub:'Hochgeschwindigkeits-Oval · 2 weite Bankkurven · kein Bremsen nötig · ~3.7 km',
+    halfWidth:10.5, sky:0x87b5e8, hill:0x57803f, grass:[0x4a8038,0x3e702e],
+    wallDist:28, vergeW:22,
+    segments:[
+      {type:'straight', len:600},            // Hauptgerade → Nordkurve
+      {type:'arc', radius:200, deg:180, dir:1},
+      {type:'straight', len:1200},           // Gegengerade
+      {type:'arc', radius:200, deg:180, dir:1},
+      {type:'straight', len:600}             // Anfahrt zur Startlinie
+    ],
+    heading:90, startX:0, startZ:0, startY:0,
+    pitLane:{ side:-1, startPct:0.5, endPct:15, innerOff:11.5, outerOff:23.0 }
+  },
+
+  /* Inselring Marinella · Stadtkurs · ~4.9km · Startlinie Mitte
+     N-Gerade 1400m geteilt in 2×700m. */
+  {
+    id:'inselring', name:'Inselring Marinella',
+    sub:'Technischer Stadtkurs · enge Haarnadelkurven · mittlere Geschwindigkeiten · ~4.9 km',
+    halfWidth:6.5, sky:0x90b8e8, hill:0x5a7a4a, grass:[0x44804a,0x3a7040],
+    wallDist:14, vergeW:6,
+    segments:[
+      {type:'straight', len:700},            // Zielgerade → T1
+      {type:'arc', radius:40,  deg:90, dir:1},
+      {type:'straight', len:800},
+      {type:'arc', radius:120, deg:90, dir:1},
+      {type:'straight', len:1400},
+      {type:'arc', radius:40,  deg:90, dir:1},
+      {type:'straight', len:800},
+      {type:'arc', radius:120, deg:90, dir:1},
+      {type:'straight', len:700}             // Anfahrt zur Startlinie
+    ],
+    heading:0, startX:0, startZ:0, startY:0,
+    pitLane:{ side:-1, startPct:0.5, endPct:12, innerOff:8.0, outerOff:16.5 }
   },
   /* === Wüstenkurs (breit, flach, lange Geraden) === */
   {
@@ -955,6 +1084,51 @@ const TRACKS = [
       [980,210,5],[920,70,4],[780,-30,3],[620,-100,3],[440,-150,3],[220,-190,2],[-40,-220,2],[-300,-240,2],[-560,-250,2]
     ],
     pitLane:{ side:-1, idxStart:18, idxEnd:220, innerOff:11, outerOff:22 }
+  },
+
+  /* Oasis Desert Circuit · ~5.8km · Startlinie Mitte der 2000m-Geraden
+     N-Gerade 2000m geteilt in 2×1000m. T1=T3 (R=250), T2=T4 (R=80). */
+  {
+    id:'oasis', name:'Oasis Desert Circuit',
+    sub:'Wüsten-Highspeed · lange DRS-Geraden · enge Haarnadelkurve · ~5.8 km',
+    halfWidth:10.5, sky:0xd8c898, hill:0xc0a070, grass:[0xb0904a,0xa08040],
+    wallDist:42, vergeW:36,
+    segments:[
+      {type:'straight', len:1000},           // Zielgerade → T1
+      {type:'arc', radius:250, deg:90, dir:1},
+      {type:'straight', len:400},
+      {type:'arc', radius:80,  deg:90, dir:1},
+      {type:'straight', len:2000},           // Rückgerade
+      {type:'arc', radius:250, deg:90, dir:1},
+      {type:'straight', len:400},
+      {type:'arc', radius:80,  deg:90, dir:1},
+      {type:'straight', len:1000}            // Anfahrt zur Startlinie
+    ],
+    heading:0, startX:0, startZ:0, startY:0,
+    pitLane:{ side:-1, startPct:0.5, endPct:15, innerOff:12, outerOff:24 }
+  },
+
+  /* Bergkristall · Alpenkurs · ~5.8km · Startlinie in Mitte der Zielgeraden
+     N-Gerade 1600m geteilt in 2×800m, beide ansteigend (+24m je).
+     Höhenprofil: Start y=0 → T1/T2 Plateau y=+28m → Talboden y=-24m → zurück y=0. */
+  {
+    id:'bergkristall', name:'Bergkristall Alpenkurs',
+    sub:'Bergkurs · fließende Kurven · 52 m Höhenunterschied · ~5.8 km',
+    halfWidth:7.5, sky:0x7fb0e6, hill:0x3f6e35, grass:[0x35702c,0x2c6124],
+    wallDist:26, vergeW:18,
+    segments:[
+      {type:'straight', len:800, rise:24},   // Zielgerade → T1 (bergauf)
+      {type:'arc', radius:120, deg:90, dir:1, rise:4},
+      {type:'straight', len:800},            // Hochplateau
+      {type:'arc', radius:200, deg:90, dir:1},
+      {type:'straight', len:1600, rise:-52}, // Rückgerade bergab ins Tal
+      {type:'arc', radius:120, deg:90, dir:1, rise:-4},
+      {type:'straight', len:800},            // Talboden (W-Gerade)
+      {type:'arc', radius:200, deg:90, dir:1},
+      {type:'straight', len:800, rise:28}    // Anfahrt zur Startlinie (bergauf)
+    ],
+    heading:0, startX:0, startZ:0, startY:0,
+    pitLane:{ side:-1, startPct:0.5, endPct:13, innerOff:9.0, outerOff:18.5 }
   },
 ];
 
@@ -1478,22 +1652,30 @@ const Tex = {
     });
   },
   brakingSign(n){
-    // Klassisches FIA-Bremsschild: 50/100/150 mit Querstrichen
-    return this.canvas(128,160,(g,w,h)=>{
-      g.fillStyle='#ffffff'; g.fillRect(0,0,w,h);
-      g.strokeStyle='#1a1a1a'; g.lineWidth=4;
-      g.strokeRect(2,2,w-4,h-4);
-      // Zahl
-      g.fillStyle='#1a1a1a';
-      g.font='bold 56px sans-serif';
+    // F1/GT3-Bremsschild: weißes Board, schwarze Zahl, farbige Streifen
+    // 150m = 3 orange Streifen, 100m = 2 gelbe, 50m = 1 roter
+    const stripeColors = {50:'#e02020', 100:'#e8a020', 150:'#e8d020'};
+    const stripes = Math.round(n/50);
+    return this.canvas(128,192,(g,w,h)=>{
+      // Weißer Hintergrund mit schwarzem Rand
+      g.fillStyle='#f8f8f8'; g.fillRect(0,0,w,h);
+      g.fillStyle='#111'; g.fillRect(0,0,w,6);   // Top-Balken schwarz
+      g.fillStyle='#111'; g.fillRect(0,h-4,w,4); // Bottom
+      g.fillStyle='#111'; g.fillRect(0,0,4,h);   // Left
+      g.fillStyle='#111'; g.fillRect(w-4,0,4,h); // Right
+      // Zahl – groß, fett, schwarz
+      g.fillStyle='#111';
+      g.font=`bold ${n===100?58:62}px Arial Black,sans-serif`;
       g.textAlign='center'; g.textBaseline='middle';
-      g.fillText(String(n), w/2, 50);
-      // Querstriche unten (Anzahl = n/50)
-      const stripes = Math.round(n/50);
-      const sy=92, sh=14, gap=6;
+      g.fillText(String(n), w/2, 68);
+      // Horizontale Trennlinie
+      g.fillStyle='#222'; g.fillRect(8, 112, w-16, 3);
+      // Farbige Streifen (je Stripe ein Balken)
+      const sc = stripeColors[n];
+      const sy=122, sh=18, gap=6;
       for(let i=0;i<stripes;i++){
-        g.fillStyle='#1a1a1a';
-        g.fillRect(18, sy+i*(sh+gap), w-36, sh);
+        g.fillStyle=sc;
+        g.fillRect(8, sy+i*(sh+gap), w-16, sh);
       }
     });
   },
@@ -1640,7 +1822,32 @@ class Track {
   }
 
   buildSpline(){
-    const v = this.def.pts.map(p=>new THREE.Vector3(p[0],p[2],p[1])); // y = Höhe
+    let rawPts = this.def.pts;
+    if(!rawPts && this.def.segments){
+      rawPts = buildTrackPath(this.def.segments, {
+        startX: this.def.startX || 0,
+        startZ: this.def.startZ || 0,
+        startY: this.def.startY || 0,
+        heading: this.def.heading != null ? this.def.heading : 0,
+        step: 15
+      });
+    }
+
+    /* ── Closure-Check: letzter Punkt → erster Punkt ──────────────────
+       CatmullRom verbindet automatisch, aber ein großer Gap erzeugt eine
+       sichtbare Kurve die durch die Strecke schneidet.
+       Warnung wenn Gap > 80 m; kritisch wenn > 200 m.               */
+    if(rawPts && rawPts.length > 2){
+      const f=rawPts[0], l=rawPts[rawPts.length-1];
+      const dx=l[0]-f[0], dz=l[1]-f[1];
+      const gap=Math.sqrt(dx*dx+dz*dz);
+      if(gap > 200)
+        console.error(`[Track ${this.def.id}] CLOSURE GAP ${gap.toFixed(0)}m – Strecke kreuzt sich!`);
+      else if(gap > 80)
+        console.warn(`[Track ${this.def.id}] Closure gap ${gap.toFixed(0)}m – prüfen`);
+    }
+
+    const v = rawPts.map(p=>new THREE.Vector3(p[0],p[2],p[1])); // y = Höhe
     this.curve = new THREE.CatmullRomCurve3(v, true, 'catmullrom', 0.5);
     this.totalLen = this.curve.getLength();
     const n = Math.max(400, Math.round(this.totalLen/3));
@@ -1663,6 +1870,12 @@ class Track {
       const a=this.samples[(i-2+this.N)%this.N].tan, b=this.samples[(i+2)%this.N].tan;
       const ang = Math.atan2(a.x*b.z-a.z*b.x, a.x*b.x+a.z*b.z);
       this.samples[i].curv = ang/(4*this.segLen);
+    }
+    // Support pitLane defined as percentage instead of sample indices
+    const pl = this.def.pitLane;
+    if(pl && pl.startPct != null){
+      pl.idxStart = Math.round(pl.startPct / 100 * this.N);
+      pl.idxEnd   = Math.round((pl.endPct != null ? pl.endPct : 30) / 100 * this.N);
     }
   }
 
@@ -2132,96 +2345,78 @@ class Track {
   buildBrakingMarkers(){
     const S=this.samples, N=this.N, seg=this.segLen;
 
-    /* ---- 1. Kurvengeschwindigkeiten via Pacejka-Laterallimit ---- */
-    const A_LAT=10.5, A_BRK=11.0;
-    const vCorner=new Float32Array(N);
+    /* ── 1. Krümmung glätten über ±15m ────────────────────────────────────
+       Rauschen entfernen, echte Kurvenspitzen behalten.                  */
+    const smW = Math.max(1, Math.round(15/seg));
+    const curv = new Float32Array(N);
     for(let i=0;i<N;i++){
-      const c=Math.max(Math.abs(S[i].curv),0.0005);
-      vCorner[i]=Math.min(98,Math.sqrt(A_LAT/c));
+      let s=0;
+      for(let k=-smW;k<=smW;k++) s+=Math.abs(S[(i+k+N)%N].curv);
+      curv[i]=s/(2*smW+1);
     }
 
-    /* ---- 2. Rückwärts-Bremszonenpropagation ---- */
-    const vTarget=vCorner.slice();
-    for(let pass=0;pass<4;pass++){
-      for(let i=N-1;i>=0;i--){
-        const nxt=(i+1)%N;
-        const lim=Math.sqrt(vTarget[nxt]*vTarget[nxt]+2*A_BRK*seg);
-        if(lim<vTarget[i]) vTarget[i]=lim;
+    /* ── 2. Lokale Maxima der Krümmung = Kurvenapexe ───────────────────────
+       Apex = streng größer als alle Nachbarn im ±20m-Fenster.
+       Nur Kurven die echtes Bremsen erfordern (Radius < ~450m → v < 68 m/s) */
+    const peakW  = Math.max(1, Math.round(20/seg));
+    const minSep = Math.max(5,  Math.round(250/seg));
+    const apexes = [];
+
+    for(let i=0;i<N;i++){
+      if(curv[i] < 0.0022) continue;   // Radius > 450m → kein Bremsschild
+      let isPeak=true;
+      for(let k=1;k<=peakW;k++){
+        if(curv[(i-k+N)%N]>=curv[i] || curv[(i+k)%N]>=curv[i]){isPeak=false;break;}
       }
-    }
-
-    /* ---- 3. Bremspunkte finden ----
-       Für jedes Sample: was ist das Minimum der nächsten ~200m?
-       Wenn dieses Minimum deutlich unter der aktuellen Geschwindigkeit liegt
-       UND die Geschwindigkeit 60m hinter uns noch hoch war → Bremspunkt. */
-    const lookAhead=Math.max(4, Math.round(200/seg));
-    const lookBehind=Math.max(3, Math.round(60/seg));
-    const minGap=Math.max(20, Math.round(220/seg));
-    const brakeAt=[];
-
-    for(let i=0;i<N;i++){
-      /* Schnellstes am Anfang der Bremszone: 5 Samples davor */
-      const iBefore=Math.max(3,Math.round(12/seg));
-      const vHere=vTarget[(i-iBefore+N)%N];
-
-      /* Minimumsgeschwindigkeit in den nächsten 200m finden */
-      let vMin=vHere;
-      for(let k=0;k<lookAhead;k++) vMin=Math.min(vMin, vTarget[(i+k)%N]);
-
-      /* Kriterien:
-         - Kurve muss wirklich langsam sein (< 220 km/h = 61 m/s)
-         - Bremsanlass mindestens 40 km/h = 11 m/s
-         - 60m davor noch schnell (nicht schon am Bremsen) */
-      if(vMin>61) continue;
-      if(vHere-vMin<11) continue;
-      const vBehind=vTarget[(i-lookBehind+N)%N];
-      if(vBehind<vHere*0.97) continue; // schon am abbremsen
-
-      /* Mindestabstand zu anderen Bremspunkten */
+      if(!isPeak) continue;
       let tooClose=false;
-      for(const bp of brakeAt){
-        const d=Math.min(((i-bp)+N)%N, ((bp-i)+N)%N);
-        if(d<minGap){tooClose=true;break;}
+      for(const a of apexes){
+        if(Math.min(((i-a)+N)%N,((a-i)+N)%N)<minSep){tooClose=true;break;}
       }
-      if(tooClose) continue;
-      brakeAt.push(i);
+      if(!tooClose) apexes.push(i);
     }
 
-    /* ---- 4. Schilder setzen ---- */
+    /* ── 3. Schilder aufstellen ────────────────────────────────────────────
+       Pro Apex: 150 / 100 / 50m-Board auf Kurven-Außenseite.
+       Pfahl: schwarz, 3.6m hoch. Schild: 1.8×2.7m, oben am Pfahl.     */
     const matFor=n=>new THREE.MeshLambertMaterial({map:Tex.brakingSign(n),side:THREE.DoubleSide});
     const mats={50:matFor(50),100:matFor(100),150:matFor(150)};
-    const signGeo=new THREE.PlaneGeometry(2.0,2.6);
-    const poleGeo=new THREE.CylinderGeometry(0.06,0.06,2.5,6);
-    const poleMat=new THREE.MeshLambertMaterial({color:0x222628});
-    const offsetOutside=this.halfW+2.5;
+    const signGeo = new THREE.PlaneGeometry(1.8, 2.7);
+    const poleGeo = new THREE.CylinderGeometry(0.05, 0.05, 3.6, 6);
+    const poleMat = new THREE.MeshLambertMaterial({color:0x1a1e22});
+    const sideOff = this.halfW + 2.6;
 
-    for(const bpIdx of brakeAt){
-      /* Kurvenrichtung voraus: Außenseite bevorzugen */
-      let maxCurv=0;
-      for(let k=0;k<Math.round(80/seg);k++){
-        const c=S[(bpIdx+k)%N].curv;
-        if(Math.abs(c)>Math.abs(maxCurv)) maxCurv=c;
+    for(const apexIdx of apexes){
+      /* Außenseite ermitteln.
+         side = cross(up,tan) zeigt LINKS. curv>0 = Rechtskurve (Linkskurve <0).
+         Rechtskurve: Außen = links = +side  → outerSgn = +1
+         Linkskurve:  Außen = rechts = -side → outerSgn = -1             */
+      let dominantCurv=0;
+      const curvW=Math.round(60/seg);
+      for(let k=-curvW;k<=curvW;k++){
+        const c=S[(apexIdx+k+N)%N].curv;
+        if(Math.abs(c)>Math.abs(dominantCurv)) dominantCurv=c;
       }
-      /* side zeigt nach links: curv>0 = Linkskurve → Außenseite ist rechts → sgn -1 */
-      const outsideSgn=maxCurv>=0?-1:1;
+      const outerSgn = dominantCurv >= 0 ? 1 : -1;
 
-      for(const dist of [150,100,50]){
-        const back=Math.max(1,Math.round(dist/seg));
-        const idx=((bpIdx-back)%N+N)%N;
-        const s=S[idx];
-        /* Erst Außenseite, dann Innenseite versuchen */
-        for(const sgn of [outsideSgn,-outsideSgn]){
-          const tx=s.pos.x+s.side.x*sgn*offsetOutside;
-          const tz=s.pos.z+s.side.z*sgn*offsetOutside;
-          /* Nur ablehnen wenn SEHR nahe an anderer Streckenportion */
-          if(!this.clearOf(tx,tz,this.halfW-1.0)) continue;
-          const grp=new THREE.Group();
-          const pole=new THREE.Mesh(poleGeo,poleMat); pole.position.y=1.25;
-          const sign=new THREE.Mesh(signGeo,mats[dist]); sign.position.y=2.3;
-          grp.add(pole,sign);
-          /* Schild zeigt dem heranfahrenden Fahrer entgegen */
-          grp.rotation.y=Math.atan2(s.tan.x,s.tan.z)+Math.PI;
-          grp.position.set(tx,s.pos.y,tz);
+      /* Bremspunkt liegt ~150m vor Apex. Schilder ab da rückwärts.
+         → 150m-Brett: 300m, 100m: 250m, 50m: 200m vor dem Apex.          */
+      for(const dist of [150, 100, 50]){
+        const back = Math.max(1, Math.round((dist + 150) / seg));
+        const idx  = ((apexIdx - back) % N + N) % N;
+        const s    = S[idx];
+        for(const sgn of [outerSgn, -outerSgn]){
+          const tx = s.pos.x + s.side.x * sgn * sideOff;
+          const tz = s.pos.z + s.side.z * sgn * sideOff;
+          if(!this.clearOf(tx, tz, this.halfW)) continue;
+          const grp = new THREE.Group();
+          const pole = new THREE.Mesh(poleGeo, poleMat);
+          pole.position.y = 1.8;
+          const sign = new THREE.Mesh(signGeo, mats[dist]);
+          sign.position.y = 4.05;
+          grp.add(pole, sign);
+          grp.rotation.y = Math.atan2(s.tan.x, s.tan.z) + Math.PI;
+          grp.position.set(tx, s.pos.y, tz);
           this.group.add(grp);
           break;
         }
@@ -3439,71 +3634,442 @@ class SkidMarks {
 /* ============================ KAMERAS ============================ */
 /* ============================ KI-FAHRER ============================ */
 class AIDriver {
-  /** difficulty 0..100, fieldPos = Position im Feld (0..n-1), fieldSize = n
-   *  Schwierigkeit beeinflusst Kurvengeschwindigkeit, Bremspunkte, Apex-Aggressivität. */
+  /**
+   * difficulty 0..100, fieldPos = index in field (0..n-1), fieldSize = n
+   *
+   * Full driver profile:
+   *   skill       – raw speed, braking precision, cornering limit
+   *   aggression  – overtaking attempts, risk tolerance, space-fighting
+   *   consistency – how rarely mistakes happen (high = fewer)
+   *   wetSkill    – performance retained in wet/rain conditions
+   *   raceCraft   – positional intelligence, overtake/defense quality
+   */
   constructor(difficulty, fieldPos, fieldSize){
     this.skill = clamp((difficulty||60)/100, 0, 1);
-    /* Grip-Budget: breiter Spread für echte Klassenunterschiede
-       skill 0   → 7.0/8.5  (deutlich langsamer — auch mit Hypercar schlagbar)
-       skill 0.5 → 10.5/12.5 (schnell, aber nicht am Limit)
-       skill 1.0 → 14.0/16.5 (echtes Profi-Niveau, fast am physikalischen Limit) */
-    this.aLatBase = 7.2 + this.skill*7.8;
-    this.aBrk     = 8.8 + this.skill*6.4;
-    this.apexK    = 0.18 + this.skill*0.28;     // deutlich mutiger am Apex, aber noch kontrolliert
-    /* Persönlichkeit pro KI */
-    this.aggression = 0.36 + Math.random()*0.30;
-    const lo = (fieldPos!=null && fieldSize>1) ? ((fieldPos - (fieldSize-1)/2) * 2.0/(fieldSize-1)) : 0;
+    const s = this.skill;
+
+    // Personality — skill biases all traits upward but leaves room for variety
+    this.aggression  = clamp(0.25 + Math.random()*0.55 + s*0.15, 0, 1);
+    this.consistency = clamp(0.30 + Math.random()*0.40 + s*0.35, 0, 1);
+    this.wetSkill    = clamp(0.25 + Math.random()*0.55 + s*0.20, 0, 1);
+    this.raceCraft   = clamp(0.25 + Math.random()*0.50 + s*0.25, 0, 1);
+
+    // Physics parameters
+    this.aLatBase = 7.2 + s*7.8;
+    this.aBrk     = 8.8 + s*6.4;
+    this.apexK    = 0.18 + s*0.28;
+
+    // Starting spread across field
+    const lo = (fieldPos!=null && fieldSize>1)
+      ? ((fieldPos - (fieldSize-1)/2) * 2.0/(fieldSize-1)) : 0;
     this.lineOff = lo;
+
     this.input = {steer:0, throttle:0, brake:0};
     this.stuckT=0; this.revT=0; this.turnT=0; this.fwdRescueT=0; this.lastErr=0; this.loS=0;
+
     this.plannedPitLap = null;
     this.pitState = 'racing';
     this.lapAtPlan = 0;
     this._cgs = 1;
+    this._lastPitLap = 0;
+    this.lastCurv = 0;
+
+    // Mistake system
+    this._mistakeType  = null;   // 'overbrake' | 'understeer' | 'slide'
+    this._mistakeTimer = 0;
+    this._nextMistake  = this._mistakeInterval();
+
+    // Overtake state machine
+    this._ov = { phase: null, targetId: null, timer: 0, side: 0 };
+
+    // Defense state
+    this._def = { active: false, side: 0, timer: 0 };
+
+    // Tire management mode
+    this._tireMode = 'normal'; // 'push' | 'normal' | 'save'
+
+    // Per-track analysis cache (built once per track, keyed by track.N)
+    this._tcache = null;
+    this._tcacheN = 0;
   }
 
-  /** Skaliert AI-Grip basierend auf Fahrzeugklasse */
+  /* ───────────────── UTILITIES ───────────────── */
+
+  _mistakeInterval(){
+    // Mehr Konsistenz = längere Abstände zwischen Fehlern
+    const base = 18 + this.consistency * 55 - this.aggression * 8;
+    return Math.max(8, base + Math.random() * base * 0.6);
+  }
+
   classGripScale(car){
     const ct = car.def?.classType || 'gt3';
-    /* Ziel-Verhältnisse auf Le Mans: GT3=130s, LMP2=120s, HYP=110s
-       → LMP2 braucht ~18% mehr Grip als GT3
-       → HYP braucht ~42% mehr Grip als GT3 */
-    if(ct === 'hypercar') return 1.15;     // +15% Kurve + 20% Topspeed = massiver Gesamtvorteil
-    if(ct === 'lmp2')     return 1.08;     // +8% Kurve + 11% Topspeed
+    if(ct === 'hypercar') return 1.15;
+    if(ct === 'lmp2')     return 1.08;
     return 1.0;
   }
 
-  /** Effektives aLat: classScale + physikalisches Limit bei 98% */
   effectiveALat(car, speed){
     let aLat = this.aLatBase * (this._cgs || 1);
     const muF = (car.def?.gripF || 1.30) / 1.30 * 1.30;
-    const curveConfidence = 1 + this.skill*0.10 + clamp(speed/150, 0, 0.05);
-    return Math.min(aLat * curveConfidence, muF * 9.81 * 1.03);
+    const cc = 1 + this.skill*0.10 + clamp(speed/150, 0, 0.05);
+    return Math.min(aLat * cc, muF * 9.81 * 1.03);
   }
 
-  /** Wird einmal vor Rennstart aufgerufen */
-  setupForRace(totalLaps, mandatoryPit){
-    this.totalLaps = totalLaps;
-    this.mandatoryPit = mandatoryPit;
-    if(mandatoryPit && totalLaps > 1){
-      /* Boxenstopp im Bereich 35–70% der Renndistanz, leicht random pro Fahrer */
-      const lo = Math.max(2, Math.ceil(totalLaps*0.35));
-      const hi = Math.max(lo, Math.floor(totalLaps*0.70));
-      this.plannedPitLap = lo + Math.floor(Math.random()*(hi-lo+1));
-    } else {
-      this.plannedPitLap = null;
+  /* ───────────────── WETTER ───────────────── */
+
+  // Grip-Faktor 0..1 bei Regen (wetSkill bestimmt wie viel verloren geht)
+  _weatherGrip(weather){
+    const rain = (weather && weather.rain) ? weather.rain : 0;
+    if(rain < 0.02) return 1.0;
+    const maxLoss = 0.42 - this.wetSkill * 0.28;  // 0.14..0.42
+    return clamp(1.0 - rain * maxLoss, 0.48, 1.0);
+  }
+
+  // Bremspunkt-Multiplikator: >1 = früher bremsen (bei Regen)
+  _weatherBrakeMul(weather){
+    const rain = (weather && weather.rain) ? weather.rain : 0;
+    if(rain < 0.02) return 1.0;
+    return clamp(1.0 + rain * (0.38 - this.wetSkill * 0.22), 1.0, 1.45);
+  }
+
+  // Linienverschiebung bei nasser Fahrbahn (vom nassen Gummi weg)
+  _weatherLineDelta(weather, q, halfWidth){
+    const rain = (weather && weather.rain) ? weather.rain : 0;
+    if(rain < 0.05) return 0;
+    const lineDry = weather.lineDry ?? 1;
+    // Wenn Gummi nass ist (lineDry niedrig), leicht nach außen fahren
+    const shift = (1 - lineDry) * rain * (0.25 + this.raceCraft * 0.18);
+    return clamp(-Math.sign(q.lat) * shift * halfWidth * 0.30, -2.2, 2.2);
+  }
+
+  /* ───────────────── STRECKEN-CACHE ───────────────── */
+
+  // Einmalige Streckenanalyse: Krümmungs-Glättung + Apex-Erkennung
+  _buildCache(track){
+    const N = track.N;
+    if(this._tcacheN === N && this._tcache) return this._tcache;
+
+    const seg = track.segLen;
+    const W = 7;
+    const smooth = new Float32Array(N);
+    for(let i = 0; i < N; i++){
+      let sum = 0;
+      for(let k = -W; k <= W; k++) sum += track.samples[(i+k+N)%N].curv;
+      smooth[i] = sum / (2*W+1);
     }
+
+    // Lokale Maxima der Krümmung → Apex-Punkte
+    const apex = new Uint8Array(N);
+    for(let i = 0; i < N; i++){
+      const c  = Math.abs(smooth[i]);
+      const cp = Math.abs(smooth[(i-1+N)%N]);
+      const cn = Math.abs(smooth[(i+1)%N]);
+      if(c > 0.004 && c >= cp && c >= cn) apex[i] = 1;
+    }
+
+    // Pro Sample: Abstand zum nächsten Apex + dessen Vorzeichen
+    const maxScan = Math.min(N-1, Math.round(130/seg));
+    const cache = new Array(N);
+    for(let i = 0; i < N; i++){
+      let nextApex = -1, apexSign = 0;
+      for(let k = 1; k <= maxScan; k++){
+        const j = (i+k)%N;
+        if(apex[j]){ nextApex = k; apexSign = Math.sign(smooth[j]); break; }
+      }
+      const c = Math.abs(smooth[i]);
+      cache[i] = { curv: smooth[i], c, nextApex, apexSign };
+    }
+    this._tcache = cache;
+    this._tcacheN = N;
+    return cache;
   }
 
-  /** Kurvengeschwindigkeit mit Aero-Grip */
+  /* ───────────────── IDEALLINIE (3-Punkt) ───────────────── */
+
+  computeLine(track, q, dodge, weather){
+    const seg    = track.segLen;
+    const maxOff = track.def.halfWidth - 2.0;
+    const N      = track.N;
+
+    // === Überholmanöver: auf Angriffseite ===
+    if(this._ov.phase === 'attack' && this._ov.side !== 0){
+      return {target: clamp(this._ov.side * maxOff * 0.82 + dodge, -maxOff, maxOff), maxOff};
+    }
+
+    // === Verteidigung: Innen decken ===
+    if(this._def.active && this._def.side !== 0){
+      return {target: clamp(this._def.side * maxOff * 0.65, -maxOff, maxOff), maxOff};
+    }
+
+    // === Bewährte Apex-basierte Ideallinie (original, getestet) ===
+    const liDist = 30;
+    const li = (q.idx + Math.round(liDist/seg)) % N;
+    const scan = Math.round(40/seg);
+    let cMaxAbs = 0, cMaxSign = 0;
+    for(let k = 0; k < scan; k++){
+      const cc = track.samples[(li+k)%N].curv;
+      if(Math.abs(cc) > cMaxAbs){ cMaxAbs = Math.abs(cc); cMaxSign = Math.sign(cc); }
+    }
+    const curvHere = track.samples[li].curv;
+    const inApex = Math.abs(curvHere) > cMaxAbs*0.55;
+    const apexStrength = Math.min(1, cMaxAbs*42)*this.apexK;
+    let apex = cMaxSign * (inApex ? +1 : -0.4) * apexStrength * maxOff;
+    if(curvHere*cMaxSign < -1e-5) apex *= 0.2;
+
+    // Wetter-Linienkorrektur (bei Regen leicht von nasser Linie weg)
+    let wShift = 0;
+    if(weather && weather.rain > 0.05){
+      wShift = this._weatherLineDelta(weather, q, track.def.halfWidth);
+    }
+
+    return {target: clamp(this.lineOff*0.3 + apex + dodge + wShift, -maxOff, maxOff), maxOff};
+  }
+
+  /* ───────────────── KURVENGESCHWINDIGKEIT ───────────────── */
+
   cornerV(c, kAero){
-    const aLat = this._effALat || (this.aLatBase * (this._cgs||1));
+    const aLat  = this._effALat || (this.aLatBase * (this._cgs||1));
     const denom = c - kAero;
     if(denom <= 0.0003) return 95;
     return Math.min(95, Math.sqrt(aLat / denom));
   }
 
-  /** Idle-Phase (Ampelrot): Auto stehen lassen */
+  planCornerSpeed(car, track, q, speed, kAero, weather){
+    let tgtV = 95;
+    const seg       = track.segLen;
+    const effBrk    = this.aBrk * (this._cgs || 1);
+    const effBrkCap = Math.min(effBrk, (car?.def?.gripF||1.30)/1.30*1.30*9.81*0.95);
+    // Regen verlängert Bremsweg
+    const brakeMul  = this._weatherBrakeMul(weather);
+    const effBrkWet = effBrkCap / brakeMul;
+
+    const hor = Math.min(track.N-2, Math.ceil((30 + speed*speed/(2*effBrkWet))/seg));
+    for(let k = 2; k < hor; k++){
+      const i2 = (q.idx+k)%track.N;
+      const c  = Math.abs(track.samples[i2].curv);
+      const slopeK = (track.samples[(i2+3)%track.N].pos.y - track.samples[i2].pos.y)/(3*seg);
+      const derate  = clamp(1 + Math.min(0, slopeK)*4, 0.6, 1);
+      const saveA   = this.aLatBase; this.aLatBase *= derate;
+      const vC      = this.cornerV(Math.max(c, 0.0016), kAero);
+      this.aLatBase = saveA;
+      const al = Math.sqrt(vC*vC + 2*effBrkWet*k*seg);
+      if(al < tgtV) tgtV = al;
+    }
+    const curvNow = Math.abs(track.samples[q.idx].curv);
+    if(curvNow > 0.006) tgtV *= 1 - clamp((curvNow - 0.006)*7, 0, 0.10);
+
+    // Wettergrip anwenden
+    tgtV *= this._weatherGrip(weather);
+
+    // Reifenverschleiß: abgefahrene Reifen → langsamere Kurvenziele
+    if(car.tireWear){
+      const minT = Math.min(car.tireWear.FL, car.tireWear.FR, car.tireWear.RL, car.tireWear.RR);
+      if(minT < 0.60) tgtV *= 0.86 + minT * 0.23;
+    }
+
+    return tgtV;
+  }
+
+  /* ───────────────── FEHLER-SYSTEM ───────────────── */
+
+  _tickMistakes(dt, speed, curvNow){
+    if(this._mistakeTimer > 0){
+      this._mistakeTimer -= dt;
+      if(this._mistakeTimer <= 0) this._mistakeType = null;
+      return this._mistakeType !== null;
+    }
+    this._nextMistake -= dt;
+    if(this._nextMistake > 0 || speed < 14) return false;
+
+    // Basis-Fehlerchance: wenig Konsistenz + Aggressivität erhöhen Risiko
+    const inCorner = curvNow > 0.004;
+    let chance = (1 - this.consistency) * 0.50;
+    if(inCorner) chance *= 1.5;
+    if(this.aggression > 0.65) chance *= 1.2;
+
+    if(Math.random() < chance){
+      const r = Math.random();
+      if(inCorner && r < 0.38){
+        this._mistakeType = 'overbrake';
+        this._mistakeTimer = 0.35 + Math.random() * 0.75;
+      } else if(inCorner && r < 0.70){
+        this._mistakeType = 'understeer';
+        this._mistakeTimer = 0.45 + Math.random() * 1.10;
+      } else {
+        this._mistakeType = 'slide';
+        this._mistakeTimer = 0.30 + Math.random() * 0.80;
+      }
+    }
+    this._nextMistake = this._mistakeInterval();
+    return this._mistakeType !== null;
+  }
+
+  _applyMistake(inp){
+    switch(this._mistakeType){
+      case 'overbrake':
+        // Verbremser: zu starkes/spätes Bremsen
+        inp.brake    = Math.min(1, inp.brake + 0.32);
+        inp.throttle = 0;
+        break;
+      case 'understeer':
+        // Schlechter Kurvenausgang: Lenkung reagiert nicht voll
+        inp.steer   *= 0.52 + this.consistency * 0.28;
+        inp.throttle = Math.min(inp.throttle, 0.30);
+        break;
+      case 'slide':
+        // Übersteuern: zu viel Gas zu früh
+        inp.throttle = Math.min(1, inp.throttle * 1.28 + 0.14);
+        break;
+    }
+  }
+
+  /* ───────────────── VERKEHR + ÜBERHOLEN ───────────────── */
+
+  scanTraffic(car, others, v, track, q){
+    let dodge = 0, vCap = 95;
+    if(!others) return {dodge, vCap};
+
+    const sin_h     = Math.sin(car.heading), cos_h = Math.cos(car.heading);
+    const curvLoad  = clamp((this.lastCurv||0) / 0.008, 0, 1);
+
+    let bestOTDist = Infinity, bestOTTarget = null;
+    let carsClose = 0;
+    let fastAttackerLat = null;
+
+    for(const o of others){
+      if(o === car) continue;
+      const dx = o.pos.x - car.pos.x, dz = o.pos.z - car.pos.z;
+      const d2 = dx*dx + dz*dz;
+      if(d2 > 2500) continue;
+
+      const fwd    = sin_h*dx + cos_h*dz;
+      const lat    = cos_h*dx - sin_h*dz;
+      const absLat = Math.abs(lat);
+
+      // === Auto VORAUS ===
+      if(fwd > 0.5 && fwd < 50){
+        if(absLat < 3.5){
+          if(fwd < 20) carsClose++;
+
+          // Ausweichen
+          if(absLat < 2.5 && fwd < 35){
+            dodge = (lat >= 0 ? -1 : 1) * 2.0;
+          }
+          if(curvLoad > 0.25 && fwd < 28){
+            dodge += (lat >= 0 ? -1 : 1) * (0.16 + this.aggression*0.10);
+          }
+
+          // Speed-Cap für sicheres Folgen
+          const closing = v - Math.max(o.vx, 0);
+          if(closing > 0){
+            const safeGap = 4 + closing*0.8;
+            if(fwd < safeGap + closing*1.5){
+              vCap = Math.min(vCap, Math.max(o.vx,0) + Math.max(0,(fwd-safeGap))*0.3);
+            }
+          }
+
+          // Überholkandidat: auf Gerade, guter Abstand, raceCraft vorhanden
+          if(fwd > 7 && fwd < 42 && curvLoad < 0.28 && this.raceCraft > 0.38){
+            if(fwd < bestOTDist){ bestOTDist = fwd; bestOTTarget = o; }
+          }
+        }
+        // Seitlicher Puffer
+        if(absLat >= 2.0 && absLat < 5.5 && fwd < 10 && fwd > -3){
+          dodge += (lat > 0 ? -0.5 : 0.5);
+        }
+      }
+
+      // === Auto HINTEN (Verteidigung) ===
+      if(fwd < -0.5 && fwd > -22 && absLat < 4.0){
+        const approaching = (o.vx||0) - v;
+        if(approaching > 1.8 && this.raceCraft > 0.35) fastAttackerLat = lat;
+        if(fwd > -10 && absLat < 3.2){
+          dodge += (lat > 0 ? -1 : 1) * 0.28 * this.aggression;
+        }
+      }
+    }
+
+    // Pack-Bremsung
+    if(carsClose >= 3){
+      vCap = Math.min(vCap, v * (curvLoad > 0.3 ? 0.92 : 0.82));
+      dodge += (Math.random()<0.5 ? -1 : 1) * (0.20 + this.aggression*0.12);
+    } else if(carsClose >= 2){
+      vCap = Math.min(vCap, v * (curvLoad > 0.3 ? 0.97 : 0.90));
+    }
+
+    // === ÜBERHOLENTSCHEIDUNG ===
+    const ov = this._ov;
+    if(bestOTTarget && !ov.phase){
+      const readyToOvertake = (this.raceCraft + this.aggression) > 0.80
+        && Math.random() < (this.aggression*0.10 + this.raceCraft*0.07);
+      if(readyToOvertake){
+        // Welche Seite hat mehr Platz?
+        const qLat = q ? q.lat : 0;
+        ov.side    = qLat > 0 ? -1 : 1;
+        ov.phase   = 'setup';
+        ov.targetId = bestOTTarget._uid;
+        ov.timer   = 3.5 + this.raceCraft * 2.0;
+      }
+    }
+
+    // Überholautomatik ticken (timer wird in control() mit echtem dt dekrementiert)
+    if(ov.phase){
+      if(ov.phase === 'setup' && ov.timer < 2.8) ov.phase = 'attack';
+      if(ov.phase === 'attack'){
+        const tgt = others.find(o => o._uid === ov.targetId);
+        if(!tgt || ov.timer <= 0){
+          ov.phase = null; ov.targetId = null; ov.side = 0;
+        } else {
+          const dx2 = tgt.pos.x - car.pos.x, dz2 = tgt.pos.z - car.pos.z;
+          const fwd2 = sin_h*dx2 + cos_h*dz2;
+          if(fwd2 < -3 || curvLoad > 0.58){ ov.phase = null; ov.targetId = null; ov.side = 0; }
+        }
+      }
+      if(ov.phase === 'attack' && curvLoad < 0.22) vCap = Math.min(vCap * 1.07, 95);
+      if(ov.phase === 'attack') dodge = ov.side * 2.0;
+    }
+
+    // === VERTEIDIGUNG ===
+    const def = this._def;
+    if(fastAttackerLat !== null && !def.active){
+      if(this.raceCraft > 0.42 && Math.random() < this.raceCraft * 0.38){
+        def.active = true;
+        def.side   = fastAttackerLat > 0 ? 1 : -1;
+        def.timer  = 1.8 + this.raceCraft * 1.8;
+      }
+    }
+    if(def.active && def.timer <= 0) { def.active = false; def.side = 0; }
+
+    return {dodge, vCap};
+  }
+
+  /* ───────────────── REIFEN-STRATEGIE ───────────────── */
+
+  _updateTireMode(car, race){
+    if(!car.tireWear) return;
+    const tw  = car.tireWear;
+    const avg = (tw.FL + tw.FR + tw.RL + tw.RR) * 0.25;
+    const minT = Math.min(tw.FL, tw.FR, tw.RL, tw.RR);
+    const laps  = race ? race.lap : 1;
+    const total = this.totalLaps || 1;
+
+    if(avg > 0.70 && laps/total < 0.55 && this._ov.phase === 'attack'){
+      this._tireMode = 'push';
+    } else if(avg < 0.38 || minT < 0.28){
+      this._tireMode = 'save';
+    } else {
+      this._tireMode = 'normal';
+    }
+  }
+
+  _tireModeVFactor(){
+    if(this._tireMode === 'push') return 1.04;
+    if(this._tireMode === 'save') return 0.92;
+    return 1.0;
+  }
+
+  /* ───────────────── RECOVERY ───────────────── */
+
   idle(car){
     const inp = this.input;
     inp.steer = 0; inp.throttle = 0;
@@ -3511,13 +4077,10 @@ class AIDriver {
     return inp;
   }
 
-  /** Versucht das Auto bei Wandkontakt oder Festfahren zu befreien.
-   *  Gibt das Input-Objekt zurück wenn übersteuert, null sonst. */
   handleRecovery(car, q, v, dt, track){
     if(Math.abs(v)<1.2 && this.revT<=0) this.stuckT += dt; else if(this.revT<=0) this.stuckT = 0;
     if(this.stuckT > 1.5){
       this.stuckT = 0;
-      /* Nase Richtung Wand? */
       const ns = Math.sin(car.heading)*q.side.x + Math.cos(car.heading)*q.side.z;
       const intoWall = Math.sign(q.lat)*ns > 0.25;
       this.revT = intoWall ? 1.8 : 0;
@@ -3536,512 +4099,315 @@ class AIDriver {
       inp.steer = clamp(-Math.sign(q.lat)*1.0, -1, 1);
       return inp;
     }
-    /* Falschrum? */
     const qd = track.samples[(q.idx+6)%track.N].pos;
     let errNow = Math.atan2(qd.x-car.pos.x, qd.z-car.pos.z) - car.heading;
-    while(errNow > Math.PI) errNow -= 2*Math.PI;
+    while(errNow >  Math.PI) errNow -= 2*Math.PI;
     while(errNow < -Math.PI) errNow += 2*Math.PI;
-    if(this.turnT <= 0 && Math.abs(errNow) > 2.1 && Math.abs(v) < 8) this.turnT = 3.0;
+    if(this.turnT<=0 && Math.abs(errNow)>2.1 && Math.abs(v)<8) this.turnT = 3.0;
     if(this.turnT > 0){
       this.turnT -= dt;
-      if(Math.abs(errNow) < 0.9) this.turnT = 0;
-      else {
-        inp.throttle = 1; inp.brake = 0; inp.steer = Math.sign(errNow);
-        return inp;
-      }
+      if(Math.abs(errNow)<0.9) this.turnT = 0;
+      else { inp.throttle=1; inp.brake=0; inp.steer=Math.sign(errNow); return inp; }
     }
     return null;
   }
 
-  /** Aktualisiert pitState basierend auf Strategie und aktueller Runde */
-  updatePitStrategy(car, race, track){
-    if(typeof Game!=='undefined'&&!Game.pitStopsEnabled) return;
-    const currentLap = race ? race.lap : 1;
-
-    /* === Schadens-basierter Boxenstopp ===
-       Bei sehr schwerem Schaden oder plattem Reifen: in die Box.
-       Cooldown: nicht sofort wieder nach dem letzten Stopp (mind. 2 Runden). */
-    if(this.pitState !== 'go-to-pit' && this.pitState !== 'in-pit'){
-      const sinceLastPit = currentLap - (this._lastPitLap || 0);
-      if(sinceLastPit >= 2){
-        const worstZone = Math.max(car.damage.front, car.damage.rear, car.damage.left, car.damage.right);
-        const heavyDamage = worstZone > 70 || car.totalDamage > 50;
-        const tireBlown = car.tireWear && (
-          car.tireWear.FL < 0.15 || car.tireWear.FR < 0.15 ||
-          car.tireWear.RL < 0.15 || car.tireWear.RR < 0.15
-        );
-        if(heavyDamage || tireBlown){
-          this.pitState = 'go-to-pit';
-          this._damagePit = true;
-        }
-      }
-    }
-
-    /* === Geplanter Pflicht-Stopp === */
-    if(this.plannedPitLap && this.pitState === 'racing' && currentLap >= this.plannedPitLap){
-      this.pitState = 'go-to-pit';
-    }
-
-    /* done-pit bei geplantem Stopp → nur wenn nicht gerade Schadens-Stopp nötig */
-    if(!this.plannedPitLap && this.pitState === 'done-pit' && !this._damagePit) return;
-
-    /* === Pit-Lane-Eintritt: nah an Box → bremsen === */
-    if(this.pitState === 'go-to-pit' && car.query && car.query.inPitLane){
-      const box = (track && track.pitBoxes && car.assignedBox != null) ? track.pitBoxes[car.assignedBox] : null;
-      let nearBox = !box;
-      if(box){
-        const dxB = box.stopPos.x - car.pos.x;
-        const dzB = box.stopPos.z - car.pos.z;
-        nearBox = (dxB*dxB + dzB*dzB) < 25;
-      }
-      if(nearBox){
-        this.pitState = 'in-pit';
-        car.pitLimiterActive = true;
-      }
-    }
-
-    /* === Stopp fertig → raus === */
-    if(this.pitState === 'in-pit' && car.pitStopState === 'done'){
-      this.pitState = 'done-pit';
-      car.pitLimiterActive = false;
-      this.plannedPitLap = null;
-      this._damagePit = false;
-      this._lastPitLap = currentLap;
-    }
-  }
-
-  /** Plant Zieltempo: Look-ahead über Bremswege auf engste Kurve voraus */
-  planCornerSpeed(car, track, q, speed, kAero){
-    let tgtV = 95;
-    const seg = track.segLen;
-    /* Horizont = wo wir aus aktuellem Tempo gerade noch bremsen können */
-    const effBrk = this.aBrk * (this._cgs || 1);
-    /* Brems-Cap: nicht über Reifen-Maximum */
-    const effBrkUse = Math.min(effBrk, (car?.def?.gripF||1.30)/1.30*1.30*9.81*0.95);
-    const hor = Math.min(track.N-2, Math.ceil((30 + speed*speed/(2*effBrkUse))/seg));
-    for(let k = 2; k < hor; k++){
-      const i2 = (q.idx+k)%track.N;
-      const c = Math.abs(track.samples[i2].curv);
-      /* Bergab Reserve abziehen */
-      const slopeK = (track.samples[(i2+3)%track.N].pos.y - track.samples[i2].pos.y)/(3*seg);
-      const derate = clamp(1 + Math.min(0, slopeK)*4, 0.6, 1);
-      const saveA = this.aLatBase; this.aLatBase *= derate;
-      const vC = this.cornerV(Math.max(c, 0.0016), kAero);
-      this.aLatBase = saveA;
-      /* Kinematische Bremsgleichung: v² ≤ vC² + 2·a·s */
-      const al = Math.sqrt(vC*vC + 2*effBrkUse*k*seg);
-      if(al < tgtV) tgtV = al;
-    }
-    /* Zusätzliche Vorsicht in engen Kurven und direkt nach dem Start */
-    const curvNow = Math.abs(track.samples[q.idx].curv);
-    if(curvNow > 0.006){
-      tgtV *= 1 - clamp((curvNow - 0.006) * 7, 0, 0.10);
-    }
-    return tgtV;
-  }
-
-  /** Scannt andere Autos nach Verkehr — gibt {dodge, targetVCap} zurück */
-  scanTraffic(car, others, v){
-    let dodge = 0;
-    let vCap = 95;
-    if(!others) return {dodge, vCap};
-    const sin_h = Math.sin(car.heading), cos_h = Math.cos(car.heading);
-    const curveLoad = clamp((this.lastCurv || 0) / 0.008, 0, 1);
-    let carsAheadClose = 0;    // Zähler: wie viele Autos innerhalb 20m vor uns?
-    for(const o of others){
-      if(o === car) continue;
-      const dx = o.pos.x - car.pos.x, dz = o.pos.z - car.pos.z;
-      const d2 = dx*dx + dz*dz;
-      if(d2 > 2500) continue;     // 50m Radius
-      const fwd = sin_h*dx + cos_h*dz;
-      const lat = cos_h*dx - sin_h*dz;
-      /* === Auto VORAUS === */
-      if(fwd > 0.5 && fwd < 50){
-        const absLat = Math.abs(lat);
-        /* Direkt vor mir (innerhalb ±3m Spur) */
-        if(absLat < 3.0){
-          if(fwd < 20) carsAheadClose++;
-          /* Ausweich-Richtung */
-          if(absLat < 2.2 && fwd < 35){
-            dodge = (lat >= 0 ? -1 : 1) * 2.0;
-          }
-          if(curveLoad > 0.25 && fwd < 28){
-            dodge += (lat >= 0 ? -1 : 1) * (0.18 + this.aggression*0.10);
-          }
-          /* Geschwindigkeits-Cap: sanftes Annähern, KEIN Auffahren */
-          const closing = v - Math.max(o.vx, 0);
-          if(closing > 0){
-            /* Sicherheitsabstand: je schneller wir schließen, desto früher bremsen */
-            const safeGap = 4 + closing*0.8;
-            if(fwd < safeGap + closing*1.5){
-              const cap = Math.max(o.vx, 0) + Math.max(0, (fwd - safeGap)) * 0.3;
-              vCap = Math.min(vCap, cap);
-            }
-          }
-        }
-        /* Neben uns (±3-5m) — Seitenkollision in Kurven vermeiden */
-        if(absLat >= 2.0 && absLat < 5.0 && fwd < 8 && fwd > -3){
-          dodge += (lat > 0 ? -0.5 : 0.5);
-        }
-      }
-      /* === Auto HINTER MIR (leichte Verteidigung) === */
-      if(fwd < -1.5 && fwd > -12 && Math.abs(lat) < 3.5 && o.vx > v+1){
-        dodge += (lat > 0 ? -1 : 1) * 0.3 * this.aggression;
-      }
-    }
-    /* Bei vielen Autos direkt vor uns: EXTRA bremsen (Pack-Awareness) */
-    if(carsAheadClose >= 3){
-      vCap = Math.min(vCap, v * (curveLoad > 0.3 ? 0.92 : 0.82));
-      dodge += (Math.random()<0.5 ? -1 : 1) * (0.22 + this.aggression*0.12);
-    } else if(carsAheadClose >= 2){
-      vCap = Math.min(vCap, v * (curveLoad > 0.3 ? 0.97 : 0.90));
-    }
-    return {dodge, vCap};
-  }
-
-  /** Berechnet Sollposition (Linien-Offset) für die Ideallinie */
-  computeLine(track, q, dodge){
-    const seg = track.segLen;
-    const maxOff = track.def.halfWidth - 2.0;
-    /* Lookahead-Index */
-    const liDist = 30;
-    const li = (q.idx + Math.round(liDist/seg)) % track.N;
-    /* Scannen nach engster Kurve voraus */
-    const scan = Math.round(40/seg);
-    let cMaxAbs = 0, cMaxSign = 0;
-    for(let k = 0; k < scan; k++){
-      const cc = track.samples[(li+k)%track.N].curv;
-      if(Math.abs(cc) > cMaxAbs){ cMaxAbs = Math.abs(cc); cMaxSign = Math.sign(cc); }
-    }
-    const curvHere = track.samples[li].curv;
-    const inApex = Math.abs(curvHere) > cMaxAbs*0.55;
-    const apexStrength = Math.min(1, cMaxAbs*42)*this.apexK;
-    let apex = cMaxSign * (inApex ? +1 : -0.4) * apexStrength * maxOff;
-    if(curvHere*cMaxSign < -1e-5) apex *= 0.2;
-    return {target: clamp(this.lineOff*0.3 + apex + dodge, -maxOff, maxOff), li, maxOff};
-  }
-
-  /** Gas/Bremse setzen basierend auf Differenz Tempo→Ziel */
-  applyPedals(v, tgtV){
-    const inp = this.input;
-    const dv = tgtV - v;
-    inp.throttle = clamp(dv*0.55 + 0.12, 0, 1);
-    inp.brake    = clamp(-dv*0.45 - 0.08, 0, 1);
-    if(inp.brake > 0.04) inp.throttle = 0;
-  }
-
-  /** Lenkung Richtung Lookahead-Punkt — niedrige Verstärkung + Rate-Limit */
-  applySteering(car, track, q, lineSpec, dt){
-    const inp = this.input;
-    const speed = Math.abs(car.vx);
-    /* Linie sanft slewen für ruhige Bewegung */
-    this.loS += clamp(lineSpec.target - this.loS, -dt*5.0, dt*5.0);
-    let lo = this.loS;
-
-    /* === WALL AVOIDANCE: am Streckenrand aktiv nach innen ziehen === */
-    const margin = track.def.halfWidth - 1.2;
-    const over = Math.abs(q.lat) - margin;
-    if(over > 0){
-      /* Proportional + aggressiver je schneller */
-      const urgency = 1 + speed*0.015;
-      lo = clamp(lo - Math.sign(q.lat)*(over*urgency + 1.5), -lineSpec.maxOff, lineSpec.maxOff);
-    }
-
-    /* === SPEED-ADAPTIVE LOOKAHEAD: schneller = weiter voraus schauen === */
-    const liDist = Math.max(25, speed * 0.65);     // 25m @ Stillstand, 52m @ 80km/h, 85m @ 130km/h
-    const li = (q.idx + Math.round(liDist / track.segLen)) % track.N;
-    const ts = track.samples[li];
-    const tx = ts.pos.x + ts.side.x*lo;
-    const tz = ts.pos.z + ts.side.z*lo;
-    const desired = Math.atan2(tx - car.pos.x, tz - car.pos.z);
-    let err = desired - car.heading;
-    while(err > Math.PI) err -= 2*Math.PI;
-    while(err < -Math.PI) err += 2*Math.PI;
-    this.lastErr = err;
-
-    /* === PD-CONTROLLER: proportional + derivative (yaw damping) ===
-       Gain steigt bei niedriger Geschwindigkeit (engere Kurven brauchen mehr Lenkeinschlag) */
-    const Kp = 1.05 + 1.55 / Math.max(speed, 5);     // etwas ruhiger
-    const Kd = 0.30 + speed*0.0015;                  // mehr Dämpfung
-    const steerCmd = clamp(err*Kp - car.yawRate*Kd, -1, 1);
-
-    /* Rate-Limit: schnellere Lenkbewegungen bei niedrigem Speed (enge Kurven) */
-    const maxRate = 4.6 + 2.4 / Math.max(speed*0.02, 0.5);
-    const dS = clamp(steerCmd - inp.steer, -maxRate*dt, maxRate*dt);
-    inp.steer += dS;
-  }
-
-  /** Traktionskontrolle: leicht — nur extreme Situationen */
-  applyTractionControl(car, v, kAero){
-    const inp = this.input;
-    /* Spin-Schutz: bei echtem Slide Gas stark runter */
-    if(Math.abs(car.vy) > 2.0 + Math.abs(v)*0.035){
-      inp.throttle *= 0.20;
-    }
-    /* Sanfte Throttle-Reduktion nur bei starkem Lenkeinschlag — verhindert Heck-Ausbruch
-       Bei 50% Lenkung → 100% Gas erlaubt. Bei 100% Lenkung → 70% Gas. */
-    const st = Math.abs(inp.steer);
-    if(st > 0.5){
-      const limit = 1.0 - (st - 0.5) * 0.6;     // 1.0 bei st=0.5, 0.7 bei st=1.0
-      inp.throttle = Math.min(inp.throttle, limit);
-    }
-  }
-
-  /** Off-Track-Recovery: vorsichtig zurück auf die Strecke */
   offRoadRecover(car, track, q, v){
     const inp = this.input;
     const tgtV = 9;
     const center = track.samples[(q.idx+4)%track.N];
     const desired = Math.atan2(center.pos.x - car.pos.x, center.pos.z - car.pos.z);
     let er = desired - car.heading;
-    while(er > Math.PI) er -= 2*Math.PI;
+    while(er >  Math.PI) er -= 2*Math.PI;
     while(er < -Math.PI) er += 2*Math.PI;
     this.lastErr = er;
     const dv = tgtV - v;
-    inp.throttle = clamp(dv*0.5 + 0.3, 0, 1);
-    inp.brake    = clamp(-dv*0.5, 0, 1);
+    inp.throttle = clamp(dv*0.5+0.3,0,1);
+    inp.brake    = clamp(-dv*0.5,0,1);
     if(inp.brake > 0.04) inp.throttle = 0;
     inp.steer = clamp(er*2.5 - car.yawRate*0.20, -1, 1);
     return inp;
   }
 
-  /** Hauptkontrolle pro Tick */
-  control(car, track, dt, running, others, race){
-    if(!running || car._frozen) return this.idle(car);
-    const q = track.query(car.pos, car.sampleIdx);
-    const v = car.vx, speed = Math.abs(v);
-    this.lastCurv = Math.abs(track.samples[q.idx].curv);
-    const kAero = 0.55 * 9.81 * 1.3 / (car.def.topSpeed*car.def.topSpeed);
+  /* ───────────────── PIT-STRATEGIE ───────────────── */
 
-    /* Klassen-Skalierung: Hypercar/LMP2 nutzen mehr vom physikalischen Limit */
-    this._cgs = this.classGripScale(car);
-    /* Narrow-Track-Safety: auf engen Strecken weniger aggressiv.
-       Höherer Skill = braucht MEHR Sicherheitsmarge weil die Absolutgeschwindigkeiten höher sind */
-    const hw = track.def.halfWidth || 8;
-    const skillMargin = 1 + this.skill * 0.08;
-    if(hw < 6.5) this._cgs *= clamp(0.82 / skillMargin, 0.72, 0.88);
-    else if(hw < 7.5) this._cgs *= clamp(0.92 / skillMargin, 0.85, 0.95);
-    /* Physics-capped effective lateral grip — nie über 90% des echten Auto-Grips */
-    this._effALat = this.effectiveALat(car, speed);
-    /* Start-Phase: 50% Grip für 15s → kein Massencrash */
-    if(typeof Game!=='undefined' && Game._raceTimeS!=null && Game._raceTimeS<15){
-      this._effALat *= 0.50 + 0.50*clamp(Game._raceTimeS/15,0,1);
+  setupForRace(totalLaps, mandatoryPit){
+    this.totalLaps    = totalLaps;
+    this.mandatoryPit = mandatoryPit;
+    if(mandatoryPit && totalLaps > 1){
+      const lo = Math.max(2, Math.ceil(totalLaps*0.35));
+      const hi = Math.max(lo, Math.floor(totalLaps*0.70));
+      this.plannedPitLap = lo + Math.floor(Math.random()*(hi-lo+1));
+    } else {
+      this.plannedPitLap = null;
+    }
+  }
+
+  updatePitStrategy(car, race, track){
+    if(typeof Game!=='undefined'&&!Game.pitStopsEnabled) return;
+    const currentLap = race ? race.lap : 1;
+
+    if(this.pitState !== 'go-to-pit' && this.pitState !== 'in-pit'){
+      const sinceLastPit = currentLap - (this._lastPitLap||0);
+      if(sinceLastPit >= 2){
+        const worstZone = Math.max(car.damage.front,car.damage.rear,car.damage.left,car.damage.right);
+        const heavyDamage = worstZone > 70 || car.totalDamage > 50;
+        const tireBlown = car.tireWear && (
+          car.tireWear.FL<0.15||car.tireWear.FR<0.15||car.tireWear.RL<0.15||car.tireWear.RR<0.15
+        );
+        if(heavyDamage||tireBlown){ this.pitState='go-to-pit'; this._damagePit=true; }
+      }
     }
 
-    /* Pit-Strategie zuerst — sonst frisst die Stuck-Recovery die in-pit→done-pit Transition,
-       weil das Auto während des Stopps natürlich bei v=0 steht und als "festgefahren" gilt */
+    if(this.plannedPitLap && this.pitState==='racing' && currentLap>=this.plannedPitLap)
+      this.pitState = 'go-to-pit';
+
+    if(!this.plannedPitLap && this.pitState==='done-pit' && !this._damagePit) return;
+
+    if(this.pitState==='go-to-pit' && car.query && car.query.inPitLane){
+      const box = (track&&track.pitBoxes&&car.assignedBox!=null) ? track.pitBoxes[car.assignedBox] : null;
+      let nearBox = !box;
+      if(box){ const dxB=box.stopPos.x-car.pos.x, dzB=box.stopPos.z-car.pos.z; nearBox=(dxB*dxB+dzB*dzB)<25; }
+      if(nearBox){ this.pitState='in-pit'; car.pitLimiterActive=true; }
+    }
+
+    if(this.pitState==='in-pit' && car.pitStopState==='done'){
+      this.pitState='done-pit'; car.pitLimiterActive=false;
+      this.plannedPitLap=null; this._damagePit=false; this._lastPitLap=currentLap;
+    }
+  }
+
+  /* ───────────────── PEDALE / LENKUNG ───────────────── */
+
+  applyPedals(v, tgtV){
+    const inp = this.input;
+    const dv  = tgtV - v;
+    inp.throttle = clamp(dv*0.55 + 0.12, 0, 1);
+    inp.brake    = clamp(-dv*0.45 - 0.08, 0, 1);
+    if(inp.brake > 0.04) inp.throttle = 0;
+  }
+
+  applySteering(car, track, q, lineSpec, dt){
+    const inp   = this.input;
+    const speed = Math.abs(car.vx);
+
+    // Linie sanft slewen
+    this.loS += clamp(lineSpec.target - this.loS, -dt*5.0, dt*5.0);
+    let lo = this.loS;
+
+    // Wandvermeidung
+    const margin = track.def.halfWidth - 1.2;
+    const over   = Math.abs(q.lat) - margin;
+    if(over > 0){
+      const urgency = 1 + speed*0.015;
+      lo = clamp(lo - Math.sign(q.lat)*(over*urgency+1.5), -lineSpec.maxOff, lineSpec.maxOff);
+    }
+
+    // Lookahead-Distanz
+    const liDist = Math.max(25, speed*0.65);
+    const li     = (q.idx + Math.round(liDist/track.segLen)) % track.N;
+    const ts     = track.samples[li];
+    const tx = ts.pos.x + ts.side.x*lo;
+    const tz = ts.pos.z + ts.side.z*lo;
+    const desired = Math.atan2(tx - car.pos.x, tz - car.pos.z);
+    let err = desired - car.heading;
+    while(err >  Math.PI) err -= 2*Math.PI;
+    while(err < -Math.PI) err += 2*Math.PI;
+    this.lastErr = err;
+
+    // PD-Regler
+    const Kp = 1.05 + 1.55/Math.max(speed,5);
+    const Kd = 0.30 + speed*0.0015;
+    const steerCmd = clamp(err*Kp - car.yawRate*Kd, -1, 1);
+    const maxRate  = 4.6 + 2.4/Math.max(speed*0.02, 0.5);
+    inp.steer += clamp(steerCmd - inp.steer, -maxRate*dt, maxRate*dt);
+  }
+
+  applyTractionControl(car, v, kAero){
+    const inp = this.input;
+    if(Math.abs(car.vy) > 2.0 + Math.abs(v)*0.035) inp.throttle *= 0.20;
+    const st = Math.abs(inp.steer);
+    if(st > 0.5) inp.throttle = Math.min(inp.throttle, 1.0 - (st-0.5)*0.6);
+  }
+
+  /* ───────────────── HAUPTSCHLEIFE ───────────────── */
+
+  control(car, track, dt, running, others, race){
+    if(!running || car._frozen) return this.idle(car);
+
+    const q     = track.query(car.pos, car.sampleIdx);
+    const v     = car.vx;
+    const speed = Math.abs(v);
+    this.lastCurv = Math.abs(track.samples[q.idx].curv);
+    const kAero   = 0.55 * 9.81 * 1.3 / (car.def.topSpeed * car.def.topSpeed);
+    const weather = (typeof Game!=='undefined' && Game.weather) ? Game.weather : null;
+
+    // Klassen-Skalierung
+    this._cgs = this.classGripScale(car);
+    const hw          = track.def.halfWidth || 8;
+    const skillMargin = 1 + this.skill*0.08;
+    if(hw < 6.5)      this._cgs *= clamp(0.82/skillMargin, 0.72, 0.88);
+    else if(hw < 7.5) this._cgs *= clamp(0.92/skillMargin, 0.85, 0.95);
+
+    this._effALat = this.effectiveALat(car, speed);
+    if(typeof Game!=='undefined' && Game._raceTimeS!=null && Game._raceTimeS<15)
+      this._effALat *= 0.50 + 0.50*clamp(Game._raceTimeS/15, 0, 1);
+
+    // Pit-Strategie zuerst
     this.updatePitStrategy(car, race, track);
 
-    /* Wenn in der Box: bremsen + Steuerung auf Pit-Lane-Mitte halten */
+    // In-Box: bremsen + auf Mitte halten
     if(this.pitState === 'in-pit'){
       const inp = this.input;
-      this.stuckT = 0; this.revT = 0; this.fwdRescueT = 0;
-      /* Wenn aus der Box geraten (z.B. nach Bremsen mit Drift) → zurück zu go-to-pit */
-      if(!q.inPitLane && Math.abs(q.lat) > track.def.halfWidth + 2){
-        this.pitState = 'go-to-pit';
-        return inp;
-      }
-      /* Steuerung auf Pit-Lane-Mitte halten — Auto soll mittig im Pit zum Stillstand kommen */
+      this.stuckT=0; this.revT=0; this.fwdRescueT=0;
+      if(!q.inPitLane && Math.abs(q.lat) > track.def.halfWidth+2){ this.pitState='go-to-pit'; return inp; }
       if(track.def.pitLane){
         const pl = track.def.pitLane;
-        const pitMidOff = (pl.innerOff + pl.outerOff)/2 * pl.side;
-        const seg = track.segLen;
-        const li = (q.idx + Math.round(8/seg)) % track.N;
+        const pitMidOff = (pl.innerOff+pl.outerOff)/2 * pl.side;
+        const li = (q.idx + Math.round(8/track.segLen)) % track.N;
         const ts = track.samples[li];
-        const tx = ts.pos.x + ts.side.x * pitMidOff;
-        const tz = ts.pos.z + ts.side.z * pitMidOff;
-        const desired = Math.atan2(tx - car.pos.x, tz - car.pos.z);
+        const tx = ts.pos.x + ts.side.x*pitMidOff;
+        const tz = ts.pos.z + ts.side.z*pitMidOff;
+        const desired = Math.atan2(tx-car.pos.x, tz-car.pos.z);
         let err = desired - car.heading;
-        while(err > Math.PI) err -= 2*Math.PI;
+        while(err >  Math.PI) err -= 2*Math.PI;
         while(err < -Math.PI) err += 2*Math.PI;
-        const steerCmd = clamp(err*0.9 - car.yawRate*0.4, -1, 1);
-        const dS = clamp(steerCmd - inp.steer, -4.0*dt, 4.0*dt);
-        inp.steer += dS;
-      } else {
-        inp.steer = 0;
-      }
-      inp.throttle = 0; inp.brake = 1;
+        inp.steer += clamp(clamp(err*0.9-car.yawRate*0.4,-1,1)-inp.steer, -4.0*dt, 4.0*dt);
+      } else { inp.steer=0; }
+      inp.throttle=0; inp.brake=1;
       return inp;
     }
 
-    /* Recovery erst NACH Pit-Check */
+    // Recovery nach Pit-Check
     const rec = this.handleRecovery(car, q, v, dt, track);
     if(rec) return rec;
 
-    const pitInfo = track.pitLaneInfo || null;
-    const pitMidOff = pitInfo ? pitInfo.midOff : (track.def.pitLane ? ((track.def.pitLane.innerOff + track.def.pitLane.outerOff) / 2) * track.def.pitLane.side : 0);
-    const pitPoint = (idx) => {
-      const ts = track.samples[(idx + track.N) % track.N];
-      return {
-        x: ts.pos.x + ts.side.x * pitMidOff,
-        z: ts.pos.z + ts.side.z * pitMidOff
-      };
+    const pitInfo   = track.pitLaneInfo || null;
+    const pitMidOff = pitInfo
+      ? pitInfo.midOff
+      : (track.def.pitLane ? ((track.def.pitLane.innerOff+track.def.pitLane.outerOff)/2)*track.def.pitLane.side : 0);
+    const pitPoint  = (idx) => {
+      const ts = track.samples[(idx+track.N)%track.N];
+      return {x: ts.pos.x+ts.side.x*pitMidOff, z: ts.pos.z+ts.side.z*pitMidOff};
     };
 
-    /* Off-Track? */
-    const off = car.surf === SURF.GRASS || Math.abs(q.lat) > track.def.halfWidth - 0.3;
-    /* Pit-Anfahrt überschreibt Off-Track-Recovery: KI muss bewusst auf die Einfahrt und dann die ganze Pitlane fahren */
-    let pitDriving = false;
-    let pitMode = null; // entry | lane | exit
+    const off = car.surf===SURF.GRASS || Math.abs(q.lat)>track.def.halfWidth-0.3;
+    let pitDriving=false, pitMode=null;
     if(track.def.pitLane){
-      if(this.pitState === 'go-to-pit'){
-        pitDriving = true;
-        pitMode = q.inPitLane ? 'lane' : 'entry';
-      } else if(this.pitState === 'done-pit' && q.inPitLane){
-        pitDriving = true;
-        pitMode = 'exit';
-      }
+      if(this.pitState==='go-to-pit'){ pitDriving=true; pitMode=q.inPitLane?'lane':'entry'; }
+      else if(this.pitState==='done-pit'&&q.inPitLane){ pitDriving=true; pitMode='exit'; }
     }
     if(off && !q.inPitLane && !pitDriving) return this.offRoadRecover(car, track, q, v);
 
-    /* Tempo-Planung */
-    let tgtV = this.planCornerSpeed(car, track, q, speed, kAero);
-    if(this.pitState === 'go-to-pit'){
-      car.pitLimiterActive = true;
-    }
-    if(this.pitState === 'in-pit' || this.pitState === 'done-pit'){
-      car.pitLimiterActive = true;
-    }
-    if(car.pitLimiterActive){
-      tgtV = Math.min(tgtV, 60/3.6 - 0.5);
-    }
+    // Reifen-Modus aktualisieren
+    this._updateTireMode(car, race);
 
-    /* Verkehr */
-    const traffic = this.scanTraffic(car, others, v);
+    // Kurvengeschwindigkeit planen (mit Wetter)
+    let tgtV = this.planCornerSpeed(car, track, q, speed, kAero, weather);
+    tgtV *= this._tireModeVFactor();
+
+    // Pit-Limiter
+    if(this.pitState==='go-to-pit'||this.pitState==='in-pit'||this.pitState==='done-pit')
+      car.pitLimiterActive = true;
+    if(car.pitLimiterActive) tgtV = Math.min(tgtV, 60/3.6 - 0.5);
+
+    // Überholzustand mit echtem dt ticken
+    this._ov.timer  -= dt;
+    this._def.timer -= dt;
+
+    // Verkehr + Überholscan
+    const traffic = this.scanTraffic(car, others, v, track, q);
     if(traffic.vCap < tgtV) tgtV = traffic.vCap;
 
-    /* === AI WINDSCHATTEN-NUTZUNG + ÜBERHOLBOOST ===
-       Wenn die KI im Windschatten ist, hebt sie das Tempolimit an (Physik gibt sowieso
-       weniger Drag, aber die KI muss auch Gas geben statt zu bremsen).
-       Beim aktiven Überholen (dodge aktiv = neben einem Gegner) kleiner Gripboost. */
+    // Windschatten
     const slip = car.slipstreamFactor || 0;
     if(slip > 0.2){
-      /* Im Windschatten: Zieltempo um bis zu 8% anheben (auf Geraden) */
       const curvHere = Math.abs(track.samples[q.idx].curv);
-      if(curvHere < 0.005){     // fast gerade
-        tgtV *= 1 + slip * 0.08;
-      }
-    }
-    if(Math.abs(traffic.dodge) > 1.5){
-      /* Aktiv am Überholen (neben einem Gegner) → mehr Grip und Mut */
-      tgtV *= 1.10;
-      this._effALat *= 1.08;
-    }
-    if(this.lastCurv > 0.004 && Math.abs(traffic.dodge) > 0.5){
-      tgtV *= 1.04;
+      if(curvHere < 0.005) tgtV *= 1 + slip*0.08;
     }
 
-    /* Formation (Fliegender Start): geradeaus, 60 km/h, kein Lenken */
+    // Überholboost
+    if(this._ov.phase === 'attack'){
+      tgtV *= 1.08; this._effALat *= 1.06;
+    }
+
+    // Formation / SC / VSC
     if(typeof Game!=='undefined' && Game._formationPhase){
-      tgtV = Math.min(tgtV, 60/3.6);
-      this.input.steer = 0;
+      tgtV = Math.min(tgtV, 60/3.6); this.input.steer = 0;
     }
-    /* Green-Boost: KI beschleunigt 3s schneller als Spieler */
-    if(typeof Game!=='undefined' && Game._greenBoostUntil && performance.now() < Game._greenBoostUntil){
-      tgtV *= 1.40;     // 40% mehr Zieltempo → KI schießt aus der Formation
-    }
-    /* VSC: alle KI auf 120 km/h gedrosselt */
-    if(typeof Game !== 'undefined' && Game.vsc && Game.vsc.active){
+    if(typeof Game!=='undefined' && Game._greenBoostUntil && performance.now()<Game._greenBoostUntil)
+      tgtV *= 1.40;
+    if(typeof Game!=='undefined' && Game.vsc && Game.vsc.active)
       tgtV = Math.min(tgtV, 115/3.6);
-    }
-    /* Safety Car aktiv: nicht schneller als SC fahren, Abstand halten (nicht überholen) */
-    if(typeof Game !== 'undefined' && Game.safetyCar && Game.safetyCar.state !== 'idle'){
+    if(typeof Game!=='undefined' && Game.safetyCar && Game.safetyCar.state!=='idle'){
       const sc = Game.safetyCar;
-      tgtV = Math.min(tgtV, sc.speed - 0.5);
-      /* Wenn SC vor uns: Abstand bei <30m → noch langsamer */
-      const dx = sc.pos.x - car.pos.x, dz = sc.pos.z - car.pos.z;
-      const dist = Math.hypot(dx, dz);
-      /* Ist SC vor mir auf der Strecke? Sample-Index Vergleich */
-      const scIdx = sc.sampleIdx;
-      const myIdx = q.idx;
-      const aheadOnTrack = ((scIdx - myIdx + track.N) % track.N) < (track.N / 2);
-      if(aheadOnTrack && dist < 40){
-        tgtV = Math.min(tgtV, sc.speed * dist/40);
-      }
+      tgtV = Math.min(tgtV, sc.speed-0.5);
+      const dx=sc.pos.x-car.pos.x, dz=sc.pos.z-car.pos.z;
+      const dist=Math.hypot(dx,dz);
+      const ahead=((sc.sampleIdx-q.idx+track.N)%track.N)<(track.N/2);
+      if(ahead && dist<40) tgtV = Math.min(tgtV, sc.speed*dist/40);
     }
 
-    /* Pit-Anfahrt: zielt auf zugewiesene Box (oder Pit-Mitte als Fallback) */
+    // Pit-Anfahrt
     if(pitDriving){
-      const pl = track.def.pitLane;
-      const seg = track.segLen;
-      /* Ziel: zuerst Einfahrtstor, dann Box, dann Ausfahrtstor */
-      let tx, tz, sampleIdxTarget = q.idx;
-      const box = (track.pitBoxes && car.assignedBox != null) ? track.pitBoxes[car.assignedBox] : null;
-      if(pitMode === 'entry'){
-        const entryIdx = pitInfo ? pitInfo.entryIdx : (pl.idxStart + 6) % track.N;
-        const p = pitPoint(entryIdx);
-        tx = p.x; tz = p.z;
-        sampleIdxTarget = entryIdx;
-        tgtV = Math.min(tgtV, 55/3.6);
-      } else if(pitMode === 'exit'){
-        const liDist = Math.max(15, speed * 0.5);
-        const li = (q.idx + Math.round(liDist/seg)) % track.N;
-        const ts = track.samples[li];
-        tx = ts.pos.x + ts.side.x * pitMidOff;
-        tz = ts.pos.z + ts.side.z * pitMidOff;
-        sampleIdxTarget = li;
-        tgtV = Math.min(tgtV, 45/3.6);
+      const pl=track.def.pitLane, seg=track.segLen;
+      let tx, tz;
+      const box=(track.pitBoxes&&car.assignedBox!=null)?track.pitBoxes[car.assignedBox]:null;
+      if(pitMode==='entry'){
+        const entryIdx=pitInfo?pitInfo.entryIdx:(pl.idxStart+6)%track.N;
+        const p=pitPoint(entryIdx); tx=p.x; tz=p.z; tgtV=Math.min(tgtV,55/3.6);
+      } else if(pitMode==='exit'){
+        const liDist=Math.max(15,speed*0.5);
+        const li=(q.idx+Math.round(liDist/seg))%track.N;
+        const ts=track.samples[li];
+        tx=ts.pos.x+ts.side.x*pitMidOff; tz=ts.pos.z+ts.side.z*pitMidOff;
+        tgtV=Math.min(tgtV,45/3.6);
       } else if(box){
-        tx = box.stopPos.x; tz = box.stopPos.z;
-        sampleIdxTarget = box.sampleIdx;
+        tx=box.stopPos.x; tz=box.stopPos.z;
       } else {
-        const liDist = Math.max(15, speed * 0.5);
-        const li = (q.idx + Math.round(liDist/seg)) % track.N;
-        const ts = track.samples[li];
-        tx = ts.pos.x + ts.side.x * pitMidOff;
-        tz = ts.pos.z + ts.side.z * pitMidOff;
-        tgtV = Math.min(tgtV, 45/3.6);
+        const liDist=Math.max(15,speed*0.5);
+        const li=(q.idx+Math.round(liDist/seg))%track.N;
+        const ts=track.samples[li];
+        tx=ts.pos.x+ts.side.x*pitMidOff; tz=ts.pos.z+ts.side.z*pitMidOff;
+        tgtV=Math.min(tgtV,45/3.6);
       }
-      /* Entfernung zur Box-Stop-Position */
-      const dxBox = tx - car.pos.x, dzBox = tz - car.pos.z;
-      const distToBox = Math.hypot(dxBox, dzBox);
-      if(box && pitMode === 'lane') tgtV = Math.min(tgtV, Math.max(0, distToBox * 0.45));
-      /* Tempo runter, je näher die Box — letzte 12m sanftes Ausrollen auf 0 */
-      if(distToBox < 20){
-        tgtV = Math.min(tgtV, Math.max(0, distToBox*0.6));
-      }
-      if(q.inPitLane){
-        const pitLatErr = q.lat - pitMidOff;
-        tgtV = Math.min(tgtV, 42/3.6);
-        this.input.steer += clamp(-pitLatErr * 0.015, -0.08, 0.08);
-      }
-      const desired = Math.atan2(dxBox, dzBox);
-      let err = desired - car.heading;
-      while(err > Math.PI) err -= 2*Math.PI;
+      const dxB=tx-car.pos.x, dzB=tz-car.pos.z;
+      const distToBox=Math.hypot(dxB,dzB);
+      if(box&&pitMode==='lane') tgtV=Math.min(tgtV,Math.max(0,distToBox*0.45));
+      if(distToBox<20) tgtV=Math.min(tgtV,Math.max(0,distToBox*0.6));
+      if(q.inPitLane){ const ple=q.lat-pitMidOff; tgtV=Math.min(tgtV,42/3.6); this.input.steer+=clamp(-ple*0.015,-0.08,0.08); }
+      const desired=Math.atan2(dxB,dzB);
+      let err=desired-car.heading;
+      while(err >  Math.PI) err -= 2*Math.PI;
       while(err < -Math.PI) err += 2*Math.PI;
-      const inp = this.input;
-      const steerCmd = clamp(err*1.3 - car.yawRate*0.35, -1, 1);
-      const dS = clamp(steerCmd - inp.steer, -4.8*dt, 4.8*dt);
-      inp.steer += dS;
-      this.applyPedals(v, tgtV);
-      this.applyTractionControl(car, v, kAero);
+      const inp=this.input;
+      inp.steer+=clamp(clamp(err*1.3-car.yawRate*0.35,-1,1)-inp.steer,-4.8*dt,4.8*dt);
+      this.applyPedals(v,tgtV);
+      this.applyTractionControl(car,v,kAero);
       return inp;
     }
 
-    /* Linie */
-    const line = this.computeLine(track, q, traffic.dodge);
+    // Fehler-Tick
+    const inMistake = this._tickMistakes(dt, speed, this.lastCurv);
 
-    /* Pedale, Lenkung, Traktion */
+    // 3-Punkt-Racingline berechnen
+    const line = this.computeLine(track, q, traffic.dodge, weather);
+
+    // Pedale, Lenkung, Traktionskontrolle
     this.applyPedals(v, tgtV);
     this.applySteering(car, track, q, line, dt);
     this.applyTractionControl(car, v, kAero);
 
-    /* === P2P (Push-to-Pass) ===
-       KI aktiviert Boost auf Geraden wenn:
-       - Ladung > 25%
-       - Auf einer Geraden (Krümmung < 0.004)
-       - Vollgas (throttle > 0.8)
-       - Nicht unter SC/VSC */
+    // Fehler-Effekte aufsetzen
+    if(inMistake) this._applyMistake(this.input);
+
+    // P2P / ERS
     const inp = this.input;
     inp.boost = false;
-    if(car.ers && car.ers.charge > 0.25 && !car.ers.depleted){
-      const curvHere = Math.abs(track.samples[q.idx].curv);
-      const onStraight = curvHere < 0.004;
-      const fullThrottle = inp.throttle > 0.8;
-      const noYellow = !car.vscActive && !car.scActive;
-      if(onStraight && fullThrottle && noYellow){
-        inp.boost = true;
-      }
+    if(car.ers && car.ers.charge>0.25 && !car.ers.depleted){
+      const curvHere  = Math.abs(track.samples[q.idx].curv);
+      const noYellow  = !car.vscActive && !car.scActive;
+      if(curvHere<0.004 && inp.throttle>0.8 && noYellow) inp.boost = true;
     }
     return inp;
   }
@@ -4474,6 +4840,47 @@ const HUD = {
       }
     }
     this.els.prog.textContent=(car.query?Math.round(car.query.progress*100):0)+'% DER RUNDE';
+    /* === TT Extras === */
+    const isTT = totalLaps === 0;
+    if(this._ttSectors===undefined){
+      this._ttSectors=document.getElementById('tt-sectors');
+      this._sv=[document.getElementById('sv1'),document.getElementById('sv2'),document.getElementById('sv3')];
+      this._ttVtrap=document.getElementById('tt-vtrap');
+      this._vtrapVal=document.getElementById('vtrap-val');
+      this._ttLaphist=document.getElementById('tt-laphist');
+      this._ttLaphistList=document.getElementById('tt-laphist-list');
+    }
+    if(this._ttSectors){
+      this._ttSectors.classList.toggle('hidden', !isTT);
+      this._ttVtrap.classList.toggle('hidden', !isTT);
+      this._ttLaphist.classList.toggle('hidden', !isTT || !race.lapHistory?.length);
+    }
+    if(isTT && this._sv){
+      const fmtSec = s => s==null ? '--' : (s<60 ? s.toFixed(3)+'s' : Math.floor(s/60)+':'+String(s%60|0).padStart(2,'0')+'.'+String(Math.round((s%1)*1000)).padStart(3,'0'));
+      for(let i=0;i<3;i++){
+        const cur = race.curSectors?.[i] ?? null;
+        const best = race.bestSectors?.[i] ?? null;
+        const el = this._sv[i];
+        if(!el) continue;
+        if(cur==null){ el.textContent='--'; el.className='sv s-none'; }
+        else if(best==null || cur===best){ el.textContent=fmtSec(cur); el.className='sv s-best'; }
+        else if(cur<best){ el.textContent=fmtSec(cur); el.className='sv s-fast'; }
+        else { el.textContent=fmtSec(cur); el.className='sv s-slow'; }
+      }
+      // Speed trap
+      if(race.speedTrapMax){
+        this._vtrapVal.textContent = race.speedTrapMax+' km/h';
+      }
+      // Lap history
+      if(race.lapHistory?.length){
+        let html='';
+        race.lapHistory.forEach((lh,idx)=>{
+          const cls = lh.isBest ? 'lh-best' : lh.valid ? 'lh-ok' : 'lh-inv';
+          html+=`<div class="lh-row ${cls}"><span class="lh-n">${race.lapHistory.length-idx}</span><span class="lh-t">${this.fmt(lh.time)}</span></div>`;
+        });
+        this._ttLaphistList.innerHTML=html;
+      }
+    }
     /* === Leaderboard === */
     if(this._lbList === undefined){
       this._lbList = document.getElementById('lb-list');
@@ -5707,7 +6114,11 @@ const Game = {
       bestLapDelta:null, _hasRef: false,
       lapSamples:[],
       halfPassed:false, prevProg:0, pos:1, total:this.allCars.length,
-      lapValid:true, invalidReason:'', offTrackTime:0, hardCutScore:0, maxLatExcess:0, prevProgForLimits:0};
+      lapValid:true, invalidReason:'', offTrackTime:0, hardCutScore:0, maxLatExcess:0, prevProgForLimits:0,
+      // TT extras
+      sector:0, sectorStart:0, curSectors:[null,null,null],
+      lastSectors:[null,null,null], bestSectors:[null,null,null],
+      lapHistory:[], speedTrapMax:null, _prevSector:0};
     this.initGhostReplay();
     /* Race-Timer + Stuck-Reset für SC-Trigger */
     this._raceTimeS = 0;
@@ -5819,16 +6230,16 @@ const Game = {
       let i = 0;
       const tick = () => {
         if(this.state!=='countdown' && this.state!=='race') return;
-        if(i < 5){ lights[i].classList.add('on'); i++; setTimeout(tick, 720); }
+        if(i < 5){ lights[i].classList.add('on'); i++; setTimeout(tick, 380); }
         else {
           lights.forEach(l=>l.classList.add('green'));
           this.input.locked = false;
           this.state = 'race';
           this.race.lapStart = performance.now();
-          setTimeout(()=>box.classList.add('hidden'), 900);
+          setTimeout(()=>box.classList.add('hidden'), 800);
         }
       };
-      setTimeout(tick, 600);
+      setTimeout(tick, 300);
     }
   },
   restartRace(){
@@ -6051,8 +6462,22 @@ const Game = {
           if(c===this.car){
             const r=this.race;
             r.lastLap = (now - r.lapStart) / 1000;    // in Sekunden
+            // Finalize sector 3 (S3 = remaining time after S2)
+            if(this.mode==='tt'){
+              const s3 = r.lastLap - (r.curSectors[0]||0) - (r.curSectors[1]||0);
+              r.curSectors[2] = s3 > 0 ? s3 : null;
+              r.lastSectors = [...r.curSectors];
+              for(let si=0;si<3;si++){
+                if(r.curSectors[si] != null && (r.bestSectors[si]==null || r.curSectors[si]<r.bestSectors[si]))
+                  r.bestSectors[si] = r.curSectors[si];
+              }
+              const histEntry = {time:r.lastLap, valid:r.lapValid!==false, isBest:false};
+              r.lapHistory.unshift(histEntry);
+              if(r.lapHistory.length > 5) r.lapHistory.pop();
+            }
             if(r.lapValid !== false && (r.bestLap==null || r.lastLap<r.bestLap)){
               r.bestLap = r.lastLap;
+              if(r.lapHistory.length) r.lapHistory[0].isBest = true;
               if(Array.isArray(r.lapSamples) && r.lapSamples.length > 5){
                 /* Samples sind bereits in Sekunden, progress 0..1 */
                 const bestSamples = r.lapSamples
@@ -6075,6 +6500,10 @@ const Game = {
             r.hardCutScore = 0;
             r.maxLatExcess = 0;
             r.prevProgForLimits = p;
+            // Reset sector tracking for new lap
+            if(this.mode==='tt'){
+              r.sector=0; r.sectorStart=0; r.curSectors=[null,null,null]; r._prevSector=0;
+            }
           }
         }
         rd.prevProg=p;
@@ -6092,6 +6521,21 @@ const Game = {
         }
       }
       this.updateTTDelta(this.race, progress, now);
+      // Sector crossing detection
+      const r=this.race;
+      const newSec = progress < 0.333 ? 0 : progress < 0.667 ? 1 : 2;
+      if(newSec !== r._prevSector && progress > 0.02 && progress < 0.97){
+        if(newSec > r._prevSector){
+          r.curSectors[r._prevSector] = currentTime - r.sectorStart;
+          r.sectorStart = currentTime;
+        }
+        r._prevSector = newSec;
+      }
+      // Speed trap: sample near midpoint of track (back straight)
+      if(progress >= 0.47 && progress <= 0.55){
+        const kmh = Math.round(this.car.speedKmh||0);
+        if(!r.speedTrapMax || kmh > r.speedTrapMax) r.speedTrapMax = kmh;
+      }
     }
     /* Platzierung: Zielankunft schlägt Fortschritt */
     if(this.totalLaps){
@@ -6651,10 +7095,15 @@ const Game = {
   },
   drawTrackThumb(c,t){
     const g=c.getContext('2d');
-    const pts=t.pts;
+    // Support segment-based tracks: generate pts on-the-fly at coarse resolution
+    const pts = t.pts || (t.segments ? buildTrackPath(t.segments, {
+      startX: t.startX||0, startZ: t.startZ||0, startY: t.startY||0,
+      heading: t.heading||0, step: 80
+    }) : null);
+    if(!pts || !pts.length){ g.fillStyle='#2a2a2a'; g.fillRect(0,0,c.width,c.height); return; }
     let minX=1e9,maxX=-1e9,minZ=1e9,maxZ=-1e9;
     for(const p of pts){minX=Math.min(minX,p[0]);maxX=Math.max(maxX,p[0]);minZ=Math.min(minZ,p[1]);maxZ=Math.max(maxZ,p[1]);}
-    const sc=Math.min((c.width-20)/(maxX-minX),(c.height-20)/(maxZ-minZ));
+    const sc=Math.min((c.width-20)/(maxX-minX||1),(c.height-20)/(maxZ-minZ||1));
     const ox=(c.width-(maxX-minX)*sc)/2, oy=(c.height-(maxZ-minZ)*sc)/2;
     g.strokeStyle='#e8ecef'; g.lineWidth=3.5; g.lineJoin='round'; g.beginPath();
     pts.forEach((p,i)=>{
