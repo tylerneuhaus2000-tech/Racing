@@ -168,9 +168,14 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #tyrebox .tb-bar{height:6px;background:#1a2026;border:1px solid var(--line);position:relative}
 #tyrebox .tb-bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#22c463 0%,#ffd400 55%,#ff2e3d 100%);transition:width 0.18s}
 #tyrebox .tb-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
-#tyrebox .tb-chip{padding:5px 6px 4px;background:#0c0f13;border:1px solid var(--line);font-size:9px;line-height:1.15;color:#cfd6dd}
+#tyrebox .tb-chip{padding:5px 6px 4px;background:#0c0f13;border:1px solid var(--line);font-size:9px;line-height:1.15;color:#cfd6dd;transition:border-color .3s,background .3s}
 #tyrebox .tb-chip b{display:block;font-size:10px;letter-spacing:.08em;color:#fff}
 #tyrebox .tb-chip span{display:block;margin-top:2px;color:var(--dim)}
+/* Temperatur-Zustand der Chips */
+#tyrebox .tb-chip.tc-cold{border-color:#3a7ab0;background:#070d14}
+#tyrebox .tb-chip.tc-warm{border-color:#22e87a;background:#020f07}
+#tyrebox .tb-chip.tc-hot{border-color:#ffa820;background:#100800}
+#tyrebox .tb-chip.tc-over{border-color:#ff2e3d;background:#140002}
 #tyrebox.hidden{display:none}
 #camlabel{position:absolute;left:24px;bottom:24px;background:var(--panel);border:1px solid var(--line);
   padding:8px 14px;font-size:10px;letter-spacing:.2em;color:var(--dim)}
@@ -237,6 +242,78 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 .segrow button{height:32px;padding:0 8px}
 .editor-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 .editor-note{font-size:12px;color:var(--dim);line-height:1.5;margin-top:8px}
+/* ─────────── PIT SETUP OVERLAY ─────────── */
+#pit-setup-overlay{position:fixed;inset:0;z-index:55;background:rgba(4,6,9,0.97);
+  display:flex;flex-direction:column;overflow:hidden;font-family:var(--mono);
+  background-image:
+    repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(255,255,255,0.02) 40px),
+    repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(255,255,255,0.015) 40px);
+  animation:psoFadeIn .22s ease}
+@keyframes psoFadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.pso-header{display:flex;justify-content:space-between;align-items:flex-start;
+  padding:20px 28px 16px;border-bottom:1px solid #ffffff14;
+  background:linear-gradient(180deg,rgba(20,8,8,0.8) 0%,transparent 100%)}
+.pso-eyebrow{font-size:9px;letter-spacing:.38em;color:#ff2e3d;margin-bottom:5px;text-transform:uppercase}
+.pso-title{font-size:22px;font-weight:800;letter-spacing:.16em;color:#fff;text-transform:uppercase}
+.pso-subtitle{font-size:11px;color:#8b95a1;letter-spacing:.12em;margin-top:3px}
+.pso-status{display:flex;align-items:center;gap:8px;background:#0c1018;border:1px solid var(--line);
+  padding:8px 14px;font-size:10px;letter-spacing:.2em;color:#22e87a}
+.pso-dot{width:8px;height:8px;border-radius:50%;background:#22e87a;
+  box-shadow:0 0 8px #22e87a;animation:psoPulse 1.2s ease-in-out infinite}
+@keyframes psoPulse{0%,100%{opacity:1}50%{opacity:.4}}
+.pso-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#1a1f28;
+  flex:1;overflow-y:auto;border-top:0}
+.pso-section{background:#080c12;padding:18px 20px}
+.pso-sec-hdr{display:flex;align-items:center;gap:8px;font-size:9px;letter-spacing:.28em;
+  color:var(--sec-col,#fff);border-left:3px solid var(--sec-col,#888);
+  padding-left:10px;margin-bottom:14px;font-weight:700;text-transform:uppercase}
+.pso-sec-icon{font-size:12px}
+.pso-param{margin-bottom:14px}
+.pso-param:last-child{margin-bottom:0}
+.pso-param-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.pso-param-name{font-size:9px;letter-spacing:.2em;color:#8b95a1;text-transform:uppercase}
+.pso-param-val{font-size:14px;font-weight:800;color:#fff;min-width:38px;text-align:right;
+  font-variant-numeric:tabular-nums;transition:color .15s}
+.pso-param-hint{font-size:9px;color:#4a5560;letter-spacing:.06em;margin-top:4px;line-height:1.4}
+/* Custom slider */
+.pso-slider{-webkit-appearance:none;appearance:none;width:100%;height:4px;
+  background:linear-gradient(90deg,#ff2e3d 0%,#ffa820 45%,#22e87a 100%);
+  border-radius:2px;outline:none;cursor:pointer}
+.pso-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;
+  border-radius:50%;background:#fff;border:2px solid #ff2e3d;
+  box-shadow:0 0 8px rgba(255,46,61,0.5);cursor:pointer;transition:transform .1s}
+.pso-slider::-webkit-slider-thumb:hover{transform:scale(1.3);box-shadow:0 0 14px rgba(255,46,61,0.7)}
+.pso-slider::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;
+  border:2px solid #ff2e3d;box-shadow:0 0 8px rgba(255,46,61,.5);cursor:pointer}
+/* Compound picker */
+.pso-compound-btns{display:flex;gap:8px}
+.pso-compound-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:10px 6px;background:#0f1620;border:1px solid #1e2530;cursor:pointer;
+  transition:border-color .12s,background .12s;font-family:var(--mono)}
+.pso-compound-btn:hover{border-color:var(--cc,#fff);background:#151f2c}
+.pso-compound-btn.selected{border-color:var(--cc,#fff);background:rgba(from var(--cc) r g b / 0.1);
+  box-shadow:0 0 12px rgba(from var(--cc) r g b / 0.25)}
+.pso-cmp-letter{font-size:20px;font-weight:800;color:var(--cc,#fff);line-height:1}
+.pso-cmp-name{font-size:8px;letter-spacing:.25em;color:#e8ecef;text-transform:uppercase}
+.pso-cmp-info{font-size:8px;color:#4a5560;text-align:center;line-height:1.3;letter-spacing:.04em}
+/* Footer */
+.pso-footer{display:flex;justify-content:space-between;align-items:center;
+  padding:14px 28px;border-top:1px solid #ffffff14;background:rgba(0,0,0,0.5);flex-shrink:0}
+.pso-setup-summary{font-size:9px;letter-spacing:.1em;color:#4a5560;max-width:60%}
+.pso-depart-btn{display:flex;align-items:center;gap:10px;padding:14px 28px;
+  background:var(--red);border:none;color:#fff;font-family:var(--mono);
+  font-size:13px;font-weight:800;letter-spacing:.24em;cursor:pointer;text-transform:uppercase;
+  transition:background .12s,box-shadow .12s}
+.pso-depart-btn:hover{background:#ff4455;box-shadow:0 0 20px rgba(255,46,61,0.4)}
+.pso-depart-arrow{font-size:16px;transition:transform .12s}
+.pso-depart-btn:hover .pso-depart-arrow{transform:translateX(4px)}
+/* Engineer telemetry bar */
+.pso-tel-bar{display:flex;gap:16px;padding:10px 28px;background:#060910;
+  border-bottom:1px solid #ffffff0e;font-size:9px;letter-spacing:.16em}
+.pso-tel-item{display:flex;flex-direction:column;gap:3px}
+.pso-tel-label{color:#4a5560;text-transform:uppercase}
+.pso-tel-val{font-size:13px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+.pso-tel-val.green{color:#22e87a}.pso-tel-val.amber{color:#ffa820}.pso-tel-val.red{color:#ff2e3d}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:720px){
   h1{font-size:30px}.screen{padding:26px 22px}
@@ -283,9 +360,16 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
       <div id="damage-bar"><i></i></div>
       <span id="damage-pct">0%</span>
     </div>
+    <div id="fuel-row" style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:10px;color:var(--dim);letter-spacing:.12em">
+      <span class="dmg-label">SPRIT</span>
+      <div id="fuel-bar" style="flex:1;height:6px;background:#1a2026;border:1px solid var(--line);position:relative"><i style="display:block;height:100%;width:70%;background:linear-gradient(90deg,#ff2e3d 0%,#ffa820 45%,#22e87a 100%);transition:width 0.4s"></i></div>
+      <span id="fuel-map" style="min-width:30px;text-align:center;font-size:9px;font-weight:700;color:#e8ecef">STD</span>
+      <span id="fuel-kg" style="min-width:42px;text-align:right;color:#e8ecef;font-weight:700">70 kg</span>
+    </div>
     <div id="ers-row">
       <span class="dmg-label">ERS</span>
       <div id="ers-bar"><i></i></div>
+      <span id="ers-mode-lbl" style="min-width:30px;text-align:center;font-size:9px;font-weight:700;color:#22e87a">RAC</span>
       <span id="ers-pct">40%</span>
     </div>
     <span id="lap-valid">RUNDE UNGUELTIG</span>
@@ -348,34 +432,55 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
     <div id="carname">—</div>
   </div>
   <div id="tyrebox" class="hidden">
-    <div class="tb-title">REIFEN</div>
+    <div class="tb-title">REIFEN &nbsp;<span id="tyre-compound-lbl" style="color:#ffd400;font-size:8px;letter-spacing:.2em">MEDIUM</span></div>
     <div class="tb-row">
-      <span>AVG</span>
+      <span>WEAR</span>
       <div class="tb-bar"><i id="tyre-avg-bar"></i></div>
       <span id="tyre-avg-pct">100%</span>
     </div>
-    <div class="tb-grid">
-      <div class="tb-chip"><b>FL</b><span id="tyre-FL">100%</span></div>
-      <div class="tb-chip"><b>FR</b><span id="tyre-FR">100%</span></div>
-      <div class="tb-chip"><b>RL</b><span id="tyre-RL">100%</span></div>
-      <div class="tb-chip"><b>RR</b><span id="tyre-RR">100%</span></div>
+    <!-- Temperatur-Grid: 2×2 mit Farbindikator -->
+    <div class="tb-grid" style="margin-top:10px">
+      <div class="tb-chip" id="tc-FL">
+        <b>FL</b>
+        <span id="tt-FL" style="font-size:10px;font-weight:700">—°</span>
+        <span id="tw-FL" style="font-size:8px">100%</span>
+      </div>
+      <div class="tb-chip" id="tc-FR">
+        <b>FR</b>
+        <span id="tt-FR" style="font-size:10px;font-weight:700">—°</span>
+        <span id="tw-FR" style="font-size:8px">100%</span>
+      </div>
+      <div class="tb-chip" id="tc-RL">
+        <b>RL</b>
+        <span id="tt-RL" style="font-size:10px;font-weight:700">—°</span>
+        <span id="tw-RL" style="font-size:8px">100%</span>
+      </div>
+      <div class="tb-chip" id="tc-RR">
+        <b>RR</b>
+        <span id="tt-RR" style="font-size:10px;font-weight:700">—°</span>
+        <span id="tw-RR" style="font-size:8px">100%</span>
+      </div>
     </div>
+    <div id="tyre-status" style="margin-top:6px;font-size:8px;letter-spacing:.1em;color:#4a5560;text-align:center">—</div>
   </div>
   <div id="camlabel">KAMERA: VERFOLGER</div>
   <div id="help" class="hidden">
     <kbd>W/↑</kbd> Gas &nbsp; <kbd>S/↓</kbd> Bremse/Rückwärts &nbsp; <kbd>A/←</kbd> <kbd>D/→</kbd> Lenken<br>
-    <kbd>Shift</kbd> P2P-Boost (mit Vollgas) &nbsp; <kbd>P</kbd> Pit-Limiter<br>
+    <kbd>←→</kbd> ERS-Modus wechseln &nbsp; <kbd>P</kbd> Pit-Limiter<br>
     <kbd>E</kbd> Respawn &nbsp; <kbd>V</kbd> VSC &nbsp; <kbd>Y</kbd> Safety Car<br>
     <kbd>C</kbd> Kamera &nbsp; <kbd>R</kbd> Neustart &nbsp; <kbd>ESC</kbd> Pause &nbsp; <kbd>H</kbd> Hilfe aus
   </div>
 </div>
 
 <div id="ers-popup">
-  <div class="ep-title">ERS KONFIGURATION</div>
-  <div class="ep-row"><span>Stufe</span><b id="ep-level">BAL</b></div>
-  <div class="ep-row"><span>Energie</span><b id="ep-energy">40%</b></div>
-  <div class="ep-row"><span>Ladung</span><b id="ep-charge">normal</b></div>
-  <div class="ep-row"><span>Modus</span><b id="ep-mode">deaktiviert</b></div>
+  <div class="ep-title">ERS · <span id="ep-modename">RACE</span></div>
+  <div class="ep-row"><span>Batterie</span><b id="ep-energy">40%</b></div>
+  <div class="ep-row"><span>Deploy</span><b id="ep-deploy">0 kW</b></div>
+  <div class="ep-row"><span>Regen</span><b id="ep-regen">0 kW</b></div>
+  <div class="ep-row"><span>Temperatur</span><b id="ep-temp">28 °C</b></div>
+  <div class="ep-row" id="ep-ovt-row" style="display:none"><span>OVERTAKE</span><b id="ep-ovt">verfügbar</b></div>
+  <div class="ep-row"><span>Runde +/−</span><b id="ep-elap">+0.00 / −0.00 kWh</b></div>
+  <div style="margin-top:6px;font-size:9px;color:#7a9ab8;letter-spacing:.06em" id="ep-desc">Ausgewogen — moderater Deploy</div>
 </div>
 
 <!-- Startampel -->
@@ -413,7 +518,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
       <span><kbd>W</kbd>/<kbd>↑</kbd></span><span>Gas (progressiv)</span>
       <span><kbd>S</kbd>/<kbd>↓</kbd></span><span>Bremse / Rückwärts</span>
       <span><kbd>A</kbd> <kbd>D</kbd>/<kbd>←</kbd> <kbd>→</kbd></span><span>Lenken (analog simuliert, mit Rückstellung)</span>
-      <span><kbd>Shift</kbd></span><span>P2P-Boost (Push-to-Pass, mit Vollgas)</span>
+      <span><kbd>←</kbd> <kbd>→</kbd></span><span>ERS-Modus wechseln (CHARGE / BAL / ATTACK / QUALI) — Deploy automatisch</span>
       <span><kbd>P</kbd></span><span>Pit-Limiter (60 km/h Tempolimit)</span>
       <span><kbd>V</kbd></span><span>VSC (Virtual Safety Car · 120 km/h für alle)</span>
       <span><kbd>Y</kbd></span><span>Safety Car deploy (führt das Feld 1 Runde)</span>
@@ -584,6 +689,232 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
   </section>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════
+     PIT SETUP OVERLAY — nur Zeitfahren, wenn man in die Box fährt
+     ═══════════════════════════════════════════════════════ -->
+<div id="pit-setup-overlay" class="hidden">
+
+  <!-- Header -->
+  <div class="pso-header">
+    <div>
+      <div class="pso-eyebrow">BOXENSTOPP · ZEITFAHREN</div>
+      <div class="pso-title">FAHRZEUG SETUP</div>
+      <div class="pso-subtitle" id="pso-car-track">—</div>
+    </div>
+    <div class="pso-status">
+      <span class="pso-dot"></span>
+      <span id="pso-status-txt">MECHANIKER BEREIT</span>
+    </div>
+  </div>
+
+  <!-- Engineer Telemetry-Bar -->
+  <div class="pso-tel-bar">
+    <div class="pso-tel-item">
+      <span class="pso-tel-label">Beste Runde</span>
+      <span class="pso-tel-val green" id="pso-tel-best">—:——.———</span>
+    </div>
+    <div class="pso-tel-item">
+      <span class="pso-tel-label">Letzte Runde</span>
+      <span class="pso-tel-val" id="pso-tel-last">—:——.———</span>
+    </div>
+    <div class="pso-tel-item">
+      <span class="pso-tel-label">Aero-Balance</span>
+      <span class="pso-tel-val amber" id="pso-tel-aero">—</span>
+    </div>
+    <div class="pso-tel-item">
+      <span class="pso-tel-label">Motor-Map</span>
+      <span class="pso-tel-val" id="pso-tel-map">MAP 3</span>
+    </div>
+    <div class="pso-tel-item">
+      <span class="pso-tel-label">Bremsbias</span>
+      <span class="pso-tel-val" id="pso-tel-bias">60% V</span>
+    </div>
+    <div class="pso-tel-item">
+      <span class="pso-tel-label">Reifen</span>
+      <span class="pso-tel-val" id="pso-tel-tire">MEDIUM</span>
+    </div>
+  </div>
+
+  <!-- Setup Grid -->
+  <div class="pso-grid">
+
+    <!-- AERODYNAMIK -->
+    <div class="pso-section">
+      <div class="pso-sec-hdr" style="--sec-col:#ff2e3d">
+        <span class="pso-sec-icon">△</span>AERODYNAMIK
+      </div>
+      <div class="pso-param">
+        <div class="pso-param-head">
+          <span class="pso-param-name">VORDERFLÜGEL</span>
+          <span class="pso-param-val" id="pv-wingFront">50</span>
+        </div>
+        <input class="pso-slider" type="range" id="ps-wingFront" min="0" max="100" step="1" value="50">
+        <div class="pso-param-hint">Grip &amp; Handling-Balance — hoch = mehr Vorderachsen-Grip, mehr Untersteuern</div>
+      </div>
+      <div class="pso-param">
+        <div class="pso-param-head">
+          <span class="pso-param-name">HINTERFLÜGEL</span>
+          <span class="pso-param-val" id="pv-wingRear">60</span>
+        </div>
+        <input class="pso-slider" type="range" id="ps-wingRear" min="0" max="100" step="1" value="60">
+        <div class="pso-param-hint">Stabilität &amp; Topspeed — hoch = mehr Abtrieb, weniger Maximalgeschwindigkeit</div>
+      </div>
+    </div>
+
+    <!-- MOTOR -->
+    <div class="pso-section">
+      <div class="pso-sec-hdr" style="--sec-col:#ffa820">
+        <span class="pso-sec-icon">⚡</span>MOTOR / ECU
+      </div>
+      <!-- Engine Maps: werden per JS dynamisch für die jeweilige Fahrzeugklasse befüllt -->
+      <div class="pso-param">
+        <div class="pso-param-name" style="font-size:9px;letter-spacing:.2em;color:#8b95a1;margin-bottom:10px;text-transform:uppercase">ENGINE MAP</div>
+        <div id="pso-map-btns" class="pso-compound-btns" style="flex-wrap:wrap;gap:6px">
+          <!-- dynamisch befüllt in initPitSetupUI() -->
+        </div>
+        <div class="pso-param-hint" id="ph-engineMap" style="margin-top:8px">—</div>
+      </div>
+      <!-- ECU Telemetrie -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;font-family:var(--mono);font-size:9px">
+        <div style="background:#0a0e14;padding:8px;border:1px solid #1a1f28">
+          <div style="color:#4a5560;letter-spacing:.14em;margin-bottom:4px">POWER</div>
+          <div id="pso-tel-power" style="font-size:14px;font-weight:800;color:#fff">100%</div>
+        </div>
+        <div style="background:#0a0e14;padding:8px;border:1px solid #1a1f28">
+          <div style="color:#4a5560;letter-spacing:.14em;margin-bottom:4px">DREHMOMENT</div>
+          <div id="pso-tel-torque" style="font-size:14px;font-weight:800;color:#fff">100%</div>
+        </div>
+        <div style="background:#0a0e14;padding:8px;border:1px solid #1a1f28">
+          <div style="color:#4a5560;letter-spacing:.14em;margin-bottom:4px">GASANNAHME</div>
+          <div id="pso-tel-throttle" style="font-size:14px;font-weight:800;color:#fff">NORMAL</div>
+        </div>
+        <div style="background:#0a0e14;padding:8px;border:1px solid #1a1f28">
+          <div style="color:#4a5560;letter-spacing:.14em;margin-bottom:4px">VERBRAUCH</div>
+          <div id="pso-tel-fuel-rate" style="font-size:14px;font-weight:800;color:#fff">NORMAL</div>
+        </div>
+      </div>
+      <div class="pso-param" style="margin-top:12px">
+        <div class="pso-param-head">
+          <span class="pso-param-name">SPRITMENGE (AUFTANKEN)</span>
+          <span class="pso-param-val" id="pv-fuel">70 kg</span>
+        </div>
+        <input class="pso-slider" type="range" id="ps-fuel" min="0" max="100" step="1" value="70">
+        <div class="pso-param-hint">Menge die beim nächsten Box-Stopp getankt wird · Mehr = schwerer = langsamer</div>
+      </div>
+    </div>
+
+    <!-- BREMSEN -->
+    <div class="pso-section">
+      <div class="pso-sec-hdr" style="--sec-col:#22c4ff">
+        <span class="pso-sec-icon">◼</span>BREMSEN
+      </div>
+      <div class="pso-param">
+        <div class="pso-param-head">
+          <span class="pso-param-name">BREMSBALANCE</span>
+          <span class="pso-param-val" id="pv-brakeBalance">60%</span>
+        </div>
+        <input class="pso-slider" type="range" id="ps-brakeBalance" min="45" max="70" step="1" value="60">
+        <div class="pso-param-hint">Vorderachsen-Anteil — hoch = schärfer einlenken, niedrig = stabiler beim Bremsen</div>
+      </div>
+      <div class="pso-param">
+        <div class="pso-param-head">
+          <span class="pso-param-name">ABS-LEVEL</span>
+          <span class="pso-param-val" id="pv-absLevel">3</span>
+        </div>
+        <input class="pso-slider" type="range" id="ps-absLevel" min="1" max="6" step="1" value="3">
+        <div class="pso-param-hint" id="ph-absLevel">Mittel — ausgewogene Bremsleistung ohne Blockieren</div>
+      </div>
+    </div>
+
+    <!-- FAHRWERK -->
+    <div class="pso-section">
+      <div class="pso-sec-hdr" style="--sec-col:#22e87a">
+        <span class="pso-sec-icon">◈</span>FAHRWERK
+      </div>
+      <div class="pso-param">
+        <div class="pso-param-head">
+          <span class="pso-param-name">DIFF-SPERRE</span>
+          <span class="pso-param-val" id="pv-diffLock">45%</span>
+        </div>
+        <input class="pso-slider" type="range" id="ps-diffLock" min="20" max="80" step="5" value="45">
+        <div class="pso-param-hint">Hoch = stabil / Untersteuern · Niedrig = drehfreudig / Übersteuern auf Gas</div>
+      </div>
+      <div class="pso-param">
+        <div class="pso-param-head">
+          <span class="pso-param-name">FEDERUNG</span>
+          <span class="pso-param-val" id="pv-bumpstop">50</span>
+        </div>
+        <input class="pso-slider" type="range" id="ps-bumpstop" min="0" max="100" step="5" value="50">
+        <div class="pso-param-hint">Hart = schnellere Lastverlagerung, besser in Kurven · Weich = glatter, besser auf Randsteinen</div>
+      </div>
+      <div class="pso-param">
+        <div class="pso-param-head">
+          <span class="pso-param-name">BODENFREIHEIT</span>
+          <span class="pso-param-val" id="pv-rideHeight">50</span>
+        </div>
+        <input class="pso-slider" type="range" id="ps-rideHeight" min="0" max="100" step="5" value="50">
+        <div class="pso-param-hint">Niedrig = mehr Aero-Effizienz · Hoch = mehr Sicherheit auf Randsteinen</div>
+      </div>
+    </div>
+
+    <!-- STABILITÄTSSYSTEME -->
+    <div class="pso-section">
+      <div class="pso-sec-hdr" style="--sec-col:#cc44ff">
+        <span class="pso-sec-icon">⊕</span>STABILITÄTSSYSTEME
+      </div>
+      <div class="pso-param">
+        <div class="pso-param-head">
+          <span class="pso-param-name">TRAKTIONSKONTROLLE</span>
+          <span class="pso-param-val" id="pv-tcLevel">3</span>
+        </div>
+        <input class="pso-slider" type="range" id="ps-tcLevel" min="1" max="6" step="1" value="3">
+        <div class="pso-param-hint" id="ph-tcLevel">Mittel — Schutz vor Antriebsschlupf beim Herausbeschleunigen</div>
+      </div>
+    </div>
+
+    <!-- REIFEN -->
+    <div class="pso-section">
+      <div class="pso-sec-hdr" style="--sec-col:#ffd400">
+        <span class="pso-sec-icon">○</span>REIFEN
+      </div>
+      <div class="pso-param">
+        <div class="pso-param-name" style="font-size:9px;letter-spacing:.2em;color:#8b95a1;margin-bottom:10px;text-transform:uppercase">REIFENMISCHUNG</div>
+        <div class="pso-compound-btns">
+          <button class="pso-compound-btn" data-compound="soft" style="--cc:#ff2e3d">
+            <span class="pso-cmp-letter">S</span>
+            <span class="pso-cmp-name">SOFT</span>
+            <span class="pso-cmp-info">Max. Grip<br>Hoher Verschleiß<br>Temp: 72–103°C</span>
+          </button>
+          <button class="pso-compound-btn" data-compound="medium" style="--cc:#ffd400">
+            <span class="pso-cmp-letter">M</span>
+            <span class="pso-cmp-name">MEDIUM</span>
+            <span class="pso-cmp-info">Ausgewogen<br>Mittlerer Verschleiß<br>Temp: 66–96°C</span>
+          </button>
+          <button class="pso-compound-btn" data-compound="hard" style="--cc:#c8cdd4">
+            <span class="pso-cmp-letter">H</span>
+            <span class="pso-cmp-name">HARD</span>
+            <span class="pso-cmp-info">Weniger Grip<br>Niedriger Verschleiß<br>Temp: 58–90°C</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /pso-grid -->
+
+  <!-- Footer -->
+  <div class="pso-footer">
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:60%">
+      <div class="pso-setup-summary" id="pso-summary">Aero: 50/60 · RACE · TC 3 · ABS 3 · Diff 45%</div>
+      <button id="pso-reset" style="font-family:var(--mono);font-size:9px;letter-spacing:.18em;background:none;border:1px solid #2a313a;color:#4a5560;padding:5px 10px;cursor:pointer;text-align:left;width:fit-content" onmouseover="this.style.borderColor='#ffa820';this.style.color='#ffa820'" onmouseout="this.style.borderColor='#2a313a';this.style.color='#4a5560'">⟳ SETUP ZURÜCKSETZEN</button>
+    </div>
+    <button class="pso-depart-btn" id="pso-depart">
+      <span>ABFAHREN</span>
+      <span class="pso-depart-arrow">▶</span>
+    </button>
+  </div>
+
+</div><!-- /pit-setup-overlay -->
+
 <div id="touch-controls" class="hidden">
   <div class="tc-group">
     <button class="tc-btn" data-touch="steer-left">&lt;</button>
@@ -594,7 +925,6 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
     <button class="tc-btn" data-touch="brake">Bremse</button>
   </div>
   <div class="tc-group tc-col">
-    <button class="tc-btn" data-touch="boost">Boost</button>
     <button class="tc-btn" data-touch="ers-up">ERS +</button>
     <button class="tc-btn" data-touch="ers-down">ERS -</button>
     <button class="tc-btn" data-touch="pit">Pit</button>
@@ -623,7 +953,6 @@ const defaultControllerBindings = {
   steering:{type:'axis', axis:'lx'},
   throttle:{type:'trigger', button:7, axis:'rt'},
   brake:{type:'trigger', button:6, axis:'lt'},
-  boost:{type:'button', button:5},
   pitLimiter:{type:'button', button:2},
   camera:{type:'button', button:3},
   pause:{type:'button', button:9},
@@ -635,7 +964,6 @@ const defaultKeybinds = {
   brake:'KeyS',
   steerLeft:'KeyA',
   steerRight:'KeyD',
-  boost:'ShiftLeft',
   pitLimiter:'KeyP',
   camera:'KeyC',
   restart:'KeyR',
@@ -653,7 +981,6 @@ const keybindLabels = {
   brake:'Bremse',
   steerLeft:'Lenken links',
   steerRight:'Lenken rechts',
-  boost:'Boost',
   pitLimiter:'Pit-Limiter',
   camera:'Kamera',
   restart:'Neustart',
@@ -1130,6 +1457,121 @@ const TRACKS = [
     heading:0, startX:0, startZ:0, startY:0,
     pitLane:{ side:-1, startPct:0.5, endPct:13, innerOff:9.0, outerOff:18.5 }
   },
+
+  /* ───────────────────────────────────────────────────────────────────────
+     CIRCUIT DES ARDENNES  ·  Spa-Francorchamps-inspiriert  ·  ~6.5 km
+     La Source Haarnadelkurve · Raidillon-Tal (−14 m) · Kemmel-Gerade
+     Les Combes Schikane · Pouhon · Blanchimont · Bus Stop                */
+  {
+    id:'ardennes', name:'Circuit des Ardennes',
+    sub:'Spa-inspiriert · Raidillon-Tal −14 m · Kemmel-Gerade · ~6.5 km',
+    halfWidth:7.0, sky:0x5a8ec4, hill:0x244c1c, grass:[0x1e4816,0x183c10],
+    wallDist:26, vergeW:18,
+    pts:[
+      [-600,-300,  0],  // S/F (Mitte der W-Gerade)
+      [-600,   0,  0],
+      [-600, 200,  0],
+      [-600, 380,  2],  // Bremspunkt La Source
+      [-460, 472,  5],  // La Source Einfahrt
+      [-318, 492,  8],  // La Source Apex
+      [-180, 452,  7],
+      [ -78, 362,  5],  // La Source Ausfahrt (heading SE)
+      [  18, 222,  2],
+      [  78,  80,  0],  // Raidillon Einfahrt
+      [  98, -32,-12],  // EAU ROUGE — TALBODEN
+      [ 118,-122,  2],
+      [ 148,-192, 18],
+      [ 168,-252, 28],  // RAIDILLON GIPFEL
+      [ 278,-280, 31],  // Kemmel Gerade W
+      [ 478,-285, 32],
+      [ 698,-278, 31],  // Kemmel Gerade E
+      [ 788,-245, 28],  // Les Combes rechts
+      [ 818,-148, 24],
+      [ 782, -55, 20],
+      [ 708,  12, 16],  // Les Combes links
+      [ 618, 130, 10],  // Sektor 2
+      [ 488, 228,  6],
+      [ 332, 292,  3],  // Pouhon Apex
+      [ 172, 270,  1],
+      [  42, 192,  0],  // Campus
+      [ -92, 106,  0],
+      [-212,  18,  0],  // Blanchimont
+      [-302, -62,  0],
+      [-352, -90,  0],  // Bus Stop rechts
+      [-382,-110,  0],  // Bus Stop links
+      [-600,-120,  0],  // Rückkehr auf W-Gerade
+    ],
+    pitLane:{ side:-1, startPct:0, endPct:9, innerOff:9.0, outerOff:18.5 }
+  },
+
+  /* ───────────────────────────────────────────────────────────────────────
+     TOZAN PARK CIRCUIT  ·  Japan-inspiriert (Fuji/Suzuka)  ·  ~5.3 km
+     T1 Haarnadelkurve · 130R Schnellkurve · Infield-Schikane · Spoon    */
+  {
+    id:'tozan', name:'Tozan Park Circuit',
+    sub:'Japan-inspiriert · 130R · Spoon-Kurve · Infield-Schikane · ~5.3 km',
+    halfWidth:7.5, sky:0x9abce8, hill:0x2a5e1e, grass:[0x225816,0x1c4c12],
+    wallDist:28, vergeW:20,
+    pts:[
+      [-420,-200,  0],  // S/F
+      [-420,   0,  0],
+      [-420, 180,  0],  // Bremspunkt T1
+      [-308, 272,  3],  // T1 Einfahrt (rechts)
+      [-148, 302,  5],  // T1 Apex
+      [  -8, 240,  4],  // T1 Ausfahrt (SE)
+      [  48, 112,  2],
+      [  78, -22,  0],  // 130R Einfahrt
+      [ 148,-142,  0],
+      [ 238,-240,  0],  // 130R Ausfahrt (Ost)
+      [ 318,-308,  0],
+      [ 378,-358,  0],
+      [ 398,-288,  1],  // Schikane rechts
+      [ 358,-188,  2],  // Schikane links
+      [ 288,-100,  2],
+      [ 188, -28,  3],  // heading SW
+      [  58,  42,  4],  // Spoon Einfahrt
+      [ -82,  82,  5],  // Spoon Apex
+      [-232,  52,  4],  // Spoon Ausfahrt NW
+      [-342, -32,  3],
+      [-378,-120,  2],  // Rückgerade N
+      [-396,-240,  1],
+      [-400,-362,  0],  // Bremspunkt letzte Kurve
+      [-318,-432,  0],  // Haarnadelkurve links
+      [-198,-452,  0],  // Apex
+      [ -98,-400,  0],  // Ausfahrt Ost
+      [ -28,-310,  0],
+      [-420,-100,  0],  // Rückkehr auf Gerade
+    ],
+    pitLane:{ side:1, startPct:1, endPct:10, innerOff:9.5, outerOff:19.5 }
+  },
+
+  /* ───────────────────────────────────────────────────────────────────────
+     STADTRING MONACO  ·  Straßenkurs  ·  ~3.6 km
+     Enge Kurven · Monaco-Flair · Haarnadelkurven · hohe Mauern           */
+  {
+    id:'stadtring', name:'Stadtring Monaco',
+    sub:'Straßenkurs · Monaco-Flair · Haarnadelkurven · hohe Mauern · ~3.6 km',
+    halfWidth:5.5, sky:0x6888c0, hill:0x2c4228, grass:[0x243418,0x1c2c12],
+    wallDist:9, vergeW:5,
+    pts:[
+      [ 100,-200,  0],  // S/F
+      [ 100,   0,  0],
+      [ 100, 200,  0],  // Bremspunkt T1
+      [   0, 312,  0],  // T1 rechts
+      [-152, 362,  0],  // T1 Apex
+      [-282, 312,  0],  // Ausfahrt W/NW
+      [-362, 182,  0],  // Rechtskurve
+      [-382,  22,  0],  // enge Rechtskurve
+      [-342,-100,  0],  // Heading NE
+      [-222,-202,  0],  // Rechtskurve
+      [ -80,-302,  0],  // Heading NE/N
+      [  42,-362,  0],  // enge Rechtskurve
+      [ 100,-362,  0],  // Heading N
+      [ 100,-302,  0],
+      [ 100,-242,  0],  // Anfahrt S/F
+    ],
+    pitLane:{ side:-1, startPct:1, endPct:10, innerOff:7.0, outerOff:14.0 }
+  },
 ];
 
 /* ============================ KONSTANTEN ============================ */
@@ -1150,12 +1592,121 @@ const WEATHER_PRESETS = {
   night: { name:'Nacht', rain:0.00, visibility:0.68, dusk:0.85, night:0.78, grip:0.97, rainRate:0.00 }
 };
 const CHAMP_POINTS = [25,18,15,12,10,8,6,4,2,1];
-const ERS_LEVELS = [
-  {name:'CHARGE', regenMul:1.35, deployMul:0.70, drainMul:0.65, mode:'aufladen'},
-  {name:'BAL', regenMul:1.00, deployMul:1.00, drainMul:1.00, mode:'balanciert'},
-  {name:'ATTACK', regenMul:0.78, deployMul:1.20, drainMul:1.18, mode:'angriff'},
-  {name:'QUALI', regenMul:0.60, deployMul:1.34, drainMul:1.34, mode:'qualifying'}
-];
+/* ─── ERS Hybrid-System (LMH/Hypercar WEC-Style) ───────────────────────────
+   deployPct   : Anteil der max. E-Motor-Leistung die dieser Modus freigibt (0=kein Deploy)
+   regenPct    : Anteil der max. Rekuperationsleistung
+   throttleMin : Mindest-Gaspedalstellung für Auto-Deploy (>1 = niemals)
+   drainMul    : Multiplikator auf Basis-Entladerate
+   regenMul    : Multiplikator auf Basis-Laderate
+   col         : HUD-Farbe des Modus ─────────────────────────────────────── */
+const ERS_MODES = {
+  CHARGE:   {name:'CHARGE',   short:'CHG', col:'#22aaff',
+             deployPct:0.00, regenPct:1.00, throttleMin:2.0,  drainMul:0.00, regenMul:1.55,
+             desc:'Nur Aufladen — kein Deploy, maximale Rekuperation'},
+  RACE:     {name:'RACE',     short:'RAC', col:'#22e87a',
+             deployPct:0.75, regenPct:0.65, throttleMin:0.42, drainMul:1.00, regenMul:1.00,
+             desc:'Ausgewogen — moderater Deploy ab 42 % Throttle'},
+  ATTACK:   {name:'ATTACK',   short:'ATK', col:'#ffa820',
+             deployPct:1.00, regenPct:0.80, throttleMin:0.28, drainMul:1.28, regenMul:0.72,
+             desc:'Aggressiv — voller Deploy ab 28 % Throttle'},
+  OVERTAKE: {name:'OVERTAKE', short:'OVT', col:'#ff2e3d',
+             deployPct:1.00, regenPct:0.60, throttleMin:0.10, drainMul:1.55, regenMul:0.60,
+             desc:'Max-Angriff — 8 s Deploy, dann 15 s Cooldown',
+             maxDuration:8.0, cooldownDur:15.0},
+  QUALI:    {name:'QUALI',    short:'QLF', col:'#cc44ff',
+             deployPct:1.00, regenPct:0.90, throttleMin:0.15, drainMul:1.45, regenMul:0.52,
+             desc:'Qualifying — maximale Rundenzeit, kaum Regen'},
+  WET:      {name:'WET',      short:'WET', col:'#60c8f0',
+             deployPct:0.42, regenPct:0.50, throttleMin:0.65, drainMul:0.70, regenMul:0.80,
+             desc:'Nass / Niedriger Grip — sanfter Deploy, stabiler Antrieb'}
+};
+const ERS_MODE_LIST = ['CHARGE','RACE','ATTACK','OVERTAKE','QUALI','WET'];
+
+/* Physikalische Systemgrenzen (WEC LMH Referenz) */
+const ERS_PARAMS = {
+  battCapacityKwh: 1.50,   // kWh  — Batteriekapazität
+  maxDeployKw:     350,    // kW   — max. E-Motor-Leistung
+  maxRegenKw:      300,    // kW   — max. Rekuperationsleistung
+  battEfficiency:  0.92,   // η    — Wirkungsgrad Laden/Entladen
+  ambientTempC:    28,     // °C   — Umgebungstemperatur
+  warnTempC:       68,     // °C   — Wärmeleistungsreduzierung beginnt
+  cutTempC:        90      // °C   — Thermal-Protection-Abschaltung
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ENGINE MAPPING SYSTEM — ECU pro Fahrzeugklasse
+   Felder:
+     id            – interner Key
+     name          – Anzeigename
+     short         – 3-4 Zeichen für HUD
+     col           – HUD-Farbe
+     powerMul      – Faktor auf Motorleistung (effPower)
+     torqueMul     – Faktor auf max. Kraft (effMaxForce / Drehmomentsgrenze)
+     throttleResp  – Gasannahme-Multiplikator (>1 = aggressiv, <1 = weich)
+     fuelMul       – Faktor auf Grundverbrauchsrate
+     tempMul       – Motortemperatur-Anstiegsrate Multiplikator
+     rpmLimit      – max. rpmRatio-Anteil (ECU schneidet darüber ab)
+   ═══════════════════════════════════════════════════════════════════════════ */
+const ENGINE_MAPS = {
+
+  gt3: [
+    { id:'WET',    name:'WET',    short:'WET', col:'#60c8f0',
+      powerMul:0.75, torqueMul:0.78, throttleResp:0.55, fuelMul:0.60, tempMul:0.65, rpmLimit:0.84,
+      desc:'Nass / Safety Car — sehr sanfte Gasannahme, Motorschutz' },
+    { id:'SAVE',   name:'SAVE',   short:'SAV', col:'#22e87a',
+      powerMul:0.87, torqueMul:0.90, throttleResp:0.78, fuelMul:0.76, tempMul:0.80, rpmLimit:0.92,
+      desc:'Endurance — Spritsparen, kühler Motor, langer Stint' },
+    { id:'RACE',   name:'RACE',   short:'RAC', col:'#e8ecef',
+      powerMul:1.00, torqueMul:1.00, throttleResp:1.00, fuelMul:1.00, tempMul:1.00, rpmLimit:1.00,
+      desc:'Standard Rennbetrieb — volle Leistung, normaler Verbrauch' },
+    { id:'ATTACK', name:'ATTACK', short:'ATK', col:'#ff2e3d',
+      powerMul:1.07, torqueMul:1.06, throttleResp:1.30, fuelMul:1.35, tempMul:1.40, rpmLimit:1.04,
+      desc:'Maximale Leistung — aggressiv, hoher Verbrauch, heißer Motor' },
+  ],
+
+  lmp2: [
+    { id:'PROTECT', name:'PROTECT', short:'PRO', col:'#22c4ff',
+      powerMul:0.80, torqueMul:0.84, throttleResp:0.65, fuelMul:0.65, tempMul:0.60, rpmLimit:0.86,
+      desc:'Motorschutz — Endurance, minimale Temperaturlast' },
+    { id:'SAVE',    name:'SAVE',    short:'SAV', col:'#22e87a',
+      powerMul:0.91, torqueMul:0.92, throttleResp:0.82, fuelMul:0.80, tempMul:0.83, rpmLimit:0.93,
+      desc:'Spritsparen — stabiler Stint, Temperatur kontrolliert' },
+    { id:'RACE',    name:'RACE',    short:'RAC', col:'#e8ecef',
+      powerMul:1.00, torqueMul:1.00, throttleResp:1.00, fuelMul:1.00, tempMul:1.00, rpmLimit:1.00,
+      desc:'Standard Rennbetrieb' },
+    { id:'QUALIFY', name:'QUALIFY', short:'QLF', col:'#cc44ff',
+      powerMul:1.10, torqueMul:1.08, throttleResp:1.25, fuelMul:1.42, tempMul:1.45, rpmLimit:1.07,
+      desc:'Qualifying — Maximum, nur kurze Stints, Motorhitze!' },
+  ],
+
+  hypercar: [
+    { id:'FUEL_SAVE',      name:'FUEL SAVE',   short:'FSV', col:'#22c4ff',
+      powerMul:0.82, torqueMul:0.85, throttleResp:0.72, fuelMul:0.62, tempMul:0.68, rpmLimit:0.88,
+      desc:'Kraftstoffsparen — ERS deckt Rest ab, kühl' },
+    { id:'ENGINE_PROTECT', name:'ENG PROTECT', short:'ENG', col:'#22e87a',
+      powerMul:0.92, torqueMul:0.93, throttleResp:0.86, fuelMul:0.83, tempMul:0.78, rpmLimit:0.94,
+      desc:'Motorschutz — Hitzereduzierung, Langstint' },
+    { id:'RACE',           name:'RACE',         short:'RAC', col:'#e8ecef',
+      powerMul:1.00, torqueMul:1.00, throttleResp:1.00, fuelMul:1.00, tempMul:1.00, rpmLimit:1.00,
+      desc:'Standard WEC-Rennmodus' },
+    { id:'ATTACK',         name:'ATTACK',       short:'ATK', col:'#ff2e3d',
+      powerMul:1.13, torqueMul:1.10, throttleResp:1.38, fuelMul:1.50, tempMul:1.58, rpmLimit:1.08,
+      desc:'Voller Angriff — max. Power + ERS, hohe Motortemperatur' },
+  ],
+};
+
+/* Hilfsfunktionen für Engine-Map-Zugriff */
+const getCarMaps  = classType => ENGINE_MAPS[classType] || ENGINE_MAPS.gt3;
+const getCarMap   = (classType, idx) => {
+  const maps = getCarMaps(classType);
+  return maps[clamp(idx, 0, maps.length - 1)];
+};
+/* Standard-Map-Index (RACE) */
+const defaultMapIdx = classType => {
+  const maps = getCarMaps(classType);
+  const raceIdx = maps.findIndex(m => m.id === 'RACE');
+  return raceIdx >= 0 ? raceIdx : Math.floor(maps.length / 2);
+};
 
 const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
 const lerp  = (a,b,t)=>a+(b-a)*t;
@@ -1167,7 +1718,20 @@ const mixHex = (a,b,t)=>{
   const rr=Math.round(lerp(ar,br,t)), rg=Math.round(lerp(ag,bg,t)), rb=Math.round(lerp(ab,bb,t));
   return (rr<<16)|(rg<<8)|rb;
 };
-const setupDefaults = () => ({ wing: 55, brakeBalance: 60, fuel: 70, compound: 'medium' });
+const setupDefaults = () => ({
+  wing: 55,              // legacy: mittlerer Flügel-Wert (wird von wingFront/wingRear überschrieben)
+  wingFront: 50,         // 0-100: Vorderflügel (Grip/Balance vorne)
+  wingRear:  60,         // 0-100: Hinterflügel (Abtrieb/Topspeed hinten)
+  brakeBalance: 60,      // 45-70: Vorderachs-Bremsanteil in %
+  fuel: 70,              // 0-100: Spritmenge in kg-Äquivalent
+  compound: 'medium',    // 'soft'|'medium'|'hard'
+  engineMap: 2,          // 0-3: Index in ENGINE_MAPS[classType] — 2=RACE (Standard)
+  tcLevel: 3,            // 1-6: Traktionskontrolle (1=aus, 6=max)
+  absLevel: 3,           // 1-6: ABS-Stärke (1=minimal, 6=stark)
+  diffLock: 45,          // 20-80: Differenzialsperre % (hoch=stabil, niedrig=aggressiv)
+  rideHeight: 50,        // 0-100: Bodenfreiheit (0=tief/mehr Aero, 100=hoch/sicher)
+  bumpstop: 50,          // 0-100: Federungshärte (0=weich, 100=hart)
+});
 const weatherDefaults = () => ({ mode:'dynamic', preset:'dry', rain:0, lineDry:1, dusk:0, night:0, timeOfDay:0.22, visibility:1, changedAt:0 });
 
 /**
@@ -1325,8 +1889,7 @@ class Input {
     this.brake = 0;        // 0..1, progressiv
     this.locked = true;    // bis Startampel grün
     this._lastButtonState = {};
-    this.boostPulseT = 0;
-    this.touch = {left:false, right:false, throttle:false, brake:false, boost:false, pit:false, camera:false, pause:false, restart:false, ersUp:false, ersDown:false};
+    this.touch = {left:false, right:false, throttle:false, brake:false, pit:false, camera:false, pause:false, restart:false, ersUp:false, ersDown:false};
     this._touchRepeat = {};
     this._isAction = (name, code) => !!(Game && Game.keybinds && Game.keybinds[name] === code);
     addEventListener('keydown', e=>{
@@ -1383,12 +1946,11 @@ class Input {
     addEventListener('keyup', e=>{ this.keys[e.code]=false; });
   }
   setTouch(action, down){
-    if(!this.touch) this.touch = {left:false, right:false, throttle:false, brake:false, boost:false, pit:false, camera:false, pause:false, restart:false, ersUp:false, ersDown:false};
+    if(!this.touch) this.touch = {left:false, right:false, throttle:false, brake:false, pit:false, camera:false, pause:false, restart:false, ersUp:false, ersDown:false};
     if(action === 'steer-left') this.touch.left = down;
     else if(action === 'steer-right') this.touch.right = down;
     else if(action === 'throttle') this.touch.throttle = down;
     else if(action === 'brake') this.touch.brake = down;
-    else if(action === 'boost') this.touch.boost = down;
     else if(action === 'pit') this.touch.pit = down;
     else if(action === 'camera') this.touch.camera = down;
     else if(action === 'pause') this.touch.pause = down;
@@ -1437,9 +1999,6 @@ class Input {
       if((bind.pitLimiter?.button != null && edge(bind.pitLimiter.button)) && (Game.state==='race'||Game.state==='finished')){
         Game.car.pitLimiterActive = !Game.car.pitLimiterActive;
       }
-      if(bind.boost?.button != null && edge(bind.boost.button)){
-        this.boostPulseT = 0.35;
-      }
     }
     const mobileMode = Game.deviceMode === 'mobile';
     if(mobileMode){
@@ -1458,9 +2017,6 @@ class Input {
       if(this.touch.pit && (Game.state==='race'||Game.state==='finished')){
         this.touch.pit = false;
         Game.car.pitLimiterActive = !Game.car.pitLimiterActive;
-      }
-      if(this.touch.boost){
-        this.boostPulseT = 0.35;
       }
       if(this.touch.ersUp){
         this.touch.ersUp = false;
@@ -1503,11 +2059,6 @@ class Input {
       this.throttle = Math.max(this.throttle, gpThrottle);
       this.brake = Math.max(this.brake, gpBrake);
     }
-    /* ERS-Boost: Shift halten = aktiv (gilt nur wenn Throttle > 0.5) */
-    this.boostPulseT = Math.max(0, this.boostPulseT - dt);
-    const kbBoost = !!(this.keys['ShiftLeft']||this.keys['ShiftRight']||(kb.boost&&kb.boost!=='ShiftLeft'&&this.keys[kb.boost]));
-    const gpBoost = this.boostPulseT > 0 && this.throttle > 0.5;
-    this.boost = kbBoost || gpBoost || this.touch.boost;
   }
 }
 
@@ -1605,19 +2156,34 @@ const Tex = {
     return t;
   },
   asphalt(){
-    return this.canvas(256,256,(g,w,h)=>{
-      g.fillStyle='#2b2d30'; g.fillRect(0,0,w,h);
-      for(let i=0;i<5200;i++){
-        const v=22+Math.random()*38|0;
-        g.fillStyle=`rgb(${v},${v},${v+2})`;
-        g.fillRect(Math.random()*w,Math.random()*h,1.6,1.6);
+    return this.canvas(512,512,(g,w,h)=>{
+      g.fillStyle='#22242a'; g.fillRect(0,0,w,h);
+      // Aggregatkörner — hellere und dunklere Partikel
+      for(let i=0;i<14000;i++){
+        const v=16+Math.random()*46|0;
+        const a=0.55+Math.random()*0.45;
+        g.fillStyle=`rgba(${v},${v},${v+3},${a})`;
+        const sz=0.8+Math.random()*2.2;
+        g.fillRect(Math.random()*w|0, Math.random()*h|0, sz, sz);
       }
-      // dunkle Gummispur in Fahrlinie
-      const gr=g.createLinearGradient(0,0,w,0);
-      gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(.32,'rgba(0,0,0,.20)');
-      gr.addColorStop(.5,'rgba(0,0,0,.05)');gr.addColorStop(.68,'rgba(0,0,0,.20)');
-      gr.addColorStop(1,'rgba(0,0,0,0)');
-      g.fillStyle=gr; g.fillRect(0,0,w,h);
+      // Horizontale Laufrillen
+      for(let y=0;y<h;y+=3+Math.random()*6|0){
+        g.fillStyle=`rgba(0,0,0,${0.04+Math.random()*0.06})`;
+        g.fillRect(0,y|0,w,1);
+      }
+      // Gummispur (Racing Line) — sattschwarze Mitte
+      const rub=g.createLinearGradient(0,0,w,0);
+      rub.addColorStop(0,'rgba(0,0,0,0)');
+      rub.addColorStop(0.28,'rgba(0,0,0,0.32)');
+      rub.addColorStop(0.5,'rgba(0,0,0,0.10)');
+      rub.addColorStop(0.72,'rgba(0,0,0,0.32)');
+      rub.addColorStop(1,'rgba(0,0,0,0)');
+      g.fillStyle=rub; g.fillRect(0,0,w,h);
+      // Helle Reflexe (nasses Asphalt-Glitzern)
+      for(let i=0;i<400;i++){
+        g.fillStyle=`rgba(255,255,255,${0.03+Math.random()*0.07})`;
+        g.fillRect(Math.random()*w|0, Math.random()*h|0, 1, 1);
+      }
     });
   },
   kerb(){
@@ -1630,9 +2196,17 @@ const Tex = {
   grass(c1,c2){
     return this.canvas(256,256,(g,w,h)=>{
       g.fillStyle=c1; g.fillRect(0,0,w,h);
-      for(let i=0;i<7000;i++){
-        g.fillStyle = Math.random()<0.5?c2:'rgba(255,255,200,0.06)';
-        g.fillRect(Math.random()*w,Math.random()*h,2,3);
+      // Grashalme: dünne senkrechte Streifen
+      for(let i=0;i<9000;i++){
+        const bright=Math.random();
+        g.fillStyle=bright<0.45?c2:bright<0.75?'rgba(200,255,160,0.07)':'rgba(0,0,0,0.06)';
+        const x=Math.random()*w, y=Math.random()*h;
+        g.fillRect(x,y,1,2+Math.random()*4|0);
+      }
+      // Dezente Trockenflecken
+      for(let i=0;i<60;i++){
+        g.fillStyle='rgba(200,180,100,0.04)';
+        g.fillRect(Math.random()*w, Math.random()*h, 8+Math.random()*20, 4+Math.random()*10);
       }
     });
   },
@@ -1710,7 +2284,7 @@ class Track {
     this.buildPitLane();
     this.buildStartFinish();
     this.buildEnvironment();
-    this.buildBrakingMarkers();
+    try { this.buildBrakingMarkers(); } catch(e){ console.warn('[BrakingMarkers]',e); }
     this.buildIdealLine();
     this.buildTvCams();
   }
@@ -2266,34 +2840,69 @@ class Track {
       this.group.add(h);
     }
 
-    // Bäume (instanziert) hinter den Leitplanken
-    const trunkG=new THREE.CylinderGeometry(0.25,0.35,2.2,5);
-    const crownG=new THREE.ConeGeometry(2.2,5.5,7);
-    const nTrees=260;
-    const trunks=new THREE.InstancedMesh(trunkG,new THREE.MeshLambertMaterial({color:0x5a4630}),nTrees);
-    const crowns=new THREE.InstancedMesh(crownG,new THREE.MeshLambertMaterial({color:0x2e5b26}),nTrees);
+    // Bäume — zwei Größenklassen instanziert
+    const trunkG=new THREE.CylinderGeometry(0.22,0.34,2.6,5);
+    const crownG=new THREE.ConeGeometry(2.4,6.2,7);
+    const crownG2=new THREE.SphereGeometry(2.8,6,5);       // Laubbäume
+    const nTrees=420;
+    const trunks=new THREE.InstancedMesh(trunkG,new THREE.MeshLambertMaterial({color:0x523e26}),nTrees);
+    const crowns=new THREE.InstancedMesh(crownG,new THREE.MeshLambertMaterial({color:0x255a1e}),nTrees);
+    const crowns2=new THREE.InstancedMesh(crownG2,new THREE.MeshLambertMaterial({color:0x2e6626}),nTrees);
     const M=new THREE.Matrix4(), Q=new THREE.Quaternion(), V=new THREE.Vector3(), SC=new THREE.Vector3();
     for(let i=0;i<nTrees;i++){
       let placed=false;
-      for(let tries=0;tries<18 && !placed;tries++){
+      for(let tries=0;tries<22 && !placed;tries++){
         const s=S[Math.floor(Math.random()*N)];
         const sgn=Math.random()<0.5?1:-1;
-        const off=this.wallDist+8+Math.random()*70;
+        const off=this.wallDist+7+Math.random()*90;
         V.copy(s.pos).addScaledVector(s.side,sgn*off);
-        if(!this.clearOf(V.x,V.z,this.wallDist+4)) continue;   // läge auf anderem Streckenteil
-        const sc=0.8+Math.random()*1.1;
+        if(!this.clearOf(V.x,V.z,this.wallDist+3)) continue;
+        const sc=0.7+Math.random()*1.4;
         SC.set(sc,sc,sc);
-        M.compose(new THREE.Vector3(V.x,s.pos.y-0.4+1.1*sc,V.z),Q,SC); trunks.setMatrixAt(i,M);
-        M.compose(new THREE.Vector3(V.x,s.pos.y-0.4+(2.2+2.7)*sc,V.z),Q,SC); crowns.setMatrixAt(i,M);
+        const bx=new THREE.Vector3(V.x,s.pos.y-0.2+1.3*sc,V.z);
+        M.compose(bx,Q,SC); trunks.setMatrixAt(i,M);
+        if(Math.random()<0.42){
+          M.compose(new THREE.Vector3(V.x,s.pos.y-0.2+(2.6+2.8)*sc,V.z),Q,SC); crowns2.setMatrixAt(i,M);
+          M.compose(new THREE.Vector3(0,-500,0),Q,SC.set(0.01,0.01,0.01)); crowns.setMatrixAt(i,M);
+        } else {
+          M.compose(new THREE.Vector3(V.x,s.pos.y-0.2+(2.6+3.1)*sc,V.z),Q,SC); crowns.setMatrixAt(i,M);
+          M.compose(new THREE.Vector3(0,-500,0),Q,SC.set(0.01,0.01,0.01)); crowns2.setMatrixAt(i,M);
+        }
         placed=true;
       }
-      if(!placed){ // notfalls weit draußen verstecken
-        M.compose(new THREE.Vector3(0,-50,0),Q,SC.set(0.01,0.01,0.01));
-        trunks.setMatrixAt(i,M); crowns.setMatrixAt(i,M);
+      if(!placed){
+        M.compose(new THREE.Vector3(0,-500,0),Q,SC.set(0.01,0.01,0.01));
+        trunks.setMatrixAt(i,M); crowns.setMatrixAt(i,M); crowns2.setMatrixAt(i,M);
       }
     }
-    crowns.castShadow=true;
-    this.group.add(trunks,crowns);
+    crowns.castShadow=true; crowns2.castShadow=true;
+    this.group.add(trunks,crowns,crowns2);
+
+    // Reifenstapel an Kurveneinfahrten
+    const tyreMat=new THREE.MeshLambertMaterial({color:0x111111});
+    const tyreGeo=new THREE.TorusGeometry(0.52,0.22,6,12);
+    const nTyreWalls=Math.min(12, Math.floor(N/30));
+    const tyreIdxStep=Math.floor(N/nTyreWalls);
+    for(let ti=0;ti<nTyreWalls;ti++){
+      const apex=S[ti*tyreIdxStep];
+      if(Math.abs(apex.curv)<0.008) continue;
+      const sgn=apex.curv>=0?1:-1;
+      const ox=apex.pos.x+apex.side.x*sgn*(this.halfW+1.8);
+      const oz=apex.pos.z+apex.side.z*sgn*(this.halfW+1.8);
+      if(!this.clearOf(ox,oz,this.halfW-1)) continue;
+      for(let row=0;row<3;row++){
+        for(let col=0;col<4;col++){
+          const tyre=new THREE.Mesh(tyreGeo,tyreMat);
+          tyre.rotation.x=Math.PI/2;
+          tyre.position.set(
+            ox+apex.tan.x*(col-1.5)*1.15,
+            apex.pos.y+row*0.48+0.24,
+            oz+apex.tan.z*(col-1.5)*1.15
+          );
+          this.group.add(tyre);
+        }
+      }
+    }
 
     // Tribünen an markanten Stellen
     const standMat=new THREE.MeshLambertMaterial({map:Tex.stand()});
@@ -2523,7 +3132,15 @@ class Car {
     this.smokeT = 0;
     this.retired = false;
     this.setup = setupDefaults();
-    this.tireTemp = {FL:78, FR:78, RL:78, RR:78};
+    this.fuelKg = this.setup.fuel;   // aktueller Tank-Inhalt in kg (wird verbrannt, unabhängig vom Setup-Ziel)
+    /* ECU / Engine-State */
+    this.engineState = {
+      tempC:            90,   // Motortemperatur °C (Betrieb: 85–100, Warn: >108, Krit: >118)
+      throttleFiltered: 0,    // gefilterter Gaswert nach Throttle-Response-Kurve
+      mapIdx:           2,    // aktueller Map-Index (RACE = Standard)
+      rpmCutActive:     false,// true wenn ECU Zündunterbrechung aktiv
+    };
+    this.tireTemp = {FL:70, FR:70, RL:70, RR:70};
     /* Eindeutige ID pro Auto — wichtig für Penalty-State-Tracking, sonst kollidieren KI mit gleichem Auto-Modell */
     this._uid = '_car_' + (Car._nextUid = (Car._nextUid || 0) + 1);
     /* --- Pit Stop System --- */
@@ -2542,17 +3159,26 @@ class Car {
     this.tireWear = {front:1, rear:1, FL:1, FR:1, RL:1, RR:1};
     this.pitServiceFlashT = 0;
     this.pitServiceIntensity = 0;
-    /* --- ERS / Hybrid-Boost ---
-       Batterie 0..1 (1 = voll). Lädt beim Bremsen über Rekuperation,
-       entlädt beim Halten der Boost-Taste. */
+    /* --- ERS / Hybrid-System (LMH-Style) ---
+       Ladezustand 0..1. Rekuperation beim Bremsen/Lupfen.
+       Auto-Deploy je nach Modus wenn Throttle > throttleMin. */
     this.hasERS = this.def.classType === 'hypercar';
     this.ers = {
-      enabled: this.hasERS,
-      charge: this.hasERS ? 0.4 : 0,
-      active: false,
-      depleted: false,
-      level: this.hasERS ? 1 : 0,
-      mode: this.hasERS ? ERS_LEVELS[1].name : 'OFF'
+      enabled:         this.hasERS,
+      charge:          this.hasERS ? 0.42 : 0,  // SoC 0..1
+      active:          false,   // Deploy aktiv diesen Frame
+      regenActive:     false,   // Rekuperation aktiv diesen Frame
+      depleted:        false,   // zu leer für Deploy
+      modeKey:         this.hasERS ? 'RACE' : 'OFF',
+      // Telemetrie
+      deployKw:        0,
+      regenKw:         0,
+      tempC:           ERS_PARAMS.ambientTempC,
+      energyGainedKwh: 0,   // diese Runde gewonnen
+      energyUsedKwh:   0,   // diese Runde verbraucht
+      // OVERTAKE-Timer
+      overtakeT:       0,   // verbleibende Sekunden
+      overtakeCooldown:0,   // Cooldown-Sekunden
     };
     this.buildMesh(envMap);
   }
@@ -2820,6 +3446,7 @@ class Car {
   /* ============== PHYSIK (Assetto-Stil: Pacejka-Reifenmodell, Reibkreis, Lastverlagerung) ============== */
   step(dt, input, track, sound){
     if(this._frozen){ this.vx=0;this.vy=0;this.yawRate=0; const q=track.query(this.pos,this.sampleIdx); this.sampleIdx=q.idx;this.query=q; return; }
+    if(this._pitSetupFrozen){ this.vx=0;this.vy=0;this.yawRate=0; const q=track.query(this.pos,this.sampleIdx); this.sampleIdx=q.idx;this.query=q; return; }
     const d=this.def;
     const q=track.query(this.pos,this.sampleIdx);
     this.sampleIdx=q.idx; this.surf=q.surf; this.query=q;
@@ -2954,6 +3581,8 @@ class Car {
           }
         }
         this.lostParts = {};
+        /* Auftanken: Tank auf Setup-Zielwert befüllen */
+        this.fuelKg = this.setup ? this.setup.fuel : 70;
         this.pitStopState = 'done';
         this.pitStopsDone++;
       }
@@ -2981,21 +3610,49 @@ class Car {
     /* Schadens-Modifikatoren */
     const dmgMods = this.damageMods();
     /* Aero-Abtrieb (Newton, real) — wirkt direkt als zusätzliche Normalkraft */
-    const setupMass = d.mass + setup.fuel*0.55;
-    const wingMul = 1 + (setup.wing - 55) / 260;
+    const fuelKg    = Math.max(0, this.fuelKg ?? setup.fuel);
+    const setupMass = d.mass + fuelKg * 0.72;  // 0.72 kg Masse pro kg Sprit (Kraftstoff + Tank)
+
+    /* ── Aerodynamik: getrennte Vorder-/Hinterflügel ── */
+    const wf = setup.wingFront !== undefined ? setup.wingFront : setup.wing * 0.9;
+    const wr = setup.wingRear  !== undefined ? setup.wingRear  : setup.wing * 1.1;
+    const wingFrontMul = 1 + (wf - 50) / 280;
+    const wingRearMul  = 1 + (wr - 60) / 260;
+    const wingMul      = (wingFrontMul + wingRearMul) / 2;
+
+    /* Bodenfreiheit: niedrig = besser Aero, hoch = mehr Sicherheit */
+    const rhAeroMul  = 1 + (50 - (setup.rideHeight || 50)) * 0.0007;
+    /* Bodenfreiheit wirkt auch auf Kurvengrip über Aero-Effizienz */
+    const rhGripMul  = 1 + (50 - (setup.rideHeight || 50)) * 0.0004;
+
     const weatherGrip = clamp((weather.grip || 1) * (1 - (weather.rain || 0)*0.18), 0.72, 1.08);
     const lineGrip = weather.rain > 0.02 ? lerp(0.78, 1.0, weather.lineDry ?? 1) : 1.0;
+
+    /* ── Reifentemperatur-Grip-Kurve ──────────────────────────────────────────
+       Normale Fahrt: 70-85°C → voller Grip (1.00).
+       Unter 55°C: leichter Grip-Verlust (Rand-Szenario, z.B. nach langem Safety Car).
+       Über 95°C: Überhitzung durch hartes Bremsen/Slides → Grip leicht reduziert.     */
     const tempGrip = key => {
-      const t = this.tireTemp?.[key] ?? 78;
+      const t    = this.tireTemp?.[key] ?? 70;
       const [lo, hi] = compound.tempRange;
-      const opt = (lo + hi) * 0.5;
-      const half = Math.max(10, (hi - lo) * 0.5);
-      return clamp(1 - Math.abs(t - opt) / (half * 1.45), 0.78, 1.04);
+      const span = hi - lo;
+      if(t < lo - 5){
+        /* Unter Optimalbereich: sanfter Abfall */
+        const cold = clamp((t - (lo - span * 0.6)) / (span * 0.6), 0, 1);
+        return lerp(0.82, 0.98, cold);
+      } else if(t <= hi + 5){
+        /* Optimaler Bereich: voll */
+        return 1.00;
+      } else {
+        /* Überhitzung: moderat abfallend */
+        const over = clamp((t - (hi + 5)) / (span * 0.5), 0, 1);
+        return lerp(1.00, 0.84, over);
+      }
     };
-    const FzAeroBase = 0.55 * setupMass * G * (v2/(d.topSpeed*d.topSpeed)) * wingMul;
-    const FzAeroF = FzAeroBase * 0.45 * dmgMods.downforceFront;
-    const FzAeroR = FzAeroBase * 0.55 * dmgMods.downforceRear;
-    const cDrag = d.power / Math.pow(d.topSpeed, 3) * (1 + (setup.wing - 55) / 500);
+    const FzAeroBase = 0.55 * setupMass * G * (v2/(d.topSpeed*d.topSpeed)) * wingMul * rhAeroMul;
+    const FzAeroF = FzAeroBase * 0.45 * wingFrontMul * dmgMods.downforceFront;
+    const FzAeroR = FzAeroBase * 0.55 * wingRearMul  * dmgMods.downforceRear;
+    const cDrag = d.power / Math.pow(d.topSpeed, 3) * (1 + (wingMul - 1) * 0.5);
 
     /* --- Lenkung mit Rate-Limit, geschwindigkeitsabhängig ---
        Wirkliche GT3: bei hoher Geschwindigkeit weniger Lenkwinkel, aber die echte Begrenzung
@@ -3027,8 +3684,8 @@ class Car {
     const muRCorr = 1 - lateralLoadLoss * 0.45;
 
     /* --- Reifen-Reibwerte: Untergrund × Fahrzeug × laterale Lastverlagerung --- */
-    let muF = d.gripF/1.30 * baseMu * muFCorr * weatherGrip * lineGrip * ((tempGrip('FL') + tempGrip('FR')) * 0.5);
-    let muR = d.gripR/1.30 * baseMu * muRCorr * weatherGrip * lineGrip * ((tempGrip('RL') + tempGrip('RR')) * 0.5);
+    let muF = d.gripF/1.30 * baseMu * muFCorr * weatherGrip * lineGrip * rhGripMul * ((tempGrip('FL') + tempGrip('FR')) * 0.5);
+    let muR = d.gripR/1.30 * baseMu * muRCorr * weatherGrip * lineGrip * rhGripMul * ((tempGrip('RL') + tempGrip('RR')) * 0.5);
     /* --- Reifen-Verschleiß / Schaden --- */
     if(this.tireWear && (typeof Game==='undefined'||Game.pitStopsEnabled)){
       muF *= this.tireWear.front;
@@ -3065,43 +3722,201 @@ class Car {
     if(this.rpmRatio<0.42 && this.gear>0){ this.gear--; sound&&sound.blip(); }
     const cut = this.shiftCut>0 ? 0.15 : 1;
 
-    if(input.throttle>0){
-      const effPower = d.power * dmgMods.topSpeed;
-      const effMaxForce = d.maxForce * dmgMods.topSpeed;
-      Fdrive = Math.min(effMaxForce, effPower/Math.max(speed,4)) * input.throttle * cut;
+    /* ════════════════════════════════════════════════════════
+       ECU · ENGINE MAPPING SYSTEM
+       Klassenspezifische Maps: GT3/LMP2/Hypercar haben je
+       4 Maps mit individuellem Power/Torque/Throttle/Fuel/Temp
+       ════════════════════════════════════════════════════════ */
+    const classType = d.classType || 'gt3';
+    const classMaps = getCarMaps(classType);
+    /* Map-Index: aus engineState (Laufzeitwert) synchronisiert mit setup.engineMap */
+    this.engineState.mapIdx = clamp(setup.engineMap ?? defaultMapIdx(classType), 0, classMaps.length - 1);
+    const curMap = classMaps[this.engineState.mapIdx];
+
+    /* ── Throttle Response Kurve ────────────────────────────
+       throttleResp steuert NUR die Ansprechgeschwindigkeit — nicht das Maximum.
+       WET (0.55): Gas kommt träge → ca. 0.8s bis 100%.
+       ATTACK (1.30): Gas reagiert sofort, überschwingt leicht.
+       Maximale Leistung ist IMMER bei Vollgas erreichbar — nur der Weg dorthin ist anders. */
+    const rawThrottle = input.throttle;
+    /* Zielwert = immer das rohe Pedal (nie gedeckelt) */
+    const tgtThrottle = rawThrottle;
+    /* Filterrate: throttleResp bestimmt wie schnell der Filter dem Pedal folgt */
+    const respRate    = 1.2 + curMap.throttleResp * 14.0;  // WET: 8.9/s (~0.7s bis voll), ATTACK: 19.4/s (sofort)
+    this.engineState.throttleFiltered = clamp(
+      this.engineState.throttleFiltered + (tgtThrottle - this.engineState.throttleFiltered) * Math.min(1, respRate * dt),
+      0, 1
+    );
+    const throttleEff = this.engineState.throttleFiltered;
+
+    /* ── Motor-Temperatur-Modell ────────────────────────────
+       Betrieb: 85–100°C. Warn ab 108°C, Kritisch ab 118°C.
+       Last = throttleEff × (v/vMax). Kühlt passiv gegen 90°C. */
+    const engineLoad  = throttleEff * clamp(speed / d.topSpeed, 0, 1);
+    const heatRate    = engineLoad * curMap.tempMul * 14 * dt;
+    const coolTarget  = 90;
+    const coolRate    = (this.engineState.tempC - coolTarget) * 0.10 * dt;
+    this.engineState.tempC = Math.max(coolTarget, this.engineState.tempC + heatRate - coolRate);
+
+    const TEMP_WARN  = 108, TEMP_CRIT = 118;
+    const tempFactor = this.engineState.tempC >= TEMP_CRIT ? 0.78 :
+                       this.engineState.tempC >= TEMP_WARN
+                         ? 1 - (this.engineState.tempC - TEMP_WARN) / (TEMP_CRIT - TEMP_WARN) * 0.22 : 1.0;
+
+    /* ── RPM-Schutz (ECU Zündunterbrechung) ─────────────────
+       Jede Map hat ein eigenes Drehzahllimit (als rpmRatio-Anteil).
+       Überschreitung → Kraftstoffabschneidung (Power → 8%).         */
+    const rpmOverLimit            = this.rpmRatio > curMap.rpmLimit;
+    this.engineState.rpmCutActive = rpmOverLimit;
+    const rpmFactor               = rpmOverLimit ? 0.08 : 1.0;
+
+    /* ── Antriebskraft ──────────────────────────────────────
+       powerMul  → effektive Motorleistung (P × powerMul)
+       torqueMul → effektives Max-Drehmoment (F_max × torqueMul) */
+    if(throttleEff > 0.01){
+      const effPower    = d.power    * dmgMods.topSpeed * curMap.powerMul  * tempFactor * rpmFactor;
+      const effMaxForce = d.maxForce * dmgMods.topSpeed * curMap.torqueMul * tempFactor * rpmFactor;
+      Fdrive = Math.min(effMaxForce, effPower / Math.max(speed, 4)) * throttleEff * cut;
     } else if(this.vx > 1 && input.brake < 0.05){
       Fdrive = -d.mass * 1.8 * this.rpmRatio;
     }
 
-    /* --- ERS-Logik ---
-       Rekuperation: beim Bremsen stark laden (0.20/s), beim Rollen ohne Gas leicht laden (0.04/s)
-       Deploy: Bei input.boost UND Ladung > 0 → Zusatzkraft, entlädt 0.14/s */
-    this.ers.active = false;
+    /* ── Traktionskontrolle ─────────────────────────────────
+       Greift NUR beim Anfahren / Herausbeschleunigen (< 65 km/h = 18 m/s).
+       TC 1 = aus, TC 6 = maximaler Schlupfschutz beim Launch.   */
+    if((setup.tcLevel || 1) > 1 && Fdrive > 0 && speed < 18){
+      const tc       = clamp((setup.tcLevel - 1) / 5, 0, 1);
+      const speedPct = clamp(speed / 18, 0.05, 1);
+      const tcCap    = d.maxForce * curMap.torqueMul * (0.22 + 0.78 * speedPct);
+      if(Fdrive > tcCap) Fdrive = lerp(Fdrive, tcCap, tc * 0.68);
+    }
+
+    /* ── Kraftstoffverbrauch ────────────────────────────────
+       Basis: ~0.0042 kg/s bei 100% Gas, RACE-Map → ~2.7 kg/Runde
+       Verbrauch skaliert mit throttleEff (response-korrigierter Wert)
+       + Leerlaufanteil (Grundverbrauch auch beim Schieben).          */
+    if((this.fuelKg ?? 0) > 0){
+      const baseRate = 0.0042 * curMap.fuelMul;
+      const burnRate = baseRate * Math.max(0.04, throttleEff);
+      this.fuelKg    = Math.max(0, (this.fuelKg ?? 0) - burnRate * dt);
+    }
+    if((this.fuelKg ?? 1) <= 0 && Fdrive > 0) Fdrive = 0;  // Tank leer
+
+    /* ── ERS Hybrid-System (physikalisch, LMH-Style) ────────────────────────
+       Energie:   E_batt = battCapacityKwh × 3600 kJ
+       Regen:     F_regen = P_regen / v  (kraft auf Hinterachse, bremst)
+       Deploy:    F_elec  = P_elec / v   (zusätzliche Antriebskraft)
+       Temperatur: steigt bei Last, kühlt passiv gegen Umgebung ──────────── */
+    this.ers.active      = false;
+    this.ers.regenActive = false;
+    this.ers.deployKw    = 0;
+    this.ers.regenKw     = 0;
     if(this.hasERS){
-      const lvl = ERS_LEVELS[clamp(this.ers.level|0, 0, ERS_LEVELS.length-1)] || ERS_LEVELS[1];
-      this.ers.mode = lvl.name;
-      if(input.brake > 0.1 && this.vx > 5 && !this.ers.depleted){
-        /* Bremsen: starke Rekuperation */
-        this.ers.charge = Math.min(1, this.ers.charge + dt*0.20*Math.min(1, input.brake)*lvl.regenMul);
-      } else if(input.throttle < 0.05 && input.brake <= 0.1 && this.vx > 5 && !this.ers.depleted){
-        /* Rollen / Lift-off: leichte Rekuperation (~1/5 der Bremskraft) */
-        this.ers.charge = Math.min(1, this.ers.charge + dt*0.04*lvl.regenMul);
+      const p    = ERS_PARAMS;
+      const mkey = this.ers.modeKey || 'RACE';
+      const mode = ERS_MODES[mkey] || ERS_MODES.RACE;
+
+      /* Batteriekapazität in kJ */
+      const battKj      = p.battCapacityKwh * 3600;           // 5400 kJ
+      /* Basis-Raten [1/s] bei voller Leistung */
+      const baseDrain   = p.maxDeployKw / battKj;             // ≈ 0.0648/s
+      const baseRegen   = p.maxRegenKw  / battKj * p.battEfficiency; // ≈ 0.0511/s
+
+      /* Thermischer Leistungsfaktor: linear von 1.0 bei warnTemp auf 0.0 bei cutTemp */
+      const tempFactor  = this.ers.tempC >= p.cutTempC  ? 0 :
+                          this.ers.tempC >= p.warnTempC ?
+                            1 - (this.ers.tempC - p.warnTempC) / (p.cutTempC - p.warnTempC) : 1;
+
+      /* ── OVERTAKE-Timer & Cooldown ── */
+      if(mkey === 'OVERTAKE'){
+        if(this.ers.overtakeCooldown > 0){
+          /* Cooldown läuft: kein Deploy erlaubt */
+          this.ers.overtakeCooldown = Math.max(0, this.ers.overtakeCooldown - dt);
+        } else if(this.ers.overtakeT <= 0){
+          /* Frisch aktiviert oder nach Cooldown: Timer neu setzen */
+          this.ers.overtakeT = mode.maxDuration;
+        }
+      } else {
+        /* Modus verlassen → OVT-Zustand einfrieren (kein Auto-Reset) */
       }
-      if(input.boost && this.ers.charge > 0.02 && input.throttle > 0.5){
-        this.ers.active = true;
-        this.ers.charge = Math.max(0, this.ers.charge - dt*0.14*lvl.drainMul);
-        if(this.ers.charge <= 0) this.ers.depleted = true;
-        /* Zusatzschub: dynamisch über ERS-Stufe */
-        const deployMul = lvl.deployMul;
-        Fdrive += Math.min(d.maxForce*0.35*deployMul, d.power*0.35*deployMul/Math.max(speed,4));
-      } else if(this.ers.charge > 0.05){
-        this.ers.depleted = false;
+
+      /* ── Rekuperation ── */
+      if(this.ers.charge < 0.99){
+        let regenRate = 0, regenPowerW = 0;
+        if(input.brake > 0.05 && this.vx > 3){
+          /* Bremsen: starke Rekuperation proportional zu Bremsdruck */
+          const brakePct = Math.min(1, input.brake);
+          regenPowerW    = brakePct * mode.regenPct * p.maxRegenKw * 1000 * mode.regenMul;
+          regenRate      = brakePct * baseRegen * mode.regenPct * mode.regenMul;
+          /* Regen-Bremskraft: fühlt sich wie Motorbremse an (subtrahiert von Fdrive) */
+          const regenForceN = Math.min(regenPowerW / Math.max(this.vx, 3), 5500);
+          Fdrive -= regenForceN * 0.36;   // ~36% der Regen-Kraft als Bremswirkung
+          this.ers.regenKw     = regenPowerW / 1000;
+          this.ers.regenActive = true;
+        } else if(input.throttle < 0.06 && input.brake <= 0.05 && this.vx > 3){
+          /* Lift-off: leichte Rekuperation (Motorbremsersatz) */
+          regenPowerW = 0.16 * mode.regenPct * p.maxRegenKw * 1000;
+          regenRate   = 0.16 * baseRegen * mode.regenPct * mode.regenMul;
+          /* Dezente Bremswirkung beim Lupfen */
+          Fdrive -= Math.min(regenPowerW / Math.max(this.vx, 4), 800) * 0.20;
+          this.ers.regenKw     = regenPowerW / 1000;
+          this.ers.regenActive = true;
+        }
+        if(regenRate > 0){
+          const gained = Math.min(regenRate * dt, 1 - this.ers.charge);
+          this.ers.charge          += gained;
+          this.ers.energyGainedKwh += gained * battKj / 3600;
+        }
       }
+
+      /* ── Deploy ── */
+      const ovtOk     = mkey !== 'OVERTAKE' || (this.ers.overtakeCooldown <= 0 && this.ers.overtakeT > 0);
+      const canDeploy = mode.deployPct > 0
+                     && this.ers.charge > 0.03
+                     && input.throttle > mode.throttleMin
+                     && tempFactor > 0.01
+                     && ovtOk;
+
+      if(canDeploy){
+        /* Elektrische Leistung — Throttle-proportional */
+        const throttlePct  = Math.min(1, (input.throttle - mode.throttleMin) / (1 - mode.throttleMin + 0.001));
+        const elecPowerW   = p.maxDeployKw * 1000 * mode.deployPct * tempFactor * (0.4 + 0.6 * throttlePct);
+        /* Elektrische Kraft: F = P/v, gedeckelt durch Motor-Drehmomentsgrenze */
+        const elecForceN   = Math.min(elecPowerW / Math.max(speed, 3), elecPowerW / 3);
+        Fdrive += elecForceN;
+        this.ers.deployKw  = elecPowerW / 1000;
+        this.ers.active    = true;
+
+        /* Entladen */
+        const drainRate  = baseDrain * mode.deployPct * mode.drainMul * tempFactor * (0.4 + 0.6 * throttlePct);
+        const drained    = Math.min(drainRate * dt, this.ers.charge);
+        this.ers.charge        = Math.max(0, this.ers.charge - drained);
+        this.ers.energyUsedKwh += drained * battKj / 3600;
+        if(this.ers.charge <= 0.005) this.ers.depleted = true;
+
+        /* OVERTAKE-Timer dekrementieren */
+        if(mkey === 'OVERTAKE'){
+          this.ers.overtakeT = Math.max(0, this.ers.overtakeT - dt);
+          if(this.ers.overtakeT <= 0 || this.ers.charge <= 0.02){
+            this.ers.overtakeCooldown = mode.cooldownDur;
+            this.ers.overtakeT        = 0;
+          }
+        }
+      }
+      if(this.ers.charge > 0.08) this.ers.depleted = false;
+
+      /* ── Thermisches Modell ── */
+      const heatD     = (this.ers.deployKw / 100) * 0.85 * dt;   // Heizen durch Deploy
+      const heatR     = (this.ers.regenKw  / 100) * 0.38 * dt;   // Heizen durch Regen
+      const coolRate  = (this.ers.tempC - p.ambientTempC) * 0.07 * dt; // passives Abkühlen
+      this.ers.tempC  = Math.max(p.ambientTempC, this.ers.tempC + heatD + heatR - coolRate);
+
     } else {
-      this.ers.charge = 0;
-      this.ers.level = 0;
-      this.ers.mode = 'OFF';
-      this.ers.depleted = false;
+      /* Kein ERS (GT3, LMP2 ...) */
+      this.ers.charge    = 0;
+      this.ers.modeKey   = 'OFF';
+      this.ers.depleted  = false;
+      this.ers.tempC     = ERS_PARAMS.ambientTempC;
     }
     this.brakeLight = input.brake>0.05;
     if(input.brake>0){
@@ -3127,12 +3942,14 @@ class Car {
     let Fgrass = 0;
     if(q.surf===SURF.GRASS) Fgrass = -600 * Math.sign(this.vx) * clamp(speed,0,1);
 
-    /* --- ABS: reduziert Bremskraft pro Achse, sobald Reibkreis-Reserve für Seitenkraft schwindet ---
-       Behält ~50% laterale Kapazität, indem |Fx| ≤ 0.85·μFz gehalten wird (real ABS-Verhalten) */
+    /* --- ABS: Setup-Stufe bestimmt wie aggressiv die Bremskraft begrenzt wird ---
+       ABS 1 = minimal (0.95 → mehr Blockiergefahr, aber maximale Bremskraft)
+       ABS 6 = stark   (0.70 → weniger Blockieren, etwas weniger Peak-Bremsung)  */
+    const absLimit = clamp(0.96 - (setup.absLevel || 3) * 0.044, 0.68, 0.96);
     const muMaxR = muR * FzR;
     const muMaxF = muF * FzF;
-    const FxR_max = muMaxR * 0.85;
-    const FxF_max = muMaxF * 0.85;
+    const FxR_max = muMaxR * absLimit;
+    const FxF_max = muMaxF * absLimit;
     if(Fbrake_F < -FxF_max) Fbrake_F = -FxF_max;
     if(Fbrake_R < -FxR_max) Fbrake_R = -FxR_max;
 
@@ -3167,12 +3984,24 @@ class Car {
     this.vy += (ay - this.yawRate*this.vx + dmgMods.pullX*speed*0.05) * dt;
     this.yawRate += yawAcc * dt;
 
+    /* ── Differenzialsperre: Gierrate dämpfen bei hoher Sperrwirkung ──
+       Hohe Sperre (80) = weniger Drehfreude auf Gas = mehr Understeer-Tendenz.
+       Niedrige Sperre (20) = dreht freier = schnellere Rotation beim Rausbeschleunigen. */
+    if(input.throttle > 0.35 && Fdrive > 0 && speed > 5){
+      const diffDamp = ((setup.diffLock || 45) - 45) / 35 * 0.006 * speed;
+      this.yawRate -= Math.sign(this.yawRate) * Math.min(Math.abs(this.yawRate)*0.18, diffDamp) * dt * 50;
+    }
+
+    /* ── Federungshärte: wirkt auf Lastverlagerungsrate (bumpstop) ──
+       Harter Bumpstop = schnellere Lastverlagerung → besser in Kurven, schlechter auf Kerbs. */
+    const bumpMul = 0.85 + (setup.bumpstop || 50) * 0.003;
+
     /* --- Stabilität (Sim-Cade) ---
        Gierrate zieht zur Zielrate, ABER nur soweit die Reifen sie physikalisch tragen können.
        Vorher fehlte dieser Limiter — bei kleinem Lenkeinschlag auf der Geraden bei 250 km/h
        war das kinematische Ziel 0.8 rad/s = 4g, das Auto wurde künstlich dorthin gezwungen,
        Reifen saturierten, das Auto brach aus. */
-    const sideDampGrip = baseMu/1.30;
+    const sideDampGrip = baseMu/1.30 * bumpMul;
     const maxAlpha = Math.max(this.slipFront, this.slipRear);
     const overLimit = clamp((maxAlpha-0.30)*3.8, 0, 1);
     const assistFactor = 1 - overLimit*0.28;
@@ -3307,21 +4136,35 @@ class Car {
 
     if(this.tireTemp){
       const weatherHeat = (typeof Game !== 'undefined' && Game.weather) ? Game.weather : weatherDefaults();
-      const rainCool = (weatherHeat.rain || 0) * 14;
-      const speedHeat = clamp(Math.abs(this.vx) * 0.28, 0, 42);
-      const slipHeat = clamp((this.sliding || 0) * 4.0 + Math.abs(this.yawRate) * 1.8, 0, 20);
-      const wearPenalty = (1 - Math.min(1, ((this.tireWear?.front || 1) + (this.tireWear?.rear || 1)) * 0.5)) * 10;
-      const baseTemp = clamp(62 + speedHeat + slipHeat + wearPenalty - rainCool, 30, 118);
-      const steerBias = clamp(this.steer * 8, -8, 8);
-      const brakeBias = clamp((this.setup?.brakeBalance || 60) - 60, -10, 10);
+      const compound    = TIRE_COMPOUNDS[(this.setup?.compound) || 'medium'] || TIRE_COMPOUNDS.medium;
+      const [tLo, tHi] = compound.tempRange;
+
+      const rain        = weatherHeat.rain || 0;
+      /* Gleichgewicht beim normalen Fahren — Reifen bleiben stabil nahe diesem Wert */
+      const cruiseBase  = 72;
+      const slideExtra  = clamp((this.sliding || 0) * 22 + Math.abs(this.yawRate) * 2.8, 0, 28);
+      const brakeExtra  = input.brake * 18;
+      const throttleEx  = input.throttle * 5;
+      const rainCool    = rain * 9;
+
+      const baseTgt = cruiseBase + slideExtra + brakeExtra + throttleEx - rainCool;
+
+      const steerBias = clamp(this.steer * 10, -10, 10);
+      const brakeBias = clamp((this.setup?.brakeBalance || 60) - 60, -6, 6);
+
       const target = {
-        FL: baseTemp + Math.max(0, -steerBias) + Math.max(0, input.brake) * 5,
-        FR: baseTemp + Math.max(0,  steerBias) + Math.max(0, input.brake) * 5,
-        RL: baseTemp - 4 + Math.max(0, input.throttle) * 4 - brakeBias * 0.2,
-        RR: baseTemp - 4 + Math.max(0, input.throttle) * 4 + brakeBias * 0.2
+        FL: baseTgt + Math.max(0, -steerBias) + brakeExtra * 0.4 * (1 + brakeBias*0.01),
+        FR: baseTgt + Math.max(0,  steerBias) + brakeExtra * 0.4 * (1 - brakeBias*0.01),
+        RL: baseTgt - 3 + throttleEx          + brakeExtra * 0.2,
+        RR: baseTgt - 3 + throttleEx          + brakeExtra * 0.2,
       };
+
       for(const key of ['FL','FR','RL','RR']){
-        this.tireTemp[key] = lerp(this.tireTemp[key], target[key], 1 - Math.exp(-dt*1.9));
+        const cur = this.tireTemp[key];
+        const tgt = clamp(target[key], 40, tHi + 28);
+        /* Aufheizen schnell (Bremsen/Slides), Abkühlen sehr träge */
+        const rate = tgt > cur ? 0.28 : 0.045;
+        this.tireTemp[key] += (tgt - cur) * Math.min(1, dt * rate);
       }
     }
 
@@ -4397,15 +5240,23 @@ class AIDriver {
     // Fehler-Effekte aufsetzen
     if(inMistake) this._applyMistake(this.input);
 
-    // P2P / ERS
-    const inp = this.input;
-    inp.boost = false;
-    if(car.ers && car.ers.charge>0.25 && !car.ers.depleted){
-      const curvHere  = Math.abs(track.samples[q.idx].curv);
-      const noYellow  = !car.vscActive && !car.scActive;
-      if(curvHere<0.004 && inp.throttle>0.8 && noYellow) inp.boost = true;
+    /* ERS-Modus für KI: basierend auf Ladezustand und Rennlage */
+    if(car.hasERS && car.ers){
+      const charge  = car.ers.charge;
+      const curvHere = Math.abs(track.samples[q.idx].curv);
+      const noYellow = !car.vscActive && !car.scActive;
+      if(charge < 0.22 || car.ers.depleted){
+        car.ers.modeKey = 'CHARGE';
+      } else if(!noYellow || charge < 0.40){
+        car.ers.modeKey = 'RACE';
+      } else if(charge > 0.65 && curvHere < 0.004){
+        /* Gerade mit voller Batterie → ATTACK */
+        car.ers.modeKey = 'ATTACK';
+      } else {
+        car.ers.modeKey = 'RACE';
+      }
     }
-    return inp;
+    return this.input;
   }
 }
 /* ============================ AUTO-AUTO-KOLLISION ============================ */
@@ -4929,38 +5780,89 @@ const HUD = {
     }
     /* Reifenverschleiß-Panel unten rechts */
     if(this._tyreBox === undefined){
-      this._tyreBox = document.getElementById('tyrebox');
-      this._tyreTitle = this._tyreBox ? this._tyreBox.querySelector('.tb-title') : null;
+      this._tyreBox    = document.getElementById('tyrebox');
       this._tyreAvgBar = document.getElementById('tyre-avg-bar');
       this._tyreAvgPct = document.getElementById('tyre-avg-pct');
-      this._tyreVals = {
-        FL: document.getElementById('tyre-FL'),
-        FR: document.getElementById('tyre-FR'),
-        RL: document.getElementById('tyre-RL'),
-        RR: document.getElementById('tyre-RR')
-      };
+      this._tyCmpLbl   = document.getElementById('tyre-compound-lbl');
+      this._tyreStatus = document.getElementById('tyre-status');
+      this._tyChips    = { FL: document.getElementById('tc-FL'), FR: document.getElementById('tc-FR'), RL: document.getElementById('tc-RL'), RR: document.getElementById('tc-RR') };
+      this._tyTemp     = { FL: document.getElementById('tt-FL'), FR: document.getElementById('tt-FR'), RL: document.getElementById('tt-RL'), RR: document.getElementById('tt-RR') };
+      this._tyWear     = { FL: document.getElementById('tw-FL'), FR: document.getElementById('tw-FR'), RL: document.getElementById('tw-RL'), RR: document.getElementById('tw-RR') };
     }
     if(this._tyreBox && car.tireWear){
       this._tyreBox.classList.remove('hidden');
+
+      /* Compound label */
+      const cmpd = car.setup?.compound || 'medium';
+      if(this._tyCmpLbl) this._tyCmpLbl.textContent = cmpd.toUpperCase();
+
+      /* Durchschnittlicher Verschleiß → Bar */
       const distScale = clamp((totalLaps || 3) / 3, 1, 4);
-      const avgWear = (car.tireWear.FL + car.tireWear.FR + car.tireWear.RL + car.tireWear.RR) / 4;
-      const avgUsed = clamp((1 - avgWear) * distScale, 0, 1);
-      if(this._tyreTitle) this._tyreTitle.textContent = `REIFEN · x${distScale.toFixed(1)}`;
+      const avgWear   = (car.tireWear.FL + car.tireWear.FR + car.tireWear.RL + car.tireWear.RR) / 4;
+      const avgUsed   = clamp((1 - avgWear) * distScale, 0, 1);
       if(this._tyreAvgBar) this._tyreAvgBar.style.width = Math.round(avgUsed * 100) + '%';
       if(this._tyreAvgPct) this._tyreAvgPct.textContent = Math.round(avgWear * 100) + '%';
-      const chipColor = (v) => {
+
+      /* Temperatur-Farbstufen für jeden Reifen */
+      const compound = TIRE_COMPOUNDS[cmpd] || TIRE_COMPOUNDS.medium;
+      const [tLo, tHi] = compound.tempRange;
+      const tOpt = (tLo + tHi) * 0.5;
+
+      const tempClass = t => {
+        if(t < tLo - 8)  return 'tc-cold';   // deutlich kalt
+        if(t <= tHi + 2) return 'tc-warm';   // optimal / leicht drüber
+        if(t <= tHi + 12) return 'tc-hot';   // überwärmt
+        return 'tc-over';                     // kritisch
+      };
+      const tempColor = t => {
+        if(t < tLo - 8)  return '#3a7ab0';
+        if(t <= tHi + 2) return '#22e87a';
+        if(t <= tHi + 12) return '#ffa820';
+        return '#ff2e3d';
+      };
+
+      const wearColor = v => {
         if(v > 0.75) return '#22c463';
         if(v > 0.50) return '#ffd400';
         if(v > 0.25) return '#ff8800';
         return '#ff2e3d';
       };
+
+      let statusTxt = '', statusCol = '#4a5560';
+      const temps   = car.tireTemp || {};
+      const avgTemp = ((temps.FL||40) + (temps.FR||40) + (temps.RL||40) + (temps.RR||40)) / 4;
+      const allWarm = avgTemp >= tLo - 5;
+
       ['FL','FR','RL','RR'].forEach(t => {
-        const v = car.tireWear[t];
-        if(this._tyreVals[t]){
-          this._tyreVals[t].textContent = Math.round(v * 100) + '%';
-          this._tyreVals[t].style.color = chipColor(v);
+        const temp = temps[t] ?? 40;
+        const wear = car.tireWear[t] ?? 1;
+        const chip = this._tyChips[t];
+        if(chip){
+          chip.className = 'tb-chip ' + tempClass(temp);
+        }
+        if(this._tyTemp[t]){
+          this._tyTemp[t].textContent = Math.round(temp) + '°';
+          this._tyTemp[t].style.color = tempColor(temp);
+        }
+        if(this._tyWear[t]){
+          this._tyWear[t].textContent = Math.round(wear * 100) + '%';
+          this._tyWear[t].style.color = wearColor(wear);
         }
       });
+
+      /* Statuszeile */
+      if(avgTemp < tLo - 12){
+        statusTxt = '● KALT — VORSICHT'; statusCol = '#3a7ab0';
+      } else if(avgTemp < tLo - 2){
+        statusTxt = '▲ AUFWÄRMEN'; statusCol = '#60b8e0';
+      } else if(avgTemp <= tHi + 2){
+        statusTxt = '● OPTIMAL'; statusCol = '#22e87a';
+      } else if(avgTemp <= tHi + 14){
+        statusTxt = '▼ ÜBERHITZT'; statusCol = '#ffa820';
+      } else {
+        statusTxt = '!! KRITISCH'; statusCol = '#ff2e3d';
+      }
+      if(this._tyreStatus){ this._tyreStatus.textContent = statusTxt; this._tyreStatus.style.color = statusCol; }
     }
     /* === Schaden-Widget (rechtes Panel) === */
     if(this._dmgPanelInit === undefined){
@@ -5034,6 +5936,37 @@ const HUD = {
         if(el) el.setAttribute('opacity', car.lostParts[tag] ? '1' : '0');
       }
     }
+    /* ── Kraftstoff-Anzeige ── */
+    if(this._fuelBar === undefined){
+      this._fuelBar    = document.querySelector('#fuel-bar i');
+      this._fuelKgEl   = document.getElementById('fuel-kg');
+      this._fuelMapEl  = document.getElementById('fuel-map');
+      this._fuelRow    = document.getElementById('fuel-row');
+    }
+    if(this._fuelBar){
+      const maxFuel   = (car.setup && car.setup.fuel) ? Math.max(car.setup.fuel, 1) : 70;
+      const curFuel   = Math.max(0, car.fuelKg ?? maxFuel);
+      const fuelPct   = clamp(curFuel / 100 * 100, 0, 100);  // 100 kg = 100%
+      this._fuelBar.style.width = fuelPct.toFixed(1) + '%';
+      /* Farbe: grün=voll, gelb=mitte, rot=leer */
+      const fuelCol = fuelPct > 40 ? '#22e87a' : fuelPct > 15 ? '#ffa820' : '#ff2e3d';
+      this._fuelBar.style.background = `linear-gradient(90deg,${fuelCol}88 0%,${fuelCol} 100%)`;
+      if(this._fuelKgEl) this._fuelKgEl.textContent = curFuel.toFixed(1) + ' kg';
+      if(this._fuelKgEl) this._fuelKgEl.style.color = fuelPct < 10 ? '#ff2e3d' : '#e8ecef';
+      /* Map-Label aus ENGINE_MAPS */
+      const classType = car.def?.classType || 'gt3';
+      const mIdx      = car.engineState?.mapIdx ?? 2;
+      const curM      = getCarMap(classType, mIdx);
+      if(this._fuelMapEl){
+        this._fuelMapEl.textContent = curM.short;
+        this._fuelMapEl.style.color = curM.col;
+      }
+      /* Motor-Temperatur Warnung: Farbe des Map-Labels bei Überhitzung */
+      if(car.engineState && car.engineState.tempC > 108){
+        if(this._fuelMapEl) this._fuelMapEl.style.color = car.engineState.tempC > 118 ? '#ff2e3d' : '#ffa820';
+      }
+    }
+
     /* ERS-Anzeige */
     if(this._ersBar === undefined){
       this._ersBar = document.querySelector('#ers-bar i');
@@ -5052,6 +5985,26 @@ const HUD = {
       this._ersBar.style.width = c.toFixed(0)+'%';
       this._ersPct.textContent = c.toFixed(0)+'%';
       this._ersWrap.classList.toggle('active', hasERS && car.ers.active);
+      /* Mode-Label & Balkenfarbe */
+      if(hasERS){
+        if(!this._ersModeLbl) this._ersModeLbl = document.getElementById('ers-mode-lbl');
+        const mode = ERS_MODES[car.ers.modeKey] || ERS_MODES.RACE;
+        let short = mode.short;
+        /* OVERTAKE: zeigt Cooldown oder verbleibende Sekunden */
+        if(car.ers.modeKey === 'OVERTAKE'){
+          if(car.ers.overtakeCooldown > 0) short = 'CD'+Math.ceil(car.ers.overtakeCooldown);
+          else if(car.ers.active)           short = Math.ceil(car.ers.overtakeT)+'s';
+        }
+        if(this._ersModeLbl){
+          this._ersModeLbl.textContent = short;
+          this._ersModeLbl.style.color = mode.col;
+        }
+        /* Balkenfarbe: aktiver Deploy → Modus-Farbe, sonst blau */
+        const barColor = car.ers.active ? mode.col : (car.ers.regenActive ? '#22aaff' : '#1a4a6a');
+        this._ersBar.style.background = `linear-gradient(90deg,${barColor}88 0%,${barColor} 100%)`;
+        if(car.ers.active) this._ersBar.style.boxShadow = `0 0 6px ${mode.col}88`;
+        else               this._ersBar.style.boxShadow = '';
+      }
     }
     if(this._lapValidEl === undefined) this._lapValidEl = document.getElementById('lap-valid');
     if(this._lapValidEl){
@@ -5259,22 +6212,57 @@ const Game = {
   },
   adjustERSLevel(delta){
     if(!this.car || !this.car.hasERS || !this.car.ers) return;
-    const max = ERS_LEVELS.length - 1;
-    this.car.ers.level = clamp((this.car.ers.level|0) + delta, 0, max);
-    const lvl = ERS_LEVELS[this.car.ers.level];
-    this.car.ers.mode = lvl.name;
+    const list = ERS_MODE_LIST;
+    const cur  = list.indexOf(this.car.ers.modeKey);
+    const next = (cur + delta + list.length) % list.length;
+    this.car.ers.modeKey = list[next];
+    /* OVERTAKE: Timer initialisieren wenn neu ausgewählt */
+    if(list[next] === 'OVERTAKE' && this.car.ers.overtakeCooldown <= 0){
+      this.car.ers.overtakeT = 0; // wird beim nächsten Deploy gesetzt
+    }
     this.showERSPopup();
   },
   showERSPopup(){
     const box = document.getElementById('ers-popup');
     if(!box || !this.car || !this.car.ers || !this.car.hasERS) return;
-    const lvl = ERS_LEVELS[this.car.ers.level] || ERS_LEVELS[1];
-    document.getElementById('ep-level').textContent = lvl.name;
-    document.getElementById('ep-energy').textContent = Math.round((this.car.ers.charge || 0) * 100) + '%';
-    document.getElementById('ep-charge').textContent = lvl.regenMul > 1 ? 'hoch' : lvl.regenMul < 0.8 ? 'niedrig' : 'normal';
-    document.getElementById('ep-mode').textContent = lvl.mode;
+    const ers  = this.car.ers;
+    const mode = ERS_MODES[ers.modeKey] || ERS_MODES.RACE;
+
+    const nm = document.getElementById('ep-modename');
+    if(nm){ nm.textContent = mode.name; nm.style.color = mode.col; }
+    const ee = document.getElementById('ep-energy');
+    if(ee) ee.textContent = Math.round((ers.charge || 0) * 100) + '%';
+    const ed = document.getElementById('ep-deploy');
+    if(ed) ed.textContent = Math.round(ers.deployKw || 0) + ' kW';
+    const er = document.getElementById('ep-regen');
+    if(er) er.textContent = Math.round(ers.regenKw || 0) + ' kW';
+    const et = document.getElementById('ep-temp');
+    if(et){
+      const tc = Math.round(ers.tempC || ERS_PARAMS.ambientTempC);
+      const hot = tc >= ERS_PARAMS.warnTempC;
+      et.textContent = tc + ' °C';
+      et.style.color = tc >= ERS_PARAMS.cutTempC ? '#ff2e3d' : hot ? '#ffa820' : '#fff';
+    }
+    /* OVERTAKE spezifisch */
+    const ovtRow = document.getElementById('ep-ovt-row');
+    const ovtVal = document.getElementById('ep-ovt');
+    if(ovtRow && ovtVal){
+      ovtRow.style.display = (ers.modeKey === 'OVERTAKE') ? 'flex' : 'none';
+      if(ers.overtakeCooldown > 0)
+        ovtVal.textContent = 'COOLDOWN ' + ers.overtakeCooldown.toFixed(0) + ' s';
+      else if(ers.overtakeT > 0)
+        ovtVal.textContent = ers.overtakeT.toFixed(1) + ' s verbleibend';
+      else
+        ovtVal.textContent = 'bereit';
+      ovtVal.style.color = ers.overtakeCooldown > 0 ? '#ffa820' : mode.col;
+    }
+    const el = document.getElementById('ep-elap');
+    if(el) el.textContent = '+' + (ers.energyGainedKwh||0).toFixed(2) + ' / −' + (ers.energyUsedKwh||0).toFixed(2) + ' kWh';
+    const desc = document.getElementById('ep-desc');
+    if(desc) desc.textContent = mode.desc;
+
     box.classList.add('show');
-    this._ersPopupUntil = performance.now() + 1800;
+    this._ersPopupUntil = performance.now() + 2200;
   },
   toggleHudEditMode(){
     this.hudEditMode = !this.hudEditMode;
@@ -5362,9 +6350,308 @@ const Game = {
     this.car.setup = Object.assign(setupDefaults(), this.setupProfile || {});
     if(this.aiCars && this.aiCars.length){
       for(const c of this.aiCars){
-        c.setup = Object.assign(setupDefaults(), { wing: 50, brakeBalance: 58, fuel: 60, compound: 'medium' });
+        c.setup = Object.assign(setupDefaults(), { wing: 50, wingFront:48, wingRear:62, brakeBalance: 58, fuel: 60, compound: 'medium' });
       }
     }
+  },
+
+  /* ──────────────────────────────────────────────────────
+     PIT SETUP SCREEN (nur Zeitfahren)
+  ────────────────────────────────────────────────────── */
+  _pitSetupShown: false,
+
+  showPitSetup(){
+    if(this._pitSetupShown) return;
+    this._pitSetupShown = true;
+    /* Auto einfrieren */
+    if(this.car){
+      this.car._pitSetupFrozen = true;
+      this.car.vx = 0; this.car.vy = 0; this.car.yawRate = 0;
+    }
+    const ov = document.getElementById('pit-setup-overlay');
+    if(!ov) return;
+
+    /* Telemetry-Header befüllen */
+    const carDef   = this.car && this.car.def ? this.car.def : {};
+    const trackDef = this.track && this.track.def ? this.track.def : {};
+    const sub = document.getElementById('pso-car-track');
+    if(sub) sub.textContent = (carDef.name||'') + (trackDef.name ? '  ·  ' + trackDef.name : '');
+
+    const fmt = s => {
+      if(s == null) return '—:——.———';
+      const m = Math.floor(s/60), sec = s - m*60;
+      return m + ':' + (sec<10?'0':'') + sec.toFixed(3);
+    };
+    const r = this.race;
+    const tel = {best: fmt(r?.bestLap), last: fmt(r?.lastLap)};
+    const tb = document.getElementById('pso-tel-best'); if(tb) tb.textContent = tel.best;
+    const tl = document.getElementById('pso-tel-last'); if(tl) tl.textContent = tel.last;
+    /* aktuellen Kraftstoff im Setup-Slider vorbelegen */
+    if(this.car && this.car.fuelKg != null){
+      const curFuel = Math.round(this.car.fuelKg);
+      this.setupProfile.fuel = curFuel;   // zeigt aktuellen Tank, nicht den Zielwert
+    }
+
+    /* Aktuelles Setup in UI laden */
+    const sp = this.setupProfile || setupDefaults();
+    this._syncPitUI(sp);
+    this._updatePsoTelBar(sp);
+
+    ov.classList.remove('hidden');
+  },
+
+  hidePitSetup(){
+    if(!this._pitSetupShown) return;
+    this._pitSetupShown = false;
+    this._pitSetupDismissed = true;   // verhindert sofortiges Wiederöffnen während noch in der Box
+    if(this.car) this.car._pitSetupFrozen = false;
+    const ov = document.getElementById('pit-setup-overlay');
+    if(ov) ov.classList.add('hidden');
+    /* Neues Setup sofort anwenden + auftanken */
+    this.saveSetupProfile();
+    this.applyPlayerSetup();
+    if(this.car && this.setupProfile) this.car.fuelKg = this.setupProfile.fuel;
+    /* Kurzer "ABFAHREN"-Flash */
+    this._showFlash('ABFAHREN !', '#22e87a', 1600);
+  },
+
+  _showFlash(msg, col, ms){
+    let fl = document.getElementById('_pitFlash');
+    if(!fl){
+      fl = document.createElement('div');
+      fl.id = '_pitFlash';
+      fl.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);' +
+        'font-family:var(--mono);font-size:32px;font-weight:800;letter-spacing:.28em;' +
+        'pointer-events:none;z-index:60;text-shadow:0 0 24px currentColor;' +
+        'animation:psoFadeIn .15s ease;transition:opacity .3s';
+      document.body.appendChild(fl);
+    }
+    fl.textContent = msg;
+    fl.style.color = col || '#fff';
+    fl.style.opacity = '1';
+    clearTimeout(this._flashTimer);
+    this._flashTimer = setTimeout(()=>{ fl.style.opacity='0'; }, ms - 300);
+  },
+
+  _syncPitUI(sp){
+    const set = (id, val) => { const el=document.getElementById(id); if(el) el.value=val; };
+    const setTxt = (id, txt) => { const el=document.getElementById(id); if(el) el.textContent=txt; };
+
+    set('ps-wingFront',   sp.wingFront  ?? 50);
+    set('ps-wingRear',    sp.wingRear   ?? 60);
+    set('ps-fuel',        sp.fuel       ?? 70);
+    set('ps-brakeBalance',sp.brakeBalance??60);
+    set('ps-absLevel',    sp.absLevel   ?? 3);
+    set('ps-diffLock',    sp.diffLock   ?? 45);
+    set('ps-bumpstop',    sp.bumpstop   ?? 50);
+    set('ps-rideHeight',  sp.rideHeight ?? 50);
+    set('ps-tcLevel',     sp.tcLevel    ?? 3);
+
+    setTxt('pv-wingFront',    sp.wingFront  ?? 50);
+    setTxt('pv-wingRear',     sp.wingRear   ?? 60);
+    setTxt('pv-fuel',         (sp.fuel??70) + ' kg');
+    setTxt('pv-brakeBalance', (sp.brakeBalance??60) + '%');
+    setTxt('pv-absLevel',     sp.absLevel   ?? 3);
+    setTxt('pv-diffLock',     (sp.diffLock??45) + '%');
+    setTxt('pv-bumpstop',     sp.bumpstop   ?? 50);
+    setTxt('pv-rideHeight',   sp.rideHeight ?? 50);
+    setTxt('pv-tcLevel',      sp.tcLevel    ?? 3);
+
+    /* Engine Map Buttons (class-spezifisch) */
+    const classType = this.car?.def?.classType || 'gt3';
+    this._buildMapButtons(classType);
+    this._updateEngineMapUI(sp.engineMap ?? defaultMapIdx(classType), classType);
+
+    /* Compound-Buttons */
+    for(const btn of document.querySelectorAll('.pso-compound-btn')){
+      btn.classList.toggle('selected', btn.dataset.compound === (sp.compound||'medium'));
+    }
+
+    this._updateAbsHint(sp.absLevel || 3);
+    this._updateTcHint(sp.tcLevel || 3);
+    this._updatePsoSummary(sp);
+  },
+
+  _buildMapButtons(classType){
+    const container = document.getElementById('pso-map-btns');
+    if(!container) return;
+    /* Nur neu bauen wenn andere Klasse */
+    if(container.dataset.builtFor === classType) return;
+    container.dataset.builtFor = classType;
+    container.innerHTML = '';
+    const maps = getCarMaps(classType);
+    maps.forEach((m, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'pso-compound-btn pso-map-btn';
+      btn.dataset.mapIdx = idx;
+      btn.style.setProperty('--cc', m.col);
+      btn.style.flex = '1';
+      btn.innerHTML = `
+        <span class="pso-cmp-letter" style="font-size:13px">${m.short}</span>
+        <span class="pso-cmp-name">${m.name}</span>
+        <span class="pso-cmp-info">${Math.round(m.powerMul*100)}% P &nbsp; ${Math.round(m.fuelMul*100)}% V</span>
+      `;
+      btn.addEventListener('click', () => {
+        this.setupProfile.engineMap = idx;
+        if(this.car) this.car.engineState.mapIdx = idx;
+        this._updateEngineMapUI(idx, classType);
+        this._updatePsoSummary(this.setupProfile);
+        if(this.car) this.applyPlayerSetup();
+      });
+      container.appendChild(btn);
+    });
+  },
+
+  _updateEngineMapUI(mapIdx, classType){
+    const maps  = getCarMaps(classType || 'gt3');
+    const m     = maps[clamp(mapIdx, 0, maps.length - 1)];
+
+    const el = document.getElementById('ph-engineMap');
+    if(el) el.textContent = m.desc;
+
+    /* ECU-Telemetrie im Setup-Screen */
+    const pwr = document.getElementById('pso-tel-power');
+    if(pwr){ pwr.textContent = Math.round(m.powerMul * 100) + '%';
+      pwr.style.color = m.powerMul > 1 ? '#ff2e3d' : m.powerMul < 0.90 ? '#22e87a' : '#e8ecef'; }
+    const trq = document.getElementById('pso-tel-torque');
+    if(trq){ trq.textContent = Math.round(m.torqueMul * 100) + '%';
+      trq.style.color = m.torqueMul > 1 ? '#ffa820' : '#e8ecef'; }
+    const thr = document.getElementById('pso-tel-throttle');
+    if(thr){
+      const label = m.throttleResp >= 1.25 ? 'AGRESSIV' : m.throttleResp >= 0.90 ? 'NORMAL' :
+                    m.throttleResp >= 0.70 ? 'WEICH' : 'SEHR WEICH';
+      thr.textContent = label;
+      thr.style.color = m.throttleResp >= 1.25 ? '#ff2e3d' : m.throttleResp < 0.70 ? '#22c4ff' : '#e8ecef';
+    }
+    const fr = document.getElementById('pso-tel-fuel-rate');
+    if(fr){
+      const label = m.fuelMul >= 1.35 ? '+' + Math.round((m.fuelMul-1)*100) + '% HOCH' :
+                    m.fuelMul <= 0.70 ? Math.round((1-m.fuelMul)*100) + '% SPAR' : 'NORMAL';
+      fr.textContent = label;
+      fr.style.color = m.fuelMul >= 1.35 ? '#ff2e3d' : m.fuelMul <= 0.75 ? '#22e87a' : '#e8ecef';
+    }
+
+    /* HUD-Telemetrie-Bar */
+    const tm = document.getElementById('pso-tel-map');
+    if(tm){ tm.textContent = m.name; tm.style.color = m.col; }
+
+    /* Map-Buttons: selected markieren */
+    for(const btn of document.querySelectorAll('.pso-map-btn')){
+      btn.classList.toggle('selected', parseInt(btn.dataset.mapIdx) === mapIdx);
+    }
+  },
+
+  _updateAbsHint(v){
+    const hints = ['ABS 1 — minimal, maximale Bremskraft, Blockiergefahr',
+                   'ABS 2 — leichte Unterstützung',
+                   'ABS 3 — ausgewogen (empfohlen)',
+                   'ABS 4 — stärker, verhindert Blockieren',
+                   'ABS 5 — sehr stark, sehr stabil',
+                   'ABS 6 — maximum, -5% Peak-Bremsung'];
+    const el = document.getElementById('ph-absLevel');
+    if(el) el.textContent = hints[clamp(v-1,0,5)];
+    const pv = document.getElementById('pv-absLevel');
+    if(pv){ pv.textContent = v;
+      pv.style.color = v<=1?'#ff2e3d':v<=3?'#ffa820':'#22e87a'; }
+  },
+
+  _updateTcHint(v){
+    const hints = ['TC 1 — aus, maximaler Schub, Schlupfgefahr',
+                   'TC 2 — minimal, nur bei starkem Schlupf',
+                   'TC 3 — ausgewogen (empfohlen)',
+                   'TC 4 — stärker, sicheres Herausbeschleunigen',
+                   'TC 5 — sehr stark, sehr stabil',
+                   'TC 6 — maximum, begrenzt Antrieb spürbar'];
+    const el = document.getElementById('ph-tcLevel');
+    if(el) el.textContent = hints[clamp(v-1,0,5)];
+    const pv = document.getElementById('pv-tcLevel');
+    if(pv){ pv.textContent = v;
+      pv.style.color = v<=1?'#ff2e3d':v<=3?'#ffa820':'#22e87a'; }
+  },
+
+  _updatePsoTelBar(sp){
+    const front = sp.wingFront ?? 50, rear = sp.wingRear ?? 60;
+    const bal   = (front - rear > 5) ? 'Übersteuern-Bias' :
+                  (rear - front > 5) ? 'Understeuern-Bias' : 'Neutral';
+    const ta = document.getElementById('pso-tel-aero');
+    if(ta){ ta.textContent = front + '/' + rear + ' ' + bal; }
+    const classType = this.car?.def?.classType || 'gt3';
+    const mapIdx    = sp.engineMap ?? defaultMapIdx(classType);
+    const m         = getCarMap(classType, mapIdx);
+    const tm = document.getElementById('pso-tel-map');
+    if(tm){ tm.textContent = m.name; tm.style.color = m.col; }
+    const tb = document.getElementById('pso-tel-bias');
+    if(tb) tb.textContent = (sp.brakeBalance||60) + '% V';
+    const tt = document.getElementById('pso-tel-tire');
+    if(tt){ const c={soft:'SOFT',medium:'MED',hard:'HARD'}; tt.textContent=c[sp.compound||'medium']||'MED';
+      tt.style.color=sp.compound==='soft'?'#ff2e3d':sp.compound==='hard'?'#c8cdd4':'#ffd400'; }
+  },
+
+  _updatePsoSummary(sp){
+    const el = document.getElementById('pso-summary');
+    if(!el) return;
+    const classType = this.car?.def?.classType || 'gt3';
+    const m = getCarMap(classType, sp.engineMap ?? defaultMapIdx(classType));
+    el.textContent = `Aero: ${sp.wingFront??50}/${sp.wingRear??60}  ·  ${m.name}  ·  TC ${sp.tcLevel??3}  ·  ABS ${sp.absLevel??3}  ·  Diff ${sp.diffLock??45}%  ·  Boden ${sp.rideHeight??50}`;
+  },
+
+  initPitSetupUI(){
+    const g = this;
+    /* Helper */
+    const onSlider = (id, key, transform, postFn) => {
+      const el = document.getElementById(id);
+      const pv = document.getElementById('pv-' + key);
+      if(!el) return;
+      el.oninput = e => {
+        const raw = parseFloat(e.target.value);
+        const val = transform ? transform(raw) : raw;
+        g.setupProfile[key] = val;
+        if(pv) pv.textContent = postFn ? postFn(val) : val;
+        g._updatePsoTelBar(g.setupProfile);
+        g._updatePsoSummary(g.setupProfile);
+        if(key==='absLevel')  g._updateAbsHint(val);
+        if(key==='tcLevel')   g._updateTcHint(val);
+        if(g.car) g.applyPlayerSetup();
+      };
+    };
+
+    onSlider('ps-wingFront',    'wingFront',    v=>parseInt(v), v=>v);
+    onSlider('ps-wingRear',     'wingRear',     v=>parseInt(v), v=>v);
+    onSlider('ps-fuel',         'fuel',         v=>parseInt(v), v=>v+' kg');
+    onSlider('ps-brakeBalance', 'brakeBalance', v=>parseInt(v), v=>v+'%');
+    onSlider('ps-absLevel',     'absLevel',     v=>parseInt(v), v=>v);
+    onSlider('ps-diffLock',     'diffLock',     v=>parseInt(v), v=>v+'%');
+    onSlider('ps-bumpstop',     'bumpstop',     v=>parseInt(v), v=>v);
+    onSlider('ps-rideHeight',   'rideHeight',   v=>parseInt(v), v=>v);
+    onSlider('ps-tcLevel',      'tcLevel',      v=>parseInt(v), v=>v);
+
+    /* Compound buttons */
+    for(const btn of document.querySelectorAll('.pso-compound-btn')){
+      btn.addEventListener('click', () => {
+        g.setupProfile.compound = btn.dataset.compound;
+        for(const b of document.querySelectorAll('.pso-compound-btn')) b.classList.remove('selected');
+        btn.classList.add('selected');
+        g._updatePsoTelBar(g.setupProfile);
+        g._updatePsoSummary(g.setupProfile);
+        if(g.car) g.applyPlayerSetup();
+      });
+    }
+
+    /* Depart button */
+    const dep = document.getElementById('pso-depart');
+    if(dep) dep.onclick = () => this.hidePitSetup();
+
+    /* Reset button */
+    const rst = document.getElementById('pso-reset');
+    if(rst) rst.onclick = () => {
+      const classType = g.car?.def?.classType || 'gt3';
+      g.setupProfile = Object.assign(setupDefaults(), { engineMap: defaultMapIdx(classType) });
+      if(g.car) g.car.fuelKg = g.setupProfile.fuel;
+      g._syncPitUI(g.setupProfile);
+      g._updatePsoTelBar(g.setupProfile);
+      if(g.car) g.applyPlayerSetup();
+      g._showFlash('RESET ✓', '#ffa820', 1200);
+    };
   },
   makeWeatherForTrack(trackDef){
     const mode = this.settings.weatherMode || 'dynamic';
@@ -5437,9 +6724,15 @@ const Game = {
     const fogFar = this.settings.drawDist * clamp(w.visibility || 1, 0.45, 1);
     const sky = mixHex(this.trackDef.sky || 0x87b5e8, 0x0a0c10, duskMix);
     this.scene.background = new THREE.Color(sky);
+    if(this.skySphere && Math.abs((this._lastDuskMix||0) - duskMix) > 0.03){
+      this._lastDuskMix = duskMix;
+      const newSky=this._buildSkyGradient(sky);
+      this.skySphere.material.dispose();
+      this.skySphere.material=newSky.material;
+    }
     if(this.scene.fog){
       this.scene.fog.color = new THREE.Color(mixHex(this.trackDef.sky || 0x87b5e8, 0x11161d, duskMix));
-      this.scene.fog.near = 220;
+      this.scene.fog.near = 260;
       this.scene.fog.far = fogFar;
     }
     if(this.sun){
@@ -5591,7 +6884,6 @@ const Game = {
       steering:'Lenkung',
       throttle:'Gas',
       brake:'Bremse',
-      boost:'Boost',
       pitLimiter:'Pit-Limiter',
       camera:'Kamera',
       pause:'Pause',
@@ -5757,30 +7049,57 @@ const Game = {
     this.envMap.needsUpdate=true;
   },
 
+  _buildSkyGradient(skyHex){
+    const r=(skyHex>>16)&255, g=(skyHex>>8)&255, b=skyHex&255;
+    const can=document.createElement('canvas'); can.width=2; can.height=256;
+    const ctx=can.getContext('2d');
+    const gr=ctx.createLinearGradient(0,0,0,256);
+    gr.addColorStop(0,  `rgb(${r*0.28|0},${g*0.28|0},${Math.min(255,b*0.55|0)})`);
+    gr.addColorStop(0.35,`rgb(${r*0.62|0},${g*0.65|0},${Math.min(255,b*0.88|0)})`);
+    gr.addColorStop(0.7, `rgb(${r},${g},${b})`);
+    gr.addColorStop(0.88,`rgb(${Math.min(255,(r*1.35+30)|0)},${Math.min(255,(g*1.28+24)|0)},${Math.min(255,(b*1.08+20)|0)})`);
+    gr.addColorStop(1,   `rgb(${Math.min(255,(r*1.5+60)|0)},${Math.min(255,(g*1.4+50)|0)},${Math.min(255,(b*1.1+40)|0)})`);
+    ctx.fillStyle=gr; ctx.fillRect(0,0,2,256);
+    const tex=new THREE.CanvasTexture(can);
+    const mat=new THREE.MeshBasicMaterial({map:tex,side:THREE.BackSide,depthWrite:false,depthTest:false,fog:false});
+    const mesh=new THREE.Mesh(new THREE.SphereGeometry(1800,16,12),mat);
+    mesh.renderOrder=-10;
+    return mesh;
+  },
+
   buildScene(trackDef){
     /* Alte Szene komplett entsorgen */
     if(this.scene) this.scene.traverse(o=>{ if(o.geometry)o.geometry.dispose(); if(o.material&&o.material.dispose)o.material.dispose(); });
     const scene=this.scene=new THREE.Scene();
-    scene.background=new THREE.Color(trackDef.sky);
-    scene.fog=new THREE.Fog(trackDef.sky, 250, this.settings.drawDist);
+    const skyC=trackDef.sky||0x87b0e0;
+    scene.background=new THREE.Color(skyC);
+    scene.fog=new THREE.Fog(skyC, 300, this.settings.drawDist);
+
+    /* Himmels-Kuppel mit vertikalem Gradient */
+    this.skySphere=this._buildSkyGradient(skyC);
+    scene.add(this.skySphere);
 
     /* Licht: Hemisphäre + Sonne mit fahrzeugfolgendem Schatten */
-    this.hemi = new THREE.HemisphereLight(0xcfe4ff, 0x46603a, 0.85);
+    this.hemi = new THREE.HemisphereLight(0xd8ecff, 0x506a38, 0.90);
     scene.add(this.hemi);
-    const sun=this.sun=new THREE.DirectionalLight(0xfff2dd, 1.25);
-    sun.position.set(120,180,60);
+    const sun=this.sun=new THREE.DirectionalLight(0xfff4e0, 1.35);
+    sun.position.set(140,210,80);
     sun.castShadow=this.settings.shadows;
     sun.shadow.mapSize.set(2048,2048);
     const sc=sun.shadow.camera;
-    sc.left=-90; sc.right=90; sc.top=90; sc.bottom=-90; sc.far=600;
+    sc.left=-100; sc.right=100; sc.top=100; sc.bottom=-100; sc.far=700;
     scene.add(sun, sun.target);
+    /* Ambient fill light von unten */
+    const fillLight=new THREE.DirectionalLight(0x80a8d0, 0.22);
+    fillLight.position.set(-80,-120,-60);
+    scene.add(fillLight);
 
-    /* Wolken */
+    /* Wolken — mehr und größer */
     const cloudTex=Tex.smoke();
-    for(let i=0;i<10;i++){
-      const s=new THREE.Sprite(new THREE.SpriteMaterial({map:cloudTex,opacity:0.5,transparent:true}));
-      s.position.set((Math.random()-0.5)*2200, 180+Math.random()*120, (Math.random()-0.5)*2200);
-      const w=240+Math.random()*260; s.scale.set(w,w*0.4,1);
+    for(let i=0;i<18;i++){
+      const s=new THREE.Sprite(new THREE.SpriteMaterial({map:cloudTex,opacity:0.38+Math.random()*0.28,transparent:true,depthWrite:false}));
+      s.position.set((Math.random()-0.5)*3200, 160+Math.random()*180, (Math.random()-0.5)*3200);
+      const w=260+Math.random()*420; s.scale.set(w,w*0.38,1);
       scene.add(s);
     }
 
@@ -6343,12 +7662,19 @@ const Game = {
       /* ERS */
       if(c.ers){
         c.ers = {
-          enabled: c.hasERS,
-          charge: c.hasERS ? 0.4 : 0,
-          active:false,
-          depleted:false,
-          level: c.hasERS ? 1 : 0,
-          mode: c.hasERS ? ERS_LEVELS[1].name : 'OFF'
+          enabled:         c.hasERS,
+          charge:          c.hasERS ? 0.42 : 0,
+          active:          false,
+          regenActive:     false,
+          depleted:        false,
+          modeKey:         c.hasERS ? 'RACE' : 'OFF',
+          deployKw:        0,
+          regenKw:         0,
+          tempC:           ERS_PARAMS.ambientTempC,
+          energyGainedKwh: 0,
+          energyUsedKwh:   0,
+          overtakeT:       0,
+          overtakeCooldown:0,
         };
       }
     }
@@ -6487,6 +7813,11 @@ const Game = {
               Store.set('best_'+this.trackDef.id+'_'+CARS[this.selCar].id, r.bestLap);
             }
             r.lapStart=now; r.lap=rd.lap;
+            /* ERS-Energiebilanz für nächste Runde zurücksetzen */
+            if(c===this.car && this.car.hasERS){
+              this.car.ers.energyGainedKwh = 0;
+              this.car.ers.energyUsedKwh   = 0;
+            }
             r.lapSamples=[];    // leer — werden ab progress>0.02 gesammelt
             r.bestLapDelta=null;
             r._hasRef = !!(r.bestLapRef && r.bestLapRef.length > 2);
@@ -6837,6 +8168,18 @@ const Game = {
       if(this.debris) this.debris.step(dt);
       if(this.safetyCar) this.safetyCar.step(dt, performance.now()/1000);
       if(this.mode==='tt' && this.settings.ghostReplay) this.updateGhostReplay();
+      /* ── Pit Setup Screen: öffnen wenn Zeitfahren + in der Box + langsam ── */
+      if(this.mode==='tt' && this.state==='race' && this.car && this.car.query){
+        const inPit  = !!this.car.query.inPitLane;
+        const slow   = this.car.speedKmh < 8;
+        /* Dismissed-Flag zurücksetzen sobald Auto die Box verlassen hat */
+        if(!inPit) this._pitSetupDismissed = false;
+        if(inPit && slow && !this._pitSetupShown && !this._pitSetupDismissed){
+          this.showPitSetup();
+        } else if((!inPit || this.car.speedKmh > 20) && this._pitSetupShown){
+          this.hidePitSetup();
+        }
+      }
       /* Mechaniker-Licht pro Box: rot=arbeit aktiv, grün=fertig, off=leer */
       if(this.track && this.track.pitBoxes){
         const states = new Array(this.track.pitBoxes.length).fill('off');
@@ -6893,8 +8236,10 @@ const Game = {
         const tc = document.getElementById('touch-controls');
         if(tc) tc.classList.toggle('hidden', !(this.state === 'race' || this.state === 'countdown' || this.state === 'finished'));
       }
+      if(this.skySphere) this.skySphere.position.copy(this.camera.position);
       this.renderer.render(this.scene,this.camera);
     } else if(this.state==='pause'){
+      if(this.skySphere) this.skySphere.position.copy(this.camera.position);
       this.renderer.render(this.scene,this.camera);
     }
   },
@@ -7076,6 +8421,8 @@ const Game = {
     $('set-brake').oninput=e=>{ this.setupProfile.brakeBalance=parseInt(e.target.value,10); this.saveSetupProfile(); if(this.car) this.applyPlayerSetup(); };
     $('set-fuel').oninput=e=>{ this.setupProfile.fuel=parseInt(e.target.value,10); this.saveSetupProfile(); if(this.car) this.applyPlayerSetup(); };
     $('set-compound').onchange=e=>{ this.setupProfile.compound=e.target.value; this.saveSetupProfile(); if(this.car) this.applyPlayerSetup(); };
+    /* Pit Setup Overlay Verdrahtung */
+    this.initPitSetupUI();
     $('set-dynamic-weather').onchange=e=>{ this.settings.weatherMode = e.target.checked ? 'dynamic' : 'dry'; this.saveRaceSettings(); };
     $('set-ghosts').onchange=e=>{ this.settings.ghostReplay = e.target.checked; this.saveRaceSettings(); };
     /* Ideallinie an/aus */
