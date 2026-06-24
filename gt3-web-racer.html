@@ -1609,10 +1609,6 @@ const ERS_MODES = {
   ATTACK:   {name:'ATTACK',   short:'ATK', col:'#ffa820',
              deployPct:1.00, regenPct:0.80, throttleMin:0.28, drainMul:1.28, regenMul:0.72,
              desc:'Aggressiv — voller Deploy ab 28 % Throttle'},
-  OVERTAKE: {name:'OVERTAKE', short:'OVT', col:'#ff2e3d',
-             deployPct:1.00, regenPct:0.60, throttleMin:0.10, drainMul:1.55, regenMul:0.60,
-             desc:'Max-Angriff — 8 s Deploy, dann 15 s Cooldown',
-             maxDuration:8.0, cooldownDur:15.0},
   QUALI:    {name:'QUALI',    short:'QLF', col:'#cc44ff',
              deployPct:1.00, regenPct:0.90, throttleMin:0.15, drainMul:1.45, regenMul:0.52,
              desc:'Qualifying — maximale Rundenzeit, kaum Regen'},
@@ -1620,7 +1616,7 @@ const ERS_MODES = {
              deployPct:0.42, regenPct:0.50, throttleMin:0.65, drainMul:0.70, regenMul:0.80,
              desc:'Nass / Niedriger Grip — sanfter Deploy, stabiler Antrieb'}
 };
-const ERS_MODE_LIST = ['CHARGE','RACE','ATTACK','OVERTAKE','QUALI','WET'];
+const ERS_MODE_LIST = ['CHARGE','RACE','ATTACK','QUALI','WET'];
 
 /* Physikalische Systemgrenzen (WEC LMH Referenz) */
 const ERS_PARAMS = {
@@ -3827,19 +3823,6 @@ class Car {
                           this.ers.tempC >= p.warnTempC ?
                             1 - (this.ers.tempC - p.warnTempC) / (p.cutTempC - p.warnTempC) : 1;
 
-      /* ── OVERTAKE-Timer & Cooldown ── */
-      if(mkey === 'OVERTAKE'){
-        if(this.ers.overtakeCooldown > 0){
-          /* Cooldown läuft: kein Deploy erlaubt */
-          this.ers.overtakeCooldown = Math.max(0, this.ers.overtakeCooldown - dt);
-        } else if(this.ers.overtakeT <= 0){
-          /* Frisch aktiviert oder nach Cooldown: Timer neu setzen */
-          this.ers.overtakeT = mode.maxDuration;
-        }
-      } else {
-        /* Modus verlassen → OVT-Zustand einfrieren (kein Auto-Reset) */
-      }
-
       /* ── Rekuperation ── */
       if(this.ers.charge < 0.99){
         let regenRate = 0, regenPowerW = 0;
@@ -3870,12 +3853,10 @@ class Car {
       }
 
       /* ── Deploy ── */
-      const ovtOk     = mkey !== 'OVERTAKE' || (this.ers.overtakeCooldown <= 0 && this.ers.overtakeT > 0);
       const canDeploy = mode.deployPct > 0
                      && this.ers.charge > 0.03
                      && input.throttle > mode.throttleMin
-                     && tempFactor > 0.01
-                     && ovtOk;
+                     && tempFactor > 0.01;
 
       if(canDeploy){
         /* Elektrische Leistung — Throttle-proportional */
@@ -3894,14 +3875,6 @@ class Car {
         this.ers.energyUsedKwh += drained * battKj / 3600;
         if(this.ers.charge <= 0.005) this.ers.depleted = true;
 
-        /* OVERTAKE-Timer dekrementieren */
-        if(mkey === 'OVERTAKE'){
-          this.ers.overtakeT = Math.max(0, this.ers.overtakeT - dt);
-          if(this.ers.overtakeT <= 0 || this.ers.charge <= 0.02){
-            this.ers.overtakeCooldown = mode.cooldownDur;
-            this.ers.overtakeT        = 0;
-          }
-        }
       }
       if(this.ers.charge > 0.08) this.ers.depleted = false;
 
@@ -5990,11 +5963,6 @@ const HUD = {
         if(!this._ersModeLbl) this._ersModeLbl = document.getElementById('ers-mode-lbl');
         const mode = ERS_MODES[car.ers.modeKey] || ERS_MODES.RACE;
         let short = mode.short;
-        /* OVERTAKE: zeigt Cooldown oder verbleibende Sekunden */
-        if(car.ers.modeKey === 'OVERTAKE'){
-          if(car.ers.overtakeCooldown > 0) short = 'CD'+Math.ceil(car.ers.overtakeCooldown);
-          else if(car.ers.active)           short = Math.ceil(car.ers.overtakeT)+'s';
-        }
         if(this._ersModeLbl){
           this._ersModeLbl.textContent = short;
           this._ersModeLbl.style.color = mode.col;
@@ -6216,8 +6184,7 @@ const Game = {
     const cur  = list.indexOf(this.car.ers.modeKey);
     const next = (cur + delta + list.length) % list.length;
     this.car.ers.modeKey = list[next];
-    /* OVERTAKE: Timer initialisieren wenn neu ausgewählt */
-    if(list[next] === 'OVERTAKE' && this.car.ers.overtakeCooldown <= 0){
+    if(false && list[next] === 'OVERTAKE' && this.car.ers.overtakeCooldown <= 0){
       this.car.ers.overtakeT = 0; // wird beim nächsten Deploy gesetzt
     }
     this.showERSPopup();
@@ -6245,17 +6212,7 @@ const Game = {
     }
     /* OVERTAKE spezifisch */
     const ovtRow = document.getElementById('ep-ovt-row');
-    const ovtVal = document.getElementById('ep-ovt');
-    if(ovtRow && ovtVal){
-      ovtRow.style.display = (ers.modeKey === 'OVERTAKE') ? 'flex' : 'none';
-      if(ers.overtakeCooldown > 0)
-        ovtVal.textContent = 'COOLDOWN ' + ers.overtakeCooldown.toFixed(0) + ' s';
-      else if(ers.overtakeT > 0)
-        ovtVal.textContent = ers.overtakeT.toFixed(1) + ' s verbleibend';
-      else
-        ovtVal.textContent = 'bereit';
-      ovtVal.style.color = ers.overtakeCooldown > 0 ? '#ffa820' : mode.col;
-    }
+    if(ovtRow) ovtRow.style.display = 'none';
     const el = document.getElementById('ep-elap');
     if(el) el.textContent = '+' + (ers.energyGainedKwh||0).toFixed(2) + ' / −' + (ers.energyUsedKwh||0).toFixed(2) + ' kWh';
     const desc = document.getElementById('ep-desc');
