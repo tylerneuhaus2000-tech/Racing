@@ -242,6 +242,17 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 .segrow button{height:32px;padding:0 8px}
 .editor-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 .editor-note{font-size:12px;color:var(--dim);line-height:1.5;margin-top:8px}
+.editor-canvas-wrap{border:1px solid var(--line);background:#0a0d12;padding:10px;border-radius:6px}
+.editor-palette{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.editor-chip{padding:8px 10px;border:1px dashed #4c5868;background:#111822;color:#dce7f5;font-family:var(--mono);font-size:11px;letter-spacing:.08em;cursor:grab}
+.editor-chip:active{cursor:grabbing}
+#ed-canvas{display:block;width:100%;height:auto;background:linear-gradient(180deg,#0a0f16 0%,#0e141f 100%);border:1px solid #2d3949}
+#ed-canvas:focus{outline:2px solid #22c4ff;outline-offset:2px}
+.editor-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;color:#95a4b6;font-size:10px;letter-spacing:.08em}
+.editor-legend i{display:inline-block;width:12px;height:8px;margin-right:5px;vertical-align:middle}
+.lg-straight{background:#3f86ff}.lg-turn{background:#ff7a3d}.lg-pit{background:#22c463}
+.editor-preview-wrap{margin-top:10px;border:1px solid var(--line);background:#0a0f14;padding:8px;border-radius:6px}
+#ed-preview{display:block;width:100%;height:auto;background:#0c1118;border:1px solid #2a394b}
 /* ─────────── PIT SETUP OVERLAY ─────────── */
 #pit-setup-overlay{position:fixed;inset:0;z-index:55;background:rgba(4,6,9,0.97);
   display:flex;flex-direction:column;overflow:hidden;font-family:var(--mono);
@@ -360,6 +371,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
       <div id="damage-bar"><i></i></div>
       <span id="damage-pct">0%</span>
     </div>
+      <div class="row"><span>MODEL</span><b id="modeldbg">—</b></div>
     <div id="fuel-row" style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:10px;color:var(--dim);letter-spacing:.12em">
       <span class="dmg-label">SPRIT</span>
       <div id="fuel-bar" style="flex:1;height:6px;background:#1a2026;border:1px solid var(--line);position:relative"><i style="display:block;height:100%;width:70%;background:linear-gradient(90deg,#ff2e3d 0%,#ffa820 45%,#22e87a 100%);transition:width 0.4s"></i></div>
@@ -548,44 +560,19 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
   <section class="screen hidden" id="screen-editor">
     <div class="eyebrow">CUSTOM TRACK BUILDER</div>
     <h2>STRECKE BAUEN</h2>
-    <p class="sub">Erstelle eine Strecke aus Geraden und Kurven. Jede Sektion bekommt eine eigene Länge in Metern.</p>
-    <div class="editor-panel">
-      <div class="editor-box">
-        <h3>TRACK-SETUP</h3>
-        <div class="editor-grid">
-          <div class="setrow"><span>Name</span><input type="text" id="ed-name" value="Mein Kurs"></div>
-          <div class="setrow"><span>Untertitel</span><input type="text" id="ed-sub" value="Custom Track · selbst gebaut"></div>
-          <div class="setrow"><span>Breite</span><input type="number" id="ed-width" min="5" max="16" step="0.5" value="8.5"></div>
-          <div class="setrow"><span>Wanddistanz</span><input type="number" id="ed-wall" min="16" max="120" step="1" value="32"></div>
-          <div class="setrow"><span>Verge</span><input type="number" id="ed-verge" min="8" max="80" step="1" value="24"></div>
-          <div class="setrow"><span>Heading Start</span><input type="number" id="ed-heading" min="-180" max="180" step="1" value="0"></div>
-          <div class="setrow"><span>Start X</span><input type="number" id="ed-startx" step="1" value="0"></div>
-          <div class="setrow"><span>Start Z</span><input type="number" id="ed-startz" step="1" value="0"></div>
-          <div class="setrow"><span>Start Y</span><input type="number" id="ed-starty" step="0.5" value="0"></div>
-          <div class="setrow"><span>Himmel</span><input type="color" id="ed-sky" value="#9fc3eb"></div>
-          <div class="setrow"><span>Hügel</span><input type="color" id="ed-hill" value="#5e8a42"></div>
-          <div class="setrow"><span>Gras A</span><input type="color" id="ed-grassA" value="#4e8b3a"></div>
-          <div class="setrow"><span>Gras B</span><input type="color" id="ed-grassB" value="#407531"></div>
-          <div class="setrow"><span>Pit Start %</span><input type="number" id="ed-pitstart" min="0" max="95" step="1" value="8"></div>
-          <div class="setrow"><span>Pit End %</span><input type="number" id="ed-pitend" min="5" max="100" step="1" value="18"></div>
-          <div class="setrow"><span>Pit Seite</span><select id="ed-pitside"><option value="-1">Links</option><option value="1">Rechts</option></select></div>
-          <div class="setrow"><span>Pit Inner</span><input type="number" id="ed-pitinner" min="6" max="30" step="0.5" value="10"></div>
-          <div class="setrow"><span>Pit Outer</span><input type="number" id="ed-pitouter" min="8" max="40" step="0.5" value="20"></div>
-        </div>
-        <div class="editor-actions">
-          <button class="btn" id="btn-ed-add-straight">Gerade</button>
-          <button class="btn" id="btn-ed-add-turn">Kurve</button>
-          <button class="btn" id="btn-ed-template">Vorlage laden</button>
-          <button class="btn primary" id="btn-ed-save">Speichern</button>
-        </div>
-        <p class="editor-note">Tipp: Kurven werden über Länge + Winkel gebaut. Wenn die Strecke nicht wieder sauber schließt, warne ich dich beim Speichern.</p>
-      </div>
-      <div class="editor-box">
-        <h3>SEGMENTE</h3>
-        <div class="segment-list" id="ed-segments"></div>
-        <p class="editor-note" id="ed-status">Noch keine Strecke geladen.</p>
-      </div>
+    <p class="sub">Male die Strecke direkt in 3D. Halte die Maus und zeichne die Linie. Speichern wenn fertig.</p>
+    <div id="track3d-editor" style="width:100%;height:600px;position:relative;border:1px solid #2d3949;border-radius:8px;background:#0a0f16;margin:12px 0;"></div>
+    <div style="display:flex;gap:10px;margin:12px 0;flex-wrap:wrap;">
+      <button class="btn" id="btn-3d-undo">↶ Rückgängig</button>
+      <button class="btn" id="btn-3d-clear">🗑 Löschen</button>
+      <button class="btn" id="btn-3d-close">✓ Schließen</button>
+      <button class="btn primary" id="btn-3d-save">💾 Speichern</button>
     </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0;">
+      <label style="color:#9cb1c6;font-size:13px;"><input type="text" id="track3d-name" value="Mein Kurs" style="width:140px;padding:4px;background:#111722;border:1px solid #2d3949;color:#e9f2fb;"/> Name</label>
+      <label style="color:#9cb1c6;font-size:13px;"><input type="text" id="track3d-sub" value="Custom Track" style="width:200px;padding:4px;background:#111722;border:1px solid #2d3949;color:#e9f2fb;"/> Untertitel</label>
+    </div>
+    <p style="color:#8fa1bb;font-size:11px;letter-spacing:.08em;">ANLEITUNG: Klick = Punkt setzen · Halten + Zeichen = Strecke malen · Schließen = Runde zurück zum Start · Speichern = Track erstellen</p>
     <div class="btnrow"><button class="btn" id="btn-back-editor">Zurück</button></div>
   </section>
 
@@ -937,6 +924,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
 /* ============================================================
    GT3 WEB RACER — Assetto-Style Browser-Rennsimulation
@@ -1000,6 +988,13 @@ const CARS = [
   {
     id:'porsche', name:'Porsche 911 GT3 R', classType:'gt3',
     color:0xe8e8e8, accent:0xd5001c, rim:0xc8a44a,
+    model:{
+      url:'assets/models/porsche-gt3.glb',
+      scale:1,
+      targetLength:4.6,
+      yOffset:0,
+      rotY:Math.PI
+    },
     mass:1290, power:415000, maxForce:9200, topSpeed:287/3.6, brakeForce:11500,
     gripF:1.27, gripR:1.42, yawDamp:0.45, tractionBoost:0.10, liftOversteer:0.13,
     desc:'GT3 · Heckmotor. Brutale Traktion am Kurvenausgang.',
@@ -1008,6 +1003,13 @@ const CARS = [
   {
     id:'amg', name:'Mercedes-AMG GT3', classType:'gt3',
     color:0x15171a, accent:0xbfc6cc, rim:0x222222,
+    model:{
+      url:'assets/models/porsche-gt3.glb',
+      scale:1,
+      targetLength:4.6,
+      yOffset:0,
+      rotY:Math.PI
+    },
     mass:1345, power:430000, maxForce:8800, topSpeed:295/3.6, brakeForce:11200,
     gripF:1.30, gripR:1.33, yawDamp:0.95, tractionBoost:0.04, liftOversteer:0.04,
     desc:'GT3 · Frontmotor. Maximale Stabilität, Topspeed-König.',
@@ -1016,6 +1018,13 @@ const CARS = [
   {
     id:'audi', name:'Audi R8 LMS GT3', classType:'gt3',
     color:0x59616b, accent:0xcc1122, rim:0x111111,
+    model:{
+      url:'assets/models/porsche-gt3.glb',
+      scale:1,
+      targetLength:4.6,
+      yOffset:0,
+      rotY:Math.PI
+    },
     mass:1315, power:422000, maxForce:9000, topSpeed:291/3.6, brakeForce:11350,
     gripF:1.32, gripR:1.35, yawDamp:0.68, tractionBoost:0.06, liftOversteer:0.07,
     desc:'GT3 · Mittelmotor. Neutral, präzise, fehlerverzeihend.',
@@ -1762,11 +1771,15 @@ function buildTrackPath(segments, opts={}){
       const rise = seg.rise || 0;
       const dir = seg.dir === -1 ? -1 : 1;
       const turn = deg2rad(seg.deg || 0) * dir;
-      const n = Math.max(4, Math.round(len / step));
+      const n = Math.max(8, Math.round(len / Math.max(8, step * 0.58)));
       const ds = len / n;
-      const dHead = turn / n;
-      for(let i=0;i<n;i++){
-        heading += dHead;
+      let prevEase = 0;
+      for(let i=1;i<=n;i++){
+        const t = i / n;
+        const ease = t * t * (3 - 2 * t);
+        const dEase = ease - prevEase;
+        heading += turn * dEase;
+        prevEase = ease;
         x += Math.sin(heading) * ds;
         z += Math.cos(heading) * ds;
         y += rise / n;
@@ -1827,6 +1840,7 @@ function defaultEditorState(){
     startZ:0,
     startY:0,
     heading:0,
+    startFinishPct:50,
     pitSide:-1,
     pitStartPct:8,
     pitEndPct:18,
@@ -1844,14 +1858,21 @@ function defaultEditorState(){
 }
 
 function buildTrackFromEditorSpec(spec){
-  const pts = buildTrackPath(spec.segments, {
+  const rawPts = buildTrackPath(spec.segments, {
     start:{x:spec.startX, y:spec.startY, z:spec.startZ},
     heading:spec.heading,
     step:24
   });
+  const baseN = rawPts.length;
+  const startFinishPct = clamp(parseFloat(spec.startFinishPct), 0, 100);
+  const rotateBy = baseN > 1 ? Math.max(0, Math.min(baseN - 1, Math.round((startFinishPct / 100) * (baseN - 1)))) : 0;
+  const pts = rotateBy > 0
+    ? rawPts.slice(rotateBy).concat(rawPts.slice(0, rotateBy))
+    : rawPts;
   const N = pts.length;
   const startIdx = Math.max(0, Math.min(N - 2, Math.round((spec.pitStartPct / 100) * (N - 1))));
   const endIdx = Math.max(startIdx + 8, Math.min(N - 1, Math.round((spec.pitEndPct / 100) * (N - 1))));
+  const startGridPct = 99;
   return {
     id: 'custom_' + Date.now(),
     name: spec.name || 'Custom Track',
@@ -1862,6 +1883,7 @@ function buildTrackFromEditorSpec(spec){
     grass: [spec.grassA, spec.grassB],
     wallDist: spec.wallDist,
     vergeW: spec.vergeW,
+    startFinishPct,
     pts,
     pitLane: {
       side: spec.pitSide,
@@ -1870,6 +1892,7 @@ function buildTrackFromEditorSpec(spec){
       innerOff: spec.pitInner,
       outerOff: spec.pitOuter
     },
+    startGridPct,
     custom: true,
     segments: deepClone(spec.segments),
     editorSpec: deepClone(spec)
@@ -3187,11 +3210,14 @@ class Car {
     const accMat=new THREE.MeshPhongMaterial({color:this.def.accent, shininess:80, envMap, reflectivity:0.3, combine:THREE.MixOperation});
     const glassMat=new THREE.MeshPhongMaterial({color:0x10161e, shininess:160, envMap, reflectivity:0.85, combine:THREE.MixOperation});
     const isHypercar = this.def.classType === 'hypercar';
+    this._proceduralShell = [];
+    this._externalModelRoot = null;
 
     const add=(geo,mat,x,y,z,rx=0,ry=0,rz=0,tag=null)=>{
       const m=new THREE.Mesh(geo,mat);
       m.position.set(x,y,z); m.rotation.set(rx,ry,rz);
       m.castShadow=true; g.add(m);
+      this._proceduralShell.push(m);
       if(tag){
         this.parts[tag]=m;
         this.partMounts[tag] = {pos:m.position.clone(), quat:m.quaternion.clone(), opacity:1};
@@ -3220,6 +3246,7 @@ class Car {
       const wingBlade = new THREE.Mesh(new THREE.BoxGeometry(2.12,0.04,0.36), accMat); wingBlade.position.set(0,1.08,-2.08); wingBlade.rotation.x=-0.12; wingBlade.castShadow=true;
       wingGrp.add(wingPostL, wingPostR, wingBlade);
       g.add(wingGrp);
+      this._proceduralShell.push(wingGrp);
       this.parts.rearWing = wingGrp;
       this.partMounts.rearWing = {pos:wingGrp.position.clone(), quat:wingGrp.quaternion.clone(), opacity:1};
       add(new THREE.BoxGeometry(0.26,0.08,0.14), bodyMat, 1.04,0.88,0.72, 0,0,0, 'mirrorR');
@@ -3246,6 +3273,7 @@ class Car {
       const wingBlade = new THREE.Mesh(new THREE.BoxGeometry(1.85,0.04,0.40), accMat); wingBlade.position.set(0,1.14,-2.06); wingBlade.rotation.x=-0.14; wingBlade.castShadow=true;
       wingGrp.add(wingPostL, wingPostR, wingBlade);
       g.add(wingGrp);
+      this._proceduralShell.push(wingGrp);
       this.parts.rearWing = wingGrp;
       this.partMounts.rearWing = {pos:wingGrp.position.clone(), quat:wingGrp.quaternion.clone(), opacity:1};
       add(new THREE.BoxGeometry(0.22,0.08,0.12), bodyMat, 0.98,0.80,0.60, 0,0,0, 'mirrorR');
@@ -3274,6 +3302,7 @@ class Car {
       const wingBlade = new THREE.Mesh(new THREE.BoxGeometry(1.95,0.05,0.46), accMat); wingBlade.position.set(0,1.26,-2.1); wingBlade.rotation.x=-0.16; wingBlade.castShadow=true;
       wingGrp.add(wingPostL, wingPostR, wingBlade);
       g.add(wingGrp);
+      this._proceduralShell.push(wingGrp);
       this.parts.rearWing = wingGrp;
       this.partMounts.rearWing = {pos:wingGrp.position.clone(), quat:wingGrp.quaternion.clone(), opacity:1};
       // Spiegel
@@ -3425,9 +3454,134 @@ class Car {
 
     this.body=g;
     this.scene.add(g);
+
+    if(this.def?.model?.url){
+      this.setProceduralShellVisible(false);
+      if(Array.isArray(this.wheels)){
+        for(const w of this.wheels){
+          if(w?.outer) w.outer.visible = false;
+        }
+      }
+      if(this._cockpitGrp) this._cockpitGrp.visible = false;
+    }
+
+    this.tryAttachExternalModel();
   }
 
-  placeAtStart(track){ this.placeAtGrid(track, track.N-6, 0); }
+  static loadGltfTemplate(url){
+    Car._gltfTemplateCache = Car._gltfTemplateCache || new Map();
+    if(Car._gltfTemplateCache.has(url)) return Car._gltfTemplateCache.get(url);
+    const p = new Promise((resolve, reject)=>{
+      if(!THREE.GLTFLoader){
+        reject(new Error('GLTFLoader fehlt'));
+        return;
+      }
+      const loader = new THREE.GLTFLoader();
+      loader.load(
+        url,
+        gltf => resolve(gltf.scene),
+        undefined,
+        err => reject(err)
+      );
+    });
+    Car._gltfTemplateCache.set(url, p);
+    return p;
+  }
+
+  setProceduralShellVisible(vis){
+    if(!this._proceduralShell) return;
+    for(const n of this._proceduralShell) n.visible = !!vis;
+  }
+
+  async tryAttachExternalModel(){
+    const cfg = this.def.model || {};
+    const url = cfg.url || 'assets/models/porsche-gt3.glb';
+    if(!cfg.url || !url || !THREE.GLTFLoader) return;
+    try{
+      const template = await Car.loadGltfTemplate(url);
+      if(!template || !this.body) return;
+      const model = template.clone(true);
+      const tuneMaterial = (mat)=>{
+        if(!mat) return;
+        mat.side = THREE.FrontSide;
+        if(mat.map) mat.map.encoding = THREE.sRGBEncoding;
+        if(mat.emissiveMap) mat.emissiveMap.encoding = THREE.sRGBEncoding;
+        if(mat.color && typeof mat.color.multiplyScalar === 'function'){
+          mat.color.multiplyScalar(1.15);
+        }
+        if(mat.isMeshStandardMaterial || mat.isMeshPhysicalMaterial){
+          mat.metalness = clamp(mat.metalness * 0.65, 0.05, 0.7);
+          mat.roughness = clamp(mat.roughness * 0.85, 0.18, 0.9);
+          mat.envMapIntensity = Math.max(1.1, mat.envMapIntensity || 0);
+          if(mat.emissive && typeof mat.emissive.addScalar === 'function') mat.emissive.addScalar(0.03);
+        }
+        mat.needsUpdate = true;
+      };
+      model.traverse(o=>{
+        if(o.isMesh){
+          o.castShadow = true;
+          o.receiveShadow = true;
+          if(Array.isArray(o.material)) o.material.forEach(tuneMaterial);
+          else tuneMaterial(o.material);
+        }
+      });
+
+      // Normalize imported car model: center it and fit to GT3 dimensions.
+      const rawBox = new THREE.Box3().setFromObject(model);
+      const rawSize = new THREE.Vector3();
+      const rawCenter = new THREE.Vector3();
+      rawBox.getSize(rawSize);
+      rawBox.getCenter(rawCenter);
+      const rawMinY = rawBox.min.y;
+      const rawLen = Math.max(rawSize.z, rawSize.x, 1e-6);
+      const targetLength = Number.isFinite(cfg.targetLength) ? cfg.targetLength : 4.6;
+      const baseScale = targetLength / rawLen;
+      const userScale = Number.isFinite(cfg.scale) ? cfg.scale : 1;
+      const finalScale = baseScale * userScale;
+      model.scale.setScalar(finalScale);
+
+      // Re-center around car origin and align bottom to ground level.
+      const centeredX = -rawCenter.x * finalScale;
+      const centeredZ = -rawCenter.z * finalScale;
+      const groundedY = -rawMinY * finalScale;
+      model.position.set(
+        centeredX,
+        groundedY + (Number.isFinite(cfg.yOffset) ? cfg.yOffset : 0),
+        centeredZ
+      );
+      model.rotation.set(0, Number.isFinite(cfg.rotY) ? cfg.rotY : Math.PI, 0);
+
+      this.body.add(model);
+      this._externalModelRoot = model;
+      this._usingExternalModel = true;
+      this.setProceduralShellVisible(false);
+      if(Array.isArray(this.wheels)){
+        for(const w of this.wheels){
+          if(w?.outer) w.outer.visible = false;
+        }
+      }
+      if(this._cockpitGrp) this._cockpitGrp.visible = false;
+    }catch(err){
+      console.warn('[GT3] Porsche-Model konnte nicht geladen werden:', err);
+      this._usingExternalModel = false;
+      this.setProceduralShellVisible(true);
+      if(Array.isArray(this.wheels)){
+        for(const w of this.wheels){
+          if(w?.outer) w.outer.visible = true;
+        }
+      }
+    }
+  }
+
+  placeAtStart(track){
+    const pct = track?.def?.startGridPct;
+    if(Number.isFinite(pct)){
+      const idx = Math.round((clamp(pct, 0, 100)/100) * (track.N-1));
+      this.placeAtGrid(track, idx, 0);
+      return;
+    }
+    this.placeAtGrid(track, track.N-6, 0);
+  }
 
   placeAtGrid(track, idx, latOff){
     const s=track.samples[((idx%track.N)+track.N)%track.N];
@@ -3625,24 +3779,27 @@ class Car {
     const lineGrip = weather.rain > 0.02 ? lerp(0.78, 1.0, weather.lineDry ?? 1) : 1.0;
 
     /* ── Reifentemperatur-Grip-Kurve ──────────────────────────────────────────
-       Normale Fahrt: 70-85°C → voller Grip (1.00).
-       Unter 55°C: leichter Grip-Verlust (Rand-Szenario, z.B. nach langem Safety Car).
-       Über 95°C: Überhitzung durch hartes Bremsen/Slides → Grip leicht reduziert.     */
+       Peak bei Optimaltemperatur: 0.96 (Physik war auf ~0.86 bei 78°C geeicht;
+       0.96 als neues Maximum hält das Gefühl konsistent, belohnt aber warme Reifen).
+       Kalt (<lo-5°C): fällt zu 0.80 — spürbar, aber nicht dramatisch.
+       Heiß (>hi+8°C): fällt zu 0.82 — Überhitzung durch hartes Bremsen.            */
     const tempGrip = key => {
       const t    = this.tireTemp?.[key] ?? 70;
       const [lo, hi] = compound.tempRange;
+      const opt  = (lo + hi) * 0.5;
       const span = hi - lo;
-      if(t < lo - 5){
-        /* Unter Optimalbereich: sanfter Abfall */
-        const cold = clamp((t - (lo - span * 0.6)) / (span * 0.6), 0, 1);
-        return lerp(0.82, 0.98, cold);
-      } else if(t <= hi + 5){
-        /* Optimaler Bereich: voll */
-        return 1.00;
+      if(t < lo){
+        /* Kalt: linear von 0.80 (sehr kalt) auf 0.93 (untere Grenze) */
+        const cold = clamp((t - (lo - span * 0.7)) / (span * 0.7), 0, 1);
+        return lerp(0.80, 0.93, cold);
+      } else if(t <= hi){
+        /* Optimal: Glockenkurve, Peak 0.96 in der Mitte */
+        const rel = (t - lo) / span;
+        return 0.90 + 0.06 * Math.sin(rel * Math.PI);
       } else {
-        /* Überhitzung: moderat abfallend */
-        const over = clamp((t - (hi + 5)) / (span * 0.5), 0, 1);
-        return lerp(1.00, 0.84, over);
+        /* Überhitzt: fällt ab hi schnell zu 0.82 */
+        const over = clamp((t - hi) / (span * 0.55), 0, 1);
+        return lerp(0.90, 0.82, over);
       }
     };
     const FzAeroBase = 0.55 * setupMass * G * (v2/(d.topSpeed*d.topSpeed)) * wingMul * rhAeroMul;
@@ -3778,13 +3935,13 @@ class Car {
     }
 
     /* ── Traktionskontrolle ─────────────────────────────────
-       Greift NUR beim Anfahren / Herausbeschleunigen (< 65 km/h = 18 m/s).
-       TC 1 = aus, TC 6 = maximaler Schlupfschutz beim Launch.   */
-    if((setup.tcLevel || 1) > 1 && Fdrive > 0 && speed < 18){
+       Rampe: bei niedrigen Geschwindigkeiten stark begrenzt, läuft bei ~100 km/h aus.
+       TC 1 = aus, TC 6 = maximaler Schlupfschutz.               */
+    if((setup.tcLevel || 1) > 1 && Fdrive > 0 && speed < 30){
       const tc       = clamp((setup.tcLevel - 1) / 5, 0, 1);
-      const speedPct = clamp(speed / 18, 0.05, 1);
-      const tcCap    = d.maxForce * curMap.torqueMul * (0.22 + 0.78 * speedPct);
-      if(Fdrive > tcCap) Fdrive = lerp(Fdrive, tcCap, tc * 0.68);
+      const speedPct = clamp(speed / 30, 0.08, 1);
+      const tcCap    = d.maxForce * curMap.torqueMul * (0.28 + 0.72 * speedPct);
+      if(Fdrive > tcCap) Fdrive = lerp(Fdrive, tcCap, tc * 0.72);
     }
 
     /* ── Kraftstoffverbrauch ────────────────────────────────
@@ -3915,24 +4072,30 @@ class Car {
     let Fgrass = 0;
     if(q.surf===SURF.GRASS) Fgrass = -600 * Math.sign(this.vx) * clamp(speed,0,1);
 
-    /* --- ABS: Setup-Stufe bestimmt wie aggressiv die Bremskraft begrenzt wird ---
-       ABS 1 = minimal (0.95 → mehr Blockiergefahr, aber maximale Bremskraft)
-       ABS 6 = stark   (0.70 → weniger Blockieren, etwas weniger Peak-Bremsung)  */
-    const absLimit = clamp(0.96 - (setup.absLevel || 3) * 0.044, 0.68, 0.96);
-    const muMaxR = muR * FzR;
-    const muMaxF = muF * FzF;
-    const FxR_max = muMaxR * absLimit;
-    const FxF_max = muMaxF * absLimit;
+    /* --- ABS: Combined-Slip-aware ─────────────────────────────────────────────
+       ABS berücksichtigt Querkraftbedarf: bei Bremsen+Kurve wird Bremskraft
+       automatisch reduziert, sodass Lenkfähigkeit erhalten bleibt.
+       ABS 1 = wenig Eingriff, ABS 6 = aggressiv (max. Lenkstabilität).          */
+    const absBase  = clamp(0.90 - (setup.absLevel || 3) * 0.048, 0.58, 0.90);
+    const muMaxR   = muR * FzR;
+    const muMaxF   = muF * FzF;
+
+    /* Querkraftanteil der Vorder-/Hinterachse (normiert 0..1) */
+    const latF = clamp(Math.abs(Fyf_pure) / Math.max(muMaxF, 1), 0, 0.92);
+    const latR = clamp(Math.abs(Fyr_pure) / Math.max(muMaxR, 1), 0, 0.92);
+
+    /* Bremslimit sinkt, wenn Querkraft benötigt wird → kein Blockieren in Kurven */
+    const FxF_max  = muMaxF * absBase * Math.sqrt(Math.max(0.04, 1 - latF * latF));
+    const FxR_max  = muMaxR * absBase * Math.sqrt(Math.max(0.04, 1 - latR * latR));
+
     if(Fbrake_F < -FxF_max) Fbrake_F = -FxF_max;
     if(Fbrake_R < -FxR_max) Fbrake_R = -FxR_max;
 
     /* --- Combined Slip: Friction Circle per Achse --- */
-    /* Hinten: Antrieb + (von ABS schon gedeckelte) Bremse belegt Reibreserve */
     let Fxr = Fdrive + Fbrake_R;
     Fxr = clamp(Fxr, -muMaxR*0.95, muMaxR*0.95);
     const reserveR2 = Math.max(0, muMaxR*muMaxR - Fxr*Fxr);
     let Fyr = clamp(Fyr_pure, -Math.sqrt(reserveR2), Math.sqrt(reserveR2));
-    /* Vorn: nur Bremse */
     let Fxf = clamp(Fbrake_F, -muMaxF*0.95, muMaxF*0.95);
     const reserveF2 = Math.max(0, muMaxF*muMaxF - Fxf*Fxf);
     let Fyf = clamp(Fyf_pure, -Math.sqrt(reserveF2), Math.sqrt(reserveF2));
@@ -5583,7 +5746,7 @@ class CameraRig {
 const HUD = {
   els:{},
   init(){
-    for(const id of ['speed','gear','lap','laptime','lastlap','bestlap','delta','carname','prog','camlabel','pos','stat-weather','stat-ghost'])
+    for(const id of ['speed','gear','lap','laptime','lastlap','bestlap','delta','carname','prog','camlabel','pos','stat-weather','stat-ghost','modeldbg'])
       this.els[id]=document.getElementById(id);
     this.leds=[...document.querySelectorAll('#rpmbar i')];
     this.mapC=document.getElementById('minimap');
@@ -5634,6 +5797,12 @@ const HUD = {
     this.els.laptime.textContent=this.fmt(race.curLapTime);
     this.els.lastlap.textContent=this.fmt(race.lastLap);
     this.els.bestlap.textContent=this.fmt(race.bestLap);
+    if(this.els.modeldbg){
+      const mode = car?._usingExternalModel ? 'GLB' : 'FALLBACK';
+      const cid = car?.def?.id || 'n/a';
+      this.els.modeldbg.textContent = `${mode} · ${cid}`;
+      this.els.modeldbg.style.color = car?._usingExternalModel ? '#22c463' : '#ffb02e';
+    }
     if(this.els.delta){
       const isTT = totalLaps === 0;
       if(!isTT){
@@ -6277,6 +6446,11 @@ const Game = {
     this.editorSpec = defaultEditorState();
     this.loadCustomTracks();
     this.buildEnvMap();
+    const porscheDef = CARS.find(c=>c.id==='porsche');
+    const porscheModelUrl = porscheDef?.model?.url;
+    if(porscheModelUrl){
+      Car.loadGltfTemplate(porscheModelUrl).catch(()=>{});
+    }
     this.wireMenus();
     this.renderEditor();
     this.renderKeyboardBindings();
@@ -7166,6 +7340,7 @@ const Game = {
       startZ: parseFloat($('ed-startz').value) || 0,
       startY: parseFloat($('ed-starty').value) || 0,
       heading: parseFloat($('ed-heading').value) || 0,
+      startFinishPct: clamp(parseFloat($('ed-startpct').value) || 0, 0, 100),
       pitSide: parseInt($('ed-pitside').value || '-1', 10) || -1,
       pitStartPct: clamp(parseFloat($('ed-pitstart').value) || 8, 0, 95),
       pitEndPct: clamp(parseFloat($('ed-pitend').value) || 18, 5, 100),
@@ -7175,74 +7350,667 @@ const Game = {
     };
   },
   renderEditor(){
-    const spec = this.editorSpec || defaultEditorState();
-    this.editorSpec = spec;
-    const $ = id => document.getElementById(id);
-    if($('ed-name')) $('ed-name').value = spec.name;
-    if($('ed-sub')) $('ed-sub').value = spec.sub;
-    if($('ed-width')) $('ed-width').value = spec.halfWidth;
-    if($('ed-wall')) $('ed-wall').value = spec.wallDist;
-    if($('ed-verge')) $('ed-verge').value = spec.vergeW;
-    if($('ed-heading')) $('ed-heading').value = spec.heading;
-    if($('ed-startx')) $('ed-startx').value = spec.startX;
-    if($('ed-startz')) $('ed-startz').value = spec.startZ;
-    if($('ed-starty')) $('ed-starty').value = spec.startY || 0;
-    if($('ed-sky')) $('ed-sky').value = '#'+spec.sky.toString(16).padStart(6,'0');
-    if($('ed-hill')) $('ed-hill').value = '#'+spec.hill.toString(16).padStart(6,'0');
-    if($('ed-grassA')) $('ed-grassA').value = '#'+spec.grassA.toString(16).padStart(6,'0');
-    if($('ed-grassB')) $('ed-grassB').value = '#'+spec.grassB.toString(16).padStart(6,'0');
-    if($('ed-pitstart')) $('ed-pitstart').value = spec.pitStartPct;
-    if($('ed-pitend')) $('ed-pitend').value = spec.pitEndPct;
-    if($('ed-pitinner')) $('ed-pitinner').value = spec.pitInner;
-    if($('ed-pitouter')) $('ed-pitouter').value = spec.pitOuter;
-    if($('ed-pitside')) $('ed-pitside').value = String(spec.pitSide);
-    const list = $('ed-segments');
-    if(list){
-      list.innerHTML = '';
-      spec.segments.forEach((seg, idx)=>{
-        const row=document.createElement('div');
-        row.className='segrow';
-        row.innerHTML = `
-          <strong>${idx+1}. ${seg.type === 'straight' ? 'Gerade' : seg.type === 'turn' ? 'Kurve' : 'Bogen'}</strong>
-          <input type="number" min="10" step="5" data-field="len" value="${seg.len ?? 0}">
-          <input type="number" min="0" step="1" data-field="deg" value="${seg.deg ?? 0}" ${seg.type === 'straight' ? 'style="opacity:.35"' : ''}>
-          <select data-field="dir"${seg.type === 'straight' ? ' style="opacity:.35"' : ''}><option value="1">Rechts</option><option value="-1">Links</option></select>
-          <input type="number" step="1" data-field="rise" value="${seg.rise ?? 0}">
-          <button class="btn tiny" data-act="up">↑</button>
-          <button class="btn tiny" data-act="down">↓</button>
-          <button class="btn tiny" data-act="del">×</button>
-        `;
-        const lenEl = row.querySelector('[data-field="len"]');
-        const degEl = row.querySelector('[data-field="deg"]');
-        const dirEl = row.querySelector('[data-field="dir"]');
-        const riseEl = row.querySelector('[data-field="rise"]');
-        dirEl.value = String(seg.dir ?? 1);
-        if(seg.type === 'straight'){
-          degEl.disabled = true;
-          dirEl.disabled = true;
-        }
-        lenEl.oninput = () => { seg.len = parseFloat(lenEl.value) || 0; this.renderEditor(); };
-        degEl.oninput = () => { seg.deg = parseFloat(degEl.value) || 0; this.renderEditor(); };
-        dirEl.onchange = () => { seg.dir = parseInt(dirEl.value, 10) || 1; this.renderEditor(); };
-        riseEl.oninput = () => { seg.rise = parseFloat(riseEl.value) || 0; this.renderEditor(); };
-        row.querySelector('[data-act="up"]').onclick=()=>{
-          if(idx>0){ const arr=spec.segments; [arr[idx-1],arr[idx]]=[arr[idx],arr[idx-1]]; this.renderEditor(); }
-        };
-        row.querySelector('[data-act="down"]').onclick=()=>{
-          if(idx<spec.segments.length-1){ const arr=spec.segments; [arr[idx+1],arr[idx]]=[arr[idx],arr[idx+1]]; this.renderEditor(); }
-        };
-        row.querySelector('[data-act="del"]').onclick=()=>{
-          spec.segments.splice(idx,1);
-          if(!spec.segments.length) spec.segments = defaultEditorState().segments;
-          this.renderEditor();
-        };
-        list.appendChild(row);
+    this.init3DTrackBuilder();
+  },
+  init3DTrackBuilder(){
+    const container = document.getElementById('track3d-editor');
+    if(!container) return;
+    container.innerHTML = '';
+    if(!window.THREE) {
+      container.innerHTML = '<p style="color:#e9f2fb;padding:20px;">Three.js nicht geladen...</p>';
+      return;
+    }
+
+    const game = this;
+    const w = container.clientWidth || 1280;
+    const h = container.clientHeight || 600;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1a2533);
+    scene.fog = new THREE.Fog(0x1a2533, 1000, 10000);
+
+    const camera = new THREE.PerspectiveCamera(60, w/h, 1, 10000);
+    camera.position.set(0, 400, 0);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
+    renderer.setSize(w, h);
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    // Strecke aus Punkten - IMMER neu initialisieren
+    game.track3DEditorPoints = [];
+    game.track3DEditorLine = null;
+    game.track3DEditorIsDrawing = false;
+
+    // Gitter + Referenzen
+    const gridHelper = new THREE.GridHelper(1000, 50, 0x2d3949, 0x1a2533);
+    scene.add(gridHelper);
+
+    const axesHelper = new THREE.AxesHelper(100);
+    scene.add(axesHelper);
+
+    // Raycaster für Clicks
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const target = new THREE.Vector3();
+
+    const updateTrackLine = () => {
+      if(game.track3DEditorLine) scene.remove(game.track3DEditorLine);
+      if(game.track3DEditorPoints.length < 2) {
+        game.track3DEditorLine = null;
+        return;
+      }
+      const pts = game.track3DEditorPoints.map(p => new THREE.Vector3(p.x, 0, p.z));
+      const curve = new THREE.CatmullRomCurve3(pts);
+      const points = curve.getPoints(Math.max(50, pts.length * 10));
+      const geom = new THREE.BufferGeometry().setFromPoints(points);
+      const mat = new THREE.LineBasicMaterial({color:0x22c4ff, linewidth:3});
+      game.track3DEditorLine = new THREE.Line(geom, mat);
+      scene.add(game.track3DEditorLine);
+    };
+
+    const addPoint = (x, z) => {
+      game.track3DEditorPoints.push({x, z});
+      const geom = new THREE.SphereGeometry(3, 8, 8);
+      const mat = new THREE.MeshBasicMaterial({color:0x22c463});
+      const sphere = new THREE.Mesh(geom, mat);
+      sphere.position.set(x, 2, z);
+      scene.add(sphere);
+      updateTrackLine();
+    };
+
+    // Maus-Interaktion
+    let isDrawing = false;
+    let lastDrawX = 0, lastDrawZ = 0;
+    let mouseDownTime = 0;
+
+    const getMousePosFromEvent = (ev) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      const canvasX = (ev.clientX - rect.left) / rect.width * 2 - 1;
+      const canvasY = -(ev.clientY - rect.top) / rect.height * 2 + 1;
+      mouse.x = canvasX;
+      mouse.y = canvasY;
+      raycaster.setFromCamera(mouse, camera);
+      raycaster.ray.intersectPlane(plane, target);
+      return {x: target.x, z: target.z};
+    };
+
+    const onMouseDown = (ev) => {
+      if(ev.button !== 0) return; // Nur Linke Maustaste
+      isDrawing = true;
+      mouseDownTime = Date.now();
+      const pos = getMousePosFromEvent(ev);
+      lastDrawX = pos.x;
+      lastDrawZ = pos.z;
+      addPoint(lastDrawX, lastDrawZ);
+    };
+
+    const onMouseMove = (ev) => {
+      if(!isDrawing) return;
+      const pos = getMousePosFromEvent(ev);
+      const dx = pos.x - lastDrawX;
+      const dz = pos.z - lastDrawZ;
+      // Punkte nur hinzufügen wenn Maus sich um 15+ Einheiten bewegt hat
+      if(Math.hypot(dx, dz) > 15) {
+        addPoint(pos.x, pos.z);
+        lastDrawX = pos.x;
+        lastDrawZ = pos.z;
+      }
+    };
+
+    const onMouseUp = () => {
+      isDrawing = false;
+    };
+
+    renderer.domElement.addEventListener('mousedown', onMouseDown);
+    renderer.domElement.addEventListener('mousemove', onMouseMove);
+    renderer.domElement.addEventListener('mouseup', onMouseUp);
+    renderer.domElement.addEventListener('mouseleave', onMouseUp); // Auch wenn Maus den Canvas verlässt
+
+    // Animation
+    const animate = () => {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    game.track3DEditorRenderer = renderer;
+    game.track3DEditorScene = scene;
+    game.track3DEditorCamera = camera;
+    game.track3DEditorUpdateLine = updateTrackLine;
+
+    // Buttons - mit Null-Checks
+    const btnUndo = document.getElementById('btn-3d-undo');
+    if(btnUndo) btnUndo.onclick = () => {
+      if(game.track3DEditorPoints.length > 0) {
+        game.track3DEditorPoints.pop();
+        scene.clear();
+        scene.add(gridHelper);
+        scene.add(axesHelper);
+        game.track3DEditorPoints.forEach(p => {
+          const s = new THREE.Mesh(new THREE.SphereGeometry(3, 8, 8), new THREE.MeshBasicMaterial({color:0x22c463}));
+          s.position.set(p.x, 2, p.z);
+          scene.add(s);
+        });
+        updateTrackLine();
+      }
+    };
+
+    const btnClear = document.getElementById('btn-3d-clear');
+    if(btnClear) btnClear.onclick = () => {
+      game.track3DEditorPoints = [];
+      scene.clear();
+      scene.add(gridHelper);
+      scene.add(axesHelper);
+      game.track3DEditorLine = null;
+    };
+
+    const btnClose = document.getElementById('btn-3d-close');
+    if(btnClose) btnClose.onclick = () => {
+      // Strecke schließen (letzten Punkt mit erstem verbinden)
+      if(game.track3DEditorPoints.length >= 2) {
+        const first = game.track3DEditorPoints[0];
+        game.track3DEditorPoints.push({x:first.x, z:first.z});
+        updateTrackLine();
+      }
+    };
+
+    const btnSave = document.getElementById('btn-3d-save');
+    if(btnSave) btnSave.onclick = () => {
+      const name = (document.getElementById('track3d-name').value || 'Track').slice(0, 80);
+      const sub = (document.getElementById('track3d-sub').value || 'Custom Track').slice(0, 140);
+      if(game.track3DEditorPoints.length < 3) {
+        alert('Brauche mindestens 3 Punkte!');
+        return;
+      }
+      game.saveTrackFrom3DEditor(name, sub);
+    };
+  },
+  saveTrackFrom3DEditor(name, sub){
+    const pts = this.track3DEditorPoints || [];
+    if(pts.length < 3) return;
+
+    // Konvertiere 2D-Punkte zu 3D mit Catmull-Rom
+    const pts3D = pts.map(p => new THREE.Vector3(p.x, 0, p.z));
+    const curve = new THREE.CatmullRomCurve3(pts3D);
+    const trackPts = curve.getPoints(Math.max(100, pts3D.length * 20));
+
+    const track = {
+      id: 'custom_' + Date.now(),
+      name: name || 'Custom Track',
+      sub: sub || 'Custom Track',
+      halfWidth: 8.5,
+      sky: 0x9fc3eb,
+      hill: 0x5e8a42,
+      grass: [0x4e8b3a, 0x407531],
+      wallDist: 32,
+      vergeW: 24,
+      startFinishPct: 0,
+      pts: trackPts.map(p => [p.x, p.z, p.y || 0]),
+      pitLane: {
+        side: -1,
+        idxStart: Math.floor(trackPts.length * 0.08),
+        idxEnd: Math.floor(trackPts.length * 0.18),
+        innerOff: 10,
+        outerOff: 20
+      },
+      startGridPct: 99,
+      custom: true,
+      editorType: '3D'
+    };
+
+    this.customTracks = this.customTracks || [];
+    this.customTracks.push(track);
+    this.saveCustomTracks();
+
+    this.renderTrackList();
+    this.showScreen('screen-track');
+  },
+  updateEditorStatus(){
+    const status = document.getElementById('ed-status');
+    const spec = this.editorSpec;
+    if(!status || !spec) return;
+    const totalLen = (spec.segments || []).reduce((sum, seg)=>sum + (parseFloat(seg.len) || 0), 0);
+    status.textContent = totalLen > 0
+      ? `Segmente: ${spec.segments.length} · Gesamtlänge ca. ${Math.round(totalLen)} m · Start/Ziel ${Math.round(spec.startFinishPct ?? 0)}%`
+      : 'Noch keine Strecke.';
+  },
+  drawEditorTrackPreview(){
+    const cv = document.getElementById('ed-preview');
+    const spec = this.editorSpec;
+    if(!cv || !spec) return;
+    const g = cv.getContext('2d');
+    const previewTrack = buildTrackFromEditorSpec(spec);
+    const pts = previewTrack.pts || [];
+    g.clearRect(0, 0, cv.width, cv.height);
+    g.fillStyle = '#0a1018';
+    g.fillRect(0,0,cv.width,cv.height);
+    if(!pts.length){
+      g.fillStyle = '#8ba0b7';
+      g.font = '12px JetBrains Mono';
+      g.fillText('Keine Streckenpunkte', 12, 24);
+      return;
+    }
+    let minX=1e9,maxX=-1e9,minZ=1e9,maxZ=-1e9;
+    for(const p of pts){
+      minX=Math.min(minX,p[0]); maxX=Math.max(maxX,p[0]);
+      minZ=Math.min(minZ,p[1]); maxZ=Math.max(maxZ,p[1]);
+    }
+    const pad = 18;
+    const sx = (cv.width - pad*2) / Math.max(1, (maxX-minX));
+    const sy = (cv.height - pad*2) / Math.max(1, (maxZ-minZ));
+    const sc = Math.min(sx, sy);
+    const ox = (cv.width - (maxX-minX)*sc) * 0.5;
+    const oy = (cv.height - (maxZ-minZ)*sc) * 0.5;
+    const tx = p => ox + (p[0] - minX) * sc;
+    const ty = p => oy + (p[1] - minZ) * sc;
+
+    g.strokeStyle = '#dce8f7';
+    g.lineWidth = 3;
+    g.lineJoin = 'round';
+    g.beginPath();
+    pts.forEach((p,i)=>{
+      const x = tx(p), y = ty(p);
+      if(i===0) g.moveTo(x,y); else g.lineTo(x,y);
+    });
+    g.closePath();
+    g.stroke();
+
+    const startIdx = 0;
+    const sp = pts[startIdx] || pts[0];
+    g.fillStyle = '#22c463';
+    g.fillRect(tx(sp)-4, ty(sp)-4, 8, 8);
+
+    const nsp = pts[Math.min(pts.length - 1, 4)] || pts[0];
+    const vx = tx(nsp) - tx(sp);
+    const vy = ty(nsp) - ty(sp);
+    const vl = Math.hypot(vx, vy) || 1;
+    const nx = -vy / vl;
+    const ny = vx / vl;
+    g.strokeStyle = '#22c463';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(tx(sp) - nx * 8, ty(sp) - ny * 8);
+    g.lineTo(tx(sp) + nx * 8, ty(sp) + ny * 8);
+    g.stroke();
+
+    g.fillStyle = '#9ab0c7';
+    g.font = '11px JetBrains Mono';
+    g.fillText(this.editorDrawMode ? 'ZEICHENMODUS AKTIV · halte und male eine Linie' : 'Live Preview · Klick setzt Start/Ziel', 10, 16);
+    if(this.editorDrawMode && this.editorDrawStroke?.length){
+      g.strokeStyle = '#ffcf5a';
+      g.lineWidth = 2;
+      g.beginPath();
+      this.editorDrawStroke.forEach((p,i)=>{
+        if(i===0) g.moveTo(p.x, p.y); else g.lineTo(p.x, p.y);
+      });
+      g.stroke();
+    }
+    this._editorPreviewCache = {
+      canvas: cv,
+      pts2d: pts.map(p => ({x:tx(p), y:ty(p)})),
+      pts3d: pts,
+      count: pts.length,
+      minX, minZ, sc, ox, oy
+    };
+  },
+  setupEditorCanvas(){
+    if(this._editorCanvasBound) return;
+    const cv = document.getElementById('ed-canvas');
+    if(!cv) return;
+    this._editorCanvasBound = true;
+    this.editorCanvas = {
+      cv,
+      ctx: cv.getContext('2d'),
+      drag:null,
+      segRects:[],
+      laneRect:null,
+      selectedSeg:0,
+      pitStartHandle:null,
+      pitEndHandle:null
+    };
+    cv.addEventListener('pointerdown', (ev)=>this.onEditorCanvasPointerDown(ev));
+    addEventListener('pointermove', (ev)=>this.onEditorCanvasPointerMove(ev));
+    addEventListener('pointerup', ()=>this.onEditorCanvasPointerUp());
+    cv.addEventListener('dragover', (ev)=>{ ev.preventDefault(); });
+    cv.addEventListener('drop', (ev)=>this.onEditorCanvasDrop(ev));
+    for(const chip of document.querySelectorAll('[data-ed-add]')){
+      chip.addEventListener('dragstart', ev=>{
+        ev.dataTransfer.setData('text/plain', chip.dataset.edAdd || 'straight');
+        ev.dataTransfer.effectAllowed = 'copy';
       });
     }
-    const totalLen = spec.segments.reduce((sum, seg)=>sum + (parseFloat(seg.len) || 0), 0);
-    const closeMsg = totalLen > 0 ? `Segmente: ${spec.segments.length} · Gesamtlänge ca. ${Math.round(totalLen)} m` : 'Noch keine Strecke.';
-    const status = $('ed-status');
-    if(status) status.textContent = closeMsg;
+    const pv = document.getElementById('ed-preview');
+    if(pv && !this._editorPreviewBound){
+      this._editorPreviewBound = true;
+      pv.addEventListener('pointerdown', (ev)=>this.onEditorPreviewPointerDown(ev));
+      addEventListener('pointermove', (ev)=>this.onEditorPreviewPointerMove(ev));
+      addEventListener('pointerup', ()=>this.onEditorPreviewPointerUp());
+    }
+    if(!this._editorMetaBound){
+      this._editorMetaBound = true;
+      const syncIds = ['ed-name','ed-sub','ed-width','ed-wall','ed-verge','ed-heading','ed-startpct','ed-startx','ed-startz','ed-starty','ed-sky','ed-hill','ed-grassA','ed-grassB','ed-pitstart','ed-pitend','ed-pitside','ed-pitinner','ed-pitouter'];
+      for(const id of syncIds){
+        const el = document.getElementById(id);
+        if(!el) continue;
+        const fn = ()=>{
+          this.editorSpec = this.getEditorStateFromUI();
+          this.updateEditorStatus();
+          this.redrawEditorCanvas();
+          this.drawEditorTrackPreview();
+        };
+        el.addEventListener('input', fn);
+        el.addEventListener('change', fn);
+      }
+    }
+  },
+  _previewPointer(ev){
+    const pv = document.getElementById('ed-preview');
+    if(!pv) return null;
+    const r = pv.getBoundingClientRect();
+    return {
+      pv,
+      x: (ev.clientX - r.left) * (pv.width / Math.max(1, r.width)),
+      y: (ev.clientY - r.top) * (pv.height / Math.max(1, r.height)),
+      inside: ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom
+    };
+  },
+  onEditorPreviewPointerDown(ev){
+    const pp = this._previewPointer(ev);
+    if(!pp) return;
+    if(this.editorDrawMode){
+      this.editorDrawActive = true;
+      this.editorDrawStroke = [{x:pp.x, y:pp.y}];
+      this.drawEditorTrackPreview();
+      return;
+    }
+    const pv = pp.pv;
+    const cache = this._editorPreviewCache;
+    const spec = this.editorSpec;
+    if(!pv || !cache || !spec || !cache.pts2d?.length) return;
+    const px = pp.x;
+    const py = pp.y;
+    let best = 0;
+    let bestD = Infinity;
+    for(let i=0;i<cache.pts2d.length;i++){
+      const p = cache.pts2d[i];
+      const dx = p.x - px;
+      const dy = p.y - py;
+      const d = dx*dx + dy*dy;
+      if(d < bestD){ bestD = d; best = i; }
+    }
+    spec.startFinishPct = clamp((best / Math.max(1, cache.count - 1)) * 100, 0, 100);
+    const inp = document.getElementById('ed-startpct');
+    if(inp) inp.value = String(Math.round(spec.startFinishPct * 10) / 10);
+    this.updateEditorStatus();
+    this.drawEditorTrackPreview();
+  },
+  onEditorPreviewPointerMove(ev){
+    if(!this.editorDrawMode || !this.editorDrawActive) return;
+    const pp = this._previewPointer(ev);
+    if(!pp || !pp.inside) return;
+    const arr = this.editorDrawStroke || (this.editorDrawStroke = []);
+    const last = arr[arr.length - 1];
+    if(!last || Math.hypot(pp.x - last.x, pp.y - last.y) > 3){
+      arr.push({x:pp.x, y:pp.y});
+      this.drawEditorTrackPreview();
+    }
+  },
+  onEditorPreviewPointerUp(){
+    this.editorDrawActive = false;
+  },
+  toggleEditorDrawMode(){
+    this.editorDrawMode = !this.editorDrawMode;
+    if(!this.editorDrawMode){
+      this.editorDrawActive = false;
+    }
+    const b = document.getElementById('btn-ed-drawmode');
+    if(b) b.textContent = this.editorDrawMode ? 'Malen: AN' : 'Malen';
+    this.drawEditorTrackPreview();
+  },
+  applyEditorDrawing(){
+    const stroke = this.editorDrawStroke || [];
+    if(stroke.length < 8){
+      const status = document.getElementById('ed-status');
+      if(status) status.textContent = 'Zu kurz gezeichnet. Bitte eine längere Strecke malen.';
+      return;
+    }
+    const smooth = [stroke[0]];
+    for(let i=1;i<stroke.length;i++){
+      const p = stroke[i];
+      const q = smooth[smooth.length-1];
+      if(Math.hypot(p.x - q.x, p.y - q.y) >= 8) smooth.push(p);
+    }
+    if(smooth.length < 5) smooth.push(...stroke.slice(-3));
+
+    const segs = [];
+    for(let i=0;i<smooth.length-1;i++){
+      const a = smooth[i];
+      const b = smooth[i+1];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const pixLen = Math.hypot(dx, dy);
+      if(pixLen < 6) continue;
+      const lenM = clamp(Math.round(pixLen * 3.0), 45, 700);
+      if(i === 0){
+        segs.push({type:'straight', len:lenM, rise:0});
+        continue;
+      }
+      const p0 = smooth[i-1];
+      const v1x = a.x - p0.x, v1y = a.y - p0.y;
+      const v2x = b.x - a.x, v2y = b.y - a.y;
+      const a1 = Math.atan2(v1y, v1x);
+      const a2 = Math.atan2(v2y, v2x);
+      let d = (a2 - a1 + Math.PI*3) % (Math.PI*2) - Math.PI;
+      const deg = Math.abs(d * 57.2958);
+      if(deg < 12){
+        segs.push({type:'straight', len:lenM, rise:0});
+      } else {
+        segs.push({type:'turn', len:lenM, deg:clamp(Math.round(deg), 12, 140), dir:d < 0 ? -1 : 1, rise:0});
+      }
+    }
+    if(!segs.length) return;
+    this.editorSpec.segments = segs;
+    this.editorSpec.startFinishPct = 0;
+    const sp = document.getElementById('ed-startpct');
+    if(sp) sp.value = '0';
+    this.editorDrawStroke = [];
+    this.editorDrawMode = false;
+    const b = document.getElementById('btn-ed-drawmode');
+    if(b) b.textContent = 'Malen';
+    this.renderEditor();
+    const status = document.getElementById('ed-status');
+    if(status) status.textContent = `Zeichnung übernommen: ${segs.length} Segmente`;
+  },
+  redrawEditorCanvas(){
+    const ecs = this.editorCanvas;
+    const spec = this.editorSpec;
+    if(!ecs || !spec) return;
+    const {cv, ctx} = ecs;
+    const w = cv.width, h = cv.height;
+    ctx.clearRect(0,0,w,h);
+
+    const lane = {x:26, y:44, w:w-52, h:116};
+    ecs.laneRect = lane;
+    ctx.fillStyle = '#0b121c';
+    ctx.fillRect(lane.x, lane.y, lane.w, lane.h);
+    ctx.strokeStyle = '#304157';
+    ctx.strokeRect(lane.x+0.5, lane.y+0.5, lane.w-1, lane.h-1);
+    ctx.fillStyle = '#7d8fa8';
+    ctx.font = '11px JetBrains Mono';
+    ctx.fillText('TRACK STRIP', lane.x+8, lane.y+14);
+
+    const totalLen = Math.max(1, spec.segments.reduce((a,s)=>a+Math.max(10, parseFloat(s.len)||0),0));
+    let run = lane.x;
+    ecs.segRects = [];
+    spec.segments.forEach((seg, idx)=>{
+      const segLen = Math.max(10, parseFloat(seg.len)||0);
+      const segW = Math.max(24, (segLen / totalLen) * lane.w);
+      const x = idx === spec.segments.length - 1 ? run : Math.min(run, lane.x + lane.w - segW);
+      const y = lane.y + 28;
+      const hSeg = 72;
+      const fill = seg.type === 'turn' ? '#ff7a3d' : '#3f86ff';
+      ctx.fillStyle = fill;
+      ctx.fillRect(x, y, segW, hSeg);
+      ctx.strokeStyle = idx === ecs.selectedSeg ? '#ffffff' : '#1c2838';
+      ctx.lineWidth = idx === ecs.selectedSeg ? 2 : 1;
+      ctx.strokeRect(x+0.5, y+0.5, segW-1, hSeg-1);
+      ctx.fillStyle = '#09111d';
+      ctx.font = 'bold 11px JetBrains Mono';
+      const typeLabel = seg.type === 'turn' ? 'KURVE' : 'GERADE';
+      ctx.fillText(typeLabel, x + 6, y + 16);
+      ctx.font = '10px JetBrains Mono';
+      ctx.fillText(Math.round(segLen) + 'm', x + 6, y + 32);
+      if(seg.type === 'turn'){
+        const dirTxt = (seg.dir === -1 ? 'L' : 'R') + ' ' + Math.round(seg.deg || 0) + '°';
+        ctx.fillText(dirTxt, x + 6, y + 46);
+      }
+      const handleX = x + segW;
+      ctx.fillStyle = '#d9e7fb';
+      ctx.fillRect(handleX - 2, y + 4, 4, hSeg - 8);
+      ecs.segRects.push({idx, x, y, w:segW, h:hSeg, handleX});
+      run += segW;
+    });
+
+    const pitY = 206;
+    const pitH = 28;
+    ctx.fillStyle = '#111922';
+    ctx.fillRect(lane.x, pitY, lane.w, pitH);
+    ctx.strokeStyle = '#304157';
+    ctx.strokeRect(lane.x+0.5, pitY+0.5, lane.w-1, pitH-1);
+    const pitStart = clamp(spec.pitStartPct || 0, 0, 95);
+    const pitEnd = clamp(spec.pitEndPct || 0, 5, 100);
+    const sx = lane.x + (pitStart/100) * lane.w;
+    const ex = lane.x + (pitEnd/100) * lane.w;
+    ecs.pitStartHandle = sx;
+    ecs.pitEndHandle = ex;
+    ctx.fillStyle = '#22c46388';
+    ctx.fillRect(sx, pitY + 3, Math.max(8, ex - sx), pitH - 6);
+    ctx.fillStyle = '#22c463';
+    ctx.fillRect(sx - 2, pitY, 4, pitH);
+    ctx.fillRect(ex - 2, pitY, 4, pitH);
+    ctx.fillStyle = '#c8f7dd';
+    ctx.font = '11px JetBrains Mono';
+    ctx.fillText('PIT LANE ' + Math.round(pitStart) + '% → ' + Math.round(pitEnd) + '%', lane.x + 8, pitY - 8);
+
+    ctx.fillStyle = '#8fa1bb';
+    ctx.font = '10px JetBrains Mono';
+    ctx.fillText('Drop auf Track-Strip: Segment einfügen', lane.x, h - 18);
+    ctx.fillText('Drop auf Pit-Bar: Pit-Fenster setzen', lane.x + 260, h - 18);
+  },
+  _editorCanvasPointer(ev){
+    const ecs = this.editorCanvas;
+    if(!ecs) return {x:0,y:0};
+    const r = ecs.cv.getBoundingClientRect();
+    const x = (ev.clientX - r.left) * (ecs.cv.width / Math.max(1, r.width));
+    const y = (ev.clientY - r.top) * (ecs.cv.height / Math.max(1, r.height));
+    return {x,y};
+  },
+  onEditorCanvasPointerDown(ev){
+    const ecs = this.editorCanvas;
+    const spec = this.editorSpec;
+    if(!ecs || !spec) return;
+    const p = this._editorCanvasPointer(ev);
+    const nearStart = Math.abs(p.x - ecs.pitStartHandle) < 8 && p.y > 202 && p.y < 240;
+    const nearEnd = Math.abs(p.x - ecs.pitEndHandle) < 8 && p.y > 202 && p.y < 240;
+    if(nearStart){
+      ecs.drag = {type:'pit-start'};
+      return;
+    }
+    if(nearEnd){
+      ecs.drag = {type:'pit-end'};
+      return;
+    }
+    for(const r of ecs.segRects){
+      if(p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h){
+        ecs.selectedSeg = r.idx;
+        const nearEdge = Math.abs(p.x - r.handleX) < 8;
+        if(nearEdge){
+          ecs.drag = {type:'resize', idx:r.idx, startX:p.x, startLen:spec.segments[r.idx].len || 0};
+        } else {
+          ecs.drag = {type:'move', idx:r.idx};
+        }
+        this.renderEditor();
+        return;
+      }
+    }
+  },
+  onEditorCanvasPointerMove(ev){
+    const ecs = this.editorCanvas;
+    const spec = this.editorSpec;
+    if(!ecs || !spec || !ecs.drag) return;
+    const p = this._editorCanvasPointer(ev);
+    const lane = ecs.laneRect;
+    if(!lane) return;
+    const drag = ecs.drag;
+    if(drag.type === 'pit-start' || drag.type === 'pit-end'){
+      const pct = clamp(((p.x - lane.x) / lane.w) * 100, 0, 100);
+      if(drag.type === 'pit-start') spec.pitStartPct = Math.min(pct, (spec.pitEndPct || 18) - 3);
+      else spec.pitEndPct = Math.max(pct, (spec.pitStartPct || 8) + 3);
+      const ps = document.getElementById('ed-pitstart');
+      const pe = document.getElementById('ed-pitend');
+      if(ps) ps.value = Math.round(spec.pitStartPct);
+      if(pe) pe.value = Math.round(spec.pitEndPct);
+      this.redrawEditorCanvas();
+      return;
+    }
+    if(drag.type === 'resize'){
+      const totalLen = Math.max(1, spec.segments.reduce((a,s)=>a+Math.max(10, parseFloat(s.len)||0),0));
+      const mPerPx = totalLen / lane.w;
+      const deltaM = (p.x - drag.startX) * mPerPx;
+      spec.segments[drag.idx].len = clamp(Math.round((drag.startLen + deltaM) / 5) * 5, 40, 1800);
+      this.renderEditor();
+      return;
+    }
+    if(drag.type === 'move'){
+      const cur = drag.idx;
+      const centers = ecs.segRects.map(r=>r.x + r.w*0.5);
+      let target = centers.findIndex(c=>p.x < c);
+      if(target < 0) target = spec.segments.length - 1;
+      if(target !== cur){
+        const item = spec.segments.splice(cur,1)[0];
+        spec.segments.splice(target,0,item);
+        ecs.drag.idx = target;
+        ecs.selectedSeg = target;
+        this.renderEditor();
+      }
+    }
+  },
+  onEditorCanvasPointerUp(){
+    if(this.editorCanvas) this.editorCanvas.drag = null;
+  },
+  onEditorCanvasDrop(ev){
+    ev.preventDefault();
+    const type = ev.dataTransfer.getData('text/plain');
+    const spec = this.editorSpec;
+    const ecs = this.editorCanvas;
+    if(!spec || !ecs || !type) return;
+    const p = this._editorCanvasPointer(ev);
+    const lane = ecs.laneRect;
+    if(!lane) return;
+    if(type === 'pit'){
+      const centerPct = clamp(((p.x - lane.x) / lane.w) * 100, 4, 96);
+      spec.pitStartPct = clamp(centerPct - 6, 0, 95);
+      spec.pitEndPct = clamp(centerPct + 6, 5, 100);
+      if(spec.pitEndPct - spec.pitStartPct < 4) spec.pitEndPct = spec.pitStartPct + 4;
+      const ps = document.getElementById('ed-pitstart');
+      const pe = document.getElementById('ed-pitend');
+      if(ps) ps.value = Math.round(spec.pitStartPct);
+      if(pe) pe.value = Math.round(spec.pitEndPct);
+      this.redrawEditorCanvas();
+      return;
+    }
+    const seg = type === 'turn'
+      ? {type:'turn', len:160, deg:60, dir:1, rise:0}
+      : {type:'straight', len:240, rise:0};
+    const centers = ecs.segRects.map(r=>r.x + r.w*0.5);
+    let insertAt = centers.findIndex(c=>p.x < c);
+    if(insertAt < 0) insertAt = spec.segments.length;
+    spec.segments.splice(insertAt, 0, seg);
+    ecs.selectedSeg = insertAt;
+    this.renderEditor();
   },
   addEditorSegment(type){
     const spec = this.editorSpec || (this.editorSpec = defaultEditorState());
@@ -7267,6 +8035,86 @@ const Game = {
     if(status) status.textContent = `Gespeichert: ${track.name} · ${Math.round(track.pts.length)} Punkte`;
     this.showScreen('screen-track');
   },
+  normalizeEditorSpec(raw){
+    const base = defaultEditorState();
+    const src = (raw && typeof raw === 'object') ? raw : {};
+    const segs = Array.isArray(src.segments) ? src.segments : base.segments;
+    const cleanSegments = segs
+      .map(seg=>{
+        const t = seg && seg.type === 'turn' ? 'turn' : 'straight';
+        const out = {
+          type: t,
+          len: clamp(parseFloat(seg?.len) || (t === 'turn' ? 160 : 240), 40, 2400),
+          rise: clamp(parseFloat(seg?.rise) || 0, -400, 400)
+        };
+        if(t === 'turn'){
+          out.deg = clamp(parseFloat(seg?.deg) || 60, 1, 220);
+          out.dir = (parseInt(seg?.dir, 10) === -1) ? -1 : 1;
+        }
+        return out;
+      })
+      .filter(Boolean);
+    if(!cleanSegments.length) cleanSegments.push(...base.segments);
+    return {
+      name: String(src.name || base.name).slice(0, 80),
+      sub: String(src.sub || base.sub).slice(0, 140),
+      halfWidth: clamp(parseFloat(src.halfWidth) || base.halfWidth, 5, 16),
+      wallDist: clamp(parseFloat(src.wallDist) || base.wallDist, 16, 120),
+      vergeW: clamp(parseFloat(src.vergeW) || base.vergeW, 8, 80),
+      sky: hexToInt(src.sky, base.sky),
+      hill: hexToInt(src.hill, base.hill),
+      grassA: hexToInt(src.grassA, base.grassA),
+      grassB: hexToInt(src.grassB, base.grassB),
+      startX: clamp(parseFloat(src.startX) || 0, -10000, 10000),
+      startZ: clamp(parseFloat(src.startZ) || 0, -10000, 10000),
+      startY: clamp(parseFloat(src.startY) || 0, -2000, 2000),
+      heading: clamp(parseFloat(src.heading) || 0, -360, 360),
+      startFinishPct: clamp(parseFloat(src.startFinishPct) || base.startFinishPct || 0, 0, 100),
+      pitSide: parseInt(src.pitSide, 10) === 1 ? 1 : -1,
+      pitStartPct: clamp(parseFloat(src.pitStartPct) || base.pitStartPct, 0, 95),
+      pitEndPct: clamp(parseFloat(src.pitEndPct) || base.pitEndPct, 5, 100),
+      pitInner: clamp(parseFloat(src.pitInner) || base.pitInner, 6, 30),
+      pitOuter: clamp(parseFloat(src.pitOuter) || base.pitOuter, 8, 40),
+      segments: cleanSegments
+    };
+  },
+  async copyEditorTrackCode(){
+    const spec = this.normalizeEditorSpec(this.getEditorStateFromUI());
+    this.editorSpec = deepClone(spec);
+    const payload = {
+      format: 'gt3-editor-track-v1',
+      game: 'GT3 WEB RACER',
+      createdAt: new Date().toISOString(),
+      spec
+    };
+    const txt = JSON.stringify(payload);
+    const status = document.getElementById('ed-status');
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        await navigator.clipboard.writeText(txt);
+        if(status) status.textContent = 'Track-Code kopiert. Jetzt hier im Chat einfügen.';
+        return;
+      }
+    }catch(e){}
+    window.prompt('Track-Code kopieren und im Chat einfügen:', txt);
+    if(status) status.textContent = 'Track-Code angezeigt. Jetzt im Chat einfügen.';
+  },
+  importEditorTrackCode(){
+    const raw = window.prompt('Track-Code hier einfügen:');
+    if(!raw) return;
+    const status = document.getElementById('ed-status');
+    try{
+      const parsed = JSON.parse(raw);
+      const candidate = parsed && parsed.spec ? parsed.spec : parsed;
+      const spec = this.normalizeEditorSpec(candidate);
+      this.editorSpec = spec;
+      this.renderEditor();
+      if(status) status.textContent = `Code geladen: ${spec.name} · ${spec.segments.length} Segmente`;
+    }catch(e){
+      if(status) status.textContent = 'Ungültiger Code. Bitte den kompletten JSON-Code einfügen.';
+      alert('Der eingefügte Code ist nicht gültig.');
+    }
+  },
 
   startRace(){
     if(this.championshipEnabled){
@@ -7287,6 +8135,14 @@ const Game = {
     this.mandatoryPitStop = this.pitStopsEnabled && this.totalLaps > 5 ? Math.max(1, Math.floor(this.totalLaps / 15)) : 0;
     this.aiCars=[]; this.aiDrivers=[];
     const N=this.track.N;
+    const gridBaseIdx = (()=>{
+      const pct = this.track?.def?.startGridPct;
+      if(Number.isFinite(pct)){
+        const idx = Math.round((clamp(pct, 0, 100)/100) * (N-1));
+        return Math.max(8, Math.min(N-8, idx));
+      }
+      return N - 6;
+    })();
     if(this.mode==='race3'){
       const nAI = clamp(this.numAI||5, 1, 50);
       const classPool = this.buildAIClassPool(nAI);
@@ -7334,14 +8190,14 @@ const Game = {
           const classCars = sorted.filter(s => getClassRank(s) === c);
           for(let j=0; j<classCars.length; j++){
             const row = Math.floor(j/2), col = j%2;
-            classCars[j].placeAtGrid(this.track, N-6-(offset+row)*5, (col?1:-1)*2.9);
+            classCars[j].placeAtGrid(this.track, gridBaseIdx-(offset+row)*5, (col?1:-1)*2.9);
           }
           offset += Math.ceil(classCars.length/2) + 16;  // 16 Reihen = ~80m zwischen Klassen
         }
       } else {
         for(let i=0; i<sorted.length; i++){
           const row = Math.floor(i/2), col = i%2;
-          sorted[i].placeAtGrid(this.track, N-6-row*5, (col?1:-1)*2.9);
+          sorted[i].placeAtGrid(this.track, gridBaseIdx-row*5, (col?1:-1)*2.9);
         }
       }
 
@@ -7516,6 +8372,14 @@ const Game = {
   },
   restartRace(){
     const N=this.track.N;
+    const gridBaseIdx = (()=>{
+      const pct = this.track?.def?.startGridPct;
+      if(Number.isFinite(pct)){
+        const idx = Math.round((clamp(pct, 0, 100)/100) * (N-1));
+        return Math.max(8, Math.min(N-8, idx));
+      }
+      return N - 6;
+    })();
     const prevBestLap = this.race?.bestLap || null;
     const prevBestLapRef = this.race?.bestLapRef || null;
     if(this.mode==='race3'){
@@ -7545,14 +8409,14 @@ const Game = {
           const classCars = sorted.filter(s => getClassRank(s) === c);
           for(let j=0; j<classCars.length; j++){
             const row = Math.floor(j/2), col = j%2;
-            classCars[j].placeAtGrid(this.track, N-6-(offset+row)*5, (col?1:-1)*2.9);
+            classCars[j].placeAtGrid(this.track, gridBaseIdx-(offset+row)*5, (col?1:-1)*2.9);
           }
           offset += Math.ceil(classCars.length/2) + 16;
         }
       } else {
         for(let i=0; i<sorted.length; i++){
           const row = Math.floor(i/2), col = i%2;
-          sorted[i].placeAtGrid(this.track, N-6-row*5, (col?1:-1)*2.9);
+          sorted[i].placeAtGrid(this.track, gridBaseIdx-row*5, (col?1:-1)*2.9);
         }
       }
     } else {
@@ -8262,10 +9126,15 @@ const Game = {
       this.startRace();
     };
     $('btn-back-mode').onclick=()=>this.showScreen('screen-car');
-    $('btn-ed-add-straight').onclick=()=>this.addEditorSegment('straight');
-    $('btn-ed-add-turn').onclick=()=>this.addEditorSegment('turn');
-    $('btn-ed-template').onclick=()=>this.resetEditorTemplate();
-    $('btn-ed-save').onclick=()=>this.saveEditorTrack();
+    // Editor buttons removed with new 3D system
+    if($('btn-ed-add-straight')) $('btn-ed-add-straight').onclick=()=>this.addEditorSegment('straight');
+    if($('btn-ed-add-turn')) $('btn-ed-add-turn').onclick=()=>this.addEditorSegment('turn');
+    if($('btn-ed-template')) $('btn-ed-template').onclick=()=>this.resetEditorTemplate();
+    if($('btn-ed-drawmode')) $('btn-ed-drawmode').onclick=()=>this.toggleEditorDrawMode();
+    if($('btn-ed-applydraw')) $('btn-ed-applydraw').onclick=()=>this.applyEditorDrawing();
+    if($('btn-ed-copy')) $('btn-ed-copy').onclick=()=>this.copyEditorTrackCode();
+    if($('btn-ed-import')) $('btn-ed-import').onclick=()=>this.importEditorTrackCode();
+    if($('btn-ed-save')) $('btn-ed-save').onclick=()=>this.saveEditorTrack();
     if($('btn-keybind-reset')) $('btn-keybind-reset').onclick=()=>{
       this.keybinds = Object.assign({}, defaultKeybinds);
       this.saveKeybinds();
