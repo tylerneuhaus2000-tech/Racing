@@ -1,0 +1,32 @@
+{
+  "name": "gridline",
+  "version": "1.0.0",
+  "description": "Gridline Racing Game",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:all": "electron-builder --mac --win"
+  },
+  "build": {
+    "appId": "com.racing.gridline",
+    "productName": "Gridline",
+    "files": [
+      "main.js",
+      "gt3-web-racer.html",
+      "assets/**/*"
+    ],
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.games"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.0.0"
+  }
+}
