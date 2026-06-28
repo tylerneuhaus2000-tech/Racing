@@ -25,22 +25,38 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Cancel stale Pages deployments
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
-          # Laufende Pages-Deployments abbrechen, damit kein 400-Konflikt entsteht
-          IDS=$(curl -s \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/pages/deployments?limit=10" \
-            | jq -r '.[] | select(.status=="in_progress" or .status=="queued") | .id // empty')
-          for id in $IDS; do
-            echo "Abbrechen: $id"
-            curl -s -X POST \
-              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/${{ github.repository }}/pages/deployments/$id/cancel" || true
-          done
-          # Kurz warten damit Abbruch wirksam wird
-          [ -n "$IDS" ] && sleep 8 || true
+          python3 - <<'PYEOF'
+          import urllib.request, json, os, time
+          token = os.environ['GH_TOKEN']
+          repo  = os.environ['REPO']
+          hdrs  = {'Authorization': f'Bearer {token}', 'Accept': 'application/vnd.github+json'}
+          try:
+            req  = urllib.request.Request(f'https://api.github.com/repos/{repo}/pages/deployments?limit=10', headers=hdrs)
+            data = json.loads(urllib.request.urlopen(req).read())
+            if not isinstance(data, list): raise ValueError(f'Unexpected response: {data}')
+          except Exception as e:
+            print(f'Skip cancel step: {e}'); exit(0)
+          cancelled = 0
+          for d in data:
+            if d.get('status') in ('in_progress', 'queued'):
+              did = d.get('id') or d.get('deployment_id', '')
+              print(f'Abbrechen: {did}')
+              try:
+                r = urllib.request.Request(
+                  f'https://api.github.com/repos/{repo}/pages/deployments/{did}/cancel',
+                  data=b'', headers=hdrs, method='POST')
+                urllib.request.urlopen(r)
+                cancelled += 1
+              except Exception as e:
+                print(f'  Fehler beim Abbrechen: {e}')
+          if cancelled:
+            print(f'{cancelled} Deployment(s) abgebrochen, warte 8s...')
+            time.sleep(8)
+          PYEOF
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
