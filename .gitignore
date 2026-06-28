@@ -1,1 +1,6 @@
 .DS_Store
+node_modules/
+dist/
+assets/tracks/nurburgring_data.js
+assets/tracks/nurburgring_gp_2016_layout.glb
+preload.js
