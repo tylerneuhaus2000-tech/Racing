@@ -1,13 +1,4 @@
 {
-  "indexes": [
-    {
-      "collectionGroup": "times",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "trackId", "order": "ASCENDING" },
-        { "fieldPath": "timeMs", "order": "ASCENDING" }
-      ]
-    }
-  ],
+  "indexes": [],
   "fieldOverrides": []
 }
