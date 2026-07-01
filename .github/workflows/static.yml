@@ -66,6 +66,11 @@ jobs:
             print(f'Artifact cleanup skipped: {e}')
           PYEOF
 
+      - name: Inject build SHA
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          sed -i "s|BUILD <span id=\"build-sha\">DEV</span>|BUILD <span id=\"build-sha\">${SHA}</span>|g" gt3-web-racer.html
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
