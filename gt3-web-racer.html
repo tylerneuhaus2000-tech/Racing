@@ -14509,6 +14509,7 @@ function _showStewardsBanner(type, reason, penalty){
   }
 }
 
+let _stewardsLastShownTs = 0;
 function _initStewardsListener(uid){
   if(_stewardsUnsub) _stewardsUnsub();
   _stewardsUnsub = db.collection('steward_msgs').doc(uid)
@@ -14516,10 +14517,15 @@ function _initStewardsListener(uid){
       if(!snap.exists) return;
       const d = snap.data();
       if(!d || !d.type) return;
-      // Nur neue Nachrichten zeigen (timestamp > letzte gesehene)
-      const lastSeen = parseInt(localStorage.getItem('stewards_last')||'0');
-      if((d.ts||0) <= lastSeen) return;
-      localStorage.setItem('stewards_last', d.ts||Date.now());
+      const ts = d.ts || 0;
+      // Doppelt absichern: localStorage UND In-Memory-Flag
+      const lastSeen = Math.max(
+        parseInt(localStorage.getItem('stewards_last')||'0'),
+        _stewardsLastShownTs
+      );
+      if(ts <= lastSeen) return;
+      _stewardsLastShownTs = ts;
+      localStorage.setItem('stewards_last', ts);
       _showStewardsBanner(d.type, d.reason||'', d.penalty||'');
       // LP-Abzug bei Penalty automatisch anwenden
       if(d.type==='penalty' && d.lpDelta && typeof LicenseSystem!=='undefined' && LicenseSystem._data){
