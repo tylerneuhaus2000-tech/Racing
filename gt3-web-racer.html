@@ -14313,25 +14313,20 @@ const Game = {
 
     const h = mainCar.heading || 0;
     const sin = Math.sin(h), cos = Math.cos(h);
-    const snap = this._replayCamSnap;
-    const k = snap ? 1 : 0.15;
     this._replayCamSnap = false;
 
     if(activeCam === 0){
-      const tx = pivot.x - sin*7.4, ty = pivot.y + 2.5, tz = pivot.z - cos*7.4;
-      if(snap){ this.camera.position.set(tx, ty, tz); } else { this.camera.position.lerp({x:tx,y:ty,z:tz}, k); }
+      this.camera.position.set(pivot.x - sin*7.4, pivot.y + 2.5, pivot.z - cos*7.4);
       this.camera.lookAt(pivot.x + sin*7, pivot.y + 1.0, pivot.z + cos*7);
     } else if(activeCam === 1){
-      const tx = pivot.x + cos*18, ty = pivot.y + 4.5, tz = pivot.z - sin*18;
-      if(snap){ this.camera.position.set(tx, ty, tz); } else { this.camera.position.lerp({x:tx,y:ty,z:tz}, k); }
+      this.camera.position.set(pivot.x + cos*18, pivot.y + 4.5, pivot.z - sin*18);
       this.camera.lookAt(pivot.x, pivot.y + 1.2, pivot.z);
     } else if(activeCam === 2){
       this.camera.position.set(pivot.x, pivot.y + 120, pivot.z);
       this.camera.lookAt(pivot.x, pivot.y, pivot.z);
     } else {
       const ang = this._replayT * 0.10;
-      const tx = pivot.x + Math.sin(ang)*50, ty = pivot.y + 18, tz = pivot.z + Math.cos(ang)*50;
-      if(snap){ this.camera.position.set(tx, ty, tz); } else { this.camera.position.lerp({x:tx,y:ty,z:tz}, k); }
+      this.camera.position.set(pivot.x + Math.sin(ang)*50, pivot.y + 18, pivot.z + Math.cos(ang)*50);
       this.camera.lookAt(pivot.x, pivot.y, pivot.z);
     }
     // Replay-Overlay: Speed + Inputs aus Frame-Daten
@@ -14518,30 +14513,53 @@ function _showStewardsBanner(type, reason, penalty){
 }
 
 let _stewardsLastShownTs = 0;
+let _stewardsPollTimer = null;
+
+function _handleStewardsDoc(d){
+  if(!d || !d.type) return;
+  const ts = d.ts || 0;
+  const lastSeen = Math.max(
+    parseInt(localStorage.getItem('stewards_last')||'0'),
+    _stewardsLastShownTs
+  );
+  if(ts <= lastSeen) return;
+  _stewardsLastShownTs = ts;
+  localStorage.setItem('stewards_last', String(ts));
+  _showStewardsBanner(d.type, d.reason||'', d.penalty||'');
+  const lpDelta = parseFloat(d.lpDelta);
+  if(lpDelta && !isNaN(lpDelta) && typeof LicenseSystem!=='undefined' && LicenseSystem._data){
+    LicenseSystem._save({ licensePoints: lpDelta });
+    console.log('[Stewards] LP geändert:', lpDelta, '→ neu:', LicenseSystem._data.licensePoints);
+  }
+}
+
 function _initStewardsListener(uid){
-  if(_stewardsUnsub) _stewardsUnsub();
-  _stewardsUnsub = db.collection('steward_msgs').doc(uid)
-    .onSnapshot(snap => {
-      if(!snap.exists) return;
-      const d = snap.data();
-      if(!d || !d.type) return;
-      const ts = d.ts || 0;
-      // Doppelt absichern: localStorage UND In-Memory-Flag
-      const lastSeen = Math.max(
-        parseInt(localStorage.getItem('stewards_last')||'0'),
-        _stewardsLastShownTs
-      );
-      if(ts <= lastSeen) return;
-      _stewardsLastShownTs = ts;
-      localStorage.setItem('stewards_last', ts);
-      _showStewardsBanner(d.type, d.reason||'', d.penalty||'');
-      // LP-Änderung anwenden (alle Typen, nicht nur penalty)
-      const lpDelta = parseFloat(d.lpDelta);
-      if(lpDelta && !isNaN(lpDelta) && typeof LicenseSystem!=='undefined' && LicenseSystem._data){
-        LicenseSystem._save({ licensePoints: lpDelta });
-        console.log('[Stewards] LP geändert:', lpDelta, '→ neu:', LicenseSystem._data.licensePoints);
-      }
-    });
+  // Altes Polling stoppen
+  if(_stewardsPollTimer){ clearInterval(_stewardsPollTimer); _stewardsPollTimer = null; }
+  if(_stewardsUnsub){ try{ _stewardsUnsub(); }catch(e){} _stewardsUnsub = null; }
+
+  const restUrl = `https://firestore.googleapis.com/v1/projects/gridline-bf8c9/databases/(default)/documents/steward_msgs/${uid}`;
+
+  async function _poll(){
+    try {
+      const r = await fetch(restUrl);
+      if(!r.ok) return;
+      const json = await r.json();
+      if(json.fields) _handleStewardsDoc(_fsDoc(json.fields));
+    } catch(e) { /* Netzwerkfehler ignorieren */ }
+  }
+
+  // Sofort + alle 6 Sekunden pollen
+  _poll();
+  _stewardsPollTimer = setInterval(_poll, 6000);
+
+  // Zusätzlich onSnapshot versuchen (fällt still durch wenn WebChannel kaputt)
+  try {
+    _stewardsUnsub = db.collection('steward_msgs').doc(uid)
+      .onSnapshot(snap => {
+        if(snap.exists) _handleStewardsDoc(snap.data());
+      }, () => { /* WebChannel-Fehler ignorieren, Polling läuft weiter */ });
+  } catch(e) {}
 }
 
 // Admin Panel
@@ -14995,12 +15013,11 @@ function _renderLb(){
 function _watchLbReplay(entry){
   if(!entry.replay || !entry.replay.flat) return;
   if(typeof Game === 'undefined') return;
-  // Flat-Array dekodieren
   const { base, color, flat, v } = entry.replay;
   const stride = (v >= 2) ? 9 : 6;
   const frames = [];
   for(let i = 0; i < flat.length; i += stride){
-    frames.push({ t: base + flat[i], cars: [{ x:flat[i+1], z:flat[i+2], y:flat[i+3], h:flat[i+4], vx:flat[i+5], color,
+    frames.push({ t: base + flat[i], cars: [{ x:flat[i+1], z:flat[i+2], y:flat[i+3]||0, h:flat[i+4], vx:flat[i+5]||0, color,
       thr: stride>=9 ? flat[i+6] : undefined,
       brk: stride>=9 ? flat[i+7] : undefined,
       str: stride>=9 ? flat[i+8] : undefined,
@@ -15013,7 +15030,7 @@ function _watchLbReplay(entry){
   blr.lapTimes = [];
 
   function _launchReplay(){
-    // AI-Autos verstecken — nur der eine Replay-Fahrer soll sichtbar sein
+    if(!Game.allCars || !Game.allCars.length) return;
     Game._lbReplayHiddenCars = [];
     Game.allCars.forEach((c, i) => {
       if(i > 0 && c.group && c.group.visible){
@@ -15021,6 +15038,7 @@ function _watchLbReplay(entry){
         Game._lbReplayHiddenCars.push(c);
       }
     });
+    if(Game.allCars[0]?.group) Game.allCars[0].group.visible = true;
     Game._savedReplay = Game.replay;
     Game.replay = blr;
     Game._replayIsBestLap = true;
@@ -15028,21 +15046,24 @@ function _watchLbReplay(entry){
     Game.startReplay(false);
   }
 
-  // Bestenliste schließen
   document.getElementById('screen-leaderboard')?.classList.add('hidden');
   document.getElementById('menus')?.classList.add('hidden');
 
   if(Game.allCars && Game.allCars.length){
-    // Szene bereits aktiv — direkt starten
     _launchReplay();
   } else {
-    // Szene noch nicht initialisiert — Zeitfahren auf gleicher Strecke starten, dann Replay
     const trackIdx = (typeof TRACKS !== 'undefined') ? TRACKS.findIndex(t => t.id === entry.trackId) : -1;
     const carIdx   = (typeof CARS   !== 'undefined') ? CARS.findIndex(c => c.id === entry.carId)     : -1;
     if(trackIdx >= 0) Game.selTrack = trackIdx;
     if(carIdx   >= 0) Game.selCar   = carIdx;
     Game.mode = 'tt';
-    Game.startRace().then(() => _launchReplay());
+    Game._showFlash('REPLAY WIRD GELADEN…', '#58d7ff', 3000);
+    Game.startRace().then(() => {
+      Game.state = 'race';
+      const box = document.getElementById('lights');
+      if(box) box.classList.add('hidden');
+      _launchReplay();
+    }).catch(() => {});
   }
 }
 
