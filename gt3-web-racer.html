@@ -1465,8 +1465,10 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
     </select>
     <label style="color:#8b95a1;font-size:10px;letter-spacing:.12em">GRUND / DETAIL</label>
     <input id="adm-reason" placeholder="z.B. Kollision Kurve 3 · Car #5" style="width:100%;margin:6px 0 16px;padding:9px 12px;background:#1a2533;border:1px solid #2a3a4a;border-radius:4px;color:#e8ecef;font:400 13px var(--mono);box-sizing:border-box">
-    <label style="color:#8b95a1;font-size:10px;letter-spacing:.12em">STRAFE (nur bei PENALTY, z.B. -5 LP oder 10s)</label>
-    <input id="adm-penalty" placeholder="-5 LP" style="width:100%;margin:6px 0 20px;padding:9px 12px;background:#1a2533;border:1px solid #2a3a4a;border-radius:4px;color:#e8ecef;font:400 13px var(--mono);box-sizing:border-box">
+    <label style="color:#8b95a1;font-size:10px;letter-spacing:.12em">STRAFE ANZEIGE (z.B. 10s oder Drive Through)</label>
+    <input id="adm-penalty" placeholder="10s" style="width:100%;margin:6px 0 12px;padding:9px 12px;background:#1a2533;border:1px solid #2a3a4a;border-radius:4px;color:#e8ecef;font:400 13px var(--mono);box-sizing:border-box">
+    <label style="color:#8b95a1;font-size:10px;letter-spacing:.12em">LP ÄNDERUNG (z.B. -5 oder +3, leer = keine)</label>
+    <input id="adm-lp-delta" placeholder="-5" style="width:100%;margin:6px 0 20px;padding:9px 12px;background:#1a2533;border:1px solid #2a3a4a;border-radius:4px;color:#e8ecef;font:400 13px var(--mono);box-sizing:border-box">
     <div id="adm-status" style="color:#8b95a1;font-size:11px;min-height:18px;margin-bottom:12px"></div>
     <div style="display:flex;gap:10px">
       <button id="adm-send" style="flex:2;padding:12px;background:#ff2e3d;border:none;border-radius:4px;color:#fff;font:700 11px var(--mono);letter-spacing:.1em;cursor:pointer">SENDEN</button>
@@ -14530,9 +14532,11 @@ function _initStewardsListener(uid){
       _stewardsLastShownTs = ts;
       localStorage.setItem('stewards_last', ts);
       _showStewardsBanner(d.type, d.reason||'', d.penalty||'');
-      // LP-Abzug bei Penalty automatisch anwenden
-      if(d.type==='penalty' && d.lpDelta && typeof LicenseSystem!=='undefined' && LicenseSystem._data){
-        LicenseSystem._save({ licensePoints: parseFloat(d.lpDelta)||0 });
+      // LP-Änderung anwenden (alle Typen, nicht nur penalty)
+      const lpDelta = parseFloat(d.lpDelta);
+      if(lpDelta && !isNaN(lpDelta) && typeof LicenseSystem!=='undefined' && LicenseSystem._data){
+        LicenseSystem._save({ licensePoints: lpDelta });
+        console.log('[Stewards] LP geändert:', lpDelta, '→ neu:', LicenseSystem._data.licensePoints);
       }
     });
 }
@@ -14574,6 +14578,7 @@ function _initAdminPanel(){
     const type     = document.getElementById('adm-type').value;
     const reason   = document.getElementById('adm-reason').value.trim();
     const penStr   = document.getElementById('adm-penalty').value.trim();
+    const lpStr    = (document.getElementById('adm-lp-delta')?.value || '').trim();
     if(!username){ status.textContent='❌ Spieler auswählen'; return; }
 
     status.style.color='#8b95a1';
@@ -14583,28 +14588,19 @@ function _initAdminPanel(){
       if(!uSnap.exists){ status.textContent='❌ Spieler nicht gefunden'; return; }
       const targetUid = uSnap.data().uid;
 
-      let lpDelta = 0;
-      const lpMatch = penStr.match(/^([+-]?\d+(\.\d+)?)\s*LP$/i);
-      if(lpMatch) lpDelta = parseFloat(lpMatch[1]);
+      const lpDelta = lpStr !== '' ? parseFloat(lpStr) : 0;
+      if(lpStr !== '' && isNaN(lpDelta)){ status.textContent='❌ LP muss eine Zahl sein (z.B. -5 oder +3)'; return; }
 
       await db.collection('steward_msgs').doc(targetUid).set({
         type, reason, penalty: penStr, lpDelta, ts: Date.now()
       });
 
-      if(type==='penalty' && lpDelta !== 0){
-        const uDoc = await db.collection('users').doc(targetUid).get();
-        if(uDoc.exists){
-          const curLP = uDoc.data().licensePoints || 0;
-          await db.collection('users').doc(targetUid).update({
-            licensePoints: Math.max(0, curLP + lpDelta)
-          });
-        }
-      }
       status.style.color='#4eff8a';
-      status.textContent = '✓ Nachricht gesendet an ' + username;
+      status.textContent = `✓ Gesendet an ${username}` + (lpDelta !== 0 ? ` · LP: ${lpDelta > 0 ? '+' : ''}${lpDelta}` : '');
     } catch(e){
       status.style.color='#ff6b6b';
       status.textContent = '❌ Fehler: ' + e.message;
+      console.error('[Admin] send error:', e);
     }
   };
 }
