@@ -14145,7 +14145,7 @@ const Game = {
       this._replayPlaying=!this._replayPlaying;
       _rplPlay.innerHTML=this._replayPlaying?'&#9646;&#9646; PAUSE':'&#9654; PLAY';
     };
-    if(_rplCam) _rplCam.onclick=()=>{ this._replayCam=(this._replayCam+1)%5; this._replayBroadcastT=0; };
+    if(_rplCam) _rplCam.onclick=()=>{ this._replayCam=(this._replayCam+1)%5; this._replayBroadcastT=0; this._replayCamSnap=true; };
     if(_rplExit) _rplExit.onclick=()=>this.stopReplay();
     if(_rplSeek){
       _rplSeek.addEventListener('mousedown',()=>{this._seekDragging=true;this._replayPlaying=false;if(_rplPlay)_rplPlay.innerHTML='&#9654; PLAY';});
@@ -14202,7 +14202,8 @@ const Game = {
     this._replayT = this.replay.minT;
     this._replayPlaying = true;
     this._replayCam = 0;
-    this.cameraRig.first = true; // Kamera sofort auf Auto snappen
+    this._replayCamSnap = true;
+    this.cameraRig.first = true;
     document.getElementById('results').classList.add('hidden');
     document.getElementById('pause').classList.add('hidden');
     document.getElementById('replay-bar').classList.remove('hidden');
@@ -14312,24 +14313,26 @@ const Game = {
 
     const h = mainCar.heading || 0;
     const sin = Math.sin(h), cos = Math.cos(h);
+    const snap = this._replayCamSnap;
+    const k = snap ? 1 : 0.15;
+    this._replayCamSnap = false;
+
     if(activeCam === 0){
-      // Chase — direkt, kein Lerp-Wackeln im Replay
       const tx = pivot.x - sin*7.4, ty = pivot.y + 2.5, tz = pivot.z - cos*7.4;
-      this.camera.position.lerp(new THREE.Vector3(tx,ty,tz), 0.18);
+      if(snap){ this.camera.position.set(tx, ty, tz); } else { this.camera.position.lerp({x:tx,y:ty,z:tz}, k); }
       this.camera.lookAt(pivot.x + sin*7, pivot.y + 1.0, pivot.z + cos*7);
     } else if(activeCam === 1){
-      // SEITE
-      this.camera.position.lerp(new THREE.Vector3(pivot.x + cos*18, pivot.y + 4.5, pivot.z - sin*18), 0.12);
+      const tx = pivot.x + cos*18, ty = pivot.y + 4.5, tz = pivot.z - sin*18;
+      if(snap){ this.camera.position.set(tx, ty, tz); } else { this.camera.position.lerp({x:tx,y:ty,z:tz}, k); }
       this.camera.lookAt(pivot.x, pivot.y + 1.2, pivot.z);
     } else if(activeCam === 2){
-      // OBEN
       this.camera.position.set(pivot.x, pivot.y + 120, pivot.z);
       this.camera.lookAt(pivot.x, pivot.y, pivot.z);
     } else {
-      // TV: dreht ums Auto
       const ang = this._replayT * 0.10;
-      this.camera.position.lerp(new THREE.Vector3(pivot.x + Math.sin(ang)*50, pivot.y + 18, pivot.z + Math.cos(ang)*50), 0.08);
-      this.camera.lookAt(pivot);
+      const tx = pivot.x + Math.sin(ang)*50, ty = pivot.y + 18, tz = pivot.z + Math.cos(ang)*50;
+      if(snap){ this.camera.position.set(tx, ty, tz); } else { this.camera.position.lerp({x:tx,y:ty,z:tz}, k); }
+      this.camera.lookAt(pivot.x, pivot.y, pivot.z);
     }
     // Replay-Overlay: Speed + Inputs aus Frame-Daten
     if(state && state.cars[0]){
@@ -14631,6 +14634,7 @@ document.addEventListener('keydown', e => {
       e.preventDefault();
       Game._replayCam = (Game._replayCam + 1) % 5;
       Game._replayBroadcastT = 0;
+      Game._replayCamSnap = true;
     }
   }
 });
