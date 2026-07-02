@@ -1446,6 +1446,16 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
   </div>
 </div>
 
+<!-- LICENSE UPGRADE POPUP -->
+<div id="lic-upgrade-popup" style="display:none;position:fixed;bottom:28px;right:28px;z-index:1100;background:linear-gradient(135deg,#1a0035,#2d0057);border:1px solid #7c3aed;border-radius:12px;padding:18px 22px;box-shadow:0 8px 32px rgba(124,58,237,.45);max-width:280px;font-family:var(--mono)">
+  <div style="font-size:10px;letter-spacing:.2em;color:#a78bfa;margin-bottom:6px">LIZENZ-UPGRADE VERFÜGBAR</div>
+  <div id="lic-popup-text" style="font-size:13px;font-weight:700;color:#e9d5ff;margin-bottom:14px">Du erfüllst alle Bedingungen!</div>
+  <div style="display:flex;gap:8px">
+    <button id="lic-popup-upgrade" style="flex:1;background:#7c3aed;border:none;color:#fff;padding:10px;border-radius:7px;font:700 11px var(--mono);letter-spacing:.1em;cursor:pointer">⬆ JETZT UPGRADEN</button>
+    <button onclick="document.getElementById('lic-upgrade-popup').style.display='none'" style="background:none;border:1px solid #4c1d95;color:#a78bfa;padding:10px 12px;border-radius:7px;font:700 11px var(--mono);cursor:pointer">✕</button>
+  </div>
+</div>
+
 <!-- ADMIN PANEL -->
 <div id="admin-panel" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);backdrop-filter:blur(12px);align-items:center;justify-content:center">
   <div style="background:#0d1a2a;border:1px solid #ff2e3d;border-radius:8px;padding:32px;width:440px;font:400 13px var(--mono)">
@@ -6226,26 +6236,30 @@ class ReplayRecorder {
   record(allCars, t, playerInput){
     if(!this.recording) return;
     if(++this._fc % 3 !== 0) return;
-    // Write at next write slot (oldest slot when full)
     const wi = (this._len < this.CAP) ? this._len : this._head;
-    this._buf[wi] = {
-      t,
-      cars: allCars.map((c,i)=>{
-        const base = {x:c.pos.x, z:c.pos.z, y:c.pos.y||0, h:c.heading, vx:c.vx, color:c.def?.color||0xff2e3d};
-        if(i===0 && playerInput){
-          base.thr = Math.round(playerInput.throttle*100)/100;
-          base.brk = Math.round(playerInput.brake*100)/100;
-          base.str = Math.round(playerInput.steer*100)/100;
-        }
-        return base;
-      })
-    };
-    if(this._len < this.CAP){
-      this._len++;
-    } else {
-      // Advance oldest pointer
-      this._head = (this._head + 1) % this.CAP;
+    // Reuse existing slot object to avoid GC pressure
+    let slot = this._buf[wi];
+    if(!slot){ slot = { t:0, cars:[] }; this._buf[wi] = slot; }
+    slot.t = t;
+    // Update car states in-place
+    const n = allCars.length;
+    if(slot.cars.length !== n) slot.cars.length = n;
+    for(let i = 0; i < n; i++){
+      const c = allCars[i];
+      let cs = slot.cars[i];
+      if(!cs){ cs = {}; slot.cars[i] = cs; }
+      cs.x = c.pos.x; cs.z = c.pos.z; cs.y = c.pos.y||0;
+      cs.h = c.heading; cs.vx = c.vx; cs.color = c.def?.color||0xff2e3d;
+      if(i === 0 && playerInput){
+        cs.thr = Math.round(playerInput.throttle*100)/100;
+        cs.brk = Math.round(playerInput.brake*100)/100;
+        cs.str = Math.round(playerInput.steer*100)/100;
+      } else {
+        cs.thr = undefined; cs.brk = undefined; cs.str = undefined;
+      }
     }
+    if(this._len < this.CAP){ this._len++; }
+    else { this._head = (this._head + 1) % this.CAP; }
   }
 
   stop(){ this.recording=false; }
@@ -10256,11 +10270,17 @@ const Game = {
   },
   applyWeatherVisuals(){
     if(!this.scene || !this.trackDef || !this.weather) return;
+    // Throttle: max 10x/s — Wetter ändert sich langsam, keine Per-Frame-Updates nötig
+    const now = performance.now();
+    if((now - (this._lastWeatherVisual||0)) < 100) return;
+    this._lastWeatherVisual = now;
     const w = this.weather;
     const duskMix = clamp((w.dusk || 0) * 0.7 + (w.night || 0) * 0.9 + (w.rain || 0) * 0.15, 0, 1);
     const fogFar = this.settings.drawDist * clamp(w.visibility || 1, 0.45, 1);
     const sky = mixHex(this.trackDef.sky || 0x87b5e8, 0x0a0c10, duskMix);
-    this.scene.background = new THREE.Color(sky);
+    if(!this._bgColor) this._bgColor = new THREE.Color();
+    this._bgColor.setHex(sky);
+    this.scene.background = this._bgColor;
     if(this.skySphere && Math.abs((this._lastDuskMix||0) - duskMix) > 0.03){
       this._lastDuskMix = duskMix;
       const newSky=this._buildSkyGradient(sky);
@@ -10268,7 +10288,9 @@ const Game = {
       this.skySphere.material=newSky.material;
     }
     if(this.scene.fog){
-      this.scene.fog.color = new THREE.Color(mixHex(this.trackDef.sky || 0x87b5e8, 0x11161d, duskMix));
+      if(!this._fogColor) this._fogColor = new THREE.Color();
+      this._fogColor.setHex(mixHex(this.trackDef.sky || 0x87b5e8, 0x11161d, duskMix));
+      this.scene.fog.color = this._fogColor;
       this.scene.fog.near = 260;
       this.scene.fog.far = fogFar;
     }
@@ -15286,24 +15308,42 @@ const LicenseSystem = {
       this._updateBadge();
       const s = document.getElementById('screen-license');
       if(s && !s.classList.contains('hidden')) this.renderCard();
+      // Popup anzeigen wenn schon beim Laden upgrade-bereit
+      if(this._canUpgrade()) setTimeout(() => this._showUpgradePopup(), 2000);
     }).catch(err => console.warn('[License] load failed:', err.message));
   },
 
   /* ── Save delta to Firestore ── */
   _save(delta) {
     if(!fbUser || !this._data) return;
-    // Apply delta locally
+    const couldUpgradeBefore = this._canUpgrade();
     Object.keys(delta).forEach(k => {
       if(typeof delta[k] === 'number') this._data[k] = (this._data[k]||0) + delta[k];
       else this._data[k] = delta[k];
     });
-    // Clamp points to minimum 0
     this._data.licensePoints = Math.max(0, this._data.licensePoints);
     this._updateBadge();
+    // Popup anzeigen wenn Bedingungen neu erfüllt wurden
+    if(!couldUpgradeBefore && this._canUpgrade()) this._showUpgradePopup();
 
     const update = {};
     Object.keys(delta).forEach(k => { update[k] = this._data[k]; });
     db.collection('users').doc(fbUser.uid).set(update, {merge:true}).catch(console.error);
+  },
+
+  _showUpgradePopup() {
+    const idx = LICENSE_TIERS.findIndex(t => t.id === this._data.license);
+    const next = LICENSE_TIERS[idx + 1];
+    if(!next) return;
+    const popup = document.getElementById('lic-upgrade-popup');
+    const text  = document.getElementById('lic-popup-text');
+    const btn   = document.getElementById('lic-popup-upgrade');
+    if(!popup) return;
+    if(text) text.textContent = `Bereit für ${next.icon} ${next.label.toUpperCase()} Lizenz!`;
+    if(btn) btn.onclick = () => { this.upgrade(); popup.style.display = 'none'; };
+    popup.style.display = 'block';
+    // Auch beim nächsten Öffnen der Lizenz-Seite direkt zeigen
+    setTimeout(() => { if(this._canUpgrade()) popup.style.display = 'block'; }, 100);
   },
 
   /* ── On lap complete (hooked from game) ── */
