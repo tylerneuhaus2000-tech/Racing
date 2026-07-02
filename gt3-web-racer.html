@@ -14308,22 +14308,25 @@ const Game = {
       activeCam = Math.floor(this._replayBroadcastT / 8) % 4;
     }
 
-    if(activeCam === 0 && this.cameraRig){
-      this.cameraRig.update(mainCar, this.track, dt);
+    const h = mainCar.heading || 0;
+    const sin = Math.sin(h), cos = Math.cos(h);
+    if(activeCam === 0){
+      // Chase — direkt, kein Lerp-Wackeln im Replay
+      const tx = pivot.x - sin*7.4, ty = pivot.y + 2.5, tz = pivot.z - cos*7.4;
+      this.camera.position.lerp(new THREE.Vector3(tx,ty,tz), 0.18);
+      this.camera.lookAt(pivot.x + sin*7, pivot.y + 1.0, pivot.z + cos*7);
     } else if(activeCam === 1){
       // SEITE
-      const hy = mainCar.group.rotation.y;
-      const side = new THREE.Vector3(Math.cos(hy)*18, 4.5, -Math.sin(hy)*18);
-      this.camera.position.copy(pivot).add(side);
-      this.camera.lookAt(pivot.x, pivot.y+1.2, pivot.z);
+      this.camera.position.lerp(new THREE.Vector3(pivot.x + cos*18, pivot.y + 4.5, pivot.z - sin*18), 0.12);
+      this.camera.lookAt(pivot.x, pivot.y + 1.2, pivot.z);
     } else if(activeCam === 2){
       // OBEN
-      this.camera.position.set(pivot.x, pivot.y+120, pivot.z);
+      this.camera.position.set(pivot.x, pivot.y + 120, pivot.z);
       this.camera.lookAt(pivot.x, pivot.y, pivot.z);
     } else {
       // TV: dreht ums Auto
       const ang = this._replayT * 0.10;
-      this.camera.position.set(pivot.x+Math.sin(ang)*50, pivot.y+18, pivot.z+Math.cos(ang)*50);
+      this.camera.position.lerp(new THREE.Vector3(pivot.x + Math.sin(ang)*50, pivot.y + 18, pivot.z + Math.cos(ang)*50), 0.08);
       this.camera.lookAt(pivot);
     }
     // Replay-Overlay: Speed + Inputs aus Frame-Daten
@@ -14612,6 +14615,26 @@ document.addEventListener('keydown', e => {
     if(fbUser && ADMIN_UIDS.includes(fbUser.uid)){
       const p = document.getElementById('admin-panel');
       if(p) p.style.display = p.style.display==='flex' ? 'none' : 'flex';
+    }
+  }
+  // Replay controls
+  if(typeof Game !== 'undefined' && Game._replayMode){
+    if(e.code === 'ArrowRight'){
+      e.preventDefault();
+      Game._replayT = Math.min(Game._replayT + 5, Game.replay.maxT);
+    } else if(e.code === 'ArrowLeft'){
+      e.preventDefault();
+      Game._replayT = Math.max(Game._replayT - 5, Game.replay.minT);
+    } else if(e.code === 'F2'){
+      e.preventDefault();
+      const bar = document.getElementById('replay-bar');
+      const ov  = document.getElementById('replay-overlay');
+      if(bar) bar.classList.toggle('hidden');
+      if(ov)  ov.classList.toggle('hidden');
+    } else if(e.code === 'KeyC'){
+      e.preventDefault();
+      Game._replayCam = (Game._replayCam + 1) % 5;
+      Game._replayBroadcastT = 0;
     }
   }
 });
