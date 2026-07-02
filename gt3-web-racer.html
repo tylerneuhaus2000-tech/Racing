@@ -14971,14 +14971,7 @@ function _renderLb(){
 
 function _watchLbReplay(entry){
   if(!entry.replay || !entry.replay.flat) return;
-  if(typeof Game === 'undefined' || !Game.allCars || !Game.allCars.length){
-    const msg = document.createElement('div');
-    msg.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a2533;border:1px solid #2a3a4a;color:#e8ecef;font:700 11px var(--mono);letter-spacing:.08em;padding:10px 20px;border-radius:4px;z-index:9999;pointer-events:none';
-    msg.textContent = 'STARTE ZUERST EIN ZEITFAHREN UM REPLAYS ANZUSCHAUEN';
-    document.body.appendChild(msg);
-    setTimeout(() => msg.remove(), 3000);
-    return;
-  }
+  if(typeof Game === 'undefined') return;
   // Flat-Array dekodieren
   const { base, color, flat, v } = entry.replay;
   const stride = (v >= 2) ? 9 : 6;
@@ -14991,25 +14984,43 @@ function _watchLbReplay(entry){
     }] });
   }
   if(frames.length < 5) return;
-  // AI-Autos verstecken — nur der eine Replay-Fahrer soll sichtbar sein
-  Game._lbReplayHiddenCars = [];
-  Game.allCars.forEach((c, i) => {
-    if(i > 0 && c.group && c.group.visible){
-      c.group.visible = false;
-      Game._lbReplayHiddenCars.push(c);
-    }
-  });
-  // Bestenliste schließen, Replay starten
-  document.getElementById('screen-leaderboard')?.classList.add('hidden');
-  document.getElementById('menus')?.classList.add('hidden');
+
   const blr = new ReplayRecorder();
   blr.frames = frames;
   blr.lapTimes = [];
-  Game._savedReplay = Game.replay;
-  Game.replay = blr;
-  Game._replayIsBestLap = true;
-  Game._replayFromLb = true;
-  Game.startReplay(false);
+
+  function _launchReplay(){
+    // AI-Autos verstecken — nur der eine Replay-Fahrer soll sichtbar sein
+    Game._lbReplayHiddenCars = [];
+    Game.allCars.forEach((c, i) => {
+      if(i > 0 && c.group && c.group.visible){
+        c.group.visible = false;
+        Game._lbReplayHiddenCars.push(c);
+      }
+    });
+    Game._savedReplay = Game.replay;
+    Game.replay = blr;
+    Game._replayIsBestLap = true;
+    Game._replayFromLb = true;
+    Game.startReplay(false);
+  }
+
+  // Bestenliste schließen
+  document.getElementById('screen-leaderboard')?.classList.add('hidden');
+  document.getElementById('menus')?.classList.add('hidden');
+
+  if(Game.allCars && Game.allCars.length){
+    // Szene bereits aktiv — direkt starten
+    _launchReplay();
+  } else {
+    // Szene noch nicht initialisiert — Zeitfahren auf gleicher Strecke starten, dann Replay
+    const trackIdx = (typeof TRACKS !== 'undefined') ? TRACKS.findIndex(t => t.id === entry.trackId) : -1;
+    const carIdx   = (typeof CARS   !== 'undefined') ? CARS.findIndex(c => c.id === entry.carId)     : -1;
+    if(trackIdx >= 0) Game.selTrack = trackIdx;
+    if(carIdx   >= 0) Game.selCar   = carIdx;
+    Game.mode = 'tt';
+    Game.startRace().then(() => _launchReplay());
+  }
 }
 
 function _fmtDate(d){
