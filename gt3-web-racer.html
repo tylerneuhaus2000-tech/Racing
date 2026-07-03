@@ -431,6 +431,11 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 /* Minimap oben rechts */
 /* TT-Sektor-Panel */
 #tt-sectors{margin-top:4px;border-top:1px solid #ffffff18;padding-top:4px}
+#live-gap{margin-top:4px;border-top:1px solid #ffffff18;padding-top:4px;font-size:11px;font-family:var(--mono);letter-spacing:.08em}
+#live-gap .lg-row{display:flex;justify-content:space-between;gap:6px;padding:1px 0}
+#live-gap .lg-arrow{color:var(--dim);font-size:9px}
+#live-gap #lg-ahead-val{color:#22e87a;font-weight:700}
+#live-gap #lg-behind-val{color:#ff6b6b;font-weight:700}
 #tt-sectors .sector-row{display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:1px 0}
 #tt-sectors .sector-row span:first-child{color:var(--dim);letter-spacing:.12em;font-size:9px;padding-top:2px}
 #tt-sectors .sector-row .sv{font-weight:700;font-variant-numeric:tabular-nums}
@@ -536,6 +541,8 @@ body.mobile-touch-layout #touch-controls .tc-group:nth-child(4) .tc-btn{min-widt
 #flag-border.blue{border-width:18px;animation:flag-blue-pulse 0.65s infinite}
 #flag-border.white-flag{border-width:14px;animation:flag-white-pulse 1.3s infinite}
 #flag-border.green-flash{border-width:18px;border-color:rgba(0,220,80,0.85);transition:border-color 3s,border-width 3s}
+.lb-fl{display:inline-block;margin-left:3px;padding:0 3px;background:#6e00ff;color:#e0d5ff;font-size:7px;font-weight:700;letter-spacing:.1em;border-radius:2px;vertical-align:middle;line-height:13px}
+.lb-pit{display:inline-block;margin-left:3px;padding:0 3px;background:#c0392b;color:#fff;font-size:7px;font-weight:700;letter-spacing:.1em;border-radius:2px;vertical-align:middle;line-height:13px}
 #fl-notif{position:fixed;left:50%;bottom:180px;transform:translateX(-50%);background:rgba(8,5,20,0.95);border:1px solid #5e0aff;border-left:4px solid #5e0aff;padding:10px 16px;min-width:280px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;color:#e0d5ff;pointer-events:none;z-index:27;opacity:0;transition:opacity .25s;text-align:center}
 #fl-notif.show{opacity:1}
 #fl-notif.personal{border-color:#22c463;border-left-color:#22c463;background:rgba(5,18,10,0.95);color:#c8ffd6}
@@ -938,6 +945,9 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 .lb-replay-cell{text-align:center}
 .lb-replay-btn{background:none;border:1px solid #2a394b;border-radius:3px;color:#60b4ff;font-size:11px;cursor:pointer;padding:3px 7px;line-height:1}
 .lb-replay-btn:hover{background:#1a2533;border-color:#60b4ff}
+.lb-ghost-cell{text-align:center}
+.lb-ghost-btn{background:none;border:1px solid #3a2a4b;border-radius:3px;color:#a855f7;font-size:11px;cursor:pointer;padding:3px 7px;line-height:1}
+.lb-ghost-btn:hover{background:#1a1033;border-color:#a855f7}
 #lb-empty-msg{color:#555;font:12px var(--mono);text-align:center;padding:48px 0}
 #lb-loading{color:#444;font:11px var(--mono);text-align:center;padding:48px 0;letter-spacing:.08em}
 
@@ -1070,6 +1080,10 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
       <div class="sector-row"><span>S3</span><span class="sv s-none" id="sv3">--</span></div>
     </div>
     <div id="tt-vtrap" class="row hidden"><span>V MAX</span><span id="vtrap-val">-- km/h</span></div>
+    <div id="live-gap" class="hidden">
+      <div class="lg-row" id="lg-ahead"><span class="lg-arrow">&#9651;</span><span id="lg-ahead-val">--</span></div>
+      <div class="lg-row" id="lg-behind"><span class="lg-arrow">&#9661;</span><span id="lg-behind-val">--</span></div>
+    </div>
     <div id="prog">0% DER RUNDE</div>
     <div id="damage-row">
       <span class="dmg-label">SCHADEN</span>
@@ -3371,7 +3385,10 @@ class Input {
       if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','Tab'].includes(e.code)) e.preventDefault();
       if(this._isAction('pause', e.code)) Game.togglePause();
       if(this._isAction('camera', e.code) && (Game.state==='race'||Game.state==='finished')) Game.cameraRig.cycle(Game.car);
-      if(this._isAction('restart', e.code) && (Game.state==='race'||Game.state==='finished')) Game.restartRace();
+      if(this._isAction('restart', e.code) && (Game.state==='race'||Game.state==='finished')){
+        if(Game.mode === 'tt') Game._ttInvalidateLap();
+        else Game.restartRace();
+      }
       if(this._isAction('help', e.code)) document.getElementById('help').classList.toggle('hidden');
       if(this._isAction('respawn', e.code) && (Game.state==='race'||Game.state==='finished')){
         const car=Game.car, q=Game.track.query(car.pos,car.sampleIdx), s=Game.track.samples[q.idx];
@@ -5155,7 +5172,6 @@ class Car {
     /* Distanz für VSC-Delta tracken */
     this.totalDistance = (this.totalDistance || 0) + Math.abs(this.vx) * dt;
     this.totalKm = (this.totalKm || 0) + Math.abs(this.vx) * dt / 1000;
-    this.totalKm = (this.totalKm || 0) + Math.abs(this.vx) * dt / 1000;
 
     /* --- Pit-Speeding-Penalty ---
        NUR für den Spieler. NUR wenn klar tief in der Boxengasse (nicht am Rand).
@@ -6611,7 +6627,7 @@ class AIDriver {
     const effBrkWet = (effBrkCap * 0.74) / brakeMul;
 
     const lookaheadBrake = 40 + this.skill * 30;
-    const hor = Math.min(track.N-2, Math.ceil((lookaheadBrake + speed*speed/(2*effBrkWet))/seg));
+    const hor = Math.min(150, Math.ceil((lookaheadBrake + speed*speed/(2*effBrkWet))/seg));
     for(let k = 2; k < hor; k++){
       const i2 = (q.idx+k)%track.N;
       const c  = Math.abs(track.samples[i2].curv);
@@ -6632,6 +6648,11 @@ class AIDriver {
 
     // Wettergrip anwenden
     tgtV *= this._weatherGrip(weather);
+    // Im Regen: niedrigerer wetSkill = unzuverlässigere Bremspunkte
+    if((weather?.wet || 0) > 0){
+      const wetNoise = 1 - (1 - this.wetSkill) * Math.random() * 0.18;
+      tgtV *= wetNoise;
+    }
 
     // Reifenverschleiß: abgefahrene Reifen → langsamere Kurvenziele
     if(car.tireWear){
@@ -7509,7 +7530,8 @@ class SafetyCar {
     }
     /* Kumulierte Distanz vorrücken — bewegt sich JEDEN Frame, nicht nur an Sample-Grenzen */
     this.distance = (this.distance || 0) + this.speed * dt;
-    while(this.distance > this.track.totalLen) this.distance -= this.track.totalLen;
+    if(this.track.totalLen > 0)
+      while(this.distance > this.track.totalLen) this.distance -= this.track.totalLen;
     /* Inkrementell Sample finden (vorwärts vom letzten Index) */
     let idx = this.sampleIdx;
     let safety = this.track.N;
@@ -7747,11 +7769,11 @@ const HUD = {
       this._ttLaphistList=document.getElementById('tt-laphist-list');
     }
     if(this._ttSectors){
-      this._ttSectors.classList.toggle('hidden', !isTT);
+      this._ttSectors.classList.toggle('hidden', !isTT && totalLaps === 0);
       this._ttVtrap.classList.toggle('hidden', !isTT);
       this._ttLaphist.classList.toggle('hidden', !isTT || !race.lapHistory?.length);
     }
-    if(isTT && this._sv){
+    if((isTT || totalLaps > 0) && this._sv){
       const fmtSec = s => s==null ? '--' : (s<60 ? s.toFixed(3)+'s' : Math.floor(s/60)+':'+String(s%60|0).padStart(2,'0')+'.'+String(Math.round((s%1)*1000)).padStart(3,'0'));
       for(let i=0;i<3;i++){
         const cur = race.curSectors?.[i] ?? null;
@@ -7835,15 +7857,41 @@ const HUD = {
         }
         const cls = e.ct==='hypercar'?'hyp':e.ct==='lmp2'?'lmp2':'gt3';
         const clsLabel = e.ct==='hypercar'?'HYP':e.ct==='lmp2'?'LM2':'GT3';
+        const flHolder = Game?._raceFastestLap?.driverName;
+        const isFl = flHolder && e.name === flHolder;
+        const inPit = !e.isPlayer && e.car?.pitStopState && e.car.pitStopState !== 'idle';
         html += `<div class="lb-row${e.isPlayer?' you':''}">
           <span class="lb-pos">P${i+1}</span>
           <span class="lb-cls lb-${cls}">${clsLabel}</span>
-          <span class="lb-name">${e.name}${e.finished?' '+e.finished:''}</span>
+          <span class="lb-name">${e.name}${e.finished?' '+e.finished:''}${inPit?'<span class="lb-pit">PIT</span>':''}${isFl?'<span class="lb-fl">FL</span>':''}</span>
           <span class="lb-gap">${gapStr}</span>
         </div>`;
       });
       this._lbList.innerHTML = html;
       this._lbWrap.classList.toggle('hidden', !totalLaps && !hasMP);
+      /* Live-gap: Auto direkt vor/hinter dem Spieler */
+      if(!this._lgEl){ this._lgEl=document.getElementById('live-gap'); this._lgAhead=document.getElementById('lg-ahead-val'); this._lgBehind=document.getElementById('lg-behind-val'); }
+      if(this._lgEl && totalLaps){
+        this._lgEl.classList.remove('hidden');
+        const now2 = performance.now();
+        if(!this._lgLastUpdate || now2 - this._lgLastUpdate > 500){
+          this._lgLastUpdate = now2;
+          const sorted2 = [...entries].sort((a,b) => b.score - a.score);
+          const pi = sorted2.findIndex(e => e.isPlayer);
+          const trackLen2 = Game?.track?.totalLen || 4000;
+          const avgSpd = Math.max(10, car.speedKmh / 3.6 || 40);
+          if(pi > 0){
+            const diff = sorted2[pi-1].score - sorted2[pi].score;
+            const secs = (diff < 1 ? diff * trackLen2 / avgSpd : diff * 60).toFixed(1);
+            if(this._lgAhead) this._lgAhead.textContent = '+' + secs + 's';
+          } else { if(this._lgAhead) this._lgAhead.textContent = 'LEADER'; }
+          if(pi < sorted2.length - 1){
+            const diff2 = sorted2[pi].score - sorted2[pi+1].score;
+            const secs2 = (diff2 < 1 ? diff2 * trackLen2 / avgSpd : diff2 * 60).toFixed(1);
+            if(this._lgBehind) this._lgBehind.textContent = '-' + secs2 + 's';
+          } else { if(this._lgBehind) this._lgBehind.textContent = 'LAST'; }
+        }
+      } else if(this._lgEl){ this._lgEl.classList.add('hidden'); }
     }
     /* Schadens-Indikator */
     if(this._dmgBar === undefined){
@@ -9966,6 +10014,60 @@ const Game = {
     if(btn) btn.onclick = () => { ov.style.display='none'; onJoin(); };
   },
 
+  _showRadioMsg(msg){
+    let el = document.getElementById('_radioToast');
+    if(!el){
+      el = document.createElement('div');
+      el.id = '_radioToast';
+      el.style.cssText = 'position:fixed;bottom:90px;left:18px;background:rgba(8,12,22,0.93);' +
+        'border:1px solid #334;border-left:3px solid #4af;padding:7px 12px;' +
+        'font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:#c0d8f0;' +
+        'pointer-events:none;z-index:35;border-radius:3px;max-width:260px;' +
+        'opacity:0;transition:opacity .3s';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.opacity = '1';
+    clearTimeout(this._radioMsgTimer);
+    this._radioMsgTimer = setTimeout(()=>{ el.style.opacity='0'; }, 5000);
+  },
+  _sendRadioMessage(){
+    if(this.state !== 'race' || this.mode !== 'race3') return;
+    const r = this.race;
+    const msgs = [];
+    // Gap to leader
+    if(r && r.pos > 1){
+      const leaderScore = this.lastOrder?.[0]?.rd?.totalProg || 0;
+      const myScore = this.car.rd?.totalProg || 0;
+      const diff = leaderScore - myScore;
+      const trackLen = this.track?.totalLen || 4000;
+      const avgSpd = Math.max(10, this.car.speedKmh / 3.6 || 40);
+      if(diff > 0 && diff < 1){
+        const sec = (diff * trackLen / avgSpd).toFixed(1);
+        msgs.push(`📻 Gap to leader: ${sec} sec`);
+      }
+    }
+    // Tyre warning
+    const tw = this.car.tireWear;
+    if(tw){
+      const min = Math.min(tw.FL||1, tw.FR||1, tw.RL||1, tw.RR||1);
+      if(min < 0.5) msgs.push('📻 Tyre wear critical — consider pitting');
+      else if(min < 0.7) msgs.push('📻 Tyres showing wear — monitor temps');
+    }
+    // SC active
+    if(this.safetyCar?.state === 'deployed') msgs.push('📻 Safety car deployed — hold position');
+    // Weather
+    const wet = this.weather?.wet || 0;
+    if(wet > 0.3 && wet < 0.5) msgs.push('📻 Rain starting — consider intermediate tyres');
+    else if(wet >= 0.5) msgs.push('📻 Heavy rain — wet tyres recommended');
+    // AI pitting soon
+    const pitting = this.aiCars?.find(c => c.pitStopState === 'entering');
+    if(pitting) msgs.push(`📻 ${pitting.def?.name || 'AI'} is pitting`);
+    // Fallback
+    if(!msgs.length) msgs.push('📻 Stay focused — keep pushing');
+    this._showRadioMsg(msgs[Math.floor(Math.random() * msgs.length)]);
+  },
+
   _showFlash(msg, col, ms){
     let fl = document.getElementById('_pitFlash');
     if(!fl){
@@ -10331,20 +10433,41 @@ const Game = {
     }
     this.ghostCar = new Car(CARS[this.selCar], this.scene, this.envMap);
     this.configureGhostCar(this.ghostCar);
-    this.ghostSamples = this.race?.bestLapRef || null;
+    // Prefer opponent ghost over own best lap
+    this.ghostSamples = this.ghostLapRef || this.race?.bestLapRef || null;
   },
   updateGhostReplay(){
     if(!this.ghostCar || !this.track || !this.race || this.mode !== 'tt') return;
-    this.ghostSamples = this.race.bestLapRef || this.ghostSamples;
+    this.ghostSamples = this.ghostLapRef || this.race.bestLapRef || this.ghostSamples;
     const samples = this.ghostSamples;
     if(!samples || !samples.length){
       this.ghostCar.group.visible = false;
       return;
     }
     this.ghostCar.group.visible = true;
-    const lapTime = Math.max(1, this.race.bestLap || samples[samples.length - 1]?.time || 1);
+    const lapTime = Math.max(1, this._ghostLapTime || this.race.bestLap || samples[samples.length - 1]?.time || 1);
     const elapsed = (performance.now() - this.race.lapStart) / 1000;
     const time = elapsed % lapTime;
+    // Opponent ghost: direct position interpolation (samples have x,z,y,h)
+    if(this.ghostLapRef && samples[0]?.x != null){
+      let sa = samples[0], sb = samples[samples.length-1];
+      for(let i=1;i<samples.length;i++){
+        if(samples[i].time >= time){ sb = samples[i]; sa = samples[i-1]; break; }
+      }
+      const span = Math.max(1e-6, sb.time - sa.time);
+      const t2 = clamp((time - sa.time) / span, 0, 1);
+      this.ghostCar.pos.x = lerp(sa.x, sb.x, t2);
+      this.ghostCar.pos.z = lerp(sa.z, sb.z, t2);
+      this.ghostCar.pos.y = lerp(sa.y, sb.y, t2) + 0.02;
+      // Interpolate heading (handle wrap-around)
+      let dh = sb.h - sa.h;
+      if(dh > Math.PI) dh -= 2*Math.PI;
+      if(dh < -Math.PI) dh += 2*Math.PI;
+      this.ghostCar.heading = sa.h + dh * t2;
+      this.ghostCar.updateMesh(0);
+      return;
+    }
+    // Own best lap: progress-based track sample lookup
     let progress = 0;
     if(time <= samples[0].time){
       progress = samples[0].progress;
@@ -12221,7 +12344,9 @@ const Game = {
     this.trackDef = trackDef;
     this.buildScene(trackDef);
     // Pre-compute minimum-curvature racing line while loading screen is visible
-    if(this.track) new AIDriver(60, 0, 1)._buildRacingLine(this.track);
+    if(this.track) new AIDriver(60, 0, 1)._buildCache(this.track);
+    this._pitStates = null; // will be lazily pre-allocated after pitBoxes are known
+    this.ghostLapRef = null; this._ghostLapTime = null; this._ghostDriverName = null;
     this.weather = this.makeWeatherForTrack(trackDef);
     this.applyWeatherVisuals();
     /* Rennlänge in Runden — vom Menü, default 3 */
@@ -12528,6 +12653,23 @@ const Game = {
       setTimeout(tick, 300);
     }
   },
+  _ttInvalidateLap(){
+    if(!this.race) return;
+    const r = this.race;
+    r.lapStart = performance.now();
+    r.lapStartRaceT = this._raceTimeS || 0;
+    r.lastLap = null;
+    r.bestLapDelta = null;
+    r.lapValid = true;
+    r.invalidReason = '';
+    r.offTrackTime = 0;
+    r.hardCutScore = 0;
+    r.maxLatExcess = 0;
+    r.lapSamples = [];
+    r.sector = 0; r.sectorStart = 0; r.curSectors = [null,null,null]; r._prevSector = 0;
+    this._showFlash('RUNDE UNGÜLTIG — WEITERFAHREN', '#ff6b00', 2200);
+  },
+
   restartRace(){
     const N=this.track.N;
     const gridBaseIdx = (()=>{
@@ -12672,6 +12814,8 @@ const Game = {
       this.safetyCar.distance = 0;
     }
 
+    this._raceFastestLap = null;
+    this._radioTimer = 0; this._radioNextIn = 50 + Math.random() * 40;
     this.race = {lap:1, curLapTime:0, lapStart:performance.now(), lastLap:null,
       bestLap:prevBestLap,
       bestLapRef:prevBestLapRef,
@@ -12808,23 +12952,31 @@ const Game = {
             if(aiLapTime > 20 && aiLapTime < 600){
               if(!c.rd.bestLap || aiLapTime < c.rd.bestLap) c.rd.bestLap = aiLapTime;
               c.rd.lastLap = aiLapTime;
+              // Race fastest lap check for AI
+              if(!this._raceFastestLap || aiLapTime < this._raceFastestLap.timeMs){
+                this._raceFastestLap = { timeMs: aiLapTime, driverName: c.def?.name || 'KI' };
+                this.showFastestLapNotif(aiLapTime, c.def?.name || 'KI', false);
+              }
             }
           }
           if(c===this.car){
             const r=this.race;
             r.lastLap = (now - r.lapStart) / 1000;    // in Sekunden
             // Finalize sector 3 (S3 = remaining time after S2)
-            if(this.mode==='tt'){
+            {
               const s3 = r.lastLap - (r.curSectors[0]||0) - (r.curSectors[1]||0);
               r.curSectors[2] = s3 > 0 ? s3 : null;
               r.lastSectors = [...r.curSectors];
+              if(!r.bestSectors) r.bestSectors = [null,null,null];
               for(let si=0;si<3;si++){
                 if(r.curSectors[si] != null && (r.bestSectors[si]==null || r.curSectors[si]<r.bestSectors[si]))
                   r.bestSectors[si] = r.curSectors[si];
               }
-              const histEntry = {time:r.lastLap, valid:r.lapValid!==false, isBest:false};
-              r.lapHistory.unshift(histEntry);
-              if(r.lapHistory.length > 5) r.lapHistory.pop();
+              if(this.mode==='tt'){
+                const histEntry = {time:r.lastLap, valid:r.lapValid!==false, isBest:false};
+                r.lapHistory.unshift(histEntry);
+                if(r.lapHistory.length > 5) r.lapHistory.pop();
+              }
             }
             if(r.lapValid !== false && (r.bestLap==null || r.lastLap<r.bestLap)){
               const isSessionFastest = this._sessionFastLap == null || r.lastLap < this._sessionFastLap;
@@ -12847,6 +12999,11 @@ const Game = {
               }
               if(r.lapHistory.length) r.lapHistory[0].isBest = true;
               if(isSessionFastest){ this._sessionFastLap = r.lastLap; Game.showFastestLapNotif(r.lastLap, MP.myName||'DU', true); }
+              // Race fastest lap (any lap valid, compare to AI too)
+              if(!this._raceFastestLap || r.lastLap < this._raceFastestLap.timeMs){
+                this._raceFastestLap = { timeMs: r.lastLap, driverName: MP.myName||'DU' };
+                if(!isSessionFastest) this.showFastestLapNotif(r.lastLap, MP.myName||'DU', true);
+              }
               if(Array.isArray(r.lapSamples) && r.lapSamples.length > 5){
                 /* Samples sind bereits in Sekunden, progress 0..1 */
                 const bestSamples = r.lapSamples
@@ -12886,27 +13043,25 @@ const Game = {
             r.maxLatExcess = 0;
             r.prevProgForLimits = p;
             // Reset sector tracking for new lap
-            if(this.mode==='tt'){
-              r.sector=0; r.sectorStart=0; r.curSectors=[null,null,null]; r._prevSector=0;
-            }
+            r.sector=0; r.sectorStart=0; r.curSectors=[null,null,null]; r._prevSector=0;
           }
         }
         rd.prevProg=p;
         rd.totalProg=(rd.lap-1)+p;
       }
     }
-    if(this.mode==='tt' && this.race && this.state==='race'){
+    if(this.race && this.state==='race'){
       const progress = this.car.query ? clamp(this.car.query.progress || 0, 0, 1) : 0;
       const currentTime = (now - this.race.lapStart) / 1000;   // in Sekunden
       /* Nur sammeln wenn wir klar auf der Strecke sind (nicht in der Startzone) */
-      if(progress > 0.02 && progress < 0.98 && currentTime > 0 && currentTime < 600){
+      if(this.mode==='tt' && progress > 0.02 && progress < 0.98 && currentTime > 0 && currentTime < 600){
         const last = this.race.lapSamples[this.race.lapSamples.length - 1];
         if(!last || progress - last.progress >= 0.002){
           this.race.lapSamples.push({progress, time:currentTime});
         }
       }
-      this.updateTTDelta(this.race, progress, now);
-      // Sector crossing detection
+      if(this.mode==='tt') this.updateTTDelta(this.race, progress, now);
+      // Sector crossing detection (TT + race3)
       const r=this.race;
       const newSec = progress < 0.333 ? 0 : progress < 0.667 ? 1 : 2;
       if(newSec !== r._prevSector && progress > 0.02 && progress < 0.97){
@@ -13059,6 +13214,7 @@ const Game = {
           for(const o of this.allCars){
             if(o === c) continue;
             const dx = o.pos.x - c.pos.x, dz = o.pos.z - c.pos.z;
+            if(dx*dx + dz*dz > 1600) continue; // > 40m → skip
             /* Voraus-Komponente im eigenen Fahrzeug-Frame */
             const fwd = sin_h*dx + cos_h*dz;
             if(fwd < 3 || fwd > 35) continue;     // muss 3-35m vor mir sein
@@ -13091,6 +13247,16 @@ const Game = {
         /* Race-Zeit tracken — wir wollen kein SC am Start triggern */
         if(this.state === 'race'){
           this._raceTimeS = (this._raceTimeS || 0) + PHYS_DT;
+          // Race engineer radio
+          if(this.mode === 'race3'){
+            this._radioTimer = (this._radioTimer || 0) + PHYS_DT;
+            if(!this._radioNextIn) this._radioNextIn = 50 + Math.random() * 40;
+            if(this._radioTimer >= this._radioNextIn){
+              this._radioTimer = 0;
+              this._radioNextIn = 45 + Math.random() * 45;
+              this._sendRadioMessage();
+            }
+          }
         }
         /* Crash-Intensität abklingen lassen + Stuck-Detection für Auto-SC */
         if(this.flag){
@@ -13289,11 +13455,20 @@ const Game = {
       }
       /* Mechaniker-Licht pro Box: rot=arbeit aktiv, grün=fertig, off=leer */
       if(this.track && this.track.pitBoxes){
-        const states = new Array(this.track.pitBoxes.length).fill('off');
+        if(!this._pitStates || this._pitStates.length !== this.track.pitBoxes.length)
+          this._pitStates = new Array(this.track.pitBoxes.length).fill('off');
+        const states = this._pitStates;
+        states.fill('off');
         for(const c of this.allCars){
           if(c.assignedBox == null) continue;
-          if(c.pitStopState === 'active') states[c.assignedBox] = 'red';
-          else if(c.pitStopState === 'done') states[c.assignedBox] = 'green';
+          if(c.pitStopState === 'active'){
+            states[c.assignedBox] = 'red';
+            // Detect AI pit-in transition
+            if(c !== this.car && c._prevPitState !== 'active'){
+              this._showRadioMsg(`${c.def?.name || 'KI'} is pitting`);
+            }
+          } else if(c.pitStopState === 'done'){ states[c.assignedBox] = 'green'; }
+          c._prevPitState = c.pitStopState;
         }
         for(let i=0;i<states.length;i++) this.track.setPitBoxLight(i, states[i]);
       }
@@ -13351,9 +13526,8 @@ const Game = {
       // Input-Meter
       if(this.input){
         const _inp = this.input;
-        const _imT = document.getElementById('im-throttle');
-        const _imB = document.getElementById('im-brake');
-        const _imS = document.getElementById('im-steer');
+        if(!this._imT){ this._imT=document.getElementById('im-throttle'); this._imB=document.getElementById('im-brake'); this._imS=document.getElementById('im-steer'); }
+        const _imT = this._imT, _imB = this._imB, _imS = this._imS;
         if(_imT) _imT.style.width = Math.round(clamp(_inp.throttle,0,1)*100)+'%';
         if(_imB) _imB.style.width = Math.round(clamp(_inp.brake,0,1)*100)+'%';
         if(_imS){
@@ -15062,9 +15236,11 @@ function _renderLb(){
       `<span class="lb-time-cell ${timeClass}">${fmtLap(entry.timeMs)}</span>`+
       `<span class="lb-car-cell">${_esc(entry.carName||'—')}</span>`+
       `<span class="lb-date-cell">${date}</span>`+
-      `<span class="lb-replay-cell">${hasReplay?'<button class="lb-replay-btn" title="Runde anschauen">▶</button>':''}</span>`;
+      `<span class="lb-replay-cell">${hasReplay?'<button class="lb-replay-btn" title="Runde anschauen">▶</button>':''}</span>`+
+      `<span class="lb-ghost-cell">${hasReplay?'<button class="lb-ghost-btn" title="Als Ghost setzen">👻</button>':''}</span>`;
     if(hasReplay){
       div.querySelector('.lb-replay-btn').onclick = () => _watchLbReplay(entry);
+      div.querySelector('.lb-ghost-btn').onclick = () => _setOpponentGhost(entry);
     }
     list.appendChild(div);
   });
@@ -15125,6 +15301,35 @@ function _watchLbReplay(entry){
       _launchReplay();
     }).catch(() => {});
   }
+}
+
+function _setOpponentGhost(entry){
+  if(!entry.replay || !entry.replay.flat) return;
+  if(typeof Game === 'undefined') return;
+  const { base, color, flat, v } = entry.replay;
+  const stride = (v >= 2) ? 9 : 6;
+  const rawFrames = [];
+  for(let i = 0; i < flat.length; i += stride){
+    rawFrames.push({ t: base + flat[i], x: flat[i+1], z: flat[i+2], y: flat[i+3]||0, h: flat[i+4] });
+  }
+  if(rawFrames.length < 5) return;
+  const t0 = rawFrames[0].t;
+  const lapTime = rawFrames[rawFrames.length-1].t - t0;
+  // Convert to {progress, time} format by mapping rel-time to track progress
+  // Approximate: use uniform distribution along frames as progress proxy
+  const samples = rawFrames.map((f, i) => ({
+    progress: i / (rawFrames.length - 1),
+    time: f.t - t0,
+    x: f.x, z: f.z, y: f.y, h: f.h
+  }));
+  Game.ghostLapRef = samples;
+  Game._ghostLapTime = lapTime;
+  Game._ghostDriverName = entry.name || 'Ghost';
+  // Re-init ghost car with new data
+  if(Game.mode === 'tt' && Game.settings?.ghostReplay) Game.initGhostReplay();
+  const timeStr = fmtLap(entry.timeMs);
+  if(typeof Game._showFlash === 'function')
+    Game._showFlash(`GHOST: ${(entry.name||'?').substring(0,10)} ${timeStr}`, '#a855f7', 2500);
 }
 
 function _fmtDate(d){
