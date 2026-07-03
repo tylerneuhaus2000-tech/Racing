@@ -15008,14 +15008,26 @@ function _renderLb(){
     entries.forEach(e => {
       if(!best.has(e.uid) || e.timeMs < best.get(e.uid).timeMs) best.set(e.uid, e);
     });
-    entries = [...best.values()].sort((a,b)=>a.timeMs-b.timeMs);
+    entries = [...best.values()].sort((a,b)=>{
+      const dt = a.timeMs - b.timeMs;
+      if(dt !== 0) return dt;
+      const ta = a.updatedAt instanceof Date ? a.updatedAt.getTime() : (a.updatedAt || 0);
+      const tb = b.updatedAt instanceof Date ? b.updatedAt.getTime() : (b.updatedAt || 0);
+      return ta - tb;
+    });
   } else {
     // Single class: best time per uid within that class
     const best = new Map();
     entries.forEach(e => {
       if(!best.has(e.uid) || e.timeMs < best.get(e.uid).timeMs) best.set(e.uid, e);
     });
-    entries = [...best.values()].sort((a,b)=>a.timeMs-b.timeMs);
+    entries = [...best.values()].sort((a,b)=>{
+      const dt = a.timeMs - b.timeMs;
+      if(dt !== 0) return dt;
+      const ta = a.updatedAt instanceof Date ? a.updatedAt.getTime() : (a.updatedAt || 0);
+      const tb = b.updatedAt instanceof Date ? b.updatedAt.getTime() : (b.updatedAt || 0);
+      return ta - tb;
+    });
   }
 
   if(entries.length === 0){
