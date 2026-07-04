@@ -452,7 +452,7 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 .lh-row .lh-n{color:var(--dim);font-size:9px;min-width:16px;padding-top:2px}
 .lh-row .lh-t{font-weight:700}
 .lh-best .lh-t{color:#c090ff}.lh-ok .lh-t{color:#e8ecef}.lh-inv .lh-t{color:#ff4444}
-#minimap{position:absolute;top:290px;right:18px;background:#0a0c0fb0;border:1px solid var(--line)}
+#minimap{position:absolute;top:290px;right:18px;background:rgba(6,8,12,0.78);border:1px solid rgba(255,255,255,0.13);border-radius:6px;box-shadow:0 2px 16px rgba(0,0,0,0.55)}
 /* Dashboard unten rechts — Signatur: GT3-Schaltblitzleiste */
 #dash{position:absolute;right:24px;bottom:24px;background:var(--panel);border:1px solid var(--line);
   padding:14px 22px 16px;text-align:right;min-width:230px}
@@ -543,6 +543,11 @@ body.mobile-touch-layout #touch-controls .tc-group:nth-child(4) .tc-btn{min-widt
 #flag-border.green-flash{border-width:18px;border-color:rgba(0,220,80,0.85);transition:border-color 3s,border-width 3s}
 .lb-fl{display:inline-block;margin-left:3px;padding:0 3px;background:#6e00ff;color:#e0d5ff;font-size:7px;font-weight:700;letter-spacing:.1em;border-radius:2px;vertical-align:middle;line-height:13px}
 .lb-pit{display:inline-block;margin-left:3px;padding:0 3px;background:#c0392b;color:#fff;font-size:7px;font-weight:700;letter-spacing:.1em;border-radius:2px;vertical-align:middle;line-height:13px}
+.lb-pers{display:inline-block;margin-left:3px;padding:0 3px;font-size:7px;font-weight:700;border-radius:2px;vertical-align:middle;line-height:13px;opacity:.80}
+.lb-pers-aggressive{background:#ff3a1a;color:#fff}
+.lb-pers-defensive{background:#1a6aff;color:#fff}
+.lb-pers-rookie{background:#888;color:#fff}
+.lb-pers-pro{background:#22c463;color:#000}
 #fl-notif{position:fixed;left:50%;bottom:180px;transform:translateX(-50%);background:rgba(8,5,20,0.95);border:1px solid #5e0aff;border-left:4px solid #5e0aff;padding:10px 16px;min-width:280px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;color:#e0d5ff;pointer-events:none;z-index:27;opacity:0;transition:opacity .25s;text-align:center}
 #fl-notif.show{opacity:1}
 #fl-notif.personal{border-color:#22c463;border-left-color:#22c463;background:rgba(5,18,10,0.95);color:#c8ffd6}
@@ -6599,9 +6604,24 @@ class ReplayRecorder {
   get minT(){ return this._len ? this._at(0).t : 0; }
 }
 
+/* ── KI-Persönlichkeitspresets ─────────────────────────────────────────────
+   Jede KI bekommt einen Archetypus der ihr Fahrverhalten grundlegend prägt:
+   AGGRESSIVE  – Drückt spät, überholt viel, hohes Risiko
+   DEFENSIVE   – Solide, blockiert, wenig Fehler
+   ROOKIE      – Langsam in der Entwicklung, macht viele Fehler
+   PRO         – Fast perfekte Linie, kluges Rennmanagement
+*/
+const AI_PERSONALITY_PRESETS = [
+  { type:'AGGRESSIVE', aggression:0.88, consistency:0.52, wetSkill:0.55, raceCraft:0.80, aLatMul:1.06, aBrkMul:1.05 },
+  { type:'DEFENSIVE',  aggression:0.20, consistency:0.84, wetSkill:0.74, raceCraft:0.78, aLatMul:0.98, aBrkMul:1.02 },
+  { type:'ROOKIE',     aggression:0.42, consistency:0.26, wetSkill:0.30, raceCraft:0.30, aLatMul:0.88, aBrkMul:0.88 },
+  { type:'PRO',        aggression:0.56, consistency:0.93, wetSkill:0.86, raceCraft:0.94, aLatMul:1.03, aBrkMul:1.03 },
+];
+
 class AIDriver {
   /**
    * difficulty 0..100, fieldPos = index in field (0..n-1), fieldSize = n
+   * preset = optional AI_PERSONALITY_PRESETS entry
    *
    * Full driver profile:
    *   skill       – raw speed, braking precision, cornering limit
@@ -6610,19 +6630,31 @@ class AIDriver {
    *   wetSkill    – performance retained in wet/rain conditions
    *   raceCraft   – positional intelligence, overtake/defense quality
    */
-  constructor(difficulty, fieldPos, fieldSize){
+  constructor(difficulty, fieldPos, fieldSize, preset){
     this.skill = clamp((difficulty||60)/100, 0, 1);
     const s = this.skill;
+    this.personalityType = preset ? preset.type : 'PRO';
 
-    // Personality — skill biases all traits upward but leaves room for variety
-    this.aggression  = clamp(0.25 + Math.random()*0.55 + s*0.15, 0, 1);
-    this.consistency = clamp(0.30 + Math.random()*0.40 + s*0.35, 0, 1);
-    this.wetSkill    = clamp(0.25 + Math.random()*0.55 + s*0.20, 0, 1);
-    this.raceCraft   = clamp(0.25 + Math.random()*0.50 + s*0.25, 0, 1);
+    if(preset){
+      // Preset-Traits mit skill-basiertem Bonus kombinieren (Skill = Baseline-Anhebung)
+      this.aggression  = clamp(preset.aggression  + s*0.08 + (Math.random()-0.5)*0.12, 0, 1);
+      this.consistency = clamp(preset.consistency + s*0.06 + (Math.random()-0.5)*0.08, 0, 1);
+      this.wetSkill    = clamp(preset.wetSkill    + s*0.10 + (Math.random()-0.5)*0.10, 0, 1);
+      this.raceCraft   = clamp(preset.raceCraft   + s*0.05 + (Math.random()-0.5)*0.10, 0, 1);
+      this._aLatMul    = preset.aLatMul;
+      this._aBrkMul    = preset.aBrkMul;
+    } else {
+      this.aggression  = clamp(0.25 + Math.random()*0.55 + s*0.15, 0, 1);
+      this.consistency = clamp(0.30 + Math.random()*0.40 + s*0.35, 0, 1);
+      this.wetSkill    = clamp(0.25 + Math.random()*0.55 + s*0.20, 0, 1);
+      this.raceCraft   = clamp(0.25 + Math.random()*0.50 + s*0.25, 0, 1);
+      this._aLatMul    = 1.0;
+      this._aBrkMul    = 1.0;
+    }
 
     // Physics parameters
-    this.aLatBase = 7.2 + s*7.8;
-    this.aBrk     = 8.8 + s*6.4;
+    this.aLatBase = (7.2 + s*7.8) * this._aLatMul;
+    this.aBrk     = (8.8 + s*6.4) * this._aBrkMul;
     this.apexK    = 0.18 + s*0.28;
 
     // Starting spread across field
@@ -6945,6 +6977,10 @@ class AIDriver {
     let chance = (1 - this.consistency) * 0.50;
     if(inCorner) chance *= 1.5;
     if(this.aggression > 0.65) chance *= 1.2;
+    // ROOKIE: deutlich mehr Fehler, besonders in Kurven
+    if(this.personalityType === 'ROOKIE') chance *= (inCorner ? 2.2 : 1.5);
+    // PRO: sehr selten Fehler
+    if(this.personalityType === 'PRO') chance *= 0.35;
 
     if(Math.random() < chance){
       const r = Math.random();
@@ -7053,6 +7089,21 @@ class AIDriver {
       }
     }
 
+    // === WINDSCHATTEN-JAGD: Auf Geraden hinter dem Vordermann positionieren ===
+    // AGGRESSIVE + PRO KIs suchen aktiv den Windschatten (direkt hinter dem Vordermann)
+    if((this.personalityType === 'AGGRESSIVE' || this.personalityType === 'PRO') && !this._ov.phase){
+      const curvForSlip = Math.abs(track.samples[q.idx].curv);
+      if(curvForSlip < 0.003 && bestOTTarget){
+        const dx2 = bestOTTarget.pos.x - car.pos.x, dz2 = bestOTTarget.pos.z - car.pos.z;
+        const fwdT = Math.sin(car.heading)*dx2 + Math.cos(car.heading)*dz2;
+        const latT = Math.cos(car.heading)*dx2 - Math.sin(car.heading)*dz2;
+        // 12-35m dahinter auf Gerade: lateralen Offset minimieren (in Windschatten fahren)
+        if(fwdT > 12 && fwdT < 35 && Math.abs(latT) < 3.5){
+          dodge += -latT * 0.18; // leicht in Richtung des Vordermanns korrigieren
+        }
+      }
+    }
+
     // Pack-Bremsung
     if(carsClose >= 3){
       vCap = Math.min(vCap, v * (curvLoad > 0.3 ? 0.92 : 0.82));
@@ -7064,8 +7115,14 @@ class AIDriver {
     // === ÜBERHOLENTSCHEIDUNG ===
     const ov = this._ov;
     if(bestOTTarget && !ov.phase){
-      const readyToOvertake = (this.raceCraft + this.aggression) > 0.65
-        && Math.random() < (this.aggression*0.16 + this.raceCraft*0.12);
+      // AGGRESSIVE: schnellere Entscheidung + niedrigere Schwelle
+      // DEFENSIVE/ROOKIE: deutlich seltener überholen
+      let otChance = this.aggression*0.16 + this.raceCraft*0.12;
+      if(this.personalityType === 'AGGRESSIVE') otChance *= 1.6;
+      if(this.personalityType === 'DEFENSIVE')  otChance *= 0.4;
+      if(this.personalityType === 'ROOKIE')     otChance *= 0.6;
+      const readyToOvertake = (this.raceCraft + this.aggression) > 0.55
+        && Math.random() < otChance;
       if(readyToOvertake){
         // Welche Seite hat mehr Platz? Verfolger-Position + Racingline-Bias berücksichtigen
         const qLat = q ? q.lat : 0;
@@ -7085,7 +7142,11 @@ class AIDriver {
         ov.side = preferredSide;
         ov.phase   = 'setup';
         ov.targetId = bestOTTarget._uid;
-        ov.timer   = 5.0 + this.raceCraft * 3.0;
+        // AGGRESSIVE: kürzer warten (2.5s), PRO: normal (5s), ROOKIE/DEFENSIVE: länger
+        const baseSetupT = this.personalityType === 'AGGRESSIVE' ? 2.5 :
+                           this.personalityType === 'PRO'        ? 4.5 :
+                           this.personalityType === 'ROOKIE'     ? 7.0 : 5.0;
+        ov.timer   = baseSetupT + this.raceCraft * 2.5;
       }
     }
     // Close-range side-hold overtake: wenn < 15m auf Gerade und aggressiv genug
@@ -7118,10 +7179,14 @@ class AIDriver {
     // === VERTEIDIGUNG ===
     const def = this._def;
     if(fastAttackerLat !== null && !def.active){
-      if(this.raceCraft > 0.42 && Math.random() < this.raceCraft * 0.38){
+      // DEFENSIVE personality reagiert viel öfter und hält länger
+      const defThresh = this.personalityType === 'DEFENSIVE' ? 0.22 : 0.42;
+      const defChance = this.personalityType === 'DEFENSIVE' ? this.raceCraft * 0.70 : this.raceCraft * 0.38;
+      if(this.raceCraft > defThresh && Math.random() < defChance){
         def.active = true;
         def.side   = fastAttackerLat > 0 ? 1 : -1;
-        def.timer  = 1.8 + this.raceCraft * 1.8;
+        const defBase = this.personalityType === 'DEFENSIVE' ? 2.8 : 1.8;
+        def.timer  = defBase + this.raceCraft * 2.0;
       }
     }
     if(def.active && def.timer <= 0) { def.active = false; def.side = 0; }
@@ -7155,8 +7220,14 @@ class AIDriver {
     const minT = Math.min(tw.FL, tw.FR, tw.RL, tw.RR);
     const laps  = race ? race.lap : 1;
     const total = this.totalLaps || 1;
+    const raceFrac = total > 1 ? laps/total : 0;
 
-    if(avg > 0.70 && laps/total < 0.55 && this._ov.phase === 'attack'){
+    // Final-Sprint: letzte 18% der Renndistanz → alles geben
+    const finalSprint = raceFrac > 0.82 && avg > 0.30 && total > 3;
+    // Aggressive personality pusht öfter
+    const aggrPush = this.personalityType === 'AGGRESSIVE' && avg > 0.60 && this._ov.phase === 'attack';
+
+    if(finalSprint || aggrPush || (avg > 0.70 && laps/total < 0.55 && this._ov.phase === 'attack')){
       this._tireMode = 'push';
     } else if(avg < 0.38 || minT < 0.28){
       this._tireMode = 'save';
@@ -7166,9 +7237,10 @@ class AIDriver {
   }
 
   _tireModeVFactor(){
-    if(this._tireMode === 'push') return 1.04;
-    if(this._tireMode === 'save') return 0.92;
-    return 1.0;
+    const aggrBonus = this.personalityType === 'AGGRESSIVE' ? 0.015 : 0;
+    if(this._tireMode === 'push') return 1.04 + aggrBonus;
+    if(this._tireMode === 'save') return this.personalityType === 'AGGRESSIVE' ? 0.95 : 0.92;
+    return 1.0 + aggrBonus * 0.5;
   }
 
   /* ───────────────── RECOVERY ───────────────── */
@@ -7938,50 +8010,92 @@ const HUD = {
     return `${m}:${String(s).padStart(2,'0')}.${String(x).padStart(3,'0')}`;
   },
   prepMap(track){
-    // Streckenumriss vorzeichnen, Skalierung merken
     const pts=track.samples.map(s=>s.pos);
     let minX=1e9,maxX=-1e9,minZ=1e9,maxZ=-1e9;
     for(const p of pts){minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minZ=Math.min(minZ,p.z);maxZ=Math.max(maxZ,p.z);}
-    const W=this.mapC.width,H=this.mapC.height,pad=14;
+    const W=this.mapC.width,H=this.mapC.height,pad=16;
     const sc=Math.min((W-2*pad)/(maxX-minX),(H-2*pad)/(maxZ-minZ));
     this.mapT={minX,minZ,sc,ox:(W-(maxX-minX)*sc)/2,oy:(H-(maxZ-minZ)*sc)/2};
     this.mapPts=pts;
+    this.mapN=pts.length;
+    // Strecken-Outline vorrendern (statisch, wird nur bei prepMap neu gezeichnet)
+    this._mapTrackCache=null;
   },
   toMap(p){ const t=this.mapT; return [t.ox+(p.x-t.minX)*t.sc, t.oy+(p.z-t.minZ)*t.sc]; },
+  // Kleines Richtungsdreieck für Fahrzeug auf Minimap
+  _drawMapCar(g, x, y, heading, radius, fillCol, strokeCol, strokeW){
+    g.save();
+    g.translate(x,y);
+    g.rotate(heading);
+    g.beginPath();
+    g.moveTo(0, -radius*1.7);    // Spitze vorne
+    g.lineTo(-radius, radius);
+    g.lineTo(radius, radius);
+    g.closePath();
+    g.fillStyle=fillCol;
+    g.fill();
+    if(strokeCol){ g.strokeStyle=strokeCol; g.lineWidth=strokeW||1.2; g.stroke(); }
+    g.restore();
+  },
   drawMap(car, aiCars){
     const g=this.mapG,W=this.mapC.width,H=this.mapC.height;
     g.clearRect(0,0,W,H);
-    g.strokeStyle='rgba(255,255,255,0.85)'; g.lineWidth=3; g.lineJoin='round'; g.beginPath();
-    for(let i=0;i<this.mapPts.length;i+=3){
-      const [x,y]=this.toMap(this.mapPts[i]);
+
+    // Strecke mit Sektor-Farben zeichnen
+    const N=this.mapN, pts=this.mapPts;
+    // Hintergrund-Outline (dunkel, breit) für bessere Lesbarkeit
+    g.lineWidth=5; g.lineJoin='round'; g.lineCap='round';
+    g.strokeStyle='rgba(0,0,0,0.55)';
+    g.beginPath();
+    for(let i=0;i<N;i+=2){
+      const [x,y]=this.toMap(pts[i]);
       i===0?g.moveTo(x,y):g.lineTo(x,y);
     }
     g.closePath(); g.stroke();
-    const [sx,sy]=this.toMap(this.mapPts[0]);          // Start/Ziel
-    g.fillStyle='#fff'; g.fillRect(sx-3,sy-3,6,6);
-    if(aiCars) for(const c of aiCars){                 // KI-Gegner
-      const [ax,ay]=this.toMap(c.pos);
-      g.fillStyle='#'+c.def.color.toString(16).padStart(6,'0');
-      g.beginPath(); g.arc(ax,ay,3.6,0,7); g.fill();
-      g.strokeStyle='rgba(0,0,0,0.5)'; g.lineWidth=1; g.stroke();
+
+    // Farbige Sektor-Segmente (S1=weiß, S2=lila, S3=orange)
+    const sectorCols=['rgba(210,220,235,0.90)','rgba(160,100,255,0.90)','rgba(255,140,40,0.90)'];
+    g.lineWidth=2.5;
+    for(let s=0;s<3;s++){
+      const iStart=Math.floor(s/3*N), iEnd=Math.floor((s+1)/3*N);
+      g.strokeStyle=sectorCols[s];
+      g.beginPath();
+      for(let i=iStart;i<=iEnd;i+=2){
+        const [x,y]=this.toMap(pts[Math.min(i,N-1)]);
+        i===iStart?g.moveTo(x,y):g.lineTo(x,y);
+      }
+      g.stroke();
     }
-    // MP-Gegner auf Minimap
+
+    // Start/Ziel-Linie
+    const [sx,sy]=this.toMap(pts[0]);
+    g.fillStyle='rgba(255,255,255,0.95)';
+    g.fillRect(sx-4,sy-2,8,4);
+
+    // KI-Gegner als Dreiecke
+    if(aiCars){
+      for(const c of aiCars){
+        const [ax,ay]=this.toMap(c.pos);
+        const col='#'+c.def.color.toString(16).padStart(6,'0');
+        this._drawMapCar(g,ax,ay,c.heading,3.8,col,'rgba(0,0,0,0.6)',1.0);
+      }
+    }
+
+    // MP-Gegner
     if(typeof MP !== 'undefined' && MP.remoteCars){
       for(const rc of Object.values(MP.remoteCars)){
         if(!rc.car) continue;
-        const [rx,ry] = this.toMap(rc.car.pos);
-        const col = rc.car.def?.color ?? 0x55a8ff;
-        g.fillStyle='#'+(col).toString(16).padStart(6,'0');
-        g.beginPath(); g.arc(rx,ry,4,0,7); g.fill();
-        g.strokeStyle='rgba(255,255,255,0.8)'; g.lineWidth=1.5; g.stroke();
-        // Name-Label (sehr klein)
-        g.fillStyle='rgba(255,255,255,0.9)'; g.font='7px monospace';
-        g.fillText((rc.name||'?').substring(0,8), rx+5, ry-3);
+        const [rx,ry]=this.toMap(rc.car.pos);
+        const col='#'+((rc.car.def?.color??0x55a8ff)).toString(16).padStart(6,'0');
+        this._drawMapCar(g,rx,ry,rc.car.heading,4,col,'rgba(255,255,255,0.7)',1.2);
+        g.fillStyle='rgba(255,255,255,0.85)'; g.font='6px monospace';
+        g.fillText((rc.name||'?').substring(0,6), rx+5, ry-3);
       }
     }
-    const [cx,cy]=this.toMap(car.pos);                 // Spieler (immer oben)
-    g.fillStyle='#ff2e3d'; g.beginPath(); g.arc(cx,cy,5,0,7); g.fill();
-    g.strokeStyle='rgba(255,255,255,0.6)'; g.lineWidth=1.5; g.stroke();
+
+    // Spieler-Auto: größer, rot, mit weißem Rand
+    const [cx,cy]=this.toMap(car.pos);
+    this._drawMapCar(g,cx,cy,car.heading,5.5,'#ff2e3d','rgba(255,255,255,0.85)',1.5);
   },
   update(car, race, totalLaps, aiCars){
     this.els.speed.textContent=Math.round(car.speedKmh);
@@ -8084,7 +8198,8 @@ const HUD = {
         entries.push({
           car:c, score:(c.rd?.lap||1)+(c.query?.progress||0), isPlayer:false,
           name:(c.def?.name||'KI').substring(0,14), ct:c.def?.classType||'gt3',
-          finished: c.rd?.dnf?'DNF':c.rd?.finished?'✓':''
+          finished: c.rd?.dnf?'DNF':c.rd?.finished?'✓':'',
+          personality: c._personalityType || null
         });
       });
       // Multiplayer-Gegner
@@ -8126,10 +8241,11 @@ const HUD = {
         const flHolder = Game?._raceFastestLap?.driverName;
         const isFl = flHolder && e.name === flHolder;
         const inPit = !e.isPlayer && e.car?.pitStopState && e.car.pitStopState !== 'idle';
+        const persTag = (!e.isPlayer && e.personality) ? `<span class="lb-pers lb-pers-${e.personality.toLowerCase()}">${e.personality[0]}</span>` : '';
         html += `<div class="lb-row${e.isPlayer?' you':''}">
           <span class="lb-pos">P${i+1}</span>
           <span class="lb-cls lb-${cls}">${clsLabel}</span>
-          <span class="lb-name">${e.name}${e.finished?' '+e.finished:''}${inPit?'<span class="lb-pit">PIT</span>':''}${isFl?'<span class="lb-fl">FL</span>':''}</span>
+          <span class="lb-name">${e.name}${persTag}${e.finished?' '+e.finished:''}${inPit?'<span class="lb-pit">PIT</span>':''}${isFl?'<span class="lb-fl">FL</span>':''}</span>
           <span class="lb-gap">${gapStr}</span>
         </div>`;
       });
@@ -12644,8 +12760,11 @@ const Game = {
         const baseDiff = this.aiDifficulty != null ? this.aiDifficulty : 60;
         const spread = (i/Math.max(1,nAI-1) - 0.5) * 30;
         const drvDiff = clamp(baseDiff + spread, 0, 100);
-        const driver = new AIDriver(drvDiff, i, nAI);
+        // Personality-Preset zyklisch vergeben (AGGRESSIVE, DEFENSIVE, ROOKIE, PRO, ...)
+        const preset = AI_PERSONALITY_PRESETS[i % AI_PERSONALITY_PRESETS.length];
+        const driver = new AIDriver(drvDiff, i, nAI, preset);
         driver.setupForRace(this.totalLaps, this.mandatoryPitStop);
+        car._personalityType = preset.type; // für Leaderboard-Anzeige
         this.aiDrivers.push(driver);
       }
       this.car.rd=this.freshRD();
