@@ -3095,35 +3095,6 @@ const TIRE_COMPOUNDS = {
   medium: { grip: 1.00, wear: 1.00, tempGain: 1.00, tempRange: [66, 96],  pitDelta: 0.00 },
   hard:   { grip: 0.97, wear: 0.78, tempGain: 0.88, tempRange: [58, 90],  pitDelta: 0.05 }
 };
-/* ── Umgebungs-GLB-Modelle (Bäume, Tribünen, Turm, Gebäude, Werbetafeln) ──
-   Werden beim Start vorgeladen; Track-Builder nutzen sie mit Prozedural-Fallback. */
-const EnvModels = {
-  cache: {}, ready: false, _promise: null,
-  NAMES: ['tree_pine','tree_oak','grandstand','control_tower','office_building','hospitality','billboard'],
-  load(){
-    if(this._promise) return this._promise;
-    if(!THREE.GLTFLoader){ this._promise = Promise.resolve(); return this._promise; }
-    const loader = new THREE.GLTFLoader();
-    this._promise = Promise.all(this.NAMES.map(n => new Promise(res => {
-      loader.load(`assets/models/env/${n}.glb`, g => {
-        g.scene.traverse(o => {
-          if(o.isMesh){
-            o.castShadow = true;
-            if(o.material){ o.material.metalness = 0; o.material.roughness = 0.92; }
-          }
-        });
-        this.cache[n] = g.scene;
-        res();
-      }, undefined, () => res()); // Fehler → Fallback greift
-    }))).then(() => { this.ready = Object.keys(this.cache).length > 0; });
-    return this._promise;
-  },
-  clone(n){ const s = this.cache[n]; return s ? s.clone(true) : null; },
-  // Erstes Mesh (für InstancedMesh-Nutzung bei Bäumen)
-  meshOf(n){ let m = null; const s = this.cache[n]; if(s) s.traverse(o => { if(o.isMesh && !m) m = o; }); return m; }
-};
-EnvModels.load();
-
 const WEATHER_PRESETS = {
   dry:   { name:'Trocken', rain:0.00, visibility:1.00, dusk:0.00, night:0.00, grip:1.00, rainRate:0.00 },
   overcast:{ name:'Bewölkt', rain:0.00, visibility:0.93, dusk:0.12, night:0.00, grip:0.99, rainRate:0.00 },
@@ -4511,37 +4482,7 @@ class Track {
       this.group.add(h);
     }
 
-    // Bäume — GLB-Modelle via InstancedMesh (Fallback: prozedurale Kegel/Kugeln)
-    const pineMesh=EnvModels.meshOf('tree_pine'), oakMesh=EnvModels.meshOf('tree_oak');
-    if(pineMesh && oakMesh){
-      const nTrees=500;
-      const pines=new THREE.InstancedMesh(pineMesh.geometry,pineMesh.material,nTrees);
-      const oaks =new THREE.InstancedMesh(oakMesh.geometry, oakMesh.material, nTrees);
-      const M=new THREE.Matrix4(),Q=new THREE.Quaternion(),E=new THREE.Euler(),V=new THREE.Vector3(),SC=new THREE.Vector3();
-      let np=0,no=0;
-      for(let i=0;i<nTrees;i++){
-        for(let tries=0;tries<28;tries++){
-          const s=S[Math.floor(Math.random()*N)];
-          const sgn=Math.random()<0.5?1:-1;
-          const off=Math.random()<0.35 ? this.wallDist+5+Math.random()*15 : this.wallDist+20+Math.random()*80;
-          V.copy(s.pos).addScaledVector(s.side,sgn*off);
-          if(!this.clearOf(V.x,V.z,this.wallDist+3)) continue;
-          const sc=0.7+Math.random()*1.4;
-          E.set(0,Math.random()*Math.PI*2,0); Q.setFromEuler(E);
-          SC.set(sc,sc,sc);
-          M.compose(V.set(V.x,s.pos.y-0.2,V.z),Q,SC);
-          if(Math.random()<0.45) pines.setMatrixAt(np++,M); else oaks.setMatrixAt(no++,M);
-          break;
-        }
-      }
-      // Ungenutzte Instanzen verstecken
-      Q.identity();
-      M.compose(new THREE.Vector3(0,-500,0),Q,SC.set(0.01,0.01,0.01));
-      for(let k=np;k<nTrees;k++) pines.setMatrixAt(k,M);
-      for(let k=no;k<nTrees;k++) oaks.setMatrixAt(k,M);
-      pines.castShadow=true; oaks.castShadow=true;
-      this.group.add(pines,oaks);
-    } else {
+    // Bäume — drei Varianten (Nadel, Laub, Busch) via InstancedMesh
     const trunkG=new THREE.CylinderGeometry(0.22,0.38,3.0,6);
     const crownG=new THREE.ConeGeometry(2.6,7.0,8);         // Nadelbaum
     const crownG2=new THREE.SphereGeometry(3.0,7,5);        // Laubbaum
@@ -4591,7 +4532,6 @@ class Track {
     }
     crowns.castShadow=true; crowns2.castShadow=true; crowns3.castShadow=true;
     this.group.add(trunks,crowns,crowns2,crowns3);
-    } // Ende Prozedural-Fallback Bäume
 
     // Reifenstapel an Kurveneinfahrten
     const tyreMat=new THREE.MeshLambertMaterial({color:0x111111});
@@ -4638,16 +4578,6 @@ class Track {
       let base = fits(sgn);
       if(!base){ sgn=-sgn; base=fits(sgn); }
       if(!base) continue;
-      // GLB-Tribüne (Sitzreihen zeigen Richtung Strecke), Fallback: prozedural
-      const gsGlb=EnvModels.clone('grandstand');
-      if(gsGlb){
-        gsGlb.scale.set(0.85+Math.random()*0.55, 1, 1);
-        gsGlb.position.copy(base); gsGlb.position.y=s.pos.y;
-        gsGlb.rotation.y=Math.atan2(sgn*s.side.x, sgn*s.side.z);
-        this.group.add(gsGlb);
-        if(pi===0) this.mainStandPos=base;
-        continue;
-      }
       const gSt=new THREE.Group();
       const stW = 42+Math.random()*24;
       // Rückwand Tribüne
@@ -4720,11 +4650,6 @@ class Track {
     const towerSide = -1; // gegenüber Pit
     const towerBase=s0.pos.clone().addScaledVector(s0.side, towerSide*(this.wallDist+14));
     if(this.clearOf(towerBase.x, towerBase.z, this.wallDist+8)){
-      const ctGlb=EnvModels.clone('control_tower');
-      if(ctGlb){
-        ctGlb.position.copy(towerBase); ctGlb.position.y=s0.pos.y;
-        this.group.add(ctGlb);
-      } else {
       const towG=new THREE.Group();
       const towerTex=Tex.building('#2a3545','#00d2be',6,4);
       // Turmschaft
@@ -4743,7 +4668,6 @@ class Track {
       towG.position.copy(towerBase); towG.position.y=s0.pos.y;
       towG.rotation.y=Math.atan2(s0.tan.x,s0.tan.z);
       this.group.add(towG);
-      }
     }
 
     // Hospitality / Medienzentrum (ein weiteres Gebäude ~25% Strecke)
@@ -4752,13 +4676,6 @@ class Track {
     for(const sgn of [1,-1]){
       const hbase=sh.pos.clone().addScaledVector(sh.side,sgn*(this.wallDist+18));
       if(!this.clearOf(hbase.x,hbase.z,this.wallDist+12)) continue;
-      const hGlb=EnvModels.clone('hospitality');
-      if(hGlb){
-        hGlb.position.copy(hbase); hGlb.position.y=sh.pos.y;
-        hGlb.rotation.y=Math.atan2(sh.tan.x,sh.tan.z)+Math.PI/2;
-        this.group.add(hGlb);
-        break;
-      }
       const hTex=Tex.building('#3a4252','#fe8000',3,6);
       const hosp=new THREE.Mesh(new THREE.BoxGeometry(28,10,14),new THREE.MeshLambertMaterial({map:hTex}));
       hosp.position.copy(hbase); hosp.position.y=sh.pos.y+5;
@@ -4772,31 +4689,20 @@ class Track {
     }
 
     // Hintergrund-Stadtsilhouette (weit entfernt, sieht aus wie Skyline)
-    let trackR=0;
-    for(const sm of S) trackR=Math.max(trackR, Math.hypot(sm.pos.x,sm.pos.z));
-    const officeGlb=EnvModels.cache['office_building'];
     const bgBuildColors=[0x2a3040,0x22283a,0x1e2436,0x303848,0x28303e];
     for(let k=0;k<18;k++){
       const ang=k/18*Math.PI*2;
+      let trackR=0;
+      for(const sm of S) trackR=Math.max(trackR, Math.hypot(sm.pos.x,sm.pos.z));
       const r=trackR+140+Math.random()*180;
-      if(officeGlb){
-        const bld=officeGlb.clone(true);
-        const sy=0.8+Math.random()*1.8, sxz=0.7+Math.random()*0.9;
-        bld.scale.set(sxz, sy, sxz);
-        bld.position.set(Math.cos(ang)*r, -2, Math.sin(ang)*r);
-        bld.rotation.y=Math.random()*Math.PI*2;
-        bld.traverse(o=>{ if(o.isMesh) o.castShadow=false; });
-        this.group.add(bld);
-      } else {
-        const bH=20+Math.random()*60;
-        const bW=12+Math.random()*20;
-        const bCol=bgBuildColors[k%bgBuildColors.length];
-        const bMat=new THREE.MeshLambertMaterial({color:bCol});
-        const bld=new THREE.Mesh(new THREE.BoxGeometry(bW,bH,bW*0.7),bMat);
-        bld.position.set(Math.cos(ang)*r, bH/2-2, Math.sin(ang)*r);
-        bld.castShadow=false;
-        this.group.add(bld);
-      }
+      const bH=20+Math.random()*60;
+      const bW=12+Math.random()*20;
+      const bCol=bgBuildColors[k%bgBuildColors.length];
+      const bMat=new THREE.MeshLambertMaterial({color:bCol});
+      const bld=new THREE.Mesh(new THREE.BoxGeometry(bW,bH,bW*0.7),bMat);
+      bld.position.set(Math.cos(ang)*r, bH/2-2, Math.sin(ang)*r);
+      bld.castShadow=false;
+      this.group.add(bld);
     }
   }
 
@@ -4822,19 +4728,6 @@ class Track {
       const bx=s.pos.clone().addScaledVector(s.side,sgn*off);
       if(!this.clearOf(bx.x,bx.z,this.wallDist+2)) continue;
       const bbTex=Tex.billboard(sp.text, sp.bg, sp.col);
-      const bbGlb=EnvModels.clone('billboard');
-      if(bbGlb){
-        bbGlb.traverse(o=>{
-          if(o.isMesh && (o.name||'').includes('screen'))
-            o.material=new THREE.MeshBasicMaterial({map:bbTex});
-        });
-        bbGlb.position.set(bx.x, s.pos.y, bx.z);
-        // Screen (+Z) zeigt zur Strecke
-        bbGlb.rotation.y=Math.atan2(-sgn*s.side.x, -sgn*s.side.z);
-        bbGlb.scale.setScalar(0.75);
-        this.group.add(bbGlb);
-        continue;
-      }
       const bbMat=new THREE.MeshBasicMaterial({map:bbTex,side:THREE.DoubleSide});
       const bb=new THREE.Mesh(new THREE.PlaneGeometry(7.5,3.2),bbMat);
       // Pfosten
