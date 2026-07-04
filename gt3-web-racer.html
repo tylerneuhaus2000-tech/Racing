@@ -3719,6 +3719,77 @@ const Tex = {
       }
     });
   },
+  building(wallCol, accentCol, rows=5, cols=8){
+    return this.canvas(256,256,(g,w,h)=>{
+      // Wand-Grundfarbe
+      g.fillStyle=wallCol; g.fillRect(0,0,w,h);
+      // Betonstruktur — leichte horizontale Linien (Etagen)
+      const rowH=h/rows;
+      for(let r=0;r<rows;r++){
+        g.fillStyle='rgba(0,0,0,0.10)'; g.fillRect(0,r*rowH,w,1);
+        g.fillStyle='rgba(255,255,255,0.05)'; g.fillRect(0,r*rowH+1,w,1);
+      }
+      // Fenster-Raster
+      const padX=w/(cols*2.5), padY=h/(rows*2.8);
+      const winW=w/cols-padX*2, winH=h/rows-padY*2;
+      for(let r=0;r<rows;r++){
+        for(let c=0;c<cols;c++){
+          const x=c*(w/cols)+padX, y=r*(h/rows)+padY;
+          // Fensterrahmen
+          g.fillStyle='rgba(40,55,70,0.9)'; g.fillRect(x,y,winW,winH);
+          // Glasreflexion
+          g.fillStyle='rgba(120,180,240,0.25)'; g.fillRect(x+2,y+2,winW*0.4,winH*0.5);
+          // Horizontale Fenstersprossen
+          g.fillStyle='rgba(200,220,240,0.12)'; g.fillRect(x,y+winH*0.5,winW,1);
+        }
+      }
+      // Akzentstreifen oben
+      g.fillStyle=accentCol; g.fillRect(0,0,w,h*0.06);
+      // Schatteneffekt unten
+      const sh=g.createLinearGradient(0,h*0.7,0,h);
+      sh.addColorStop(0,'rgba(0,0,0,0)'); sh.addColorStop(1,'rgba(0,0,0,0.25)');
+      g.fillStyle=sh; g.fillRect(0,0,w,h);
+    });
+  },
+  billboard(text, bgCol, textCol){
+    return this.canvas(256,128,(g,w,h)=>{
+      g.fillStyle=bgCol; g.fillRect(0,0,w,h);
+      // Rand
+      g.strokeStyle='rgba(255,255,255,0.3)'; g.lineWidth=4;
+      g.strokeRect(4,4,w-8,h-8);
+      g.fillStyle=textCol;
+      g.font=`bold ${h*0.45}px Arial Black,sans-serif`;
+      g.textAlign='center'; g.textBaseline='middle';
+      g.fillText(text, w/2, h/2);
+      // Glanzstreifen oben
+      g.fillStyle='rgba(255,255,255,0.10)';
+      g.fillRect(0,0,w,h*0.28);
+    });
+  },
+  pitGarage(teamColor){
+    return this.canvas(256,256,(g,w,h)=>{
+      // Betonwand
+      g.fillStyle='#c8cdd3'; g.fillRect(0,0,w,h);
+      // Beton-Textur
+      for(let i=0;i<2000;i++){
+        const v=Math.random()*20|0;
+        g.fillStyle=`rgba(${v>10?255:0},${v>10?255:0},${v>10?255:0},0.04)`;
+        g.fillRect(Math.random()*w,Math.random()*h,2,2);
+      }
+      // Teamfarben-Streifen oben (2 Streifen)
+      g.fillStyle=teamColor; g.fillRect(0,0,w,h*0.14);
+      g.fillStyle='rgba(255,255,255,0.6)'; g.fillRect(0,h*0.14,w,h*0.04);
+      // Fensterreihe oben
+      for(let i=0;i<3;i++){
+        const fx=w*0.12+i*(w*0.28), fy=h*0.22, fw=w*0.22, fh=h*0.18;
+        g.fillStyle='rgba(60,100,140,0.8)'; g.fillRect(fx,fy,fw,fh);
+        g.fillStyle='rgba(150,200,255,0.2)'; g.fillRect(fx+4,fy+4,fw*0.4,fh*0.5);
+      }
+      // Konkreter Streifen am Boden
+      g.fillStyle='rgba(0,0,0,0.2)'; g.fillRect(0,h*0.9,w,h*0.1);
+    });
+  },
+
   brakingSign(n){
     // F1/GT3-Bremsschild: weißes Board, schwarze Zahl, farbige Streifen
     // 150m = 3 orange Streifen, 100m = 2 gelbe, 50m = 1 roter
@@ -4162,16 +4233,16 @@ class Track {
     buildGate(this.pitLaneInfo.gateInIdx, 'PIT IN', 0x22c463);
     buildGate(this.pitLaneInfo.gateOutIdx, 'PIT OUT', 0xffb017);
 
-    /* === 20 BOXEN, gleichmäßig verteilt === */
+    /* === 20 BOXEN — F1-Garagen-Style === */
     const N_BOXES = 20;
     this.pitBoxes = [];
-    const garageMat    = new THREE.MeshLambertMaterial({color:0xe8ecef});
-    const garageMat2   = new THREE.MeshLambertMaterial({color:0xd0d6dc});
-    const roofMat      = new THREE.MeshLambertMaterial({color:0x444a52});
-    const doorMat      = new THREE.MeshLambertMaterial({color:0x1a1d22});
-    const numCanvas    = this._makeBoxNumberMat.bind(this);
-    /* Pit-Stop Mark: liegt zwischen Pit-Asphalt-Mitte und Garage (Box-Position) */
-    /* Boxen-Spacing: nutze nur die mittleren 80% der Pit-Strecke (Start/Ende = Ein/Ausfahrt) */
+    // Team-Farben für abwechselnde Boxen (F1-Palette)
+    const TEAM_COLORS = [0xe8002d,0x00d2be,0x0067ff,0xfe8000,0x15151e,0x37bedd,0xdc0000,0x006f62,0x005aff,0xf596c8];
+    const concreteMat = new THREE.MeshLambertMaterial({color:0xd0d4d8});
+    const concreteDarkMat = new THREE.MeshLambertMaterial({color:0xa8adb2});
+    const roofMat2 = new THREE.MeshLambertMaterial({color:0x3a3f47});
+    const doorFrameMat = new THREE.MeshLambertMaterial({color:0x1a1c20});
+    const doorInnerMat = new THREE.MeshLambertMaterial({color:0x0d0f12});
     const boxZoneStart = 0.10, boxZoneEnd = 0.90;
     for(let b=0; b<N_BOXES; b++){
       const tNorm = boxZoneStart + (b+0.5)/N_BOXES * (boxZoneEnd - boxZoneStart);
@@ -4179,56 +4250,103 @@ class Track {
       const i = (pl.idxStart + ki) % N;
       const s = S[i];
       const boxGrp = new THREE.Group();
-      /* Garagengebäude — alternierende Farben */
-      const buildingOff = pl.side * (pl.outerOff + 4.5);
-      const body = new THREE.Mesh(new THREE.BoxGeometry(5.5, 4.5, 5.5), b%2 ? garageMat : garageMat2);
-      body.position.y = 2.25;
+      const buildingOff = pl.side * (pl.outerOff + 5.0);
+      const teamCol = TEAM_COLORS[b % TEAM_COLORS.length];
+      const teamMat = new THREE.MeshLambertMaterial({color:teamCol});
+      const garageTex = Tex.pitGarage('#'+teamCol.toString(16).padStart(6,'0'));
+      const garageFacadeMat = new THREE.MeshLambertMaterial({map:garageTex});
+
+      /* Hauptkörper Garage */
+      const W=5.6, H=5.0, D=6.5;
+      const body = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), garageFacadeMat);
+      body.position.set(0, H/2, 0);
       body.castShadow = true; body.receiveShadow = true;
       boxGrp.add(body);
-      /* Garagentor — zum Pit gerichtet (pl.side * -1) */
-      const door = new THREE.Mesh(new THREE.BoxGeometry(3.6, 3.4, 0.1), doorMat);
-      door.position.set(0, 1.7, pl.side * -2.6);
-      boxGrp.add(door);
-      /* Dach */
-      const roof = new THREE.Mesh(new THREE.BoxGeometry(6.0, 0.25, 6.0), roofMat);
-      roof.position.y = 4.6;
-      boxGrp.add(roof);
-      /* Box-Nummer auf der Vorderseite */
-      const numTex = numCanvas(b+1);
+
+      /* Dachüberhang (Canopy) — ragt Richtung Pit vor */
+      const canopy = new THREE.Mesh(new THREE.BoxGeometry(W+0.4, 0.22, D*0.55), roofMat2);
+      canopy.position.set(0, H+0.11, pl.side * -(D*0.5 - D*0.55/2 - 0.2));
+      canopy.castShadow = true;
+      boxGrp.add(canopy);
+
+      /* Dachplatte komplett */
+      const roofPlate = new THREE.Mesh(new THREE.BoxGeometry(W+0.4, 0.18, D+0.6), roofMat2);
+      roofPlate.position.set(0, H+0.09, 0);
+      roofPlate.castShadow = true;
+      boxGrp.add(roofPlate);
+
+      /* Teamfarben-Streifen oben (unter Dach) */
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(W+0.02, 0.55, 0.08), teamMat);
+      stripe.position.set(0, H-0.3, pl.side * -(D/2));
+      boxGrp.add(stripe);
+
+      /* Beton-Säulen vorne links + rechts */
+      const pillarGeo = new THREE.BoxGeometry(0.38, H, 0.38);
+      for(const px of [-W/2+0.19, W/2-0.19]){
+        const pillar = new THREE.Mesh(pillarGeo, concreteDarkMat);
+        pillar.position.set(px, H/2, pl.side * -(D/2));
+        pillar.castShadow = true;
+        boxGrp.add(pillar);
+      }
+
+      /* Garagentor — dunkler Rahmen mit Innenöffnung */
+      const doorW=4.0, doorH=3.6;
+      const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(doorW+0.3, doorH+0.2, 0.12), doorFrameMat);
+      doorFrame.position.set(0, doorH/2+0.1, pl.side * -(D/2+0.01));
+      boxGrp.add(doorFrame);
+      const doorInner = new THREE.Mesh(new THREE.BoxGeometry(doorW, doorH, 0.14), doorInnerMat);
+      doorInner.position.set(0, doorH/2+0.1, pl.side * -(D/2+0.02));
+      boxGrp.add(doorInner);
+      /* Garagentor-Querstreben */
+      for(let row=1;row<=3;row++){
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(doorW, 0.06, 0.16), doorFrameMat);
+        bar.position.set(0, row*(doorH/4), pl.side * -(D/2+0.03));
+        boxGrp.add(bar);
+      }
+
+      /* Pit-Wall (kleines Mäuerchen vor der Garage) */
+      const pitWall = new THREE.Mesh(new THREE.BoxGeometry(W+0.2, 1.1, 0.32), concreteMat);
+      pitWall.position.set(0, 0.55, pl.side * -(D/2 + 1.8));
+      pitWall.castShadow = true;
+      boxGrp.add(pitWall);
+      /* Teamfarbe auf Pit-Wall */
+      const pwStripe = new THREE.Mesh(new THREE.BoxGeometry(W+0.2, 0.25, 0.34), teamMat);
+      pwStripe.position.set(0, 1.0, pl.side * -(D/2 + 1.8));
+      boxGrp.add(pwStripe);
+
+      /* Box-Nummer (großes Panel) */
+      const numTex = this._makeBoxNumberMat(b+1);
       const numMat = new THREE.MeshBasicMaterial({map:numTex, side:THREE.DoubleSide});
-      const numMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.0), numMat);
-      numMesh.position.set(0, 3.6, pl.side * -2.61);
+      const numMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.1), numMat);
+      numMesh.position.set(0, H-0.8, pl.side * -(D/2+0.15));
       numMesh.rotation.y = pl.side > 0 ? Math.PI : 0;
       boxGrp.add(numMesh);
-      /* Mechaniker-Licht (3D-Cube, color wird per pit state geupdatet) */
-      const lightGeo = new THREE.SphereGeometry(0.18, 8, 8);
-      const lightMat = new THREE.MeshBasicMaterial({color:0x222222});
-      const light = new THREE.Mesh(lightGeo, lightMat);
-      light.position.set(1.4, 4.1, pl.side * -2.6);
+
+      /* LED-Ampel (Status-Licht) — breites Panel statt Kugel */
+      const ledPanelGeo = new THREE.BoxGeometry(0.9, 0.28, 0.12);
+      const lightMat2 = new THREE.MeshBasicMaterial({color:0x222222});
+      const light = new THREE.Mesh(ledPanelGeo, lightMat2);
+      light.position.set(0, H+0.3, pl.side * -(D/2+0.07));
       boxGrp.add(light);
-      /* Position + Rotation in Welt */
+
+      /* Position + Rotation */
       const buildingBase = s.pos.clone().addScaledVector(s.side, buildingOff);
       boxGrp.position.copy(buildingBase); boxGrp.position.y = 0;
       boxGrp.rotation.y = Math.atan2(s.tan.x, s.tan.z);
       this.group.add(boxGrp);
-      /* Box-Stop-Marker auf dem Pit-Asphalt (gelbes Quadrat) */
-      const markerMat = new THREE.MeshBasicMaterial({color:0xffd400, transparent:true, opacity:0.45});
-      const marker = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 5.0), markerMat);
+
+      /* Gelber Stop-Marker */
+      const markerMat = new THREE.MeshBasicMaterial({color:0xffd400, transparent:true, opacity:0.5});
+      const marker = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 5.5), markerMat);
       marker.rotation.x = -Math.PI/2;
       const markerBase = s.pos.clone().addScaledVector(s.side, pl.side * pitMidOff);
-      marker.position.copy(markerBase); marker.position.y = 0.012;
+      marker.position.copy(markerBase); marker.position.y = 0.013;
       marker.rotation.z = Math.atan2(s.tan.x, s.tan.z);
       this.group.add(marker);
-      /* Stop-Position als Welt-Vektor speichern */
+
       const stopPos = s.pos.clone().addScaledVector(s.side, pl.side * pitMidOff);
       this.pitBoxes.push({
-        slot: b,
-        sampleIdx: i,
-        stopPos: stopPos,
-        light: light,
-        lightMat: lightMat,
-        marker: marker,
-        lateralOff: pl.side * pitMidOff
+        slot: b, sampleIdx: i, stopPos, light, lightMat: lightMat2, marker, lateralOff: pl.side * pitMidOff
       });
     }
 
@@ -4304,68 +4422,83 @@ class Track {
 
   buildEnvironment(){
     const S=this.samples,N=this.N;
-    // Grundfläche
+    // Grundfläche mit Gras-Textur
     const gcol=this.def.grass[1];
-    const ground=new THREE.Mesh(new THREE.PlaneGeometry(5000,5000), new THREE.MeshLambertMaterial({color:gcol}));
+    const grassTex=Tex.grass('#'+gcol.toString(16).padStart(6,'0'), '#'+this.def.grass[0].toString(16).padStart(6,'0'));
+    grassTex.repeat.set(60,60);
+    const ground=new THREE.Mesh(new THREE.PlaneGeometry(5000,5000), new THREE.MeshLambertMaterial({map:grassTex}));
     ground.rotation.x=-Math.PI/2; ground.position.y=-1.2; ground.receiveShadow=true;
     this.group.add(ground);
 
-    // Hügel-Ring in der Ferne — sicher außerhalb der gesamten Strecken-Ausdehnung
+    // Hügel-Ring in der Ferne
     let trackR=0;
     for(const sm of S) trackR=Math.max(trackR, Math.hypot(sm.pos.x,sm.pos.z));
     const hillMat=new THREE.MeshLambertMaterial({color:this.def.hill});
-    for(let i=0;i<16;i++){
-      const a=i/16*Math.PI*2;
-      const sx=280+Math.random()*240, sz=280+Math.random()*240;
+    for(let i=0;i<22;i++){
+      const a=i/22*Math.PI*2;
+      const sx=260+Math.random()*300, sz=260+Math.random()*300;
       const r=trackR+Math.max(sx,sz)+120+Math.random()*400;
       const h=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),hillMat);
-      h.scale.set(sx, 70+Math.random()*110, sz);
+      h.scale.set(sx, 80+Math.random()*130, sz);
       h.position.set(Math.cos(a)*r, -16, Math.sin(a)*r);
       this.group.add(h);
     }
 
-    // Bäume — zwei Größenklassen instanziert
-    const trunkG=new THREE.CylinderGeometry(0.22,0.34,2.6,5);
-    const crownG=new THREE.ConeGeometry(2.4,6.2,7);
-    const crownG2=new THREE.SphereGeometry(2.8,6,5);       // Laubbäume
-    const nTrees=420;
-    const trunks=new THREE.InstancedMesh(trunkG,new THREE.MeshLambertMaterial({color:0x523e26}),nTrees);
-    const crowns=new THREE.InstancedMesh(crownG,new THREE.MeshLambertMaterial({color:0x255a1e}),nTrees);
-    const crowns2=new THREE.InstancedMesh(crownG2,new THREE.MeshLambertMaterial({color:0x2e6626}),nTrees);
+    // Bäume — drei Varianten (Nadel, Laub, Busch) via InstancedMesh
+    const trunkG=new THREE.CylinderGeometry(0.22,0.38,3.0,6);
+    const crownG=new THREE.ConeGeometry(2.6,7.0,8);         // Nadelbaum
+    const crownG2=new THREE.SphereGeometry(3.0,7,5);        // Laubbaum
+    const crownG3=new THREE.SphereGeometry(1.8,5,4);        // Busch
+    const nTrees=500;
+    const trunkColor=parseInt(this.def.grass[0])*0+0x5a4228;
+    const trunks=new THREE.InstancedMesh(trunkG,new THREE.MeshLambertMaterial({color:trunkColor}),nTrees);
+    const crowns=new THREE.InstancedMesh(crownG,new THREE.MeshLambertMaterial({color:0x1e5a18}),nTrees);
+    const crowns2=new THREE.InstancedMesh(crownG2,new THREE.MeshLambertMaterial({color:0x2a6820}),nTrees);
+    const crowns3=new THREE.InstancedMesh(crownG3,new THREE.MeshLambertMaterial({color:0x3a7228}),nTrees);
     const M=new THREE.Matrix4(), Q=new THREE.Quaternion(), V=new THREE.Vector3(), SC=new THREE.Vector3();
     for(let i=0;i<nTrees;i++){
       let placed=false;
-      for(let tries=0;tries<22 && !placed;tries++){
+      for(let tries=0;tries<28 && !placed;tries++){
         const s=S[Math.floor(Math.random()*N)];
         const sgn=Math.random()<0.5?1:-1;
-        const off=this.wallDist+7+Math.random()*90;
+        // Mix: close trees (mood) + far trees (forest background)
+        const off = Math.random()<0.35 ? this.wallDist+5+Math.random()*15 : this.wallDist+20+Math.random()*80;
         V.copy(s.pos).addScaledVector(s.side,sgn*off);
         if(!this.clearOf(V.x,V.z,this.wallDist+3)) continue;
-        const sc=0.7+Math.random()*1.4;
+        const sc=0.65+Math.random()*1.5;
         SC.set(sc,sc,sc);
-        const bx=new THREE.Vector3(V.x,s.pos.y-0.2+1.3*sc,V.z);
-        M.compose(bx,Q,SC); trunks.setMatrixAt(i,M);
-        if(Math.random()<0.42){
-          M.compose(new THREE.Vector3(V.x,s.pos.y-0.2+(2.6+2.8)*sc,V.z),Q,SC); crowns2.setMatrixAt(i,M);
-          M.compose(new THREE.Vector3(0,-500,0),Q,SC.set(0.01,0.01,0.01)); crowns.setMatrixAt(i,M);
-        } else {
-          M.compose(new THREE.Vector3(V.x,s.pos.y-0.2+(2.6+3.1)*sc,V.z),Q,SC); crowns.setMatrixAt(i,M);
-          M.compose(new THREE.Vector3(0,-500,0),Q,SC.set(0.01,0.01,0.01)); crowns2.setMatrixAt(i,M);
+        const ty=s.pos.y-0.2+1.4*sc;
+        M.compose(new THREE.Vector3(V.x,ty,V.z),Q,SC); trunks.setMatrixAt(i,M);
+        const rnd=Math.random();
+        const hide=new THREE.Vector3(0,-500,0);
+        if(rnd<0.38){ // Nadelbaum
+          M.compose(new THREE.Vector3(V.x,s.pos.y-0.2+(3.0+3.5)*sc,V.z),Q,SC); crowns.setMatrixAt(i,M);
+          M.compose(hide,Q,SC.set(.01,.01,.01)); crowns2.setMatrixAt(i,M); crowns3.setMatrixAt(i,M);
+        } else if(rnd<0.75){ // Laubbaum
+          M.compose(new THREE.Vector3(V.x,s.pos.y-0.2+(3.0+3.0)*sc,V.z),Q,SC); crowns2.setMatrixAt(i,M);
+          M.compose(hide,Q,SC.set(.01,.01,.01)); crowns.setMatrixAt(i,M); crowns3.setMatrixAt(i,M);
+        } else { // Busch (kein Stamm sichtbar)
+          const sc2=sc*0.9;
+          SC.set(sc2,sc2,sc2);
+          M.compose(new THREE.Vector3(V.x,s.pos.y+1.2*sc2,V.z),Q,SC); crowns3.setMatrixAt(i,M);
+          M.compose(hide,Q,SC.set(.01,.01,.01)); crowns.setMatrixAt(i,M); crowns2.setMatrixAt(i,M);
+          M.compose(hide,Q,SC.set(.01,.01,.01)); trunks.setMatrixAt(i,M);
         }
         placed=true;
       }
       if(!placed){
-        M.compose(new THREE.Vector3(0,-500,0),Q,SC.set(0.01,0.01,0.01));
-        trunks.setMatrixAt(i,M); crowns.setMatrixAt(i,M); crowns2.setMatrixAt(i,M);
+        const hide=new THREE.Vector3(0,-500,0);
+        M.compose(hide,Q,SC.set(.01,.01,.01));
+        trunks.setMatrixAt(i,M); crowns.setMatrixAt(i,M); crowns2.setMatrixAt(i,M); crowns3.setMatrixAt(i,M);
       }
     }
-    crowns.castShadow=true; crowns2.castShadow=true;
-    this.group.add(trunks,crowns,crowns2);
+    crowns.castShadow=true; crowns2.castShadow=true; crowns3.castShadow=true;
+    this.group.add(trunks,crowns,crowns2,crowns3);
 
     // Reifenstapel an Kurveneinfahrten
     const tyreMat=new THREE.MeshLambertMaterial({color:0x111111});
     const tyreGeo=new THREE.TorusGeometry(0.52,0.22,6,12);
-    const nTyreWalls=Math.min(12, Math.floor(N/30));
+    const nTyreWalls=Math.min(16, Math.floor(N/25));
     const tyreIdxStep=Math.floor(N/nTyreWalls);
     const tyreMinClear = this.wallDist + 4;
     for(let ti=0;ti<nTyreWalls;ti++){
@@ -4389,16 +4522,16 @@ class Track {
       }
     }
 
-    // Tribünen an markanten Stellen
+    // Tribünen (mehr, besser)
     const standMat=new THREE.MeshLambertMaterial({map:Tex.stand()});
-    const roofMat=new THREE.MeshLambertMaterial({color:0x1c2126});
-    const places=[0, Math.floor(N*0.18), Math.floor(N*0.46), Math.floor(N*0.72)];
+    const roofMatS=new THREE.MeshLambertMaterial({color:0x1c2126});
+    const places=[0, Math.floor(N*0.14), Math.floor(N*0.28), Math.floor(N*0.46), Math.floor(N*0.62), Math.floor(N*0.78)];
     for(const pi of places){
       const s=S[pi];
       const tan=s.tan;
       const fits=(sgn)=>{
-        const b=s.pos.clone().addScaledVector(s.side,sgn*(this.wallDist+10));
-        for(const o of [-26,0,26]){
+        const b=s.pos.clone().addScaledVector(s.side,sgn*(this.wallDist+12));
+        for(const o of [-28,0,28]){
           if(!this.clearOf(b.x+tan.x*o, b.z+tan.z*o, this.wallDist+10)) return null;
         }
         return b;
@@ -4406,36 +4539,169 @@ class Track {
       let sgn = pi===0 ? -1 : (Math.random()<0.5?1:-1);
       let base = fits(sgn);
       if(!base){ sgn=-sgn; base=fits(sgn); }
-      if(!base) continue;                       // kein Platz ohne Streckenkonflikt
-      const g=new THREE.Group();
-      const st=new THREE.Mesh(new THREE.BoxGeometry(46,9,12),standMat);
-      st.position.y=4.5; st.rotation.x=sgn*0.32; st.castShadow=true; g.add(st);
-      const roof=new THREE.Mesh(new THREE.BoxGeometry(48,0.5,13),roofMat);
-      roof.position.y=10.5; roof.castShadow=true; g.add(roof);
-      g.position.copy(base); g.position.y=s.pos.y;
-      g.rotation.y=Math.atan2(s.tan.x,s.tan.z)+Math.PI/2;
-      this.group.add(g);
+      if(!base) continue;
+      const gSt=new THREE.Group();
+      const stW = 42+Math.random()*24;
+      // Rückwand Tribüne
+      const backWall=new THREE.Mesh(new THREE.BoxGeometry(stW+4,11,1.2),new THREE.MeshLambertMaterial({color:0x2a3038}));
+      backWall.position.set(0,5.5,5); backWall.castShadow=true; gSt.add(backWall);
+      // Sitzreihen
+      const st=new THREE.Mesh(new THREE.BoxGeometry(stW,9,12),standMat);
+      st.position.y=4.5; st.rotation.x=sgn*0.28; st.castShadow=true; gSt.add(st);
+      // Dach mit Überhang
+      const roof=new THREE.Mesh(new THREE.BoxGeometry(stW+6,0.4,14),roofMatS);
+      roof.position.set(0,11,-1); roof.castShadow=true; gSt.add(roof);
+      // Dachstützen
+      for(let k=-1;k<=1;k++){
+        const col=new THREE.Mesh(new THREE.BoxGeometry(0.4,9,0.4),new THREE.MeshLambertMaterial({color:0x3a4048}));
+        col.position.set(k*stW*0.38,5.5,-5); col.castShadow=true; gSt.add(col);
+      }
+      gSt.position.copy(base); gSt.position.y=s.pos.y;
+      gSt.rotation.y=Math.atan2(s.tan.x,s.tan.z)+Math.PI/2;
+      this.group.add(gSt);
       if(pi===0) this.mainStandPos=base;
     }
 
-    // Boxengasse entlang Start/Ziel
-    const pitMat=new THREE.MeshLambertMaterial({color:0x262b31});
+    // === GEBÄUDE: Paddock, Control Tower, Hospitality ===
+    this._buildTrackBuildings();
+
+    // === WERBETAFELN entlang der Strecke ===
+    this._buildBillboards();
+
+    // Boxengasse-Dach (über den gesamten Pit-Bereich)
+    const pitMat=new THREE.MeshLambertMaterial({color:0x2a2f36});
     const s0=this.samples[0];
-    const pitPos=s0.pos.clone().addScaledVector(s0.side,(this.wallDist+9));
+    const pitPos=s0.pos.clone().addScaledVector(s0.side,(this.wallDist+11));
     if(this.clearOf(pitPos.x, pitPos.z, this.wallDist+6)){
-      const pit=new THREE.Mesh(new THREE.BoxGeometry(90,6,10),pitMat);
-      pit.position.copy(pitPos); pit.position.y=s0.pos.y+3;
-      pit.rotation.y=Math.atan2(s0.tan.x,s0.tan.z)+Math.PI/2;
-      pit.castShadow=true; this.group.add(pit);
+      // Hauptgebäude Paddock (2-stöckig)
+      const paddockTex = Tex.building('#4a5260','#e8002d',4,10);
+      const paddock=new THREE.Mesh(new THREE.BoxGeometry(120,8,12),new THREE.MeshLambertMaterial({map:paddockTex}));
+      paddock.position.copy(pitPos); paddock.position.y=s0.pos.y+4;
+      paddock.rotation.y=Math.atan2(s0.tan.x,s0.tan.z)+Math.PI/2;
+      paddock.castShadow=true; this.group.add(paddock);
+      // Flachdach
+      const paddockRoof=new THREE.Mesh(new THREE.BoxGeometry(122,0.4,13.5),new THREE.MeshLambertMaterial({color:0x1e2228}));
+      paddockRoof.position.copy(pitPos); paddockRoof.position.y=s0.pos.y+8.2;
+      paddockRoof.rotation.y=Math.atan2(s0.tan.x,s0.tan.z)+Math.PI/2;
+      this.group.add(paddockRoof);
     }
-    // Boxengassen-Fahrbahn (nur optisch)
+    // Boxengassen-Fahrbahn
     const pitLanePos=s0.pos.clone().addScaledVector(s0.side,(this.halfW+this.vergeW*0.55));
     if(this.clearOf(pitLanePos.x, pitLanePos.z, this.wallDist)){
-      const pitLane=new THREE.Mesh(new THREE.PlaneGeometry(110,8),new THREE.MeshLambertMaterial({color:0x33363a}));
+      const pitLane=new THREE.Mesh(new THREE.PlaneGeometry(130,9),new THREE.MeshLambertMaterial({color:0x2e3238}));
       pitLane.rotation.x=-Math.PI/2;
       pitLane.position.copy(pitLanePos); pitLane.position.y=s0.pos.y+0.005;
       pitLane.rotation.z=Math.atan2(s0.tan.x,s0.tan.z)+Math.PI/2;
       this.group.add(pitLane);
+      // Mittellinie Pit Lane
+      for(let k=-4;k<=4;k++){
+        const dashMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.6});
+        const dash=new THREE.Mesh(new THREE.PlaneGeometry(6,0.2),dashMat);
+        dash.rotation.x=-Math.PI/2;
+        dash.position.copy(pitLanePos).addScaledVector(s0.tan,k*14);
+        dash.position.y=pitLanePos.y+0.01;
+        this.group.add(dash);
+      }
+    }
+  }
+
+  _buildTrackBuildings(){
+    const S=this.samples, N=this.N;
+    // Control Tower an Start/Ziel
+    const s0=S[0];
+    const towerSide = -1; // gegenüber Pit
+    const towerBase=s0.pos.clone().addScaledVector(s0.side, towerSide*(this.wallDist+14));
+    if(this.clearOf(towerBase.x, towerBase.z, this.wallDist+8)){
+      const towG=new THREE.Group();
+      const towerTex=Tex.building('#2a3545','#00d2be',6,4);
+      // Turmschaft
+      const shaft=new THREE.Mesh(new THREE.BoxGeometry(12,16,8),new THREE.MeshLambertMaterial({map:towerTex}));
+      shaft.position.y=8; shaft.castShadow=true; towG.add(shaft);
+      // Obs-Deck oben
+      const deck=new THREE.Mesh(new THREE.BoxGeometry(14,2.5,10),new THREE.MeshLambertMaterial({color:0x1a2030}));
+      deck.position.y=17.25; deck.castShadow=true; towG.add(deck);
+      // Glasfront oben
+      const glassMat=new THREE.MeshLambertMaterial({color:0x336688,transparent:true,opacity:0.7});
+      const glass=new THREE.Mesh(new THREE.BoxGeometry(12,1.8,0.15),glassMat);
+      glass.position.set(0,17,5.08); towG.add(glass);
+      // Antenne
+      const ant=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,4,4),new THREE.MeshLambertMaterial({color:0xc8ccd2}));
+      ant.position.y=20; towG.add(ant);
+      towG.position.copy(towerBase); towG.position.y=s0.pos.y;
+      towG.rotation.y=Math.atan2(s0.tan.x,s0.tan.z);
+      this.group.add(towG);
+    }
+
+    // Hospitality / Medienzentrum (ein weiteres Gebäude ~25% Strecke)
+    const si=Math.floor(N*0.25);
+    const sh=S[si];
+    for(const sgn of [1,-1]){
+      const hbase=sh.pos.clone().addScaledVector(sh.side,sgn*(this.wallDist+18));
+      if(!this.clearOf(hbase.x,hbase.z,this.wallDist+12)) continue;
+      const hTex=Tex.building('#3a4252','#fe8000',3,6);
+      const hosp=new THREE.Mesh(new THREE.BoxGeometry(28,10,14),new THREE.MeshLambertMaterial({map:hTex}));
+      hosp.position.copy(hbase); hosp.position.y=sh.pos.y+5;
+      hosp.rotation.y=Math.atan2(sh.tan.x,sh.tan.z)+Math.PI/2;
+      hosp.castShadow=true; this.group.add(hosp);
+      const hRoof=new THREE.Mesh(new THREE.BoxGeometry(29,0.3,15),new THREE.MeshLambertMaterial({color:0x20262e}));
+      hRoof.position.copy(hbase); hRoof.position.y=sh.pos.y+10.15;
+      hRoof.rotation.y=Math.atan2(sh.tan.x,sh.tan.z)+Math.PI/2;
+      this.group.add(hRoof);
+      break;
+    }
+
+    // Hintergrund-Stadtsilhouette (weit entfernt, sieht aus wie Skyline)
+    const bgBuildColors=[0x2a3040,0x22283a,0x1e2436,0x303848,0x28303e];
+    for(let k=0;k<18;k++){
+      const ang=k/18*Math.PI*2;
+      let trackR=0;
+      for(const sm of S) trackR=Math.max(trackR, Math.hypot(sm.pos.x,sm.pos.z));
+      const r=trackR+140+Math.random()*180;
+      const bH=20+Math.random()*60;
+      const bW=12+Math.random()*20;
+      const bCol=bgBuildColors[k%bgBuildColors.length];
+      const bMat=new THREE.MeshLambertMaterial({color:bCol});
+      const bld=new THREE.Mesh(new THREE.BoxGeometry(bW,bH,bW*0.7),bMat);
+      bld.position.set(Math.cos(ang)*r, bH/2-2, Math.sin(ang)*r);
+      bld.castShadow=false;
+      this.group.add(bld);
+    }
+  }
+
+  _buildBillboards(){
+    const S=this.samples, N=this.N;
+    const sponsors=[
+      {text:'PIRELLI', bg:'#ffcc00', col:'#000000'},
+      {text:'ROLEX', bg:'#006039', col:'#ffffff'},
+      {text:'DHL', bg:'#fc0', col:'#d40511'},
+      {text:'ARAMCO', bg:'#00a3e0', col:'#ffffff'},
+      {text:'HEINEKEN', bg:'#008200', col:'#ffffff'},
+      {text:'AWS', bg:'#ff9900', col:'#232f3e'},
+      {text:'CRYPTO.COM', bg:'#001d5e', col:'#00a8ff'},
+    ];
+    const nBoards=Math.min(14, Math.floor(N/22));
+    const step=Math.floor(N/nBoards);
+    for(let bi=0;bi<nBoards;bi++){
+      const idx=bi*step+Math.floor(step*0.4);
+      const s=S[idx%N];
+      const sp=sponsors[bi%sponsors.length];
+      const sgn=Math.random()<0.5?1:-1;
+      const off=this.wallDist+3+Math.random()*4;
+      const bx=s.pos.clone().addScaledVector(s.side,sgn*off);
+      if(!this.clearOf(bx.x,bx.z,this.wallDist+2)) continue;
+      const bbTex=Tex.billboard(sp.text, sp.bg, sp.col);
+      const bbMat=new THREE.MeshBasicMaterial({map:bbTex,side:THREE.DoubleSide});
+      const bb=new THREE.Mesh(new THREE.PlaneGeometry(7.5,3.2),bbMat);
+      // Pfosten
+      const poleMat=new THREE.MeshLambertMaterial({color:0x3a3f47});
+      for(const px of [-3,3]){
+        const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,4,5),poleMat);
+        pole.position.set(bx.x+s.tan.x*px, s.pos.y+2, bx.z+s.tan.z*px);
+        this.group.add(pole);
+      }
+      bb.position.set(bx.x, s.pos.y+3.8, bx.z);
+      bb.rotation.y=Math.atan2(s.tan.x,s.tan.z)+(sgn>0?0:Math.PI);
+      this.group.add(bb);
     }
   }
 
