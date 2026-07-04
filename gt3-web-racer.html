@@ -3424,8 +3424,7 @@ class Input {
       if(this._isAction('pause', e.code)) Game.togglePause();
       if(this._isAction('camera', e.code) && (Game.state==='race'||Game.state==='finished')) Game.cameraRig.cycle(Game.car);
       if(this._isAction('restart', e.code) && (Game.state==='race'||Game.state==='finished')){
-        if(Game.mode === 'tt') Game._ttInvalidateLap();
-        else Game.restartRace();
+        Game.restartRace();
       }
       if(this._isAction('help', e.code)) document.getElementById('help').classList.toggle('hidden');
       if(this._isAction('respawn', e.code) && (Game.state==='race'||Game.state==='finished')){
@@ -13193,6 +13192,17 @@ const Game = {
   runCountdown(){
     const lights=[...document.querySelectorAll('#lights i')];
     const box=document.getElementById('lights');
+
+    /* Zeitfahren: keine Ampel, sofort losfahren — Rundenzeit startet
+       ohnehin erst beim Überqueren der Start/Ziel-Linie */
+    if(this.mode==='tt'){
+      box.classList.add('hidden');
+      this.input.locked = false;
+      this.state = 'race';
+      this.race.lapStart = performance.now();
+      return;
+    }
+
     box.classList.remove('hidden');
     lights.forEach(l=>l.classList.remove('on','green'));
 
