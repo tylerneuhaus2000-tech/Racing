@@ -11,11 +11,24 @@
 <style>
 /* ============ GT3 WEB RACER — Broadcast-Telemetrie-Look ============ */
 :root{
-  --bg:#0a0c0f; --panel:#11151acc; --line:#2a313a;
+  --bg:#0a0c0f; --panel:rgba(13,17,22,0.82); --line:#2a313a;
   --txt:#e8ecef; --dim:#8b95a1; --red:#ff2e3d; --green:#3dff7a; --amber:#ffb02e;
   --mono:'JetBrains Mono','Cascadia Mono',Consolas,ui-monospace,monospace;
   --sans:'Segoe UI',system-ui,-apple-system,sans-serif;
+  --rad:10px; --rad-sm:6px;
+  --glass-border:1px solid rgba(255,255,255,0.09);
+  --glass-shadow:0 8px 32px rgba(0,0,0,0.55);
 }
+/* Custom Scrollbar — durchgängig im ganzen Spiel */
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:rgba(255,255,255,0.03)}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.14);border-radius:5px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,46,61,0.5)}
+/* Selects — überall einheitlich statt Browser-Default */
+select{font-family:var(--sans);background:#161b22;color:var(--txt);border:1px solid var(--line);
+  border-radius:var(--rad-sm);padding:8px 10px;font-size:13px;cursor:pointer;outline:none}
+select:hover,select:focus{border-color:var(--red)}
+select option{background:#12161c}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none}
 html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font-family:var(--sans)}
 .hidden{display:none!important}
@@ -31,24 +44,28 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
     linear-gradient(#0a0c0f,#0d1116);
   z-index:30}
 .screen{width:min(860px,94vw);max-height:92vh;overflow:auto;padding:42px 48px;
-  background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--red);
-  backdrop-filter:blur(8px)}
+  background:var(--panel);border:var(--glass-border);border-top:3px solid var(--red);
+  border-radius:var(--rad);box-shadow:var(--glass-shadow);
+  backdrop-filter:blur(14px)}
 .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.35em;color:var(--red);margin-bottom:8px}
 h1{font-size:46px;letter-spacing:.04em;font-weight:800;line-height:1.05}
 h1 small{display:block;font-size:14px;font-weight:400;color:var(--dim);letter-spacing:.18em;margin-top:8px}
 h2{font-size:24px;letter-spacing:.1em;margin-bottom:4px}
 .sub{color:var(--dim);font-size:13px;margin-bottom:26px}
 .btnrow{display:flex;gap:14px;margin-top:30px;flex-wrap:wrap}
-button{font-family:var(--sans);cursor:pointer;border:1px solid var(--line);background:#161b22;color:var(--txt)}
+button{font-family:var(--sans);cursor:pointer;border:1px solid var(--line);background:#161b22;color:var(--txt);
+  border-radius:var(--rad-sm);transition:border-color .15s,background .15s,transform .12s,box-shadow .15s}
 button:hover{border-color:var(--red)}
 button:focus-visible{outline:2px solid var(--red);outline-offset:2px}
 .btn{padding:14px 30px;font-size:15px;letter-spacing:.14em;font-weight:700;text-transform:uppercase}
-.btn.primary{background:var(--red);border-color:var(--red);color:#fff}
-.btn.primary:hover{filter:brightness(1.12)}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,0.4)}
+.btn:active{transform:translateY(0)}
+.btn.primary{background:linear-gradient(135deg,#ff2e3d,#d61f2e);border-color:var(--red);color:#fff}
+.btn.primary:hover{filter:brightness(1.12);box-shadow:0 4px 18px rgba(255,46,61,0.35)}
 .cards{display:flex;flex-direction:column;gap:12px;margin-top:18px}
-.card{display:flex;gap:18px;align-items:center;padding:16px 18px;text-align:left;transition:transform .12s}
+.card{display:flex;gap:18px;align-items:center;padding:16px 18px;text-align:left;transition:transform .12s,box-shadow .15s;border-radius:var(--rad-sm)}
 .card.selected{outline:2px solid var(--green);box-shadow:0 0 0 1px rgba(34,196,99,0.22),0 0 18px rgba(34,196,99,0.10)}
-.card:hover{transform:translateX(4px)}
+.card:hover{transform:translateX(4px);box-shadow:0 4px 16px rgba(0,0,0,0.35)}
 .card canvas{background:#0c0f13;border:1px solid var(--line);flex:0 0 auto}
 .card b{display:block;font-size:18px;letter-spacing:.05em;margin-bottom:4px}
 .card span{color:var(--dim);font-size:12.5px;line-height:1.5}
@@ -335,8 +352,8 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #pit-car-select .pcs-btn{padding:5px 10px;background:#141820;border:1px solid var(--line);color:#a0a8b0;font:700 9px var(--mono);cursor:pointer;letter-spacing:.1em;transition:all .15s}
 #pit-car-select .pcs-btn:hover{border-color:var(--red);color:#fff}
 #pit-car-select .pcs-btn.selected{background:var(--red);border-color:var(--red);color:#fff}
-#tower{position:absolute;top:18px;left:18px;background:var(--panel);border-left:3px solid var(--red);
-  padding:12px 18px;min-width:215px}
+#tower{position:absolute;top:18px;left:18px;background:var(--panel);border:var(--glass-border);border-left:3px solid var(--red);
+  padding:12px 18px;min-width:215px;border-radius:0 var(--rad-sm) var(--rad-sm) 0;backdrop-filter:blur(10px);box-shadow:var(--glass-shadow)}
 #tower .row{display:flex;justify-content:space-between;gap:18px;font-size:13px;padding:2px 0}
 #tower .row span:first-child{color:var(--dim);letter-spacing:.12em;font-size:10px;padding-top:3px}
 #lap{font-size:15px;font-weight:700;letter-spacing:.1em;margin-bottom:6px}
@@ -380,7 +397,7 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #dmg-panel .dp-parts-chips{display:flex;flex-wrap:wrap;gap:2px}
 #dmg-panel .dp-pchip{font-size:7px;letter-spacing:.06em;padding:1px 4px;border-radius:2px;border:1px solid rgba(255,46,61,0.45);color:#ff5060;background:rgba(255,46,61,0.10);text-transform:uppercase;opacity:0;transition:opacity .3s}
 #dmg-panel .dp-pchip.lost{opacity:1}
-#leaderboard{position:fixed;bottom:14px;left:14px;background:rgba(13,16,20,0.85);border:1px solid var(--line);padding:8px 10px;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.06em;backdrop-filter:blur(4px);min-width:180px}
+#leaderboard{position:fixed;bottom:14px;left:14px;background:rgba(10,13,17,0.86);border:var(--glass-border);padding:8px 10px;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.06em;backdrop-filter:blur(10px);min-width:180px;border-radius:var(--rad-sm);box-shadow:var(--glass-shadow)}
 #leaderboard .lb-title{color:#e8ecef;font-weight:700;margin-bottom:6px;font-size:9px;letter-spacing:.15em}
 #leaderboard .lb-row{display:flex;justify-content:space-between;gap:10px;line-height:1.5;color:#a0a8b0}
 #leaderboard .lb-row.you{color:#22c463;font-weight:700;background:rgba(34,196,99,0.08);padding:0 4px;margin:0 -4px}
@@ -397,7 +414,7 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #leaderboard .lb-class.gt3{background:#55a8ff;color:#07131f}
 #leaderboard .lb-class.lmp1{background:#ff4a58;color:#1a0709}
 #leaderboard.hidden{display:none}
-#stats-bar{position:fixed;top:6px;left:50%;transform:translateX(-50%);display:flex;gap:16px;background:rgba(13,16,20,0.75);border:1px solid var(--line);padding:4px 14px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.10em;backdrop-filter:blur(3px);z-index:10}
+#stats-bar{position:fixed;top:6px;left:50%;transform:translateX(-50%);display:flex;gap:16px;background:rgba(10,13,17,0.78);border:var(--glass-border);padding:4px 14px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.10em;backdrop-filter:blur(8px);z-index:10;border-radius:999px}
 #stats-bar span{white-space:nowrap}
 #stat-km{color:#22c463;font-weight:700}
 #stat-wall{color:#ffd400}
@@ -410,8 +427,12 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #pos{font-size:24px;font-weight:800;letter-spacing:.08em;color:var(--red);margin-bottom:4px}
 #results{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   background:rgba(8,10,13,0.78);z-index:30}
-#results .panel{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--red);
-  padding:30px 38px;min-width:320px}
+#results .panel{background:var(--panel);border:var(--glass-border);border-left:3px solid var(--red);
+  padding:30px 38px;min-width:320px;border-radius:var(--rad);backdrop-filter:blur(14px);box-shadow:var(--glass-shadow)}
+/* Vignette während der Fahrt — subtiler Fokus auf die Streckenmitte */
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:5;
+  background:radial-gradient(ellipse at center,transparent 62%,rgba(0,0,0,0.32) 100%)}
+#vignette.hidden{display:none}
 #results h2{margin:4px 0 14px}
 #resultlist{width:100%;border-collapse:collapse}
 #resultlist tr{border-bottom:1px solid #1a242e;transition:background .15s}
@@ -445,8 +466,8 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #tt-vtrap span:first-child{color:var(--dim);letter-spacing:.12em;font-size:9px}
 #vtrap-val{font-weight:700;color:#ffd400;font-variant-numeric:tabular-nums}
 /* Rundenhistorie */
-#tt-laphist{position:absolute;top:18px;left:250px;background:var(--panel);border-left:3px solid #8844cc;
-  padding:8px 14px;min-width:160px;font-family:var(--mono)}
+#tt-laphist{position:absolute;top:18px;left:250px;background:var(--panel);border:var(--glass-border);border-left:3px solid #8844cc;
+  padding:8px 14px;min-width:160px;font-family:var(--mono);border-radius:0 var(--rad-sm) var(--rad-sm) 0;backdrop-filter:blur(10px);box-shadow:var(--glass-shadow)}
 #tt-laphist-title{font-size:9px;letter-spacing:.15em;color:var(--dim);margin-bottom:5px}
 .lh-row{display:flex;justify-content:space-between;gap:14px;font-size:12px;padding:1px 0;font-variant-numeric:tabular-nums}
 .lh-row .lh-n{color:var(--dim);font-size:9px;min-width:16px;padding-top:2px}
@@ -454,8 +475,8 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 .lh-best .lh-t{color:#c090ff}.lh-ok .lh-t{color:#e8ecef}.lh-inv .lh-t{color:#ff4444}
 #minimap{position:absolute;top:290px;right:18px;background:rgba(6,8,12,0.78);border:1px solid rgba(255,255,255,0.13);border-radius:6px;box-shadow:0 2px 16px rgba(0,0,0,0.55)}
 /* Dashboard unten rechts — Signatur: GT3-Schaltblitzleiste */
-#dash{position:absolute;right:24px;bottom:24px;background:var(--panel);border:1px solid var(--line);
-  padding:14px 22px 16px;text-align:right;min-width:230px}
+#dash{position:absolute;right:24px;bottom:24px;background:var(--panel);border:var(--glass-border);
+  padding:14px 22px 16px;text-align:right;min-width:230px;border-radius:var(--rad-sm);backdrop-filter:blur(10px);box-shadow:var(--glass-shadow)}
 #rpmbar{display:flex;gap:4px;justify-content:flex-end;margin-bottom:10px}
 #rpmbar i{width:13px;height:9px;background:#1d242d;transition:background .03s}
 #rpmbar i.on{background:var(--green);box-shadow:0 0 7px #3dff7a66}
@@ -468,8 +489,8 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #speed{font-size:44px;font-weight:700;line-height:1}
 #dash .unit{font-size:11px;color:var(--dim);letter-spacing:.2em}
 #carname{font-size:10px;letter-spacing:.22em;color:var(--dim);margin-top:8px}
-#tyrebox{position:absolute;right:24px;bottom:132px;background:var(--panel);border:1px solid var(--line);
-  padding:12px 14px 10px;min-width:230px;font-family:var(--mono);backdrop-filter:blur(4px)}
+#tyrebox{position:absolute;right:24px;bottom:132px;background:var(--panel);border:var(--glass-border);
+  padding:12px 14px 10px;min-width:230px;font-family:var(--mono);backdrop-filter:blur(10px);border-radius:var(--rad-sm);box-shadow:var(--glass-shadow)}
 #tyrebox .tb-title{font-size:9px;letter-spacing:.24em;color:var(--red);margin-bottom:8px;font-weight:700}
 #tyrebox .tb-row{display:grid;grid-template-columns:34px 1fr 44px;align-items:center;gap:8px;margin-top:6px;font-size:10px;color:#a0a8b0}
 #tyrebox .tb-bar{height:6px;background:#1a2026;border:1px solid var(--line);position:relative}
@@ -1365,6 +1386,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 
 <div id="flash-notif"></div>
 <div id="flash-screen"></div>
+<div id="vignette" class="hidden"></div>
 <div id="mirror-wrap"></div>
 <div id="flag-border"></div>
 <div id="pit-car-select"><div class="pcs-title">FAHRZEUG WECHSELN — WIRD BEI STOPP-ENDE ANGEWENDET</div><div class="pcs-grid" id="pit-car-grid"></div></div>
@@ -10205,6 +10227,8 @@ const Game = {
     renderer.setPixelRatio(Math.min(devicePixelRatio,1.0)*this.settings.resScale);
     renderer.shadowMap.enabled=true;
     renderer.shadowMap.type=THREE.PCFShadowMap; // PCFSoft→PCF: deutlich schneller
+    renderer.toneMapping=THREE.ACESFilmicToneMapping; // filmischer Look, sattere Farben
+    renderer.toneMappingExposure=1.15;
     document.getElementById('view').appendChild(renderer.domElement);
     addEventListener('resize',()=>{
       this.camera.aspect=innerWidth/innerHeight; this.camera.updateProjectionMatrix();
@@ -10820,7 +10844,7 @@ const Game = {
       this.hemi.intensity = lerp(0.9, 0.48, duskMix);
     }
     if(this.renderer){
-      this.renderer.toneMappingExposure = lerp(1.05, 0.65, duskMix) * (1 - (w.rain || 0) * 0.08);
+      this.renderer.toneMappingExposure = lerp(1.25, 0.72, duskMix) * (1 - (w.rain || 0) * 0.08);
     }
   },
   /* ── REGEN-VISUALEFFEKTE ─────────────────────────────────────────
@@ -13042,6 +13066,7 @@ const Game = {
 
     document.getElementById('hud').classList.remove('hidden');
     document.getElementById('input-meter').classList.remove('hidden');
+    document.getElementById('vignette')?.classList.remove('hidden');
     MFD.init();
     MFD._pitCalled = false;
     RaceEngineer.showWidget();
@@ -13432,6 +13457,7 @@ const Game = {
     document.getElementById('pause').classList.add('hidden');
     document.getElementById('hud').classList.add('hidden');
     document.getElementById('input-meter').classList.add('hidden');
+    document.getElementById('vignette')?.classList.add('hidden');
     document.getElementById('menus').classList.remove('hidden');
     // Funk-Log ausblenden und leeren beim Zurück ins Menü
     const engLog = document.getElementById('eng-log');
