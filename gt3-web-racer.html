@@ -336,7 +336,7 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 
 /* ---------- HUD ---------- */
 #hud{position:absolute;inset:0;pointer-events:none;z-index:20;font-family:var(--mono)}
-#input-meter{position:fixed;bottom:32px;left:calc(50% - 80px);display:flex;flex-direction:column;gap:4px;align-items:stretch;width:160px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:8px 10px;backdrop-filter:blur(6px)}
+#input-meter{position:fixed;bottom:18px;right:640px;display:flex;flex-direction:column;gap:4px;align-items:stretch;width:160px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:8px 10px;backdrop-filter:blur(6px)}
 .im-label{font:700 8px var(--mono);letter-spacing:.15em;color:rgba(255,255,255,.35);margin-bottom:1px}
 .im-bar-wrap{height:8px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;margin-bottom:4px}
 .im-bar{height:100%;width:0%;border-radius:3px;transition:width .04s linear}
@@ -410,6 +410,7 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #leaderboard .lb-gt3{background:#2878c8;color:#fff}
 #leaderboard .lb-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px}
 #leaderboard .lb-gap{font-variant-numeric:tabular-nums;color:#a0a8b0;min-width:48px;text-align:right}
+#leaderboard .lb-skip{text-align:center;color:#4a5560;font-size:8px;letter-spacing:.3em;line-height:1.1;padding:1px 0}
 #leaderboard .lb-class{font-size:8px;letter-spacing:.16em;padding:1px 5px;border-radius:999px;align-self:center;margin-right:6px}
 #leaderboard .lb-class.gt3{background:#55a8ff;color:#07131f}
 #leaderboard .lb-class.lmp1{background:#ff4a58;color:#1a0709}
@@ -505,8 +506,8 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #tyrebox .tb-chip.tc-hot{border-color:#ffa820;background:#100800}
 #tyrebox .tb-chip.tc-over{border-color:#ff2e3d;background:#140002}
 #tyrebox.hidden{display:none}
-#camlabel{position:absolute;left:24px;bottom:24px;background:var(--panel);border:1px solid var(--line);
-  padding:8px 14px;font-size:10px;letter-spacing:.2em;color:var(--dim)}
+#camlabel{position:fixed;top:32px;left:50%;transform:translateX(-50%);background:rgba(10,13,17,0.70);border:var(--glass-border);
+  padding:4px 14px;font-size:9px;letter-spacing:.2em;color:var(--dim);border-radius:999px;backdrop-filter:blur(8px);z-index:10}
 /* Startampel */
 #lights{position:absolute;top:14%;left:50%;transform:translateX(-50%);display:flex;gap:14px;
   background:#0c0f13e8;padding:18px 24px;border:1px solid var(--line);z-index:25}
@@ -655,13 +656,15 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 #eng-widget{
   position:fixed;bottom:18px;right:340px;
   z-index:60;display:flex;flex-direction:column;align-items:stretch;gap:6px;
-  font-family:var(--mono);width:300px;
+  font-family:var(--mono);width:280px;
+  opacity:.72;transition:opacity .2s;
 }
+#eng-widget:hover,#eng-widget:focus-within{opacity:1}
 #eng-widget.hidden{display:none}
 /* Funk-Log */
 #eng-log{
-  background:rgba(7,10,13,.92);border:1px solid #1e2530;
-  display:flex;flex-direction:column;max-height:160px;
+  background:rgba(7,10,13,.82);border:var(--glass-border);border-radius:var(--rad-sm);
+  display:flex;flex-direction:column;max-height:120px;backdrop-filter:blur(8px);overflow:hidden;
 }
 #eng-log-header{
   display:flex;justify-content:space-between;align-items:center;
@@ -1116,7 +1119,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
       <div id="damage-bar"><i></i></div>
       <span id="damage-pct">0%</span>
     </div>
-      <div class="row"><span>MODEL</span><b id="modeldbg">—</b></div>
+      <div class="row" style="display:none"><span>MODEL</span><b id="modeldbg">—</b></div>
     <div id="fuel-row" style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:10px;color:var(--dim);letter-spacing:.12em">
       <span class="dmg-label">SPRIT</span>
       <div id="fuel-bar" style="flex:1;height:6px;background:#1a2026;border:1px solid var(--line);position:relative"><i style="display:block;height:100%;width:70%;background:linear-gradient(90deg,#ff2e3d 0%,#ffa820 45%,#22e87a 100%);transition:width 0.4s"></i></div>
@@ -8248,11 +8251,21 @@ const HUD = {
       const playerBestLap = race?.bestLap||null;
       entries.sort((a,b) => b.score - a.score);
       let html = '';
-      const showCount = Math.min(entries.length, 15);
       const playerIdx = entries.findIndex(e => e.isPlayer);
       const leaderScore = entries[0]?.score || 1;
-      entries.forEach((e, i) => {
-        if(i >= showCount && i !== playerIdx) return;
+      /* Kompaktes Broadcast-Fenster: Top 3 + 2 Autos um den Spieler.
+         Bei ≤ 8 Autos einfach alle zeigen. */
+      let visIdx;
+      if(entries.length <= 8){
+        visIdx = entries.map((_, i) => i);
+      } else {
+        const set = new Set([0, 1, 2]);
+        for(let k = playerIdx - 2; k <= playerIdx + 2; k++)
+          if(k >= 0 && k < entries.length) set.add(k);
+        visIdx = [...set].sort((a, b) => a - b);
+      }
+      let prevIdx = -1;
+      const renderRow = (e, i) => {
         // Gap zum Leader berechnen
         let gapStr = '';
         if(i === 0){
@@ -8281,7 +8294,12 @@ const HUD = {
           <span class="lb-name">${e.name}${persTag}${e.finished?' '+e.finished:''}${inPit?'<span class="lb-pit">PIT</span>':''}${isFl?'<span class="lb-fl">FL</span>':''}</span>
           <span class="lb-gap">${gapStr}</span>
         </div>`;
-      });
+      };
+      for(const i of visIdx){
+        if(prevIdx >= 0 && i > prevIdx + 1) html += `<div class="lb-skip">···</div>`;
+        renderRow(entries[i], i);
+        prevIdx = i;
+      }
       this._lbList.innerHTML = html;
       this._lbWrap.classList.toggle('hidden', !totalLaps && !hasMP);
       /* Live-gap: Auto direkt vor/hinter dem Spieler */
@@ -10127,10 +10145,11 @@ const Game = {
     try{ Store.set('keyboard_bindings_v1', JSON.stringify(this.keybinds)); } catch(e){}
   },
   saveHudLayout(layout){
-    try{ Store.set('hud_layout_v1', JSON.stringify(layout)); } catch(e){}
+    try{ Store.set('hud_layout_v2', JSON.stringify(layout)); } catch(e){}
   },
   loadHudLayout(){
-    try{ return JSON.parse(Store.get('hud_layout_v1') || '{}'); } catch(e){ return {}; }
+    /* v2: altes v1-Layout verworfen — Default-Positionen wurden neu gestaltet */
+    try{ return JSON.parse(Store.get('hud_layout_v2') || '{}'); } catch(e){ return {}; }
   },
   adjustERSLevel(delta){
     if(!this.car || !this.car.hasERS || !this.car.ers) return;
