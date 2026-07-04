@@ -1896,6 +1896,14 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
             <span>Boxenstopps / Schaden / Reifenverschleiß</span><input type="checkbox" id="race-pitstops">
           </div>
           <div class="setrow" style="margin-top:4px">
+            <span>Reifenmischung</span>
+            <select id="race-compound">
+              <option value="soft">🔴 Soft — mehr Grip, schneller Verschleiß</option>
+              <option value="medium" selected>🟡 Medium — ausgewogen</option>
+              <option value="hard">⚪ Hard — weniger Grip, hält lange</option>
+            </select>
+          </div>
+          <div class="setrow" style="margin-top:4px">
             <span>Meisterschaft aktiv</span><input type="checkbox" id="race-championship">
           </div>
           <button class="btn primary" id="btn-mode-race" style="margin-top:10px">Rennen starten</button>
@@ -7507,6 +7515,9 @@ class AIDriver {
     let tgtV = this.planCornerSpeed(car, track, q, speed, kAero, weather);
     tgtV *= this._tireModeVFactor();
 
+    // Dynamische Schwierigkeit: führende KI schont Reifen wenn Spieler weit zurück
+    if(typeof Game !== 'undefined' && Game._aiEaseCar === car) tgtV *= 0.985;
+
     // Pit-Limiter
     if(this.pitState==='go-to-pit'||this.pitState==='in-pit'||this.pitState==='done-pit')
       car.pitLimiterActive = true;
@@ -8266,7 +8277,13 @@ const HUD = {
             const diff = sorted2[pi-1].score - sorted2[pi].score;
             const secs = (diff < 1 ? diff * trackLen2 / avgSpd : diff * 60).toFixed(1);
             if(this._lgAhead) this._lgAhead.textContent = '+' + secs + 's';
-          } else { if(this._lgAhead) this._lgAhead.textContent = 'LEADER'; }
+            /* Dynamische Schwierigkeit: liegt der Spieler > 25s hinter P1, fährt
+               die führende KI subtil im Reifenschon-Modus (~1.5% langsamer).
+               Kein Rubber-Band — realistisch als Pace-Management getarnt. */
+            const leadDiff = sorted2[0].score - sorted2[pi].score;
+            const leadGapSec = leadDiff < 1 ? leadDiff * trackLen2 / avgSpd : leadDiff * 60;
+            Game._aiEaseCar = (leadGapSec > 25 && !sorted2[0].isPlayer) ? sorted2[0].car : null;
+          } else { if(this._lgAhead) this._lgAhead.textContent = 'LEADER'; Game._aiEaseCar = null; }
           if(pi < sorted2.length - 1){
             const diff2 = sorted2[pi].score - sorted2[pi+1].score;
             const secs2 = (diff2 < 1 ? diff2 * trackLen2 / avgSpd : diff2 * 60).toFixed(1);
@@ -10278,8 +10295,25 @@ const Game = {
     if(!this.car) return;
     this.car.setup = Object.assign(setupDefaults(), this.setupProfile || {});
     if(this.aiCars && this.aiCars.length){
-      for(const c of this.aiCars){
-        c.setup = Object.assign(setupDefaults(), { wing: 50, wingFront:48, wingRear:62, brakeBalance: 58, fuel: 60, compound: 'medium' });
+      for(let i = 0; i < this.aiCars.length; i++){
+        const c = this.aiCars[i];
+        /* Strategische Reifenwahl der KI:
+           - Kurzes Rennen (≤5 Rd.) oder Regen erwartet → Soft (Grip zählt)
+           - Pflicht-Boxenstopp → AGGRESSIVE startet Soft, Rest Medium
+           - Langes Rennen ohne Stopp → Hard/Medium je nach Persönlichkeit */
+        const pers = c._personalityType || 'PRO';
+        const laps = this.totalLaps || 3;
+        let compound;
+        if(!this.pitStopsEnabled || laps <= 5){
+          compound = pers === 'DEFENSIVE' ? 'medium' : 'soft';
+        } else if(this.mandatoryPitStop){
+          compound = (pers === 'AGGRESSIVE' || pers === 'PRO') ? 'soft' : 'medium';
+        } else if(laps > 10){
+          compound = pers === 'AGGRESSIVE' ? 'medium' : 'hard';
+        } else {
+          compound = 'medium';
+        }
+        c.setup = Object.assign(setupDefaults(), { wing: 50, wingFront:48, wingRear:62, brakeBalance: 58, fuel: 60, compound });
       }
     }
   },
@@ -10789,6 +10823,108 @@ const Game = {
       this.renderer.toneMappingExposure = lerp(1.05, 0.65, duskMix) * (1 - (w.rain || 0) * 0.08);
     }
   },
+  /* ── REGEN-VISUALEFFEKTE ─────────────────────────────────────────
+     Regen-Streaks (LineSegments) um die Kamera + Gischt hinter schnellen Autos.
+     Wird nur bei rain > 0.03 gerendert, sonst unsichtbar (kein GPU-Kosten). */
+  _initRainFX(){
+    const N = 900;                       // Regentropfen
+    this._rainN = N;
+    const pos = new Float32Array(N * 6); // 2 Verts pro Streak
+    this._rainDrops = new Float32Array(N * 3);
+    for(let i = 0; i < N; i++){
+      this._rainDrops[i*3]   = (Math.random()-0.5) * 120;
+      this._rainDrops[i*3+1] = Math.random() * 50;
+      this._rainDrops[i*3+2] = (Math.random()-0.5) * 120;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    this._rainMat = new THREE.LineBasicMaterial({color:0xaac4dd, transparent:true, opacity:0.35, fog:false, depthWrite:false});
+    this._rainMesh = new THREE.LineSegments(geo, this._rainMat);
+    this._rainMesh.frustumCulled = false;
+    this._rainMesh.visible = false;
+    this.scene.add(this._rainMesh);
+
+    // Gischt: geteiltes Punktesystem, Partikel werden hinter fahrenden Autos gespawnt
+    const SN = 240;
+    this._sprayN = SN;
+    this._sprayLife = new Float32Array(SN);
+    this._sprayVel  = new Float32Array(SN * 3);
+    const spos = new Float32Array(SN * 3).fill(9999);
+    const sgeo = new THREE.BufferGeometry();
+    sgeo.setAttribute('position', new THREE.BufferAttribute(spos, 3));
+    this._sprayMat = new THREE.PointsMaterial({color:0xdde8f0, size:0.55, transparent:true, opacity:0.30, fog:true, depthWrite:false});
+    this._sprayMesh = new THREE.Points(sgeo, this._sprayMat);
+    this._sprayMesh.frustumCulled = false;
+    this._sprayMesh.visible = false;
+    this.scene.add(this._sprayMesh);
+    this._spraySlot = 0;
+  },
+  _updateRainFX(dt){
+    if(!this.scene || !this.camera) return;
+    const rain = this.weather ? (this.weather.rain || 0) : 0;
+    if(!this._rainMesh){
+      if(rain < 0.03) return;
+      this._initRainFX();
+    }
+    const active = rain > 0.03 && (this.state==='race' || this.state==='countdown' || this.state==='pause');
+    this._rainMesh.visible = active;
+    this._sprayMesh.visible = active;
+    if(!active) return;
+
+    // Regen-Streaks: fallen mit ~48 m/s, Box folgt der Kamera
+    const cam = this.camera.position;
+    const fall = 48 * dt;
+    const pos = this._rainMesh.geometry.attributes.position.array;
+    const drops = this._rainDrops;
+    const streakLen = 0.9 + rain * 0.8;
+    for(let i = 0; i < this._rainN; i++){
+      let y = drops[i*3+1] - fall;
+      if(y < 0){
+        y = 45 + Math.random()*8;
+        drops[i*3]   = (Math.random()-0.5) * 120;
+        drops[i*3+2] = (Math.random()-0.5) * 120;
+      }
+      drops[i*3+1] = y;
+      const wx = cam.x + drops[i*3], wy = cam.y - 20 + y, wz = cam.z + drops[i*3+2];
+      pos[i*6]=wx;   pos[i*6+1]=wy;            pos[i*6+2]=wz;
+      pos[i*6+3]=wx; pos[i*6+4]=wy+streakLen;  pos[i*6+5]=wz;
+    }
+    this._rainMesh.geometry.attributes.position.needsUpdate = true;
+    this._rainMat.opacity = clamp(rain * 0.55, 0.12, 0.45);
+
+    // Gischt hinter schnellen Autos spawnen
+    const spos = this._sprayMesh.geometry.attributes.position.array;
+    if(this.allCars) for(const c of this.allCars){
+      if((c.speedKmh||0) < 70 || !c.pos) continue;
+      const dx = c.pos.x - cam.x, dz = c.pos.z - cam.z;
+      if(dx*dx + dz*dz > 22500) continue;    // nur < 150m von Kamera
+      // 2 Partikel pro Auto pro Frame bei starkem Regen
+      const nSpawn = rain > 0.4 ? 2 : 1;
+      for(let k = 0; k < nSpawn; k++){
+        const s = this._spraySlot = (this._spraySlot + 1) % this._sprayN;
+        const sh = Math.sin(c.heading), ch = Math.cos(c.heading);
+        spos[s*3]   = c.pos.x - sh*2.4 + (Math.random()-0.5)*1.6;
+        spos[s*3+1] = c.pos.y + 0.25;
+        spos[s*3+2] = c.pos.z - ch*2.4 + (Math.random()-0.5)*1.6;
+        this._sprayVel[s*3]   = -sh * (c.vx||0) * 0.25 + (Math.random()-0.5)*2;
+        this._sprayVel[s*3+1] = 1.5 + Math.random()*2.5;
+        this._sprayVel[s*3+2] = -ch * (c.vx||0) * 0.25 + (Math.random()-0.5)*2;
+        this._sprayLife[s] = 0.55;
+      }
+    }
+    // Gischt-Partikel bewegen und ausblenden
+    for(let s = 0; s < this._sprayN; s++){
+      if(this._sprayLife[s] <= 0) continue;
+      this._sprayLife[s] -= dt;
+      if(this._sprayLife[s] <= 0){ spos[s*3+1] = -9999; continue; }
+      spos[s*3]   += this._sprayVel[s*3]   * dt;
+      spos[s*3+1] += this._sprayVel[s*3+1] * dt;
+      spos[s*3+2] += this._sprayVel[s*3+2] * dt;
+      this._sprayVel[s*3+1] -= 6 * dt;
+    }
+    this._sprayMesh.geometry.attributes.position.needsUpdate = true;
+    this._sprayMat.opacity = clamp(rain * 0.42, 0.10, 0.34);
+  },
   configureGhostCar(car){
     if(!car || !car.group) return;
     car.isGhost = true;
@@ -11185,6 +11321,13 @@ const Game = {
   },
 
   /* ---------------- Rennablauf ---------------- */
+  /* Fahrernamen-Pools pro Persönlichkeit — machen die KI lebendig */
+  AI_DRIVER_NAMES: {
+    AGGRESSIVE: ['Max Sturm','Rico Blitz','Dante Fuego','Viktor Krall','Jax Riva','Bruno Falk','Enzo Marek','Kai Donner'],
+    DEFENSIVE:  ['Lars Stein','Henrik Wall','Oscar Ruhe','Piet Mauer','Samuel Berg','Nils Anker','Theo Block','Jan Schild'],
+    ROOKIE:     ['Luca Ferrari','Timo Jung','Felix Neu','Ben Grün','Noah Frisch','Leon Start','Emil Lehr','Paul Anfang'],
+    PRO:        ['Ayrton Weiss','Michael Kern','Sebastian Adler','Lewis Falke','Fernando Klar','Niki Strom','Alain Präz','Jim Meister']
+  },
   AI_LIVERIES:[
     {color:0x2456c8, accent:0xffffff, name:'KI · Blau'},
     {color:0xe88a12, accent:0x16181c, name:'KI · Orange'},
@@ -12765,6 +12908,9 @@ const Game = {
         const driver = new AIDriver(drvDiff, i, nAI, preset);
         driver.setupForRace(this.totalLaps, this.mandatoryPitStop);
         car._personalityType = preset.type; // für Leaderboard-Anzeige
+        // Echter Fahrername passend zur Persönlichkeit (statt "KI · Blau")
+        const namePool = this.AI_DRIVER_NAMES[preset.type];
+        if(namePool) car.def.name = namePool[Math.floor(i / AI_PERSONALITY_PRESETS.length) % namePool.length];
         this.aiDrivers.push(driver);
       }
       this.car.rd=this.freshRD();
@@ -13021,18 +13167,38 @@ const Game = {
         setTimeout(()=>box.classList.add('hidden'), 900);
       }, 5000);
     } else {
-      /* === STEHENDER START: klassische 5 Lichter === */
+      /* === STEHENDER START: 5 Lichter + zufällige Lights-Out-Verzögerung (wie echte F1) === */
       this.input.locked = true;
+      this._jumpStart = false;
       let i = 0;
+      // Frühstart-Erkennung: Gas gedrückt während Ampelphase (ab 2. Licht)
+      const kb = this.keybinds || defaultKeybinds;
+      const jumpCheck = setInterval(() => {
+        if(this.state !== 'countdown' && this.state !== 'race'){ clearInterval(jumpCheck); return; }
+        if(!this.input.locked){ clearInterval(jumpCheck); return; }
+        if(i >= 2 && this.input.keys && (this.input.keys[kb.throttle] || this.input.keys['KeyW'] || this.input.keys['ArrowUp'])){
+          this._jumpStart = true;
+        }
+      }, 50);
+      const go = () => {
+        lights.forEach(l=>l.classList.add('green'));
+        this.state = 'race';
+        this.race.lapStart = performance.now();
+        setTimeout(()=>box.classList.add('hidden'), 800);
+        if(this._jumpStart){
+          // Frühstart: Input bleibt 2.5s gesperrt als Strafe
+          this._showFlash('FRÜHSTART! 2.5s STRAFE', '#ff2e3d', 2600);
+          setTimeout(() => { this.input.locked = false; }, 2500);
+        } else {
+          this.input.locked = false;
+        }
+      };
       const tick = () => {
         if(this.state!=='countdown' && this.state!=='race') return;
         if(i < 5){ lights[i].classList.add('on'); i++; setTimeout(tick, 380); }
         else {
-          lights.forEach(l=>l.classList.add('green'));
-          this.input.locked = false;
-          this.state = 'race';
-          this.race.lapStart = performance.now();
-          setTimeout(()=>box.classList.add('hidden'), 800);
+          // Zufällige Verzögerung bis Lights-Out: 0.5–2.2s — niemand kennt den Moment
+          setTimeout(go, 500 + Math.random()*1700);
         }
       };
       setTimeout(tick, 300);
@@ -13565,6 +13731,7 @@ const Game = {
       this.acc = Math.min(this.acc, PHYS_DT * 4); // max 4 Sub-Steps, verhindert Todesspirale
       this.updateWeather(dt);
       this.applyWeatherVisuals();
+      this._updateRainFX(dt);
       let steps=0;
       const running=this.state==='race'||this.state==='finished';
       while(this.acc>=PHYS_DT && steps<4){
@@ -14600,8 +14767,15 @@ const Game = {
       this.rollingStart = $('race-rolling') ? $('race-rolling').checked : true;
       this.pitStopsEnabled = $('race-pitstops') ? $('race-pitstops').checked : false;
       this.championshipEnabled = $('race-championship') ? $('race-championship').checked : false;
+      // Reifenmischung aus Quick-Select übernehmen (synchron mit Setup-Screen)
+      if($('race-compound')){
+        if(this.setupProfile) this.setupProfile.compound = $('race-compound').value;
+        this.saveSetupProfile();
+      }
       this.startRace();
     };
+    // Quick-Select mit gespeichertem Setup initialisieren
+    if($('race-compound') && this.setupProfile?.compound) $('race-compound').value = this.setupProfile.compound;
     $('btn-back-mode').onclick=()=>this.showScreen('screen-car');
     // Editor buttons removed with new 3D system
     if($('btn-ed-add-straight')) $('btn-ed-add-straight').onclick=()=>this.addEditorSegment('straight');
