@@ -2489,7 +2489,7 @@ const Store = {
 /* Versions-Guard: wenn sich die CARS-Liste ändert (Autos hinzugefügt/entfernt),
    wird der LocalStorage einmalig geleert um veraltete Indizes zu verhindern.
    Einfach GAME_DATA_VERSION erhöhen nach Änderungen an CARS oder TRACKS. */
-const GAME_DATA_VERSION = '8';
+const GAME_DATA_VERSION = '9';
 (()=>{
   try {
     if(Store.get('game_data_version') !== GAME_DATA_VERSION){
@@ -3051,6 +3051,36 @@ const TRACKS = [
     ],
     heading:0, startX:0, startZ:0, startY:0,
     pitLane:{ side:-1, startPct:0.5, endPct:13, innerOff:9.0, outerOff:18.5 }
+  },
+
+  /* ───────────────────────────────────────────────────────────────────────
+     KÜSTENKURS RIVIERA · Mittelmeer · ~4.1 km · punktsymmetrisch (schließt exakt)
+     Zwei Switchback-Passagen mit Meerblick, leichte Anstiege.            */
+  {
+    id:'riviera', name:'Küstenkurs Riviera', env:'coastal',
+    sub:'Mittelmeer-Flair · Meerblick · Switchback-Passagen · ~4.1 km',
+    halfWidth:8.0, sky:0x8ec8f0, hill:0x6a9a52, grass:[0x4a8a3d,0x3d7833],
+    wallDist:24, vergeW:18,
+    segments:[
+      {type:'straight', len:500, rise:10},
+      {type:'arc', radius:140, deg:90,  dir:1},
+      {type:'straight', len:250},
+      {type:'arc', radius:55,  deg:180, dir:-1},
+      {type:'straight', len:250, rise:-10},
+      {type:'arc', radius:55,  deg:180, dir:1},
+      {type:'straight', len:200},
+      {type:'arc', radius:190, deg:90,  dir:1},
+      {type:'straight', len:500, rise:10},
+      {type:'arc', radius:140, deg:90,  dir:1},
+      {type:'straight', len:250},
+      {type:'arc', radius:55,  deg:180, dir:-1},
+      {type:'straight', len:250, rise:-10},
+      {type:'arc', radius:55,  deg:180, dir:1},
+      {type:'straight', len:200},
+      {type:'arc', radius:190, deg:90,  dir:1}
+    ],
+    heading:0, startX:0, startZ:0, startY:0,
+    pitLane:{ side:-1, startPct:0.5, endPct:11, innerOff:10.5, outerOff:20.5 }
   },
 
   /* ───────────────────────────────────────────────────────────────────────
@@ -4457,9 +4487,34 @@ class Track {
     beam.castShadow=true; this.group.add(beam);
   }
 
+  /** Erkennt das Umgebungs-Thema der Strecke (aus def.env oder Name/Farben). */
+  _envTheme(){
+    const d=this.def;
+    if(d.env) return d.env;
+    const id=((d.id||'')+' '+(d.name||'')+' '+(d.sub||'')).toLowerCase();
+    if(/desert|wüst|wust|bahrain|oasis|sahara|dubai|sand/.test(id)) return 'desert';
+    if(/alpen|alpine|berg|mountain|kristall|dolomit/.test(id)) return 'alpine';
+    if(/insel|marin|coast|küst|kust|beach|island|riviera|bucht/.test(id)) return 'coastal';
+    if(/stadt|city|monaco|street|shanghai|singapur|tokyo|baku/.test(id)) return 'city';
+    // Fallback über Grasfarbe: sandige Töne → Wüste
+    const g=Array.isArray(d.grass)?d.grass[0]:0x4e8b3a;
+    if(((g>>16)&255)>130 && ((g>>8)&255)>100 && (g&255)<110) return 'desert';
+    return 'forest';
+  }
+
   buildEnvironment(){
     const S=this.samples,N=this.N;
-    // Grundfläche mit Gras-Textur
+    const theme=this.theme=this._envTheme();
+    const TH={
+      forest: {hillN:24, hillH:[80,220],  snow:false, dune:false, trees:900,  mix:[0.38,0.75], crown:[0x1e5a18,0x2a6820,0x3a7228], palms:false, cacti:false, rocks:8,  skyline:8,  water:false},
+      alpine: {hillN:30, hillH:[180,460], snow:true,  dune:false, trees:1000, mix:[0.72,0.92], crown:[0x14421a,0x1d5522,0x2a6428], palms:false, cacti:false, rocks:26, skyline:0,  water:false},
+      desert: {hillN:20, hillH:[26,95],   snow:false, dune:true,  trees:200,  mix:[0.0,0.0],   crown:[0x3d7a2e,0x4a8a38,0x6a8a3a], palms:true,  cacti:true,  rocks:30, skyline:0,  water:false},
+      coastal:{hillN:14, hillH:[50,140],  snow:false, dune:false, trees:460,  mix:[0.12,0.45], crown:[0x2a7a28,0x3a8a30,0x4a9a40], palms:true,  cacti:false, rocks:14, skyline:5,  water:true},
+      city:   {hillN:8,  hillH:[40,110],  snow:false, dune:false, trees:280,  mix:[0.15,0.6],  crown:[0x2a6820,0x35752a,0x407f32], palms:false, cacti:false, rocks:0,  skyline:52, water:false}
+    }[theme];
+    this._themeCfg=TH;
+
+    // Grundfläche mit Gras-/Sand-Textur
     const gcol=this.def.grass[1];
     const grassTex=Tex.grass('#'+gcol.toString(16).padStart(6,'0'), '#'+this.def.grass[0].toString(16).padStart(6,'0'));
     grassTex.repeat.set(60,60);
@@ -4467,38 +4522,89 @@ class Track {
     ground.rotation.x=-Math.PI/2; ground.position.y=-1.2; ground.receiveShadow=true;
     this.group.add(ground);
 
-    // Hügel-Ring in der Ferne
-    let trackR=0;
-    for(const sm of S) trackR=Math.max(trackR, Math.hypot(sm.pos.x,sm.pos.z));
-    const hillMat=new THREE.MeshLambertMaterial({color:this.def.hill});
-    for(let i=0;i<22;i++){
-      const a=i/22*Math.PI*2;
-      const sx=260+Math.random()*300, sz=260+Math.random()*300;
-      const r=trackR+Math.max(sx,sz)+120+Math.random()*400;
-      const h=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),hillMat);
-      h.scale.set(sx, 80+Math.random()*130, sz);
-      h.position.set(Math.cos(a)*r, -16, Math.sin(a)*r);
-      this.group.add(h);
+    // Küste: Meer bis zum Horizont (liegt knapp unter der Grundfläche)
+    if(TH.water){
+      const sea=new THREE.Mesh(new THREE.PlaneGeometry(16000,16000),
+        new THREE.MeshLambertMaterial({color:0x1e6f9e}));
+      sea.rotation.x=-Math.PI/2; sea.position.y=-1.6;
+      this.group.add(sea);
+      // Sandstreifen am Rand der Grasfläche
+      const beach=new THREE.Mesh(new THREE.RingGeometry(2480,2650,48),
+        new THREE.MeshLambertMaterial({color:0xd8c088}));
+      beach.rotation.x=-Math.PI/2; beach.position.y=-1.45;
+      this.group.add(beach);
     }
 
-    // Bäume — drei Varianten (Nadel, Laub, Busch) via InstancedMesh
+    // Hügel-/Berg-Ring in der Ferne — themenabhängig
+    let trackR=0;
+    for(const sm of S) trackR=Math.max(trackR, Math.hypot(sm.pos.x,sm.pos.z));
+    this._trackR=trackR;
+    const hillBase=new THREE.Color(this.def.hill);
+    for(let i=0;i<TH.hillN;i++){
+      const a=i/TH.hillN*Math.PI*2 + Math.random()*0.2;
+      const hgt=TH.hillH[0]+Math.random()*(TH.hillH[1]-TH.hillH[0]);
+      const sx=TH.dune ? 380+Math.random()*420 : 240+Math.random()*320;
+      const sz=TH.dune ? 380+Math.random()*420 : 240+Math.random()*320;
+      const r=trackR+Math.max(sx,sz)+120+Math.random()*(TH.snow?700:400);
+      const c=hillBase.clone().offsetHSL(0,(Math.random()-0.5)*0.05,(Math.random()-0.5)*0.06);
+      const h=new THREE.Mesh(
+        TH.snow ? new THREE.ConeGeometry(1,1,7) : new THREE.SphereGeometry(1,10,8),
+        new THREE.MeshLambertMaterial({color:c}));
+      h.scale.set(sx, hgt, sz);
+      h.position.set(Math.cos(a)*r, TH.snow?hgt*0.5-20:-16, Math.sin(a)*r);
+      this.group.add(h);
+      // Schneekappe auf hohen Alpengipfeln
+      if(TH.snow && hgt>260){
+        const cap=new THREE.Mesh(new THREE.ConeGeometry(1,1,7),
+          new THREE.MeshLambertMaterial({color:0xeef4f8}));
+        cap.scale.set(sx*0.34, hgt*0.34, sz*0.34);
+        cap.position.set(h.position.x, h.position.y+hgt*0.33, h.position.z);
+        this.group.add(cap);
+      }
+    }
+
+    // Felsen nahe der Strecke (Wüste/Alpen/Küste)
+    if(TH.rocks>0){
+      const rockG=new THREE.DodecahedronGeometry(1,0);
+      const rockCol=theme==='desert'?0xb09468:(theme==='coastal'?0x9a948a:0x8a8f96);
+      const rocks=new THREE.InstancedMesh(rockG,new THREE.MeshLambertMaterial({color:rockCol,flatShading:true}),TH.rocks);
+      const RM=new THREE.Matrix4(), RQ=new THREE.Quaternion(), RE=new THREE.Euler();
+      let ri=0;
+      for(let tries=0;tries<TH.rocks*10 && ri<TH.rocks;tries++){
+        const s=S[Math.floor(Math.random()*N)];
+        const sgn=Math.random()<0.5?1:-1;
+        const off=this.wallDist+8+Math.random()*60;
+        const x=s.pos.x+s.side.x*sgn*off, z=s.pos.z+s.side.z*sgn*off;
+        if(!this.clearOf(x,z,this.wallDist+4)) continue;
+        const sc=1.2+Math.random()*3.5;
+        RE.set(Math.random()*0.5,Math.random()*Math.PI*2,Math.random()*0.5);
+        RQ.setFromEuler(RE);
+        RM.compose(new THREE.Vector3(x,s.pos.y+sc*0.3,z),RQ,new THREE.Vector3(sc,sc*(0.6+Math.random()*0.5),sc));
+        rocks.setMatrixAt(ri++,RM);
+      }
+      rocks.count=ri; rocks.castShadow=true;
+      this.group.add(rocks);
+    }
+
+    // Vegetation via InstancedMesh — themenabhängige Arten
     const trunkG=new THREE.CylinderGeometry(0.22,0.38,3.0,6);
     const crownG=new THREE.ConeGeometry(2.6,7.0,8);         // Nadelbaum
     const crownG2=new THREE.SphereGeometry(3.0,7,5);        // Laubbaum
     const crownG3=new THREE.SphereGeometry(1.8,5,4);        // Busch
-    const nTrees=500;
-    const trunkColor=parseInt(this.def.grass[0])*0+0x5a4228;
+    const nTrees=TH.trees;
+    const trunkColor=TH.palms?0x8a7048:0x5a4228;
     const trunks=new THREE.InstancedMesh(trunkG,new THREE.MeshLambertMaterial({color:trunkColor}),nTrees);
-    const crowns=new THREE.InstancedMesh(crownG,new THREE.MeshLambertMaterial({color:0x1e5a18}),nTrees);
-    const crowns2=new THREE.InstancedMesh(crownG2,new THREE.MeshLambertMaterial({color:0x2a6820}),nTrees);
-    const crowns3=new THREE.InstancedMesh(crownG3,new THREE.MeshLambertMaterial({color:0x3a7228}),nTrees);
+    const crowns=new THREE.InstancedMesh(crownG,new THREE.MeshLambertMaterial({color:TH.crown[0]}),nTrees);
+    const crowns2=new THREE.InstancedMesh(crownG2,new THREE.MeshLambertMaterial({color:TH.crown[1]}),nTrees);
+    const crowns3=new THREE.InstancedMesh(crownG3,new THREE.MeshLambertMaterial({color:TH.crown[2]}),nTrees);
     const M=new THREE.Matrix4(), Q=new THREE.Quaternion(), V=new THREE.Vector3(), SC=new THREE.Vector3();
+    const hide=new THREE.Vector3(0,-500,0);
     for(let i=0;i<nTrees;i++){
       let placed=false;
       for(let tries=0;tries<28 && !placed;tries++){
         const s=S[Math.floor(Math.random()*N)];
         const sgn=Math.random()<0.5?1:-1;
-        // Mix: close trees (mood) + far trees (forest background)
+        // Mix: nahe Bäume (Atmosphäre) + ferne Bäume (Wald-Hintergrund)
         const off = Math.random()<0.35 ? this.wallDist+5+Math.random()*15 : this.wallDist+20+Math.random()*80;
         V.copy(s.pos).addScaledVector(s.side,sgn*off);
         if(!this.clearOf(V.x,V.z,this.wallDist+3)) continue;
@@ -4507,11 +4613,20 @@ class Track {
         const ty=s.pos.y-0.2+1.4*sc;
         M.compose(new THREE.Vector3(V.x,ty,V.z),Q,SC); trunks.setMatrixAt(i,M);
         const rnd=Math.random();
-        const hide=new THREE.Vector3(0,-500,0);
-        if(rnd<0.38){ // Nadelbaum
+        if(TH.palms && rnd<0.6){ // Palme: hoher schlanker Stamm + flache Krone
+          SC.set(sc*0.7,sc*2.1,sc*0.7);
+          M.compose(new THREE.Vector3(V.x,s.pos.y-0.2+3.1*sc,V.z),Q,SC); trunks.setMatrixAt(i,M);
+          SC.set(sc*1.15,sc*0.34,sc*1.15);
+          M.compose(new THREE.Vector3(V.x,s.pos.y-0.2+6.4*sc,V.z),Q,SC); crowns2.setMatrixAt(i,M);
+          M.compose(hide,Q,SC.set(.01,.01,.01)); crowns.setMatrixAt(i,M); crowns3.setMatrixAt(i,M);
+        } else if(TH.cacti && rnd<0.85){ // Kaktus: grüne Säule, kein Stamm
+          SC.set(sc*0.35,sc*1.3,sc*0.35);
+          M.compose(new THREE.Vector3(V.x,s.pos.y+1.9*sc,V.z),Q,SC); crowns3.setMatrixAt(i,M);
+          M.compose(hide,Q,SC.set(.01,.01,.01)); crowns.setMatrixAt(i,M); crowns2.setMatrixAt(i,M); trunks.setMatrixAt(i,M);
+        } else if(rnd<TH.mix[0]){ // Nadelbaum
           M.compose(new THREE.Vector3(V.x,s.pos.y-0.2+(3.0+3.5)*sc,V.z),Q,SC); crowns.setMatrixAt(i,M);
           M.compose(hide,Q,SC.set(.01,.01,.01)); crowns2.setMatrixAt(i,M); crowns3.setMatrixAt(i,M);
-        } else if(rnd<0.75){ // Laubbaum
+        } else if(rnd<TH.mix[1]){ // Laubbaum
           M.compose(new THREE.Vector3(V.x,s.pos.y-0.2+(3.0+3.0)*sc,V.z),Q,SC); crowns2.setMatrixAt(i,M);
           M.compose(hide,Q,SC.set(.01,.01,.01)); crowns.setMatrixAt(i,M); crowns3.setMatrixAt(i,M);
         } else { // Busch (kein Stamm sichtbar)
@@ -4524,7 +4639,6 @@ class Track {
         placed=true;
       }
       if(!placed){
-        const hide=new THREE.Vector3(0,-500,0);
         M.compose(hide,Q,SC.set(.01,.01,.01));
         trunks.setMatrixAt(i,M); crowns.setMatrixAt(i,M); crowns2.setMatrixAt(i,M); crowns3.setMatrixAt(i,M);
       }
@@ -4687,21 +4801,33 @@ class Track {
       break;
     }
 
-    // Hintergrund-Stadtsilhouette (weit entfernt, sieht aus wie Skyline)
-    const bgBuildColors=[0x2a3040,0x22283a,0x1e2436,0x303848,0x28303e];
-    for(let k=0;k<18;k++){
-      const ang=k/18*Math.PI*2;
-      let trackR=0;
-      for(const sm of S) trackR=Math.max(trackR, Math.hypot(sm.pos.x,sm.pos.z));
-      const r=trackR+140+Math.random()*180;
-      const bH=20+Math.random()*60;
-      const bW=12+Math.random()*20;
-      const bCol=bgBuildColors[k%bgBuildColors.length];
-      const bMat=new THREE.MeshLambertMaterial({color:bCol});
-      const bld=new THREE.Mesh(new THREE.BoxGeometry(bW,bH,bW*0.7),bMat);
-      bld.position.set(Math.cos(ang)*r, bH/2-2, Math.sin(ang)*r);
-      bld.castShadow=false;
-      this.group.add(bld);
+    // Hintergrund-Stadtsilhouette — themenabhängig (Stadt: dicht & hoch, Wüste/Alpen: keine)
+    const TH=this._themeCfg||{skyline:12};
+    const nSky=TH.skyline;
+    if(nSky>0){
+      const bgBuildColors=[0x2a3040,0x22283a,0x1e2436,0x303848,0x28303e];
+      const trackR=this._trackR||500;
+      const rings = nSky>20 ? 2 : 1; // Stadtkurse: zwei Skyline-Ringe für Tiefe
+      for(let ring=0;ring<rings;ring++){
+        const nRing=Math.ceil(nSky/rings);
+        for(let k=0;k<nRing;k++){
+          const ang=k/nRing*Math.PI*2 + ring*0.17 + Math.random()*0.1;
+          const r=trackR+140+ring*220+Math.random()*180;
+          const tall = nSky>20 && Math.random()<0.4;
+          const bH=(tall?70:20)+Math.random()*(tall?110:60);
+          const bW=12+Math.random()*20;
+          const bCol=bgBuildColors[k%bgBuildColors.length];
+          // Hohe Türme bekommen beleuchtete Fensterfassaden
+          const bMat = tall
+            ? new THREE.MeshLambertMaterial({map:Tex.building('#242b3a','#7a92b8',Math.round(bH/8),5)})
+            : new THREE.MeshLambertMaterial({color:bCol});
+          const bld=new THREE.Mesh(new THREE.BoxGeometry(bW,bH,bW*0.7),bMat);
+          bld.position.set(Math.cos(ang)*r, bH/2-2, Math.sin(ang)*r);
+          bld.rotation.y=Math.random()*Math.PI;
+          bld.castShadow=false;
+          this.group.add(bld);
+        }
+      }
     }
   }
 
@@ -10861,6 +10987,10 @@ const Game = {
     if(this.hemi){
       this.hemi.intensity = lerp(0.9, 0.48, duskMix);
     }
+    if(this.sunGlow){
+      // Sonnen-Glow bei Dämmerung/Nacht/Regen ausblenden
+      this.sunGlow.material.opacity = clamp(1 - duskMix*1.4 - (w.rain||0)*0.8, 0, 1);
+    }
     if(this.renderer){
       this.renderer.toneMappingExposure = lerp(1.25, 0.72, duskMix) * (1 - (w.rain || 0) * 0.08);
     }
@@ -11300,6 +11430,8 @@ const Game = {
     gr.addColorStop(0.35,`rgb(${r*0.62|0},${g*0.65|0},${Math.min(255,b*0.88|0)})`);
     gr.addColorStop(0.7, `rgb(${r},${g},${b})`);
     gr.addColorStop(0.88,`rgb(${Math.min(255,(r*1.35+30)|0)},${Math.min(255,(g*1.28+24)|0)},${Math.min(255,(b*1.08+20)|0)})`);
+    // Warmer Dunst-Streifen direkt am Horizont
+    gr.addColorStop(0.95,`rgb(${Math.min(255,(r*1.45+72)|0)},${Math.min(255,(g*1.35+58)|0)},${Math.min(255,(b*1.05+34)|0)})`);
     gr.addColorStop(1,   `rgb(${Math.min(255,(r*1.5+60)|0)},${Math.min(255,(g*1.4+50)|0)},${Math.min(255,(b*1.1+40)|0)})`);
     ctx.fillStyle=gr; ctx.fillRect(0,0,2,256);
     const tex=new THREE.CanvasTexture(can);
@@ -11336,9 +11468,30 @@ const Game = {
     fillLight.position.set(-80,-120,-60);
     scene.add(fillLight);
 
-    /* Wolken — mehr und größer */
+    /* Sonnen-Glow am Himmel (Sprite in Sonnenrichtung, additiv) */
+    {
+      const can=document.createElement('canvas'); can.width=can.height=128;
+      const ctx=can.getContext('2d');
+      const rg=ctx.createRadialGradient(64,64,4,64,64,64);
+      rg.addColorStop(0,'rgba(255,250,230,0.95)');
+      rg.addColorStop(0.25,'rgba(255,235,190,0.55)');
+      rg.addColorStop(0.6,'rgba(255,220,160,0.18)');
+      rg.addColorStop(1,'rgba(255,210,150,0)');
+      ctx.fillStyle=rg; ctx.fillRect(0,0,128,128);
+      const glowMat=new THREE.SpriteMaterial({map:new THREE.CanvasTexture(can),
+        blending:THREE.AdditiveBlending, transparent:true, depthWrite:false, depthTest:false, fog:false});
+      const glow=this.sunGlow=new THREE.Sprite(glowMat);
+      glow.position.set(140,210,80).normalize().multiplyScalar(1650);
+      glow.scale.set(750,750,1);
+      glow.renderOrder=-9;
+      scene.add(glow);
+    }
+
+    /* Wolken — themenabhängig: Wüste fast wolkenlos, Alpen dramatischer */
     const cloudTex=Tex.smoke();
-    for(let i=0;i<18;i++){
+    const _id=((trackDef.id||'')+' '+(trackDef.name||'')+' '+(trackDef.sub||'')).toLowerCase();
+    const nClouds=/desert|wüst|wust|bahrain|oasis/.test(_id) ? 5 : (/alpen|berg|kristall/.test(_id) ? 24 : 18);
+    for(let i=0;i<nClouds;i++){
       const s=new THREE.Sprite(new THREE.SpriteMaterial({map:cloudTex,opacity:0.38+Math.random()*0.28,transparent:true,depthWrite:false}));
       s.position.set((Math.random()-0.5)*3200, 160+Math.random()*180, (Math.random()-0.5)*3200);
       const w=260+Math.random()*420; s.scale.set(w,w*0.38,1);
