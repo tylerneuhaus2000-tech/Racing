@@ -2489,7 +2489,7 @@ const Store = {
 /* Versions-Guard: wenn sich die CARS-Liste ändert (Autos hinzugefügt/entfernt),
    wird der LocalStorage einmalig geleert um veraltete Indizes zu verhindern.
    Einfach GAME_DATA_VERSION erhöhen nach Änderungen an CARS oder TRACKS. */
-const GAME_DATA_VERSION = '9';
+const GAME_DATA_VERSION = '10';
 (()=>{
   try {
     if(Store.get('game_data_version') !== GAME_DATA_VERSION){
@@ -3081,6 +3081,31 @@ const TRACKS = [
     ],
     heading:0, startX:0, startZ:0, startY:0,
     pitLane:{ side:-1, startPct:0.5, endPct:11, innerOff:10.5, outerOff:20.5 }
+  },
+
+  /* ───────────────────────────────────────────────────────────────────────
+     NORISRING · Nürnberg · ~2.18 km (Original 2.162 km) · 1:1-Layout
+     Zwei lange Geraden · Grundig-Kehre · Schöller-S · Dutzendteich-Kehre.
+     Radius Grundig-Kehre exakt berechnet, damit die Schleife exakt schließt:
+     2·r1 = 2·22 + 2·40·(1−cos45°) + 30·sin45°  →  r1 = 44.32233047033631   */
+  {
+    id:'norisring', name:'Norisring', env:'city',
+    sub:'Straßenkurs · Nürnberg · Grundig-Kehre · Schöller-S · Dutzendteich-Kehre · ~2.2 km',
+    halfWidth:6.0, sky:0x8fb4de, hill:0x4a6a3c, grass:[0x3d7233,0x32602a],
+    wallDist:11, vergeW:6,
+    segments:[
+      {type:'straight', len:420},                        // Start/Ziel → Grundig
+      {type:'arc', radius:44.32233047033631, deg:180, dir:1}, // Grundig-Kehre
+      {type:'straight', len:560},                        // Gegengerade
+      {type:'arc', radius:40, deg:45, dir:1},            // Schöller-S rechts
+      {type:'straight', len:30},
+      {type:'arc', radius:40, deg:45, dir:-1},           // Schöller-S links
+      {type:'straight', len:340},
+      {type:'arc', radius:22, deg:180, dir:1},           // Dutzendteich-Kehre
+      {type:'straight', len:557.7817459305202}           // zurück zu Start/Ziel
+    ],
+    heading:0, startX:0, startZ:0, startY:0,
+    pitLane:{ side:-1, startPct:0.5, endPct:17, innerOff:8.5, outerOff:17.5 }
   },
 
   /* ───────────────────────────────────────────────────────────────────────
@@ -4719,6 +4744,9 @@ class Track {
     // === WERBETAFELN entlang der Strecke ===
     this._buildBillboards();
 
+    // === DETAILS: Zielbogen, Kiesbetten, Marshal-Posten, Flutlicht, Zeppelin ===
+    this._buildTrackDetails();
+
     // Boxengasse-Dach (über den gesamten Pit-Bereich)
     const pitMat=new THREE.MeshLambertMaterial({color:0x2a2f36});
     const s0=this.samples[0];
@@ -4754,6 +4782,158 @@ class Track {
         this.group.add(dash);
       }
     }
+  }
+
+  /** Detail-Paket für jede Strecke: Zielbogen, Kiesbetten, Marshals, Flutlicht, Zeppelin. */
+  _buildTrackDetails(){
+    const S=this.samples, N=this.N;
+
+    /* ── Start/Ziel-Bogen (Gantry) über der ganzen Fahrbahn ── */
+    {
+      const s0=S[0];
+      const spanW=(this.halfW+2.5)*2;
+      const g=new THREE.Group();
+      const trussMat=new THREE.MeshLambertMaterial({color:0x2a2f36});
+      const postGeo=new THREE.BoxGeometry(0.9,8.2,0.9);
+      for(const px of [-spanW/2, spanW/2]){
+        const post=new THREE.Mesh(postGeo,trussMat);
+        post.position.set(px,4.1,0); post.castShadow=true; g.add(post);
+        // Quer-Verstrebungen im Pfosten
+        for(let yy=1.5;yy<8;yy+=1.6){
+          const brace=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.12,1.1),trussMat);
+          brace.position.set(px,yy,0); g.add(brace);
+        }
+      }
+      // Banner-Balken mit Streckenname
+      const banTex=Tex.billboard((this.def.name||'GT3 RACER').toUpperCase(),'#0c0f14','#ffffff');
+      const banner=new THREE.Mesh(new THREE.PlaneGeometry(spanW,1.9),
+        new THREE.MeshBasicMaterial({map:banTex,side:THREE.DoubleSide}));
+      banner.position.set(0,7.2,0); g.add(banner);
+      const beam=new THREE.Mesh(new THREE.BoxGeometry(spanW+1.6,0.5,1.0),trussMat);
+      beam.position.set(0,8.35,0); beam.castShadow=true; g.add(beam);
+      // Zielflaggen-Muster unter dem Banner
+      const chk=document.createElement('canvas'); chk.width=64; chk.height=8;
+      const cg=chk.getContext('2d');
+      for(let i=0;i<16;i++)for(let j=0;j<2;j++){cg.fillStyle=((i+j)%2)?'#111':'#eee';cg.fillRect(i*4,j*4,4,4);}
+      const chkTex=new THREE.CanvasTexture(chk);
+      const chkStrip=new THREE.Mesh(new THREE.PlaneGeometry(spanW,0.55),
+        new THREE.MeshBasicMaterial({map:chkTex,side:THREE.DoubleSide}));
+      chkStrip.position.set(0,6.0,0); g.add(chkStrip);
+      g.rotation.y=Math.atan2(s0.tan.x,s0.tan.z);
+      g.position.copy(s0.pos); g.position.y=s0.pos.y;
+      this.group.add(g);
+    }
+
+    /* ── Kiesbetten außen an starken Kurven ── */
+    {
+      const gravelMat=new THREE.MeshLambertMaterial({map:Tex.grass('#c9b98e','#b8a878')});
+      const done=[];
+      for(let i=0;i<N;i+=4){
+        const s=S[i];
+        if(Math.abs(s.curv)<0.014) continue;
+        if(done.some(d=>{const ds=Math.abs(d-i);return Math.min(ds,N-ds)<Math.round(90/this.segLen);})) continue;
+        const sgn=s.curv>=0?-1:1; // Außenseite der Kurve
+        const off=this.halfW+this.vergeW*0.55;
+        const cx=s.pos.x+s.side.x*sgn*(off+9), cz=s.pos.z+s.side.z*sgn*(off+9);
+        if(!this.clearOf(cx,cz,this.halfW+2)) continue;
+        const bed=new THREE.Mesh(new THREE.CircleGeometry(1,20),gravelMat);
+        bed.scale.set(16+Math.random()*8, 9+Math.random()*4, 1);
+        bed.rotation.x=-Math.PI/2;
+        bed.rotation.z=Math.atan2(s.tan.x,s.tan.z);
+        bed.position.set(cx,s.pos.y+0.008,cz);
+        bed.receiveShadow=true;
+        this.group.add(bed);
+        done.push(i);
+        if(done.length>=8) break;
+      }
+    }
+
+    /* ── Marshal-Posten: Häuschen + Streckenposten mit Flagge ── */
+    {
+      const hutMat=new THREE.MeshLambertMaterial({color:0xd8dde2});
+      const hutRoof=new THREE.MeshLambertMaterial({color:0xcc4400});
+      const bodyMat=new THREE.MeshLambertMaterial({color:0xff6a00}); // Warnweste
+      const headMat=new THREE.MeshLambertMaterial({color:0xf0f0f0}); // Helm
+      const flagMat=new THREE.MeshBasicMaterial({color:0xffd400,side:THREE.DoubleSide});
+      const nPosts=Math.min(10, Math.floor(N/30));
+      for(let mi=0;mi<nPosts;mi++){
+        const s=S[Math.floor((mi+0.5)/nPosts*N)];
+        const sgn=mi%2?1:-1;
+        const off=this.wallDist+2.5;
+        const x=s.pos.x+s.side.x*sgn*off, z=s.pos.z+s.side.z*sgn*off;
+        if(!this.clearOf(x,z,this.wallDist+1)) continue;
+        const mg=new THREE.Group();
+        const hut=new THREE.Mesh(new THREE.BoxGeometry(2.2,2.2,1.8),hutMat);
+        hut.position.y=1.1; hut.castShadow=true; mg.add(hut);
+        const roof=new THREE.Mesh(new THREE.BoxGeometry(2.5,0.18,2.1),hutRoof);
+        roof.position.y=2.3; mg.add(roof);
+        // Marshal-Figur daneben
+        const body=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.28,1.15,6),bodyMat);
+        body.position.set(1.6,0.62,0.2); mg.add(body);
+        const head=new THREE.Mesh(new THREE.SphereGeometry(0.17,6,5),headMat);
+        head.position.set(1.6,1.38,0.2); mg.add(head);
+        // Flaggenstab + gelbe Flagge
+        const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,1.5,4),headMat);
+        pole.position.set(1.95,1.4,0.2); mg.add(pole);
+        const flag=new THREE.Mesh(new THREE.PlaneGeometry(0.6,0.4),flagMat);
+        flag.position.set(2.28,1.95,0.2); mg.add(flag);
+        mg.position.set(x,s.pos.y,z);
+        mg.rotation.y=Math.atan2(s.tan.x,s.tan.z)+(sgn>0?Math.PI:0);
+        this.group.add(mg);
+      }
+    }
+
+    /* ── Flutlichtmasten (emissive Lampenköpfe, kein echtes Licht → billig) ── */
+    {
+      const mastMat=new THREE.MeshLambertMaterial({color:0x565c64});
+      const lampMat=new THREE.MeshBasicMaterial({color:0xfff6d8});
+      for(let li=0;li<6;li++){
+        const s=S[Math.floor((li+0.3)/6*N)];
+        const sgn=li%2?1:-1;
+        const off=this.wallDist+16+Math.random()*8;
+        const x=s.pos.x+s.side.x*sgn*off, z=s.pos.z+s.side.z*sgn*off;
+        if(!this.clearOf(x,z,this.wallDist+10)) continue;
+        const mast=new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.45,22,6),mastMat);
+        mast.position.set(x,s.pos.y+11,z); mast.castShadow=true;
+        this.group.add(mast);
+        const panel=new THREE.Mesh(new THREE.BoxGeometry(3.6,1.5,0.4),lampMat);
+        panel.position.set(x,s.pos.y+22.4,z);
+        panel.lookAt(s.pos.x,s.pos.y+2,s.pos.z);
+        this.group.add(panel);
+      }
+    }
+
+    /* ── Zeppelin über der Strecke (kreist langsam, Update in Game-Loop) ── */
+    {
+      const zg=new THREE.Group();
+      const hull=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),
+        new THREE.MeshLambertMaterial({color:0xe8e9ec}));
+      hull.scale.set(30,8.5,8.5); zg.add(hull);
+      const fin=new THREE.Mesh(new THREE.BoxGeometry(6,7,0.5),
+        new THREE.MeshLambertMaterial({color:0xd23030}));
+      fin.position.set(-26,2,0); zg.add(fin);
+      const gondola=new THREE.Mesh(new THREE.BoxGeometry(8,2.2,2.6),
+        new THREE.MeshLambertMaterial({color:0x30353c}));
+      gondola.position.set(2,-8.4,0); zg.add(gondola);
+      const bTex=Tex.billboard('GT3','#d23030','#ffffff');
+      const logo=new THREE.Mesh(new THREE.PlaneGeometry(20,7),
+        new THREE.MeshBasicMaterial({map:bTex,side:THREE.DoubleSide,transparent:true}));
+      logo.position.set(0,0,8.6); zg.add(logo);
+      const logo2=logo.clone(); logo2.position.z=-8.6; logo2.rotation.y=Math.PI; zg.add(logo2);
+      zg.position.set(0,190,0);
+      this.blimp=zg; this._blimpAngle=Math.random()*Math.PI*2;
+      this.group.add(zg);
+    }
+  }
+
+  /** Lässt den Zeppelin langsam über der Strecke kreisen. */
+  updateAmbient(dt){
+    if(!this.blimp) return;
+    this._blimpAngle+=dt*0.012;
+    const r=(this._trackR||400)*0.55;
+    const a=this._blimpAngle;
+    this.blimp.position.set(Math.cos(a)*r, 185, Math.sin(a)*r);
+    this.blimp.rotation.y=-a; // Nase in Flugrichtung (tangential)
   }
 
   _buildTrackBuildings(){
@@ -5405,10 +5585,23 @@ class Car {
       if(!template || !this.body) return;
       const model = template.clone(true);
       const tuneMaterial = (mat)=>{
-        if(!mat) return;
+        if(!mat) return mat;
+        // Materialien pro Fahrzeug klonen: clone(true) teilt Materialien zwischen
+        // Instanzen — sonst stapeln sich color×1.15 / emissive+0.03 bei jedem Spawn
+        // (Auto brennt kumulativ zu Weiß aus) und Schadens-Tinting färbt fremde Autos.
+        mat = mat.clone();
         mat.side = THREE.FrontSide;
         if(mat.map) mat.map.encoding = THREE.sRGBEncoding;
         if(mat.emissiveMap) mat.emissiveMap.encoding = THREE.sRGBEncoding;
+        // Sketchfab-Exporte markieren oft ALLES als alphaMode:BLEND → Karosserie
+        // rendert transparent ohne depthWrite = weiße Balken/Streifen durch
+        // Sortierfehler. Voll deckende Nicht-Glas-Materialien opak erzwingen.
+        const matName=(mat.name||'').toLowerCase();
+        const isGlassLike=/glass|window|windshield|scheibe|lens|light/.test(matName);
+        if(mat.transparent && !isGlassLike && (mat.opacity===undefined || mat.opacity>=0.98)){
+          mat.transparent=false;
+          mat.depthWrite=true;
+        }
         if(mat.color && typeof mat.color.multiplyScalar === 'function'){
           mat.color.multiplyScalar(1.15);
         }
@@ -5419,13 +5612,14 @@ class Car {
           if(mat.emissive && typeof mat.emissive.addScalar === 'function') mat.emissive.addScalar(0.03);
         }
         mat.needsUpdate = true;
+        return mat;
       };
       model.traverse(o=>{
         if(o.isMesh){
           o.castShadow = true;
           o.receiveShadow = true;
-          if(Array.isArray(o.material)) o.material.forEach(tuneMaterial);
-          else tuneMaterial(o.material);
+          if(Array.isArray(o.material)) o.material = o.material.map(tuneMaterial);
+          else o.material = tuneMaterial(o.material);
         }
       });
 
@@ -8187,7 +8381,9 @@ const HUD = {
   _drawMapCar(g, x, y, heading, radius, fillCol, strokeCol, strokeW){
     g.save();
     g.translate(x,y);
-    g.rotate(heading);
+    // Welt-Vorwärtsrichtung ist (sin h, cos h) in (x,z); Canvas-Y zeigt nach unten,
+    // das Dreieck zeigt nach oben → Rotation um π − heading
+    g.rotate(Math.PI - heading);
     g.beginPath();
     g.moveTo(0, -radius*1.7);    // Spitze vorne
     g.lineTo(-radius, radius);
@@ -14194,6 +14390,7 @@ const Game = {
         this.shake=Math.max(this.shake,0.12);
       }
       this.particles.update(dt);
+      if(this.track && this.track.updateAmbient) this.track.updateAmbient(dt);
       if(this.debris) this.debris.step(dt);
       if(this.safetyCar) this.safetyCar.step(dt, performance.now()/1000);
       if(this.mode==='tt' && this.settings.ghostReplay) this.updateGhostReplay();
