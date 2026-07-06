@@ -33,5 +33,22 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Shop: Guthaben/Freischaltungen/Kaufhistorie dürfen NIEMALS vom Client geschrieben
+    // werden (sonst könnte sich jeder Spieler selbst unendlich Credits/Autos gutschreiben).
+    // Nur die Cloud Functions (createOrder/captureOrder/paypalWebhook in functions/index.js)
+    // schreiben hier — die schreiben über das Firebase Admin SDK, das diese Regeln umgeht.
+    match /wallets/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+    match /entitlements/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+    match /purchases/{orderId} {
+      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+
   }
 }
