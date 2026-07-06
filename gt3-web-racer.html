@@ -2489,7 +2489,7 @@ const Store = {
 /* Versions-Guard: wenn sich die CARS-Liste ändert (Autos hinzugefügt/entfernt),
    wird der LocalStorage einmalig geleert um veraltete Indizes zu verhindern.
    Einfach GAME_DATA_VERSION erhöhen nach Änderungen an CARS oder TRACKS. */
-const GAME_DATA_VERSION = '10';
+const GAME_DATA_VERSION = '11';
 (()=>{
   try {
     if(Store.get('game_data_version') !== GAME_DATA_VERSION){
@@ -3084,28 +3084,30 @@ const TRACKS = [
   },
 
   /* ───────────────────────────────────────────────────────────────────────
-     NORISRING · Nürnberg · ~2.18 km (Original 2.162 km) · 1:1-Layout
-     Zwei lange Geraden · Grundig-Kehre · Schöller-S · Dutzendteich-Kehre.
-     Radius Grundig-Kehre exakt berechnet, damit die Schleife exakt schließt:
-     2·r1 = 2·22 + 2·40·(1−cos45°) + 30·sin45°  →  r1 = 44.32233047033631   */
+     NORISRING · Nürnberg · 2.16 km · Layout 1:1 nach offizieller Streckenkarte
+     Gegen den Uhrzeigersinn: S/F ostwärts → T1-Knick → T2 Dutzendteich-Kehre
+     (enge Links-Haarnadel) → Gegengerade mit T3 → T4/T5 Schöller-S (Versatz
+     auf die obere Gerade) → T6 → T7 Grundig-Kehre (Links-Haarnadel) →
+     Diagonale → T8 → Start/Ziel. Rundenzeit GT3 ≈ 48 s.                    */
   {
     id:'norisring', name:'Norisring', env:'city',
-    sub:'Straßenkurs · Nürnberg · Grundig-Kehre · Schöller-S · Dutzendteich-Kehre · ~2.2 km',
+    sub:'Straßenkurs · Nürnberg · Dutzendteich-Kehre · Schöller-S · Grundig-Kehre · 2.16 km · ~48s',
     halfWidth:6.0, sky:0x8fb4de, hill:0x4a6a3c, grass:[0x3d7233,0x32602a],
-    wallDist:19, vergeW:6,
-    segments:[
-      {type:'straight', len:420},                        // Start/Ziel → Grundig
-      {type:'arc', radius:44.32233047033631, deg:180, dir:1}, // Grundig-Kehre
-      {type:'straight', len:560},                        // Gegengerade
-      {type:'arc', radius:40, deg:45, dir:1},            // Schöller-S rechts
-      {type:'straight', len:30},
-      {type:'arc', radius:40, deg:45, dir:-1},           // Schöller-S links
-      {type:'straight', len:340},
-      {type:'arc', radius:22, deg:180, dir:1},           // Dutzendteich-Kehre
-      {type:'straight', len:557.7817459305202}           // zurück zu Start/Ziel
+    wallDist:10, vergeW:5,
+    pts:[
+      [   0.0,   0.0, 0],[ 166.3,  -1.4, 0],[ 310.8,  -3.6, 0],[ 426.5,  -9.4, 0], // S/F → T1
+      [ 527.7, -20.2, 0],[ 592.8, -26.0, 0],                                        // Anfahrt T2
+      [ 630.4, -19.5, 0],[ 636.1,  -3.6, 0],[ 625.3,   9.4, 0],                     // T2 Dutzendteich-Kehre
+      [ 563.8,  14.5, 0],[ 455.4,  23.9, 0],[ 412.0,  28.9, 0],                     // Gegengerade · T3
+      [ 310.8,  31.1, 0],[ 227.7,  28.2, 0],                                        // → T4
+      [ 198.8,  41.2, 0],[ 189.4,  67.2, 0],[ 182.2,  88.9, 0],                     // T4/T5 Schöller-S
+      [  94.0,  97.6, 0],[ -50.6, 101.9, 0],[-206.0, 107.0, 0],                     // obere Gerade · T6
+      [-289.2, 132.3, 0],[-341.2, 151.1, 0],                                        // Anfahrt T7
+      [-367.2, 156.9, 0],[-374.5, 139.5, 0],[-360.0, 117.8, 0],                     // T7 Grundig-Kehre
+      [-318.1,  72.3, 0],[-274.7,  25.3, 0],[-247.2,  -0.7, 0],                     // Diagonale → T8
+      [-159.0,  -0.7, 0],[ -79.5,   0.0, 0]                                         // zurück zu S/F
     ],
-    heading:0, startX:0, startZ:0, startY:0,
-    pitLane:{ side:-1, startPct:0.5, endPct:17, innerOff:8.5, outerOff:17.5 }
+    pitLane:{ side:1, startPct:0.5, endPct:14, innerOff:8.5, outerOff:16.5 }
   },
 
   /* ───────────────────────────────────────────────────────────────────────
@@ -4909,10 +4911,12 @@ class Track {
       const stoneDark=new THREE.MeshLambertMaterial({color:0x8f887c});
       const segLen=this.segLen;
       const nSeg=Math.min(Math.round(200/segLen), N-1); // ~200 m lang
-      const sgn=1; // gegenüber der Boxengasse (side:-1)
+      const pl=this.def.pitLane;
+      const sgn=pl?pl.side:1; // gleiche Seite wie die Boxengasse (dahinter)
+      const stOff=(pl?pl.outerOff+10:this.wallDist+9);
       for(let k=0;k<nSeg;k+=3){
         const s=S[k];
-        const bx=s.pos.clone().addScaledVector(s.side,sgn*(this.wallDist+9));
+        const bx=s.pos.clone().addScaledVector(s.side,sgn*stOff);
         // Gestufte Steinstufen (5 Ränge)
         for(let step=0;step<5;step++){
           const st=new THREE.Mesh(new THREE.BoxGeometry(segLen*3+0.5,1.6,3.2),step%2?stoneDark:stoneMat);
