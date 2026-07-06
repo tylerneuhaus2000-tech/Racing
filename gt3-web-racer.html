@@ -8,14 +8,21 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Gridline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============ GT3 WEB RACER — Broadcast-Telemetrie-Look ============ */
 :root{
   --bg:#0a0c0f; --panel:rgba(13,17,22,0.82); --line:#2a313a;
   --txt:#e8ecef; --dim:#8b95a1; --red:#ff2e3d; --green:#3dff7a; --amber:#ffb02e;
+  --blue:#4fa8ff; --purple:#a674ff;
   --mono:'JetBrains Mono','Cascadia Mono',Consolas,ui-monospace,monospace;
   --sans:'Segoe UI',system-ui,-apple-system,sans-serif;
-  --rad:10px; --rad-sm:6px;
+  --display:'Rajdhani','Segoe UI',system-ui,sans-serif;
+  --rad-xs:4px; --rad-sm:6px; --rad:10px; --rad-lg:16px; --rad-full:999px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px;
+  --hud-blur:8px;
   --glass-border:1px solid rgba(255,255,255,0.09);
   --glass-shadow:0 8px 32px rgba(0,0,0,0.55);
 }
@@ -43,6 +50,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
     radial-gradient(1200px 700px at 70% -10%,#1b2733,transparent 60%),
     linear-gradient(#0a0c0f,#0d1116);
   z-index:30}
+/* Gemeinsame Basis für kompakte Modals/Boxen (Login, Multiplayer, Boxenstopp-Auswahl) —
+   gleiche Optik wie .screen, aber ohne dessen feste Breite/Scroll-Verhalten. */
+.modal-panel{
+  background:var(--panel);
+  border:var(--glass-border);
+  border-top:3px solid var(--red);
+  border-radius:var(--rad);
+  backdrop-filter:blur(14px);
+  box-shadow:var(--glass-shadow);
+}
 .screen{width:min(860px,94vw);max-height:92vh;overflow:auto;padding:42px 48px;
   background:var(--panel);border:var(--glass-border);border-top:3px solid var(--red);
   border-radius:var(--rad);box-shadow:var(--glass-shadow);
@@ -62,6 +79,12 @@ button:focus-visible{outline:2px solid var(--red);outline-offset:2px}
 .btn:active{transform:translateY(0)}
 .btn.primary{background:linear-gradient(135deg,#ff2e3d,#d61f2e);border-color:var(--red);color:#fff}
 .btn.primary:hover{filter:brightness(1.12);box-shadow:0 4px 18px rgba(255,46,61,0.35)}
+.btn.secondary{background:transparent;border-color:var(--line);color:var(--txt)}
+.btn.secondary:hover{border-color:var(--dim);background:rgba(255,255,255,0.04)}
+.btn.ghost{background:transparent;border:none;color:var(--dim);text-transform:none;letter-spacing:normal;font-weight:600;padding:10px 16px}
+.btn.ghost:hover{color:var(--txt);box-shadow:none;transform:none}
+.btn.danger{background:linear-gradient(135deg,var(--red),#a61826);border-color:var(--red);color:#fff}
+.btn.danger:hover{filter:brightness(1.12);box-shadow:0 4px 18px rgba(255,46,61,0.35)}
 .cards{display:flex;flex-direction:column;gap:12px;margin-top:18px}
 .card{display:flex;gap:18px;align-items:center;padding:16px 18px;text-align:left;transition:transform .12s,box-shadow .15s;border-radius:var(--rad-sm)}
 .card.selected{outline:2px solid var(--green);box-shadow:0 0 0 1px rgba(34,196,99,0.22),0 0 18px rgba(34,196,99,0.10)}
@@ -340,13 +363,13 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 .im-label{font:700 8px var(--mono);letter-spacing:.15em;color:rgba(255,255,255,.35);margin-bottom:1px}
 .im-bar-wrap{height:8px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;margin-bottom:4px}
 .im-bar{height:100%;width:0%;border-radius:3px;transition:width .04s linear}
-.im-throttle{background:#22c463}
+.im-throttle{background:var(--green)}
 .im-brake{background:#ff2e3d}
 .im-steer-wrap{position:relative;height:8px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
 .im-steer-center{position:absolute;left:50%;top:0;width:1px;height:100%;background:rgba(255,255,255,.25)}
-.im-steer-bar{position:absolute;top:0;height:100%;background:#60b4ff;border-radius:2px;transition:left .04s linear,width .04s linear}
+.im-steer-bar{position:absolute;top:0;height:100%;background:var(--blue);border-radius:2px;transition:left .04s linear,width .04s linear}
 /* Timing-Tower (Broadcast-Stil, oben links) */
-#pit-car-select{position:fixed;bottom:170px;left:50%;transform:translateX(-50%);background:rgba(8,10,14,0.97);border:1px solid var(--red);border-top:3px solid var(--red);padding:12px 16px;font-family:var(--mono);z-index:30;display:none;min-width:340px;max-width:600px}
+#pit-car-select{position:fixed;bottom:170px;left:50%;transform:translateX(-50%);padding:12px 16px;font-family:var(--mono);z-index:30;display:none;min-width:340px;max-width:600px}
 #pit-car-select .pcs-title{font:700 9px var(--mono);letter-spacing:.3em;color:var(--red);margin-bottom:10px}
 #pit-car-select .pcs-grid{display:flex;flex-wrap:wrap;gap:5px}
 #pit-car-select .pcs-btn{padding:5px 10px;background:#141820;border:1px solid var(--line);color:#a0a8b0;font:700 9px var(--mono);cursor:pointer;letter-spacing:.1em;transition:all .15s}
@@ -360,20 +383,20 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #delta{font-size:18px;font-weight:900;letter-spacing:.04em;color:var(--green);transition:color 0.15s,font-size 0.1s}
 #delta.positive{color:#ff3333}
 #delta.positive.slow{color:#ff6644}
-#delta.negative{color:#22c463}
+#delta.negative{color:var(--green)}
 #delta.negative.fast{color:#00ff88;text-shadow:0 0 8px #00ff8880}
 #delta.neutral{color:var(--amber)}
 #damage-row{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:10px;color:var(--dim);letter-spacing:.12em}
 .dmg-label{min-width:54px}
 #damage-bar{flex:1;height:6px;background:#1a2026;border:1px solid var(--line);position:relative}
-#damage-bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#22c463 0%,#e8b73a 60%,#ff2e3d 90%);transition:width 0.3s}
+#damage-bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--green) 0%,#e8b73a 60%,#ff2e3d 90%);transition:width 0.3s}
 #damage-pct{min-width:34px;text-align:right;color:#e8ecef;font-weight:700}
 #dmg-panel{position:fixed;top:14px;right:14px;width:154px;background:rgba(7,9,12,0.94);border:1px solid rgba(255,255,255,0.07);border-top:2px solid var(--red);font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.10em;backdrop-filter:blur(10px);box-shadow:0 8px 32px rgba(0,0,0,0.6);overflow:hidden}
 #dmg-panel.hidden{display:none}
 #dmg-panel .dp-header{display:flex;align-items:center;justify-content:space-between;padding:7px 10px 6px;border-bottom:1px solid rgba(255,255,255,0.06)}
 #dmg-panel .dp-carname{color:#e8ecef;font-weight:700;font-size:9px;letter-spacing:.13em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;text-transform:uppercase}
 #dmg-panel .dp-badge{font-size:7px;font-weight:700;padding:2px 5px;border-radius:2px;letter-spacing:.14em;flex-shrink:0}
-#dmg-panel .dp-badge.gt3{background:rgba(85,168,255,0.15);color:#55a8ff;border:1px solid rgba(85,168,255,0.35)}
+#dmg-panel .dp-badge.gt3{background:rgba(85,168,255,0.15);color:var(--blue);border:1px solid rgba(85,168,255,0.35)}
 #dmg-panel .dp-badge.hyp{background:rgba(255,46,61,0.15);color:#ff5060;border:1px solid rgba(255,46,61,0.35)}
 #dmg-panel .dp-badge.lmp2{background:rgba(255,160,30,0.15);color:#ffa01e;border:1px solid rgba(255,160,30,0.35)}
 #dmg-panel .dp-svg-wrap{padding:8px 6px 2px;display:flex;justify-content:center}
@@ -385,13 +408,13 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #dmg-panel .dp-eng-row{display:flex;align-items:center;gap:6px;padding:6px 10px 4px;border-top:1px solid rgba(255,255,255,0.05)}
 #dmg-panel .dp-eng-lbl{color:#6a7888;font-size:8px;min-width:24px;letter-spacing:.10em}
 #dmg-panel .dp-eng-track{flex:1;height:4px;background:#101418;border-radius:2px;overflow:hidden;border:1px solid rgba(255,255,255,0.05)}
-#dmg-panel .dp-eng-fill{height:100%;background:#22c463;transition:width .35s,background .35s;border-radius:2px}
+#dmg-panel .dp-eng-fill{height:100%;background:var(--green);transition:width .35s,background .35s;border-radius:2px}
 #dmg-panel .dp-eng-pct{font-size:8px;font-weight:700;color:#c0c8d4;min-width:28px;text-align:right}
 #dmg-panel .dp-susp-section{padding:5px 10px 6px;border-top:1px solid rgba(255,255,255,0.05)}
 #dmg-panel .dp-susp-lbl{color:#6a7888;font-size:7px;letter-spacing:.14em;margin-bottom:4px}
 #dmg-panel .dp-susp-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px}
 #dmg-panel .dp-susp-cell{display:flex;align-items:center;gap:5px;font-size:8px;color:#8a9aac}
-#dmg-panel .dp-sc-dot{width:9px;height:9px;border-radius:50%;background:#22c463;transition:background .25s;flex-shrink:0;box-shadow:0 0 4px rgba(34,196,99,0.4)}
+#dmg-panel .dp-sc-dot{width:9px;height:9px;border-radius:50%;background:var(--green);transition:background .25s;flex-shrink:0;box-shadow:0 0 4px rgba(34,196,99,0.4)}
 #dmg-panel .dp-parts-section{padding:5px 10px 7px;border-top:1px solid rgba(255,255,255,0.05);min-height:20px}
 #dmg-panel .dp-parts-lbl{color:#6a7888;font-size:7px;letter-spacing:.14em;margin-bottom:3px}
 #dmg-panel .dp-parts-chips{display:flex;flex-wrap:wrap;gap:2px}
@@ -400,30 +423,30 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #leaderboard{position:fixed;bottom:14px;left:14px;background:rgba(10,13,17,0.86);border:var(--glass-border);padding:8px 10px;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.06em;backdrop-filter:blur(10px);min-width:180px;border-radius:var(--rad-sm);box-shadow:var(--glass-shadow)}
 #leaderboard .lb-title{color:#e8ecef;font-weight:700;margin-bottom:6px;font-size:9px;letter-spacing:.15em}
 #leaderboard .lb-row{display:flex;justify-content:space-between;gap:10px;line-height:1.5;color:#a0a8b0}
-#leaderboard .lb-row.you{color:#22c463;font-weight:700;background:rgba(34,196,99,0.08);padding:0 4px;margin:0 -4px}
-#leaderboard .lb-row.class-gt3{border-left:3px solid #55a8ff;padding-left:6px;background:rgba(85,168,255,0.06)}
+#leaderboard .lb-row.you{color:var(--green);font-weight:700;background:rgba(34,196,99,0.08);padding:0 4px;margin:0 -4px}
+#leaderboard .lb-row.class-gt3{border-left:3px solid var(--blue);padding-left:6px;background:rgba(85,168,255,0.06)}
 #leaderboard .lb-row.class-lmp1{border-left:3px solid #ff4a58;padding-left:6px;background:rgba(255,74,88,0.06)}
 #leaderboard .lb-pos{min-width:24px;font-weight:700;color:#e8ecef}
 #leaderboard .lb-cls{min-width:30px;text-align:center;font-weight:700;font-size:8px;padding:1px 3px;border-radius:2px}
 #leaderboard .lb-hyp{background:#c61d2f;color:#fff}
-#leaderboard .lb-lmp2{background:#22c463;color:#111}
+#leaderboard .lb-lmp2{background:var(--green);color:#111}
 #leaderboard .lb-gt3{background:#2878c8;color:#fff}
 #leaderboard .lb-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px}
 #leaderboard .lb-gap{font-variant-numeric:tabular-nums;color:#a0a8b0;min-width:48px;text-align:right}
 #leaderboard .lb-skip{text-align:center;color:#4a5560;font-size:8px;letter-spacing:.3em;line-height:1.1;padding:1px 0}
 #leaderboard .lb-class{font-size:8px;letter-spacing:.16em;padding:1px 5px;border-radius:999px;align-self:center;margin-right:6px}
-#leaderboard .lb-class.gt3{background:#55a8ff;color:#07131f}
+#leaderboard .lb-class.gt3{background:var(--blue);color:#07131f}
 #leaderboard .lb-class.lmp1{background:#ff4a58;color:#1a0709}
 #leaderboard.hidden{display:none}
 #stats-bar{position:fixed;top:6px;left:50%;transform:translateX(-50%);display:flex;gap:16px;background:rgba(10,13,17,0.78);border:var(--glass-border);padding:4px 14px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.10em;backdrop-filter:blur(8px);z-index:10;border-radius:999px}
 #stats-bar span{white-space:nowrap}
-#stat-km{color:#22c463;font-weight:700}
-#stat-wall{color:#ffd400}
+#stat-km{color:var(--green);font-weight:700}
+#stat-wall{color:var(--amber)}
 #stat-car{color:#ff8844}
 #ers-row{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:10px;color:var(--dim);letter-spacing:.12em}
 #ers-bar{flex:1;height:6px;background:#1a2026;border:1px solid var(--line);position:relative}
 #ers-bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#0090e0 0%,#22c4ff 60%,#9af0ff 100%);transition:width 0.2s}
-#ers-bar.active i{background:linear-gradient(90deg,#ffd400 0%,#ff8800 100%);box-shadow:0 0 8px #ffb017}
+#ers-bar.active i{background:linear-gradient(90deg,var(--amber) 0%,#ff8800 100%);box-shadow:0 0 8px #ffb017}
 #ers-pct{min-width:34px;text-align:right;color:#e8ecef;font-weight:700}
 #pos{font-size:24px;font-weight:800;letter-spacing:.08em;color:var(--red);margin-bottom:4px}
 #results{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
@@ -445,8 +468,8 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #resultlist .res-pos.top3{color:#fff;font-size:15px;font-weight:900}
 #resultlist .res-name{flex:1;color:#e8ecef}
 #resultlist .res-gap{color:#8b95a1;font-size:12px;text-align:right}
-#resultlist .res-lap{color:#60b4ff;font-size:12px;text-align:right;min-width:80px}
-#resultlist .res-fast{color:#8844cc}
+#resultlist .res-lap{color:var(--blue);font-size:12px;text-align:right;min-width:80px}
+#resultlist .res-fast{color:var(--purple)}
 #resultlist .dnf{color:#555;font-size:11px}
 #bestlap{color:var(--green)}
 #prog{font-size:9px;color:var(--dim);letter-spacing:.15em;margin-top:6px}
@@ -456,18 +479,18 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #live-gap{margin-top:4px;border-top:1px solid #ffffff18;padding-top:4px;font-size:11px;font-family:var(--mono);letter-spacing:.08em}
 #live-gap .lg-row{display:flex;justify-content:space-between;gap:6px;padding:1px 0}
 #live-gap .lg-arrow{color:var(--dim);font-size:9px}
-#live-gap #lg-ahead-val{color:#22e87a;font-weight:700}
+#live-gap #lg-ahead-val{color:var(--green);font-weight:700}
 #live-gap #lg-behind-val{color:#ff6b6b;font-weight:700}
 #tt-sectors .sector-row{display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:1px 0}
 #tt-sectors .sector-row span:first-child{color:var(--dim);letter-spacing:.12em;font-size:9px;padding-top:2px}
 #tt-sectors .sector-row .sv{font-weight:700;font-variant-numeric:tabular-nums}
-.s-none{color:#a0a8b0}.s-best{color:#c090ff}.s-fast{color:#22c463}.s-slow{color:#ff4444}
+.s-none{color:#a0a8b0}.s-best{color:#c090ff}.s-fast{color:var(--green)}.s-slow{color:#ff4444}
 /* Speed Trap */
 #tt-vtrap{border-top:1px solid #ffffff18;margin-top:4px;padding-top:4px;font-size:11px}
 #tt-vtrap span:first-child{color:var(--dim);letter-spacing:.12em;font-size:9px}
-#vtrap-val{font-weight:700;color:#ffd400;font-variant-numeric:tabular-nums}
+#vtrap-val{font-weight:700;color:var(--amber);font-variant-numeric:tabular-nums}
 /* Rundenhistorie */
-#tt-laphist{position:absolute;top:18px;left:250px;background:var(--panel);border:var(--glass-border);border-left:3px solid #8844cc;
+#tt-laphist{position:absolute;top:18px;left:250px;background:var(--panel);border:var(--glass-border);border-left:3px solid var(--purple);
   padding:8px 14px;min-width:160px;font-family:var(--mono);border-radius:0 var(--rad-sm) var(--rad-sm) 0;backdrop-filter:blur(10px);box-shadow:var(--glass-shadow)}
 #tt-laphist-title{font-size:9px;letter-spacing:.15em;color:var(--dim);margin-bottom:5px}
 .lh-row{display:flex;justify-content:space-between;gap:14px;font-size:12px;padding:1px 0;font-variant-numeric:tabular-nums}
@@ -495,14 +518,14 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #tyrebox .tb-title{font-size:9px;letter-spacing:.24em;color:var(--red);margin-bottom:8px;font-weight:700}
 #tyrebox .tb-row{display:grid;grid-template-columns:34px 1fr 44px;align-items:center;gap:8px;margin-top:6px;font-size:10px;color:#a0a8b0}
 #tyrebox .tb-bar{height:6px;background:#1a2026;border:1px solid var(--line);position:relative}
-#tyrebox .tb-bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#22c463 0%,#ffd400 55%,#ff2e3d 100%);transition:width 0.18s}
+#tyrebox .tb-bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--green) 0%,var(--amber) 55%,#ff2e3d 100%);transition:width 0.18s}
 #tyrebox .tb-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
 #tyrebox .tb-chip{padding:5px 6px 4px;background:#0c0f13;border:1px solid var(--line);font-size:9px;line-height:1.15;color:#cfd6dd;transition:border-color .3s,background .3s}
 #tyrebox .tb-chip b{display:block;font-size:10px;letter-spacing:.08em;color:#fff}
 #tyrebox .tb-chip span{display:block;margin-top:2px;color:var(--dim)}
 /* Temperatur-Zustand der Chips */
 #tyrebox .tb-chip.tc-cold{border-color:#3a7ab0;background:#070d14}
-#tyrebox .tb-chip.tc-warm{border-color:#22e87a;background:#020f07}
+#tyrebox .tb-chip.tc-warm{border-color:var(--green);background:#020f07}
 #tyrebox .tb-chip.tc-hot{border-color:#ffa820;background:#100800}
 #tyrebox .tb-chip.tc-over{border-color:#ff2e3d;background:#140002}
 #tyrebox.hidden{display:none}
@@ -569,10 +592,10 @@ body.mobile-touch-layout #touch-controls .tc-group:nth-child(4) .tc-btn{min-widt
 .lb-pers-aggressive{background:#ff3a1a;color:#fff}
 .lb-pers-defensive{background:#1a6aff;color:#fff}
 .lb-pers-rookie{background:#888;color:#fff}
-.lb-pers-pro{background:#22c463;color:#000}
+.lb-pers-pro{background:var(--green);color:#000}
 #fl-notif{position:fixed;left:50%;bottom:180px;transform:translateX(-50%);background:rgba(8,5,20,0.95);border:1px solid #5e0aff;border-left:4px solid #5e0aff;padding:10px 16px;min-width:280px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;color:#e0d5ff;pointer-events:none;z-index:27;opacity:0;transition:opacity .25s;text-align:center}
 #fl-notif.show{opacity:1}
-#fl-notif.personal{border-color:#22c463;border-left-color:#22c463;background:rgba(5,18,10,0.95);color:#c8ffd6}
+#fl-notif.personal{border-color:var(--green);border-left-color:var(--green);background:rgba(5,18,10,0.95);color:#c8ffd6}
 #fl-notif .fl-label{font:700 8px var(--mono);letter-spacing:.3em;margin-bottom:4px;opacity:.7}
 #fl-notif .fl-time{font:700 18px var(--mono);letter-spacing:.1em}
 #fl-notif .fl-driver{font-size:9px;margin-top:3px;opacity:.8}
@@ -581,8 +604,18 @@ body.mobile-touch-layout #touch-controls .tc-group:nth-child(4) .tc-btn{min-widt
 #ers-popup .ep-title{font-weight:700;color:#9af0ff;margin-bottom:6px}
 #ers-popup .ep-row{display:flex;justify-content:space-between;gap:14px;padding:2px 0}
 #ers-popup .ep-row b{color:#fff}
-#lap-valid{display:none;margin-top:8px;padding:3px 6px;background:#22c463;color:#08140d;font-weight:700;font-size:9px;letter-spacing:.12em}
+#lap-valid{display:none;margin-top:8px;padding:3px 6px;background:var(--green);color:#08140d;font-weight:700;font-size:9px;letter-spacing:.12em}
 #lap-valid.invalid{display:inline-block;background:#ff2e3d;color:#fff}
+/* HUD-Vereinheitlichung: gemeinsamer Grundton/-blur/-radius für alle Telemetrie-Panels.
+   Bewusst OHNE die "border"-Shorthand, damit die individuellen Akzent-Farben
+   (border-left/border-top je Panel-Typ) erhalten bleiben und nicht überschrieben werden. */
+#tower,#dmg-panel,#leaderboard,#stats-bar,#dash,#tyrebox,#minimap,
+#camlabel,#tt-laphist,#input-meter,#ers-popup,#fl-notif,#flash-notif{
+  background:var(--panel);
+  border-radius:var(--rad-sm);
+  backdrop-filter:blur(var(--hud-blur));
+  box-shadow:0 4px 18px rgba(0,0,0,0.4);
+}
 body.hud-edit #hud{pointer-events:auto}
 .hud-draggable{cursor:default}
 body.hud-edit .hud-draggable{outline:1px dashed #22c4ff;outline-offset:2px;cursor:move}
@@ -606,7 +639,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 #ed-canvas:focus{outline:2px solid #22c4ff;outline-offset:2px}
 .editor-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;color:#95a4b6;font-size:10px;letter-spacing:.08em}
 .editor-legend i{display:inline-block;width:12px;height:8px;margin-right:5px;vertical-align:middle}
-.lg-straight{background:#3f86ff}.lg-turn{background:#ff7a3d}.lg-pit{background:#22c463}
+.lg-straight{background:#3f86ff}.lg-turn{background:#ff7a3d}.lg-pit{background:var(--green)}
 .editor-preview-wrap{margin-top:10px;border:1px solid var(--line);background:#0a0f14;padding:8px;border-radius:6px}
 #ed-preview{display:block;width:100%;height:auto;background:#0c1118;border:1px solid #2a394b}
 /* ─────────── PIT SETUP OVERLAY ─────────── */
@@ -624,9 +657,9 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 .pso-title{font-size:22px;font-weight:800;letter-spacing:.16em;color:#fff;text-transform:uppercase}
 .pso-subtitle{font-size:11px;color:#8b95a1;letter-spacing:.12em;margin-top:3px}
 .pso-status{display:flex;align-items:center;gap:8px;background:#0c1018;border:1px solid var(--line);
-  padding:8px 14px;font-size:10px;letter-spacing:.2em;color:#22e87a}
-.pso-dot{width:8px;height:8px;border-radius:50%;background:#22e87a;
-  box-shadow:0 0 8px #22e87a;animation:psoPulse 1.2s ease-in-out infinite}
+  padding:8px 14px;font-size:10px;letter-spacing:.2em;color:var(--green)}
+.pso-dot{width:8px;height:8px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 8px var(--green);animation:psoPulse 1.2s ease-in-out infinite}
 @keyframes psoPulse{0%,100%{opacity:1}50%{opacity:.4}}
 .pso-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#1a1f28;
   flex:1;overflow-y:auto;border-top:0}
@@ -644,7 +677,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 .pso-param-hint{font-size:9px;color:#4a5560;letter-spacing:.06em;margin-top:4px;line-height:1.4}
 /* Custom slider */
 .pso-slider{-webkit-appearance:none;appearance:none;width:100%;height:4px;
-  background:linear-gradient(90deg,#ff2e3d 0%,#ffa820 45%,#22e87a 100%);
+  background:linear-gradient(90deg,#ff2e3d 0%,#ffa820 45%,var(--green) 100%);
   border-radius:2px;outline:none;cursor:pointer}
 .pso-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;
   border-radius:50%;background:#fff;border:2px solid #ff2e3d;
@@ -680,7 +713,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 .eng-log-entry{font:11px var(--mono);color:#e8ecef;line-height:1.4;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05)}
 .eng-log-entry:last-child{border-bottom:none;color:#fff}
 .eng-log-entry .eng-log-time{color:var(--red);margin-right:6px;font-size:9px}
-.eng-log-entry.eng-log-player{color:#60b4ff}
+.eng-log-entry.eng-log-player{color:var(--blue)}
 /* Unterzeile: Radio + Eingabe */
 #eng-bottom-row{display:flex;gap:6px;align-items:center}
 #eng-radio-btn{
@@ -749,7 +782,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 .mfd-bar-wrap{height:5px;background:#1a2028;margin:6px 0}
 .mfd-bar-fill{height:100%;background:var(--red);transition:width .3s}
 .mfd-bar-fill.blue{background:linear-gradient(90deg,#0090e0,#22c4ff)}
-.mfd-bar-fill.green{background:#22c463}
+.mfd-bar-fill.green{background:var(--green)}
 .mfd-btns{display:flex;gap:4px;margin-top:6px}
 .mfd-btn{flex:1;padding:6px 4px;background:#0d1116;border:1px solid #1e2530;
   color:rgba(255,255,255,.4);font:700 8px var(--mono);letter-spacing:.1em;
@@ -801,7 +834,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 .pso-tel-item{display:flex;flex-direction:column;gap:3px}
 .pso-tel-label{color:#4a5560;text-transform:uppercase}
 .pso-tel-val{font-size:13px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
-.pso-tel-val.green{color:#22e87a}.pso-tel-val.amber{color:#ffa820}.pso-tel-val.red{color:#ff2e3d}
+.pso-tel-val.green{color:var(--green)}.pso-tel-val.amber{color:#ffa820}.pso-tel-val.red{color:#ff2e3d}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:720px){
   h1{font-size:30px}.screen{padding:26px 22px}
@@ -873,7 +906,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 /* ── MULTIPLAYER MODAL ── */
 #mp-modal{position:fixed;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;z-index:20000}
 #mp-modal.hidden{display:none}
-#mp-box{background:#0c0f13;border:1px solid rgba(255,255,255,.1);border-top:2px solid var(--red);padding:32px 36px;width:360px;font-family:var(--mono)}
+#mp-box{padding:32px 36px;width:360px;font-family:var(--mono)}
 #mp-box h2{font-size:16px;letter-spacing:.18em;color:#fff;margin:0 0 6px}
 #mp-box .mp-sub{font-size:11px;color:var(--dim);letter-spacing:.1em;margin-bottom:24px}
 .mp-tabs{display:flex;gap:8px;margin-bottom:22px}
@@ -899,7 +932,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 /* ── FIREBASE AUTH MODAL ── */
 #fb-auth-modal,#fb-username-modal{position:fixed;inset:0;background:rgba(0,0,0,0.82);display:flex;align-items:center;justify-content:center;z-index:500}
 #fb-auth-modal.hidden,#fb-username-modal.hidden{display:none!important}
-#fb-username-box{background:#111518;border:1px solid #2a313a;border-radius:10px;padding:32px 28px;width:320px;display:flex;flex-direction:column;gap:14px}
+#fb-username-box{padding:32px 28px;width:320px;display:flex;flex-direction:column;gap:14px}
 #fb-username-box h2{font:700 18px 'Rajdhani',sans-serif;letter-spacing:.12em;color:#e8ecef;text-align:center}
 #fb-username-box p{font:11px var(--mono);color:#8b95a1;text-align:center;letter-spacing:.06em}
 #fb-username-input{width:100%;padding:10px 12px;background:#0d1116;border:1px solid #2a313a;border-radius:6px;color:#e8ecef;font:14px var(--mono);outline:none;text-align:center;letter-spacing:.06em}
@@ -909,7 +942,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 #btn-fb-username-save:disabled{background:#333;color:#555;cursor:default}
 .fb-username-err{color:#ff2e3d;font:11px var(--mono);text-align:center;min-height:14px}
 #fb-auth-modal.hidden{display:none!important}
-#fb-auth-box{background:#111518;border:1px solid #2a313a;border-radius:10px;padding:32px 28px;width:320px;display:flex;flex-direction:column;gap:14px}
+#fb-auth-box{padding:32px 28px;width:320px;display:flex;flex-direction:column;gap:14px}
 #fb-auth-box h2{font:700 18px 'Rajdhani',sans-serif;letter-spacing:.12em;color:#e8ecef;text-align:center}
 #fb-auth-box .fb-sub{font:11px var(--mono);color:#8b95a1;text-align:center;letter-spacing:.06em}
 .fb-divider{display:flex;align-items:center;gap:10px;color:#444;font-size:11px}
@@ -935,7 +968,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 .lb-wr-entry.lb-me .lb-rank{color:#ff2e3d}
 .lb-lic-badge{font-size:13px;text-align:center}
 .lb-wr-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e8ecef;font-weight:700}
-.lb-wr-lp{color:#60b4ff;font-weight:700}
+.lb-wr-lp{color:var(--blue);font-weight:700}
 .lb-wr-km{color:#8b95a1}
 .lb-wr-races{color:#8b95a1}
 #lb-panel{background:#0d1116;width:100%;max-width:760px;margin:0 auto;height:100vh;max-height:100vh;display:flex;flex-direction:column;gap:0}
@@ -949,7 +982,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 .lb-cls-tab.active{color:#e8ecef;border-color:currentColor}
 .lb-cls-tab[data-cls="all"].active{border-color:#8b95a1;color:#e8ecef}
 .lb-cls-tab[data-cls="gt3"].active{border-color:#4a90e2;color:#4a90e2;background:rgba(74,144,226,.1)}
-.lb-cls-tab[data-cls="lmp2"].active{border-color:#22c463;color:#22c463;background:rgba(34,196,99,.1)}
+.lb-cls-tab[data-cls="lmp2"].active{border-color:var(--green);color:var(--green);background:rgba(34,196,99,.1)}
 .lb-cls-tab[data-cls="hypercar"].active{border-color:#ff2e3d;color:#ff2e3d;background:rgba(255,46,61,.1)}
 #lb-table-head{display:grid;grid-template-columns:2.8em 1fr 7em 10em 6.5em;gap:0;padding:7px 14px;background:#111518;border-bottom:1px solid #1e252e;font:700 9px var(--mono);letter-spacing:.14em;color:#555;text-transform:uppercase}
 #lb-list,#hud-lb-list{flex:1;overflow-y:auto;display:flex;flex-direction:column}
@@ -962,7 +995,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 .lb-entry-name{display:flex;align-items:center;gap:7px;overflow:hidden}
 .lb-cls-badge{font:700 8px var(--mono);letter-spacing:.1em;padding:2px 5px;border-radius:3px;flex-shrink:0}
 .lb-cls-badge.gt3{background:#4a90e2;color:#fff}
-.lb-cls-badge.lmp2{background:#22c463;color:#111}
+.lb-cls-badge.lmp2{background:var(--green);color:#111}
 .lb-cls-badge.hypercar{background:#ff2e3d;color:#fff}
 .lb-cls-badge.unknown{background:#444;color:#aaa}
 .lb-driver{color:#e8ecef;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -972,8 +1005,8 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 .lb-car-cell{color:#8b95a1;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px}
 .lb-date-cell{color:#555;font-size:10px;white-space:nowrap}
 .lb-replay-cell{text-align:center}
-.lb-replay-btn{background:none;border:1px solid #2a394b;border-radius:3px;color:#60b4ff;font-size:11px;cursor:pointer;padding:3px 7px;line-height:1}
-.lb-replay-btn:hover{background:#1a2533;border-color:#60b4ff}
+.lb-replay-btn{background:none;border:1px solid #2a394b;border-radius:3px;color:var(--blue);font-size:11px;cursor:pointer;padding:3px 7px;line-height:1}
+.lb-replay-btn:hover{background:#1a2533;border-color:var(--blue)}
 .lb-ghost-cell{text-align:center}
 .lb-ghost-btn{background:none;border:1px solid #3a2a4b;border-radius:3px;color:#a855f7;font-size:11px;cursor:pointer;padding:3px 7px;line-height:1}
 .lb-ghost-btn:hover{background:#1a1033;border-color:#a855f7}
@@ -990,7 +1023,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 .lic-bronze{background:#3d2710;color:#cd7f32;border:1px solid #cd7f3266}
 .lic-silver{background:#1e2229;color:#b0bec5;border:1px solid #b0bec566}
 .lic-gold{background:#2d2200;color:#f5c518;border:1px solid #f5c51866}
-.lic-platinum{background:#0a1a2d;color:#60b4ff;border:1px solid #60b4ff66}
+.lic-platinum{background:#0a1a2d;color:var(--blue);border:1px solid var(--blue)66}
 
 /* License Screen */
 #screen-license{gap:0;align-items:stretch;justify-content:flex-start;padding:0}
@@ -1043,10 +1076,10 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 #screen-impressum h1,#screen-datenschutz h1{font-size:22px;color:#e8ecef;margin-bottom:24px;letter-spacing:.08em}
 #screen-impressum h2,#screen-datenschutz h2{font-size:13px;color:#e8ecef;margin:24px 0 8px;letter-spacing:.1em;text-transform:uppercase}
 #screen-impressum p,#screen-datenschutz p{margin:0 0 12px;color:#8b95a1}
-#screen-impressum a,#screen-datenschutz a{color:#60b4ff}
+#screen-impressum a,#screen-datenschutz a{color:var(--blue)}
 .legal-footer{text-align:center;padding:10px 0 4px;font:10px var(--mono);color:#3a4450;letter-spacing:.1em}
 .legal-footer a{color:#3a4450;text-decoration:none;margin:0 8px}
-.legal-footer a:hover{color:#60b4ff}
+.legal-footer a:hover{color:var(--blue)}
 </style>
 </head>
 <body>
@@ -1054,7 +1087,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 
 <!-- ===================== FIREBASE USERNAME MODAL ===================== -->
 <div id="fb-username-modal" class="hidden">
-  <div id="fb-username-box">
+  <div id="fb-username-box" class="modal-panel">
     <h2>FAHRERNAME WÄHLEN</h2>
     <p>Dieser Name erscheint in der globalen Bestenliste</p>
     <input type="text" id="fb-username-input" placeholder="Dein Fahrername" maxlength="20" autocomplete="off" spellcheck="false">
@@ -1066,7 +1099,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 
 <!-- ===================== FIREBASE AUTH MODAL ===================== -->
 <div id="fb-auth-modal" class="hidden">
-  <div id="fb-auth-box">
+  <div id="fb-auth-box" class="modal-panel">
     <h2 id="fb-auth-title">ANMELDEN</h2>
     <p class="fb-sub">Melde dich an um in der globalen Bestenliste zu erscheinen</p>
     <button id="btn-fb-google">
@@ -1392,7 +1425,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 <div id="vignette" class="hidden"></div>
 <div id="mirror-wrap"></div>
 <div id="flag-border"></div>
-<div id="pit-car-select"><div class="pcs-title">FAHRZEUG WECHSELN — WIRD BEI STOPP-ENDE ANGEWENDET</div><div class="pcs-grid" id="pit-car-grid"></div></div>
+<div id="pit-car-select" class="modal-panel"><div class="pcs-title">FAHRZEUG WECHSELN — WIRD BEI STOPP-ENDE ANGEWENDET</div><div class="pcs-grid" id="pit-car-grid"></div></div>
 <div id="fl-notif"><div class="fl-label">SCHNELLSTE RUNDE</div><div class="fl-time" id="fl-time">--:--.---</div><div class="fl-driver" id="fl-driver"></div></div>
 <div id="ers-popup">
   <div class="ep-title">ERS · <span id="ep-modename">RACE</span></div>
@@ -2042,7 +2075,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 
 <!-- MULTIPLAYER MODAL (Einstieg) -->
 <div id="mp-modal" class="hidden">
-  <div id="mp-box">
+  <div id="mp-box" class="modal-panel">
     <h2>MULTIPLAYER</h2>
     <p class="mp-sub">PEER-TO-PEER · KEIN SERVER NÖTIG</p>
     <div class="mp-tabs">
@@ -2080,7 +2113,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 </div>
 
 <!-- LOBBY SCREEN (nach Verbindung) -->
-<section id="screen-lobby" style="display:none">
+<section id="screen-lobby" class="hidden">
   <div class="lobby-topbar">
     <h2>LOBBY</h2>
     <div class="lobby-code-bar" id="lobby-host-code-bar" style="display:none">Code: <span id="lobby-host-code">------</span></div>
@@ -2914,7 +2947,7 @@ const TRACKS = [
   },
   /* === Circuito Ovale (Monza-Style) === */
   {
-    id:'monza', name:'Circuito Ovale', sub:'Highspeed-Oval · 2 Haarnadeln · ~3.5km · ideal für Slipstream',
+    id:'monza', name:'Anello di Monza', sub:'Historische Steilkurve im Stil des Autodromo di Monza · 2 Banken-Kurven · ~3.5km · ideal für Windschatten-Duelle',
     halfWidth: 9.0, sky: 0x87b5e8, hill: 0x57803f, grass: [0x4a8038, 0x3e702e],
     wallDist: 25, vergeW: 22,
     pts: [
@@ -2961,7 +2994,7 @@ const TRACKS = [
   /* Superspeedway Oval · ~3.7km · Startlinie Mitte der Hauptgeraden
      Hauptgerade 1200m geteilt in 2×600m; beide 180°-Sweeper R=200. */
   {
-    id:'superspeedway', name:'Superspeedway Oval',
+    id:'superspeedway', name:'Nordlicht Speedway',
     sub:'Hochgeschwindigkeits-Oval · 2 weite Bankkurven · kein Bremsen nötig · ~3.7 km',
     halfWidth:10.5, sky:0x87b5e8, hill:0x57803f, grass:[0x4a8038,0x3e702e],
     wallDist:28, vergeW:22,
@@ -3674,20 +3707,30 @@ class SoundManager {
       return {src,f,g};
     };
 
-    // Motor: Säge + Sub-Rechteck -> Softclip -> Tiefpass
+    // Motor: Säge + Sub-Rechteck + Sub-Harmonische (Leerlauf-Fülle) + Oberton (Drehzahl-Schärfe)
+    // -> lastabhängige Sättigung -> Softclip -> Tiefpass. Vier Layer statt zwei ergeben
+    // einen volleren, weniger "dünn" wirkenden Motorklang über den ganzen Drehzahlbereich.
     this.osc1 = ctx.createOscillator(); this.osc1.type='sawtooth';
     this.osc2 = ctx.createOscillator(); this.osc2.type='square';
     this.oscGain2 = ctx.createGain(); this.oscGain2.gain.value=0.4;
+    this.osc3 = ctx.createOscillator(); this.osc3.type='sawtooth'; // Sub-Harmonische, f*0.25
+    this.oscGain3 = ctx.createGain(); this.oscGain3.gain.value=0;
+    this.osc4 = ctx.createOscillator(); this.osc4.type='square';   // Oberton, f*2
+    this.oscGain4 = ctx.createGain(); this.oscGain4.gain.value=0;
+    this.driveGain = ctx.createGain(); this.driveGain.gain.value=1; // lastabhängiger Sättigungsgrad
     this.shaper = ctx.createWaveShaper();
     const curve = new Float32Array(256);
     for(let i=0;i<256;i++){ const x=i/128-1; curve[i]=Math.tanh(2.2*x); }
     this.shaper.curve = curve;
     this.engineLP = ctx.createBiquadFilter(); this.engineLP.type='lowpass';
     this.engineGain = ctx.createGain(); this.engineGain.gain.value=0;
-    this.osc1.connect(this.shaper);
-    this.osc2.connect(this.oscGain2).connect(this.shaper);
+    this.osc1.connect(this.driveGain);
+    this.osc2.connect(this.oscGain2).connect(this.driveGain);
+    this.osc3.connect(this.oscGain3).connect(this.driveGain);
+    this.osc4.connect(this.oscGain4).connect(this.driveGain);
+    this.driveGain.connect(this.shaper);
     this.shaper.connect(this.engineLP).connect(this.engineGain).connect(this.master);
-    this.osc1.start(); this.osc2.start();
+    this.osc1.start(); this.osc2.start(); this.osc3.start(); this.osc4.start();
 
     this.squeal = noiseSrc('bandpass', 1050, 9);   // Reifenquietschen
     this.wind   = noiseSrc('lowpass', 380);        // Windgeräusch
@@ -3706,6 +3749,14 @@ class SoundManager {
     const f = 42 + rpmRatio*390;
     this.osc1.frequency.setTargetAtTime(f, t, 0.02);
     this.osc2.frequency.setTargetAtTime(f*0.5, t, 0.02);
+    this.osc3.frequency.setTargetAtTime(f*0.25, t, 0.02);
+    this.osc4.frequency.setTargetAtTime(f*2, t, 0.02);
+    // Sub-Harmonische füllt den Leerlauf/niedrige Drehzahl auf, tritt bei hoher Drehzahl zurück
+    this.oscGain3.gain.setTargetAtTime(clamp(0.34-rpmRatio*0.30, 0, 0.34), t, 0.08);
+    // Oberton kommt erst bei hoher Drehzahl dazu — sorgt für den "Schrei" nahe der Drehzahlgrenze
+    this.oscGain4.gain.setTargetAtTime(Math.max(0,rpmRatio-0.55)*0.36, t, 0.06);
+    // Unter Last (viel Gas + hohe Drehzahl) mehr Eingangspegel vor dem Softclip → aggressiverer Klangcharakter
+    this.driveGain.gain.setTargetAtTime(1 + throttle*rpmRatio*0.9, t, 0.05);
     this.engineLP.frequency.setTargetAtTime(260+throttle*4200+rpmRatio*1200, t, 0.04);
     const cut = shiftCut?0.25:1;
     this.engineGain.gain.setTargetAtTime((0.10+throttle*0.16+rpmRatio*0.05)*cut, t, 0.05);
@@ -5588,13 +5639,21 @@ class Car {
         return;
       }
       const loader = new THREE.GLTFLoader();
+      // Ohne Timeout hängt loader.load() bei Netzwerkabbruch/Tab-Throttling für immer
+      // (weder onLoad noch onError feuert) → blockiert startRace()s await Promise.all()
+      // unbegrenzt und friert das Spiel ein (Reload nötig). Timeout erzwingt Reject,
+      // der bestehende Fallback auf die prozedurale Hülle greift dann normal.
+      const timeoutId = setTimeout(()=>reject(new Error('GLTF-Ladezeit überschritten: '+url)), 15000);
       loader.load(
         url,
-        gltf => resolve(gltf.scene),
+        gltf => { clearTimeout(timeoutId); resolve(gltf.scene); },
         undefined,
-        err => reject(err)
+        err => { clearTimeout(timeoutId); reject(err); }
       );
     });
+    // Bei Fehlschlag Cache-Eintrag entfernen, damit ein späterer Versuch (Respawn,
+    // Liverywechsel) das Modell erneut laden kann statt dauerhaft auf Fallback zu bleiben.
+    p.catch(()=>{ if(Car._gltfTemplateCache.get(url) === p) Car._gltfTemplateCache.delete(url); });
     Car._gltfTemplateCache.set(url, p);
     return p;
   }
@@ -13460,7 +13519,10 @@ const Game = {
         if(remaining.length) labelEl.textContent = remaining[0].def.name || '';
         else labelEl.textContent = '';
       }, 120);
-      await Promise.all(tracked);
+      // Verteidigung in der Tiefe: selbst wenn eine Promise trotz Loader-Timeout
+      // durchrutscht, darf der Ladebildschirm das Spiel nicht dauerhaft blockieren.
+      const safetyTimeout = new Promise(resolve=>setTimeout(resolve, 20000));
+      await Promise.race([Promise.all(tracked), safetyTimeout]);
       clearInterval(tickLabel);
       loadingEl.classList.add('hidden');
     }
@@ -14946,10 +15008,10 @@ const Game = {
   },
 
   _closeLobby(){
-    document.getElementById('screen-lobby').style.display = 'none';
+    document.getElementById('screen-lobby').classList.add('hidden');
   },
   _openLobby(){
-    document.getElementById('screen-lobby').style.display = 'flex';
+    document.getElementById('screen-lobby').classList.remove('hidden');
     // Ready-State immer zurücksetzen wenn Lobby geöffnet wird
     Lobby.localReady = false;
     // Eigenen Spieler in die Liste
