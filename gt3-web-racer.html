@@ -3092,7 +3092,7 @@ const TRACKS = [
     id:'norisring', name:'Norisring', env:'city',
     sub:'Straßenkurs · Nürnberg · Grundig-Kehre · Schöller-S · Dutzendteich-Kehre · ~2.2 km',
     halfWidth:6.0, sky:0x8fb4de, hill:0x4a6a3c, grass:[0x3d7233,0x32602a],
-    wallDist:11, vergeW:6,
+    wallDist:19, vergeW:6,
     segments:[
       {type:'straight', len:420},                        // Start/Ziel → Grundig
       {type:'arc', radius:44.32233047033631, deg:180, dir:1}, // Grundig-Kehre
@@ -4901,6 +4901,36 @@ class Track {
         panel.lookAt(s.pos.x,s.pos.y+2,s.pos.z);
         this.group.add(panel);
       }
+    }
+
+    /* ── Norisring-Spezial: Steintribüne entlang Start/Ziel (Wahrzeichen) ── */
+    if(this.def.id==='norisring'){
+      const stoneMat=new THREE.MeshLambertMaterial({color:0xb8b0a2});
+      const stoneDark=new THREE.MeshLambertMaterial({color:0x8f887c});
+      const segLen=this.segLen;
+      const nSeg=Math.min(Math.round(200/segLen), N-1); // ~200 m lang
+      const sgn=1; // gegenüber der Boxengasse (side:-1)
+      for(let k=0;k<nSeg;k+=3){
+        const s=S[k];
+        const bx=s.pos.clone().addScaledVector(s.side,sgn*(this.wallDist+9));
+        // Gestufte Steinstufen (5 Ränge)
+        for(let step=0;step<5;step++){
+          const st=new THREE.Mesh(new THREE.BoxGeometry(segLen*3+0.5,1.6,3.2),step%2?stoneDark:stoneMat);
+          st.position.copy(bx).addScaledVector(s.side,sgn*step*3.0);
+          st.position.y=s.pos.y+0.8+step*1.6;
+          st.rotation.y=Math.atan2(s.tan.x,s.tan.z);
+          if(step===0) st.castShadow=true;
+          this.group.add(st);
+        }
+      }
+      // Mittelturm der Steintribüne
+      const s0=S[Math.floor(nSeg/2)];
+      const twr=new THREE.Mesh(new THREE.BoxGeometry(10,16,8),stoneMat);
+      const tp=s0.pos.clone().addScaledVector(s0.side,sgn*(this.wallDist+24));
+      twr.position.set(tp.x,s0.pos.y+8,tp.z);
+      twr.rotation.y=Math.atan2(s0.tan.x,s0.tan.z);
+      twr.castShadow=true;
+      this.group.add(twr);
     }
 
     /* ── Zeppelin über der Strecke (kreist langsam, Update in Game-Loop) ── */
