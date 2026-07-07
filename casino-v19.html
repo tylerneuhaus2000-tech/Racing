@@ -557,6 +557,13 @@ canvas#crash-canvas{height:190px!important}
   </button>
 </div>
 
+<div class="panel" id="rewarded-panel" style="padding:10px 12px">
+  <div class="section-lbl" style="margin-bottom:8px">Video Bonus</div>
+  <button class="primary-btn" id="rewarded-btn" onclick="startRewardedVideo()" style="padding:10px;font-size:12px;background:linear-gradient(135deg,#22c55e,#06b6d4);color:#03140f">Video schauen +500 Chips</button>
+  <div id="rewarded-status" style="margin-top:8px;font-size:11px;color:var(--text2);line-height:1.4">Bereit: Hol dir einen Bonus.</div>
+  <div id="rewarded-limit" style="margin-top:4px;font-size:10px;color:var(--text3)">Limit: 10 pro Tag · Cooldown 5 Minuten</div>
+</div>
+
 <div class="hist-section"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><span class="section-lbl" style="margin:0">Verlauf</span><button onclick="clearHist13()" style="font-size:10px;color:var(--text3);background:none;border:none;cursor:pointer" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">löschen</button></div><div style="max-height:260px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border2) transparent"><div id="hist-rows"></div><p id="no-hist" style="font-size:12px;color:var(--text3);padding:4px 0">Noch keine Spiele</p></div></div>
 </div></div>
 </div>
@@ -573,6 +580,13 @@ const fM=n=>n.toFixed(2)+'×';
 let bal=1000,pl=0,rounds=0,hist=[];
 let curGame='bj',busy=false;
 let dailyClaimed=false;
+const REWARDED_KEY='casinoRewardedDeviceId';
+const REWARDED_DAILY_LIMIT=10;
+const REWARDED_COOLDOWN_SECONDS=300;
+let rewardedBusy=false;
+let rewardedTick=null;
+let rewardedWaitSeconds=0;
+let rewardedRemainingToday=REWARDED_DAILY_LIMIT;
 
 const SVG_ICONS={
   bj:'<rect x="2" y="4" width="10" height="14" rx="2"/><rect x="12" y="6" width="10" height="14" rx="2"/>',
@@ -612,6 +626,118 @@ function addHist(game,label,profit){
   $('hist-rows').innerHTML=hist.map(h=>{const s=h.profit>=0?'+':'';return`<div class="hist-row"><span style="font-size:10px;color:var(--text3);margin-right:6px;flex-shrink:0">${h.game}</span><span style="flex:1">${h.label}</span><span class="badge ${h.type}">${s}${fN(h.profit)}</span></div>`;}).join('');
 }
 function clearHist13(){hist=[];$('hist-rows').innerHTML='';$('no-hist').style.display='block';}
+
+function getRewardedDeviceId(){
+  let id=localStorage.getItem(REWARDED_KEY);
+  if(id&&/^[a-zA-Z0-9_-]{16,80}$/.test(id))return id;
+  const raw=(globalThis.crypto&&typeof globalThis.crypto.randomUUID==='function')
+    ?globalThis.crypto.randomUUID()
+    :('dev-'+Math.random().toString(36).slice(2)+Date.now().toString(36));
+  id=raw.replace(/[^a-zA-Z0-9_-]/g,'').slice(0,48);
+  localStorage.setItem(REWARDED_KEY,id);
+  return id;
+}
+
+function fmtSecs(total){
+  const s=Math.max(0,Math.floor(total));
+  const m=Math.floor(s/60);
+  const r=s%60;
+  return `${m}:${String(r).padStart(2,'0')}`;
+}
+
+function renderRewarded(){
+  const btn=$('rewarded-btn');
+  const status=$('rewarded-status');
+  const limit=$('rewarded-limit');
+  if(!btn||!status||!limit)return;
+
+  if(rewardedBusy){
+    btn.disabled=true;
+    btn.textContent='Video laeuft...';
+    status.textContent='Bitte bis zum Ende schauen, dann werden Chips angefragt.';
+    limit.textContent=`Verfuegbar heute: ${rewardedRemainingToday}/${REWARDED_DAILY_LIMIT}`;
+    return;
+  }
+
+  if(rewardedRemainingToday<=0){
+    btn.disabled=true;
+    btn.textContent='Tageslimit erreicht';
+    status.textContent='Heute sind keine weiteren Video-Boni mehr moeglich.';
+    limit.textContent=`Verfuegbar heute: 0/${REWARDED_DAILY_LIMIT}`;
+    return;
+  }
+
+  if(rewardedWaitSeconds>0){
+    btn.disabled=true;
+    btn.textContent=`Naechstes Video in ${fmtSecs(rewardedWaitSeconds)}`;
+    status.textContent='Cooldown aktiv. Danach kannst du erneut einen Bonus holen.';
+    limit.textContent=`Verfuegbar heute: ${rewardedRemainingToday}/${REWARDED_DAILY_LIMIT}`;
+    return;
+  }
+
+  btn.disabled=false;
+  btn.textContent='Video schauen +500 Chips';
+  status.textContent='Bereit: Hol dir einen Bonus.';
+  limit.textContent=`Verfuegbar heute: ${rewardedRemainingToday}/${REWARDED_DAILY_LIMIT} · Cooldown 5 Minuten`;
+}
+
+function startRewardedCountdown(seconds){
+  rewardedWaitSeconds=Math.max(0,Math.floor(seconds));
+  if(rewardedTick)clearInterval(rewardedTick);
+  renderRewarded();
+  if(rewardedWaitSeconds<=0)return;
+  rewardedTick=setInterval(()=>{
+    rewardedWaitSeconds=Math.max(0,rewardedWaitSeconds-1);
+    renderRewarded();
+    if(rewardedWaitSeconds<=0){
+      clearInterval(rewardedTick);
+      rewardedTick=null;
+    }
+  },1000);
+}
+
+async function claimRewardedVideo(){
+  const deviceId=getRewardedDeviceId();
+  const r=await fetch('/api/rewarded-video',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({deviceId,adToken:'video-complete-v1'})
+  });
+  let data=null;
+  try{data=await r.json();}catch(_e){data={ok:false,error:'invalid-json'};}
+  if(!data||data.ok!==true){
+    rewardedRemainingToday=Number.isFinite(data?.remainingToday)?data.remainingToday:rewardedRemainingToday;
+    const wait=Number.isFinite(data?.waitSeconds)?data.waitSeconds:0;
+    if(data?.reason==='cooldown')startRewardedCountdown(wait);
+    if(data?.reason==='daily-limit'){rewardedRemainingToday=0;startRewardedCountdown(0);}
+    renderRewarded();
+    throw new Error(data?.reason||'reward-failed');
+  }
+
+  const coins=Number.isFinite(data.grantedCoins)?data.grantedCoins:500;
+  rewardedRemainingToday=Number.isFinite(data.remainingToday)?data.remainingToday:rewardedRemainingToday;
+  bal+=coins;
+  refreshStats(true);
+  addHist('Video',`Bonusvideo +${fN(coins)}`,coins);
+  showBanner(`Video-Bonus: +${fN(coins)} Chips`,'win');
+  spawnParticles(14);
+  startRewardedCountdown(Number.isFinite(data.waitSeconds)?data.waitSeconds:REWARDED_COOLDOWN_SECONDS);
+}
+
+async function startRewardedVideo(){
+  if(rewardedBusy||rewardedWaitSeconds>0||rewardedRemainingToday<=0)return;
+  rewardedBusy=true;
+  renderRewarded();
+  try{
+    await new Promise(resolve=>setTimeout(resolve,18000));
+    await claimRewardedVideo();
+  }catch(_err){
+    showBanner('Video-Bonus aktuell nicht verfuegbar. Bitte gleich erneut probieren.','loss');
+  }finally{
+    rewardedBusy=false;
+    renderRewarded();
+  }
+}
 
 /* ---- TOP-UP ---- */
 /* openTopup defined below in payment script block */
@@ -3322,6 +3448,9 @@ window.addEventListener('load',function(){
   applyTheme(cTheme);applyScale(cScale);
   const bi=$('bet-inp'),sl=$('bet-sl');
   if(bi)bi.value=Math.min(cBet,bal);if(sl&&bi)sl.value=bi.value;
+  rewardedRemainingToday=REWARDED_DAILY_LIMIT;
+  startRewardedCountdown(0);
+  renderRewarded();
   refreshStats();
   if(typeof updateAutoBtns==='function')updateAutoBtns();
 });

@@ -26,6 +26,7 @@ const { defineSecret, defineString } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const admin = require('firebase-admin');
 const fetch = require('node-fetch');
+const crypto = require('crypto');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -233,4 +234,235 @@ exports.paypalWebhook = onRequest({ secrets: [PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SE
     logger.error('Webhook-Verarbeitung fehlgeschlagen', err);
     res.status(500).send('error');
   }
+});
+
+const REWARDED_COINS = 500;
+const REWARDED_DAILY_LIMIT = 10;
+const REWARDED_COOLDOWN_SECONDS = 300;
+const GT3_REWARDED_COINS = 500;
+const GT3_REWARDED_DAILY_LIMIT = 10;
+const GT3_REWARDED_COOLDOWN_SECONDS = 300;
+
+function getClientIp(req) {
+  const xfwd = req.headers['x-forwarded-for'];
+  if (typeof xfwd === 'string' && xfwd.length > 0) return xfwd.split(',')[0].trim();
+  return req.ip || 'unknown';
+}
+
+function hashKey(input) {
+  return crypto.createHash('sha256').update(input).digest('hex').slice(0, 40);
+}
+
+function utcDayKey(ms) {
+  const d = new Date(ms);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+// Rewarded-Video Claim Endpoint (serverseitig limitiert: Cooldown + Tageslimit)
+exports.rewardedVideoGrant = onRequest(async (req, res) => {
+  if (req.method === 'OPTIONS') {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.status(204).send('');
+    return;
+  }
+
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Content-Type', 'application/json');
+
+  if (req.method !== 'POST') {
+    res.status(405).send(JSON.stringify({ ok: false, error: 'method-not-allowed' }));
+    return;
+  }
+
+  try {
+    const body = req.body || {};
+    const deviceId = typeof body.deviceId === 'string' ? body.deviceId.trim() : '';
+    const adToken = typeof body.adToken === 'string' ? body.adToken.trim() : '';
+
+    if (!/^[a-zA-Z0-9_-]{16,80}$/.test(deviceId)) {
+      res.status(400).send(JSON.stringify({ ok: false, error: 'invalid-device-id' }));
+      return;
+    }
+    if (adToken !== 'video-complete-v1') {
+      res.status(400).send(JSON.stringify({ ok: false, error: 'invalid-ad-token' }));
+      return;
+    }
+
+    const now = Date.now();
+    const nowDay = utcDayKey(now);
+    const ip = getClientIp(req);
+    const identity = hashKey(`${deviceId}|${ip}`);
+    const ref = db.collection('rewardedVideoState').doc(identity);
+
+    const result = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const data = snap.exists ? (snap.data() || {}) : {};
+
+      let day = data.day || nowDay;
+      let claimsToday = Number.isFinite(data.claimsToday) ? data.claimsToday : 0;
+      let nextClaimAtMs = Number.isFinite(data.nextClaimAtMs) ? data.nextClaimAtMs : 0;
+
+      if (day !== nowDay) {
+        day = nowDay;
+        claimsToday = 0;
+        nextClaimAtMs = 0;
+      }
+
+      if (claimsToday >= REWARDED_DAILY_LIMIT) {
+        return {
+          ok: false,
+          reason: 'daily-limit',
+          claimsToday,
+          remainingToday: 0,
+          waitSeconds: 0,
+        };
+      }
+
+      if (nextClaimAtMs > now) {
+        const waitSeconds = Math.ceil((nextClaimAtMs - now) / 1000);
+        return {
+          ok: false,
+          reason: 'cooldown',
+          claimsToday,
+          remainingToday: Math.max(REWARDED_DAILY_LIMIT - claimsToday, 0),
+          waitSeconds,
+        };
+      }
+
+      claimsToday += 1;
+      nextClaimAtMs = now + REWARDED_COOLDOWN_SECONDS * 1000;
+
+      tx.set(ref, {
+        day,
+        claimsToday,
+        nextClaimAtMs,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+
+      return {
+        ok: true,
+        reason: 'granted',
+        claimsToday,
+        remainingToday: Math.max(REWARDED_DAILY_LIMIT - claimsToday, 0),
+        waitSeconds: REWARDED_COOLDOWN_SECONDS,
+      };
+    });
+
+    if (!result.ok) {
+      res.status(200).send(JSON.stringify(result));
+      return;
+    }
+
+    await db.collection('rewardedVideoClaims').add({
+      identity,
+      deviceId,
+      ipHash: hashKey(ip),
+      coins: REWARDED_COINS,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.status(200).send(JSON.stringify({
+      ok: true,
+      reason: 'granted',
+      grantedCoins: REWARDED_COINS,
+      claimsToday: result.claimsToday,
+      remainingToday: result.remainingToday,
+      waitSeconds: result.waitSeconds,
+      dailyLimit: REWARDED_DAILY_LIMIT,
+    }));
+  } catch (err) {
+    logger.error('rewardedVideoGrant fehlgeschlagen', err);
+    res.status(500).send(JSON.stringify({ ok: false, error: 'internal' }));
+  }
+});
+
+// Rewarded-Video Claim fuer GT3 (nur mit Login; schreibt Credits in wallets/{uid})
+exports.claimRewardedCredits = onCall(async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Login erforderlich.');
+  const uid = req.auth.uid;
+  const now = Date.now();
+  const today = utcDayKey(now);
+  const ref = db.collection('rewardedVideoUserState').doc(uid);
+
+  const txResult = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.exists ? (snap.data() || {}) : {};
+
+    let day = data.day || today;
+    let claimsToday = Number.isFinite(data.claimsToday) ? data.claimsToday : 0;
+    let nextClaimAtMs = Number.isFinite(data.nextClaimAtMs) ? data.nextClaimAtMs : 0;
+
+    if (day !== today) {
+      day = today;
+      claimsToday = 0;
+      nextClaimAtMs = 0;
+    }
+
+    if (claimsToday >= GT3_REWARDED_DAILY_LIMIT) {
+      return {
+        ok: false,
+        reason: 'daily-limit',
+        claimsToday,
+        remainingToday: 0,
+        waitSeconds: 0,
+      };
+    }
+
+    if (nextClaimAtMs > now) {
+      return {
+        ok: false,
+        reason: 'cooldown',
+        claimsToday,
+        remainingToday: Math.max(GT3_REWARDED_DAILY_LIMIT - claimsToday, 0),
+        waitSeconds: Math.ceil((nextClaimAtMs - now) / 1000),
+      };
+    }
+
+    claimsToday += 1;
+    nextClaimAtMs = now + GT3_REWARDED_COOLDOWN_SECONDS * 1000;
+
+    tx.set(ref, {
+      day,
+      claimsToday,
+      nextClaimAtMs,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    tx.set(db.collection('wallets').doc(uid), {
+      credits: admin.firestore.FieldValue.increment(GT3_REWARDED_COINS),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    return {
+      ok: true,
+      reason: 'granted',
+      claimsToday,
+      remainingToday: Math.max(GT3_REWARDED_DAILY_LIMIT - claimsToday, 0),
+      waitSeconds: GT3_REWARDED_COOLDOWN_SECONDS,
+    };
+  });
+
+  if (!txResult.ok) return txResult;
+
+  await db.collection('rewardedVideoClaims').add({
+    uid,
+    source: 'gt3',
+    coins: GT3_REWARDED_COINS,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  return {
+    ok: true,
+    reason: 'granted',
+    grantedCredits: GT3_REWARDED_COINS,
+    claimsToday: txResult.claimsToday,
+    remainingToday: txResult.remainingToday,
+    waitSeconds: txResult.waitSeconds,
+    dailyLimit: GT3_REWARDED_DAILY_LIMIT,
+  };
 });

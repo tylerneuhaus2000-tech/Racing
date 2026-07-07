@@ -2096,6 +2096,12 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
       <span id="shop-wallet-credits" style="font-family:var(--mono);color:var(--green);font-weight:700">0 Credits</span>
       <span id="shop-wallet-premium" class="hidden" style="font-family:var(--mono);color:var(--blue);font-weight:700">✓ Premium (werbefrei)</span>
     </div>
+    <div class="setrow" style="flex-direction:column;align-items:flex-start;gap:8px">
+      <span style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--dim)">VIDEO BONUS</span>
+      <button class="btn secondary" id="btn-shop-rewarded" style="padding:10px 14px;font-size:12px">Video schauen (+500 Credits)</button>
+      <span id="shop-rewarded-status" style="font-size:11px;color:var(--dim)">Bereit: Bonus verfuegbar.</span>
+      <span id="shop-rewarded-meta" style="font-size:10px;color:var(--dim)">Limit: 10 pro Tag · Cooldown 5 Minuten</span>
+    </div>
     <div id="shop-grid" class="cards" style="margin-top:14px"></div>
     <div id="shop-checkout" class="modal-panel hidden" style="position:fixed;inset:0;margin:auto;width:min(420px,92vw);height:fit-content;padding:28px 32px;z-index:200">
       <div class="eyebrow" id="shop-checkout-title">ITEM</div>
@@ -15832,8 +15838,12 @@ function _clearUser(){
    Client-Schreibzugriff komplett). */
 const Shop = {
   wallet: { credits: 0, premium: false },
+  localWallet: { rewardedCredits: 0, day:'', claimsToday:0, nextClaimAtMs:0 },
   entitlements: { unlockedCars: [], unlockedTracks: [], unlockedSkins: [] },
+  rewarded: { busy:false, waitSeconds:0, remainingToday:10, dailyLimit:10 },
+  _rewardedTimer: null,
   _walletUnsub: null,
+  _userUnsub: null,
   _entUnsub: null,
   _pendingItem: null,
 
@@ -15863,9 +15873,11 @@ const Shop = {
 
   _onAuthChanged(user){
     if(this._walletUnsub){ this._walletUnsub(); this._walletUnsub=null; }
+    if(this._userUnsub){ this._userUnsub(); this._userUnsub=null; }
     if(this._entUnsub){ this._entUnsub(); this._entUnsub=null; }
     if(!user){
       this.wallet = { credits:0, premium:false };
+      this.localWallet = { rewardedCredits:0, day:'', claimsToday:0, nextClaimAtMs:0 };
       this.entitlements = { unlockedCars:[], unlockedTracks:[], unlockedSkins:[] };
       this._renderWallet();
       // Car-/Track-Listen wurden ggf. schon gerendert bevor der Auth-Status bekannt
@@ -15879,17 +15891,195 @@ const Shop = {
       this._renderWallet();
       this._applyPremium();
     }, err=>console.warn('[Shop] wallet-Listener Fehler:', err));
+    this._userUnsub = db.collection('users').doc(user.uid).onSnapshot(snap=>{
+      const d = snap.data() || {};
+      this.localWallet = {
+        rewardedCredits: Number.isFinite(d.sparkRewardedCredits) ? d.sparkRewardedCredits : 0,
+        day: d.sparkRewardedDay || '',
+        claimsToday: Number.isFinite(d.sparkRewardedClaimsToday) ? d.sparkRewardedClaimsToday : 0,
+        nextClaimAtMs: Number.isFinite(d.sparkRewardedNextClaimAtMs) ? d.sparkRewardedNextClaimAtMs : 0,
+      };
+      this._renderWallet();
+    }, err=>console.warn('[Shop] user-Listener Fehler:', err));
     this._entUnsub = db.collection('entitlements').doc(user.uid).onSnapshot(snap=>{
       this.entitlements = Object.assign({unlockedCars:[],unlockedTracks:[],unlockedSkins:[]}, snap.data()||{});
       this._refreshLocks();
     }, err=>console.warn('[Shop] entitlements-Listener Fehler:', err));
   },
 
+  _effectiveCredits(){
+    return (this.wallet.credits||0) + (this.localWallet.rewardedCredits||0);
+  },
+
   _renderWallet(){
     const c = document.getElementById('shop-wallet-credits');
     const p = document.getElementById('shop-wallet-premium');
-    if(c) c.textContent = (this.wallet.credits||0).toLocaleString('de-DE') + ' Credits';
+    if(c) c.textContent = this._effectiveCredits().toLocaleString('de-DE') + ' Credits';
     if(p) p.classList.toggle('hidden', !this.wallet.premium);
+    this._renderRewarded();
+  },
+
+  _utcDay(){
+    const d=new Date();
+    const y=d.getUTCFullYear();
+    const m=String(d.getUTCMonth()+1).padStart(2,'0');
+    const day=String(d.getUTCDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  },
+
+  _fmtWait(sec){
+    const s = Math.max(0, Math.floor(sec||0));
+    const m = Math.floor(s/60);
+    const r = s % 60;
+    return `${m}:${String(r).padStart(2, '0')}`;
+  },
+
+  _renderRewarded(msg){
+    const btn = document.getElementById('btn-shop-rewarded');
+    const st = document.getElementById('shop-rewarded-status');
+    const meta = document.getElementById('shop-rewarded-meta');
+    if(!btn || !st || !meta) return;
+
+    if(!auth.currentUser){
+      btn.disabled = true;
+      btn.textContent = 'Login noetig fuer Video-Bonus';
+      st.textContent = 'Bitte zuerst einloggen.';
+      meta.textContent = `Limit: ${this.rewarded.dailyLimit} pro Tag · Cooldown 5 Minuten`;
+      return;
+    }
+
+    if(this.rewarded.busy){
+      btn.disabled = true;
+      btn.textContent = 'Video laeuft...';
+      st.textContent = msg || 'Bitte bis zum Ende schauen.';
+      meta.textContent = `Heute verfuegbar: ${this.rewarded.remainingToday}/${this.rewarded.dailyLimit}`;
+      return;
+    }
+
+    if(this.rewarded.remainingToday <= 0){
+      btn.disabled = true;
+      btn.textContent = 'Tageslimit erreicht';
+      st.textContent = msg || 'Heute sind keine weiteren Video-Boni mehr moeglich.';
+      meta.textContent = `Heute verfuegbar: 0/${this.rewarded.dailyLimit}`;
+      return;
+    }
+
+    if(this.rewarded.waitSeconds > 0){
+      btn.disabled = true;
+      btn.textContent = `Naechstes Video in ${this._fmtWait(this.rewarded.waitSeconds)}`;
+      st.textContent = msg || 'Cooldown aktiv.';
+      meta.textContent = `Heute verfuegbar: ${this.rewarded.remainingToday}/${this.rewarded.dailyLimit}`;
+      return;
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Video schauen (+500 Credits)';
+    st.textContent = msg || 'Bereit: Bonus verfuegbar.';
+    meta.textContent = `Heute verfuegbar: ${this.rewarded.remainingToday}/${this.rewarded.dailyLimit} · Cooldown 5 Minuten`;
+  },
+
+  _startRewardedCountdown(seconds){
+    this.rewarded.waitSeconds = Math.max(0, Math.floor(seconds||0));
+    if(this._rewardedTimer){ clearInterval(this._rewardedTimer); this._rewardedTimer = null; }
+    this._renderRewarded();
+    if(this.rewarded.waitSeconds <= 0) return;
+    this._rewardedTimer = setInterval(()=>{
+      this.rewarded.waitSeconds = Math.max(0, this.rewarded.waitSeconds - 1);
+      this._renderRewarded();
+      if(this.rewarded.waitSeconds <= 0){ clearInterval(this._rewardedTimer); this._rewardedTimer = null; }
+    }, 1000);
+  },
+
+  async watchRewarded(){
+    if(!auth.currentUser || this.rewarded.busy || this.rewarded.waitSeconds>0 || this.rewarded.remainingToday<=0) return;
+    this.rewarded.busy = true;
+    this._renderRewarded('Werbung wird abgespielt...');
+    try{
+      // Platzhalter bis echtes Rewarded-SDK angebunden ist.
+      await new Promise(resolve=>setTimeout(resolve, 18000));
+      let data = {};
+      try{
+        const res = await fns.httpsCallable('claimRewardedCredits')({});
+        data = res && res.data ? res.data : {};
+      }catch(err){
+        console.warn('[Shop] Cloud Function nicht verfuegbar, nutze Spark-Fallback', err);
+        data = await this._claimRewardedSpark();
+      }
+      if(!data.ok){
+        this.rewarded.remainingToday = Number.isFinite(data.remainingToday) ? data.remainingToday : this.rewarded.remainingToday;
+        if(data.reason === 'cooldown') this._startRewardedCountdown(data.waitSeconds || 0);
+        if(data.reason === 'daily-limit'){ this.rewarded.remainingToday = 0; this._startRewardedCountdown(0); }
+        this._renderRewarded('Bonus aktuell nicht verfuegbar.');
+        return;
+      }
+
+      this.rewarded.dailyLimit = Number.isFinite(data.dailyLimit) ? data.dailyLimit : this.rewarded.dailyLimit;
+      this.rewarded.remainingToday = Number.isFinite(data.remainingToday) ? data.remainingToday : this.rewarded.remainingToday;
+      this._startRewardedCountdown(data.waitSeconds || 300);
+      this._renderRewarded(`Bonus erhalten: +${(data.grantedCredits||500).toLocaleString('de-DE')} Credits`);
+    }catch(err){
+      console.error('[Shop] rewarded failed', err);
+      this._renderRewarded('Fehler beim Bonus. Bitte erneut versuchen.');
+    }finally{
+      this.rewarded.busy = false;
+      this._renderRewarded();
+    }
+  },
+
+  async _claimRewardedSpark(){
+    const user = auth.currentUser;
+    if(!user) return { ok:false, reason:'unauthenticated' };
+    const docRef = db.collection('users').doc(user.uid);
+    const now = Date.now();
+    const day = this._utcDay();
+    const dailyLimit = this.rewarded.dailyLimit || 10;
+    const cooldown = 300;
+
+    const txRes = await db.runTransaction(async tx=>{
+      const snap = await tx.get(docRef);
+      const d = snap.data() || {};
+      let curDay = d.sparkRewardedDay || day;
+      let claimsToday = Number.isFinite(d.sparkRewardedClaimsToday) ? d.sparkRewardedClaimsToday : 0;
+      let nextClaimAtMs = Number.isFinite(d.sparkRewardedNextClaimAtMs) ? d.sparkRewardedNextClaimAtMs : 0;
+      let rewardedCredits = Number.isFinite(d.sparkRewardedCredits) ? d.sparkRewardedCredits : 0;
+
+      if(curDay !== day){ curDay = day; claimsToday = 0; nextClaimAtMs = 0; }
+
+      if(claimsToday >= dailyLimit){
+        return { ok:false, reason:'daily-limit', remainingToday:0, waitSeconds:0 };
+      }
+      if(nextClaimAtMs > now){
+        return {
+          ok:false,
+          reason:'cooldown',
+          remainingToday: Math.max(dailyLimit-claimsToday,0),
+          waitSeconds: Math.ceil((nextClaimAtMs-now)/1000),
+        };
+      }
+
+      claimsToday += 1;
+      nextClaimAtMs = now + cooldown*1000;
+      rewardedCredits += 500;
+
+      tx.set(docRef, {
+        sparkRewardedCredits: rewardedCredits,
+        sparkRewardedDay: curDay,
+        sparkRewardedClaimsToday: claimsToday,
+        sparkRewardedNextClaimAtMs: nextClaimAtMs,
+      }, { merge:true });
+
+      return {
+        ok:true,
+        reason:'granted',
+        grantedCredits:500,
+        claimsToday,
+        remainingToday: Math.max(dailyLimit-claimsToday,0),
+        waitSeconds: cooldown,
+        dailyLimit,
+      };
+    });
+
+    return txRes;
   },
 
   /* Werbefrei-Premium durchsetzen: AdSense-Anzeigen ausblenden/pausieren, falls gekauft. */
@@ -15923,6 +16113,9 @@ const Shop = {
     if(backBtn) backBtn.onclick = () => Game.showScreen('screen-start');
     const closeBtn = document.getElementById('btn-shop-checkout-close');
     if(closeBtn) closeBtn.onclick = () => this.closeCheckout();
+    const rewardedBtn = document.getElementById('btn-shop-rewarded');
+    if(rewardedBtn) rewardedBtn.onclick = () => this.watchRewarded();
+    this._renderRewarded();
   },
 
   openCheckout(itemId){

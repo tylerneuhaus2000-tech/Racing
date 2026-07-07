@@ -8,6 +8,12 @@
   },
   "hosting": {
     "public": ".",
+    "rewrites": [
+      {
+        "source": "/api/rewarded-video",
+        "function": "rewardedVideoGrant"
+      }
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",
