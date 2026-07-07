@@ -1889,6 +1889,8 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0;border-top:1px solid #2d3949;padding-top:10px;">
       <button class="btn primary" id="btn-3d-export">📋 Strecken-Code kopieren</button>
       <button class="btn" id="btn-3d-import">📥 Code einfügen</button>
+      <button class="btn" id="btn-3d-import-glb">📦 GLB importieren</button>
+      <input type="file" id="btn-3d-import-glb-file" accept=".glb,model/gltf-binary" style="display:none">
     </div>
     <div id="ed-status" style="color:#22c463;font-size:12px;min-height:18px;margin:4px 0;letter-spacing:.06em;"></div>
     <p style="color:#8fa1bb;font-size:11px;letter-spacing:.08em;">✏️ ZEICHNEN: Klick/Ziehen = Punkte setzen · ⛰ HÖHE: Punkt klicken → Höhe eingeben → Setzen · 🖼 Referenzbild: Foto als Hintergrund laden</p>
@@ -3575,7 +3577,8 @@ class Input {
       if(this._isAction('pause', e.code)) Game.togglePause();
       if(this._isAction('camera', e.code) && (Game.state==='race'||Game.state==='finished')) Game.cameraRig.cycle(Game.car);
       if(this._isAction('restart', e.code) && (Game.state==='race'||Game.state==='finished')){
-        Game.restartRace();
+        if(e.repeat) return;
+        Game.requestRaceRestart('keyboard', false);
       }
       if(this._isAction('help', e.code)) document.getElementById('help').classList.toggle('hidden');
       if(this._isAction('respawn', e.code) && (Game.state==='race'||Game.state==='finished')){
@@ -3675,7 +3678,7 @@ class Input {
     if(pad){
       if((bind.pause?.button != null && edge(bind.pause.button)) && (Game.state==='race'||Game.state==='finished'||Game.state==='pause')) Game.togglePause();
       if((bind.camera?.button != null && edge(bind.camera.button)) && (Game.state==='race'||Game.state==='finished')) Game.cameraRig.cycle(Game.car);
-      if((bind.restart?.button != null && edge(bind.restart.button)) && (Game.state==='race'||Game.state==='finished')) Game.restartRace();
+      if((bind.restart?.button != null && edge(bind.restart.button)) && (Game.state==='race'||Game.state==='finished')) Game.requestRaceRestart('gamepad', false);
       if((bind.help?.button != null && edge(bind.help.button))) document.getElementById('help').classList.toggle('hidden');
       if((bind.pitLimiter?.button != null && edge(bind.pitLimiter.button)) && (Game.state==='race'||Game.state==='finished')){
         Game.car.pitLimiterActive = !Game.car.pitLimiterActive;
@@ -3693,7 +3696,7 @@ class Input {
       }
       if(this.touch.restart && (Game.state==='race'||Game.state==='finished')){
         this.touch.restart = false;
-        Game.restartRace();
+        Game.requestRaceRestart('touch', false);
       }
       if(this.touch.pit && (Game.state==='race'||Game.state==='finished')){
         this.touch.pit = false;
@@ -10593,6 +10596,7 @@ const Game = {
   weather: weatherDefaults(),
   championshipEnabled: false,
   championship: null,
+  _restartCtrl: { inProgress:false, lastAt:0, armUntil:0, cooldownMs:1200, confirmWindowMs:1800 },
   vsc: { active:false, startTime:0, startDist:0, deltaSec:0, totalDist:0 },
   /* Flaggenzustand: green/yellow/sc/red/chequered. Auto-Trigger via Crash-Counter. */
   flag: { state:'green', timer:0, crashIntensity:0 },
@@ -12887,6 +12891,124 @@ const Game = {
       }
     };
   },
+  async importTrackFromGlbFile(file){
+    const status = document.getElementById('ed-status');
+    if(!file){
+      if(status) status.textContent = 'Keine GLB-Datei gewählt.';
+      return;
+    }
+    if(!window.THREE || !THREE.GLTFLoader){
+      if(status) status.textContent = 'GLTFLoader nicht verfügbar.';
+      alert('GLTFLoader fehlt. Bitte Seite neu laden.');
+      return;
+    }
+
+    if(status) status.textContent = `Importiere ${file.name} ...`;
+
+    try{
+      const arrayBuffer = await file.arrayBuffer();
+      const loader = new THREE.GLTFLoader();
+      const gltf = await new Promise((resolve, reject)=>{
+        loader.parse(arrayBuffer, '', resolve, reject);
+      });
+
+      const root = gltf.scene || gltf.scenes?.[0];
+      if(!root) throw new Error('GLB enthält keine Szene.');
+      root.updateMatrixWorld(true);
+
+      const candidates = [];
+      root.traverse((obj)=>{
+        if(!obj || !obj.geometry || !obj.geometry.getAttribute) return;
+        const pos = obj.geometry.getAttribute('position');
+        if(!pos || pos.count < 3) return;
+
+        const isLineLike = !!obj.isLine || obj.type === 'Line' || obj.type === 'LineLoop' || obj.type === 'LineSegments';
+        if(!isLineLike) return;
+
+        const points = [];
+        const tmp = new THREE.Vector3();
+        for(let i=0; i<pos.count; i++){
+          tmp.fromBufferAttribute(pos, i);
+          tmp.applyMatrix4(obj.matrixWorld);
+          points.push([tmp.x, tmp.z, tmp.y]);
+        }
+        candidates.push({name: obj.name || obj.type || 'line', points});
+      });
+
+      if(!candidates.length){
+        throw new Error('Keine Line-Geometrie gefunden. Exportiere in Blender eine Curve/Line als Centerline (z.B. Name centerline).');
+      }
+
+      candidates.sort((a,b)=>b.points.length - a.points.length);
+      let pts = candidates[0].points;
+
+      // Duplikate entfernen (oft bei LineSegments)
+      const dedup = [];
+      const eps = 0.001;
+      for(const p of pts){
+        const last = dedup[dedup.length - 1];
+        if(!last || Math.hypot(last[0]-p[0], last[1]-p[1], (last[2]||0)-(p[2]||0)) > eps){
+          dedup.push(p);
+        }
+      }
+      pts = dedup;
+
+      // Falls offen, automatisch schließen
+      if(pts.length >= 3){
+        const a = pts[0], b = pts[pts.length - 1];
+        const gap = Math.hypot(a[0]-b[0], a[1]-b[1], (a[2]||0)-(b[2]||0));
+        if(gap > 0.01) pts.push([a[0], a[1], a[2]||0]);
+      }
+
+      if(pts.length < 20){
+        throw new Error('Zu wenige Centerline-Punkte. Bitte dichter sampeln/exportieren.');
+      }
+
+      // Auf sinnvolle Punktanzahl begrenzen
+      const maxPts = 1600;
+      if(pts.length > maxPts){
+        const step = Math.ceil(pts.length / maxPts);
+        pts = pts.filter((_, i)=>i % step === 0);
+        if(pts[pts.length - 1] !== pts[0]) pts.push(pts[0]);
+      }
+
+      const track = {
+        id: 'glb_' + Date.now(),
+        name: (file.name || 'GLB Track').replace(/\.glb$/i, ''),
+        sub: 'GLB importiert · Centerline',
+        halfWidth: 8.5,
+        sky: 0x9fc3eb,
+        hill: 0x5e8a42,
+        grass: [0x4e8b3a, 0x407531],
+        wallDist: 32,
+        vergeW: 24,
+        startFinishPct: 0,
+        pts,
+        pitLane: { side: -1, idxStart: Math.floor(pts.length * 0.08), idxEnd: Math.floor(pts.length * 0.18), innerOff: 10, outerOff: 20 },
+        startGridPct: 99,
+        custom: true,
+        editorType: 'GLB'
+      };
+
+      this.customTracks = this.customTracks || [];
+      this.customTracks.push(track);
+      this.saveCustomTracks();
+      this.renderTrackList();
+
+      this._editorPreloadPts = pts.map(p => ({x:p[0], z:p[1], y:p[2] || 0}));
+      this._editorPreloadName = track.name;
+      this._editorPreloadSub = track.sub;
+      this._editorEditId = track.id;
+      this.showScreen('screen-editor');
+
+      if(status) status.textContent = `✓ GLB importiert: ${track.name} (${pts.length} Punkte)`;
+    } catch(err){
+      console.error('[GLB track import] Fehler:', err);
+      const msg = 'GLB-Import fehlgeschlagen: ' + (err?.message || 'Unbekannter Fehler');
+      if(status) status.textContent = msg;
+      alert(msg);
+    }
+  },
   updateEditorStatus(){
     const status = document.getElementById('ed-status');
     const spec = this.editorSpec;
@@ -13819,7 +13941,38 @@ const Game = {
     this._showFlash('RUNDE UNGÜLTIG — WEITERFAHREN', '#ff6b00', 2200);
   },
 
-  restartRace(){
+  requestRaceRestart(source='input', immediate=false){
+    if(!(this.state === 'race' || this.state === 'finished' || this.state === 'pause')) return false;
+    const ctrl = this._restartCtrl || (this._restartCtrl = { inProgress:false, lastAt:0, armUntil:0, cooldownMs:1200, confirmWindowMs:1800 });
+    if(ctrl.inProgress) return false;
+    const now = performance.now();
+    if(now - (ctrl.lastAt || 0) < ctrl.cooldownMs) return false;
+
+    if(immediate){
+      this.restartRace(true);
+      return true;
+    }
+
+    if((ctrl.armUntil || 0) < now){
+      ctrl.armUntil = now + ctrl.confirmWindowMs;
+      this._showFlash('R ERNEUT DRÜCKEN FÜR NEUSTART', '#ffd400', 1400);
+      return false;
+    }
+
+    this.restartRace(true);
+    return true;
+  },
+
+  restartRace(force=false){
+    if(!(this.state === 'race' || this.state === 'finished' || this.state === 'pause' || this.state === 'countdown')) return;
+    const ctrl = this._restartCtrl || (this._restartCtrl = { inProgress:false, lastAt:0, armUntil:0, cooldownMs:1200, confirmWindowMs:1800 });
+    const now = performance.now();
+    if(ctrl.inProgress) return;
+    if(!force && (now - (ctrl.lastAt || 0) < ctrl.cooldownMs)) return;
+    ctrl.inProgress = true;
+    ctrl.armUntil = 0;
+    ctrl.lastAt = now;
+    try{
     const N=this.track.N;
     const gridBaseIdx = (()=>{
       const pct = this.track?.def?.startGridPct;
@@ -13977,6 +14130,10 @@ const Game = {
     document.getElementById('pause').classList.add('hidden');
     this.sound.resume();
     this.runCountdown();
+    } finally {
+      ctrl.inProgress = false;
+      ctrl.lastAt = performance.now();
+    }
   },
   showLiveryModal(carIdx){
     const c = CARS[carIdx];
@@ -15314,6 +15471,17 @@ const Game = {
     $('btn-back-editor').onclick=()=>this.showScreen('screen-start');
     $('btn-3d-export').onclick=()=>this.exportCustomTracks();
     $('btn-3d-import').onclick=()=>this.importCustomTracks();
+    const glbBtn = $('btn-3d-import-glb');
+    const glbFile = $('btn-3d-import-glb-file');
+    if(glbBtn && glbFile){
+      glbBtn.onclick = ()=>glbFile.click();
+      glbFile.onchange = async (e)=>{
+        const file = e.target?.files?.[0];
+        if(!file) return;
+        await this.importTrackFromGlbFile(file);
+        glbFile.value = '';
+      };
+    }
     $('btn-back-settings').onclick=()=>this.showScreen('screen-start');
 
     /* ── MULTIPLAYER UI ── */
