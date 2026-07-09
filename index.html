@@ -98,6 +98,13 @@
 				linear-gradient(130deg, #1f242f 0%, #111a25 45%, #22384f 100%),
 				repeating-linear-gradient(95deg, transparent 0 15px, #ffffff0c 15px 16px);
 		}
+		.cover-bush {
+			background-image:
+				radial-gradient(230px 120px at 28% 30%, #f8c96d88, transparent 62%),
+				radial-gradient(210px 130px at 80% 74%, #62c4ff66, transparent 60%),
+				linear-gradient(130deg, #26313c 0%, #334d61 44%, #16334a 100%),
+				repeating-linear-gradient(96deg, transparent 0 16px, #ffffff12 16px 17px);
+		}
 		.cover-autobahn {
 			background-image:
 				radial-gradient(220px 120px at 18% 22%, #62d7ff66, transparent 58%),
@@ -228,6 +235,15 @@
 
 	<script>
 		const GAMES = [
+			{
+				id: 'bush-pilot',
+				title: 'Bush Pilot - Island Air',
+				description: 'Freies Fliegen mit Missionen, KI-Luftverkehr und echten Airports.',
+				file: 'bush-pilot/index.html',
+				category: 'racing',
+				label: 'Flight',
+				coverClass: 'cover-bush'
+			},
 			{
 				id: 'racer',
 				title: 'GT3 Web Racer',

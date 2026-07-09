@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bush Pilot — Island Air</title>
+  <link rel="stylesheet" href="style.css?v=10">
+</head>
+<body>
+  <div id="vignette"></div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="hud-left" class="glass">
+      <div class="gauge"><span class="label">SPEED</span><span id="hud-speed">0</span><span class="unit">kt</span></div>
+      <div class="gauge"><span class="label">V-MIN</span><span id="hud-vmin">0</span><span class="unit">kt</span></div>
+      <div class="gauge"><span class="label">ALT</span><span id="hud-alt">0</span><span class="unit">m</span></div>
+      <div class="gauge"><span class="label">V/S</span><span id="hud-vs">0</span><span class="unit">m/s</span></div>
+      <div class="gauge"><span class="label">THR</span><div class="bar"><div id="throttle-fill"></div></div></div>
+      <div class="gauge"><span class="label">FUEL</span><div class="bar"><div id="fuel-fill"></div></div></div>
+      <div class="gauge"><span class="label">DMG</span><div class="bar"><div id="dmg-fill"></div></div></div>
+      <div class="gauge"><span class="label">GEAR</span><span id="hud-gear" class="gear-down">DOWN</span></div>
+    </div>
+
+    <div id="hud-top" class="glass">
+      <div id="mission-info">Freier Flug</div>
+      <div id="target-info"></div>
+    </div>
+
+    <div id="coins-display" class="glass">◈ <span id="hud-coins">0</span></div>
+
+    <!-- Instrumente: künstlicher Horizont + Kompassband -->
+    <div id="instrument-panel" class="glass">
+      <canvas id="attitude" width="180" height="180"></canvas>
+      <canvas id="compass" width="200" height="34"></canvas>
+    </div>
+
+    <canvas id="minimap" class="glass" width="200" height="200"></canvas>
+
+    <div id="atc-panel" class="glass"></div>
+
+    <div id="copilot"></div>
+    <div id="messages"></div>
+    <div id="stall-warning" class="hidden">STALL</div>
+  </div>
+
+  <!-- Hauptmenü -->
+  <div id="menu" class="overlay">
+    <div class="title-block">
+      <h1>BUSH&nbsp;PILOT</h1>
+      <h2>— ISLAND AIR —</h2>
+    </div>
+    <div id="hangar"></div>
+    <div class="menu-meta">
+      <span class="menu-coins">◈ <span id="menu-coins">0</span></span>
+      <span id="menu-home"></span>
+    </div>
+    <div id="loading">Insel-Archipel wird aufgebaut …</div>
+    <div class="menu-buttons">
+      <button id="btn-fly" class="big-btn">MISSION WÄHLEN</button>
+      <button id="btn-freeplay" class="big-btn" style="background: linear-gradient(180deg, #91d9ff, #58b6e8); color: #0b2a3a;">🎮 FREIER FLUG</button>
+    </div>
+    <div class="controls-help">
+      W/S Nase &nbsp;·&nbsp; A/D Kurve &nbsp;·&nbsp; ⇧ Schub+ &nbsp;·&nbsp; Ctrl Schub− &nbsp;·&nbsp; G Fahrwerk &nbsp;·&nbsp; C Kamera &nbsp;·&nbsp; R Reset &nbsp;·&nbsp; M Ton
+    </div>
+  </div>
+
+  <!-- Missionswahl -->
+  <div id="mission-select" class="overlay hidden">
+    <h2 class="screen-title">Aufträge</h2>
+    <div id="mission-list"></div>
+    <button id="btn-back" class="small-btn">← Zurück</button>
+  </div>
+
+  <!-- Debrief -->
+  <div id="debrief" class="overlay hidden">
+    <h2 id="debrief-title" class="screen-title">Mission abgeschlossen</h2>
+    <div id="debrief-stats"></div>
+    <div id="debrief-reward"></div>
+    <button id="btn-continue" class="big-btn">WEITER</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="main.js?v=14"></script>
+</body>
+</html>
