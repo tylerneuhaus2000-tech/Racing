@@ -96,6 +96,36 @@ button:focus-visible{outline:2px solid var(--red);outline-offset:2px}
   z-index:2;
 }
 .card canvas{background:#0c0f13;border:1px solid var(--line);flex:0 0 auto}
+
+/* ===== Tutorial (Erststart-Einführung) ===== */
+#tut-welcome{position:fixed;inset:0;z-index:301;display:flex;align-items:center;justify-content:center;background:rgba(6,8,12,0.72)}
+#tut-welcome .modal-panel{max-width:440px;padding:32px 36px;text-align:center}
+#tut-welcome h2{margin-bottom:10px}
+#tut-welcome p{color:var(--dim);font-size:13px;line-height:1.6;margin-bottom:20px}
+#tut-welcome .btnrow{display:flex;gap:12px;justify-content:center}
+#tut-coach{
+  position:fixed;left:50%;bottom:28px;transform:translateX(-50%);
+  max-width:420px;padding:14px 18px;z-index:300;
+  display:flex;align-items:center;gap:14px;
+}
+#tut-coach .tut-body{font-size:13px;line-height:1.5;color:var(--txt);flex:1}
+#tut-coach .tut-actions{display:flex;gap:8px;flex-shrink:0}
+#tut-skip-global{
+  position:fixed;top:16px;right:16px;z-index:302;
+  font:600 10px var(--mono);letter-spacing:.08em;color:var(--dim);
+  background:rgba(10,13,17,0.7);border:1px solid var(--line);border-radius:var(--rad-full);
+  padding:6px 14px;cursor:pointer;
+}
+#tut-skip-global:hover{color:var(--txt);border-color:var(--dim)}
+#tut-highlight{
+  position:fixed;z-index:299;pointer-events:none;border-radius:var(--rad-sm);
+  box-shadow:0 0 0 3px var(--amber),0 0 24px rgba(255,176,46,0.55);
+  transition:top .25s,left .25s,width .25s,height .25s;
+  animation:tut-pulse 1.4s ease-in-out infinite;
+}
+@keyframes tut-pulse{0%,100%{opacity:1}50%{opacity:.55}}
+#tut-final{position:fixed;inset:0;z-index:301;display:flex;align-items:center;justify-content:center;background:rgba(6,8,12,0.72)}
+#tut-final .modal-panel{max-width:400px;padding:32px 36px;text-align:center}
 .card b{display:block;font-size:18px;letter-spacing:.05em;margin-bottom:4px}
 .card span{color:var(--dim);font-size:12.5px;line-height:1.5}
 .swatch{width:54px;height:54px;border-radius:6px;border:3px solid;flex:0 0 auto}
@@ -1075,14 +1105,14 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 #btn-fb-login-chip,#btn-fb-logout{padding:6px 14px;border-radius:20px;font:700 10px var(--mono);letter-spacing:.1em;cursor:pointer;border:1px solid #2a313a;background:transparent;color:#8b95a1}
 #btn-fb-login-chip:hover,#btn-fb-logout:hover{border-color:#ff2e3d;color:#ff2e3d}
 
-#screen-impressum, #screen-datenschutz {
+#screen-impressum, #screen-datenschutz, #screen-agb {
   max-width:760px; margin:0 auto; padding:40px 24px 60px; color:#c8d0d8;
   font:14px/1.7 var(--mono); overflow-y:auto;
 }
-#screen-impressum h1,#screen-datenschutz h1{font-size:22px;color:#e8ecef;margin-bottom:24px;letter-spacing:.08em}
-#screen-impressum h2,#screen-datenschutz h2{font-size:13px;color:#e8ecef;margin:24px 0 8px;letter-spacing:.1em;text-transform:uppercase}
-#screen-impressum p,#screen-datenschutz p{margin:0 0 12px;color:#8b95a1}
-#screen-impressum a,#screen-datenschutz a{color:var(--blue)}
+#screen-impressum h1,#screen-datenschutz h1,#screen-agb h1{font-size:22px;color:#e8ecef;margin-bottom:24px;letter-spacing:.08em}
+#screen-impressum h2,#screen-datenschutz h2,#screen-agb h2{font-size:13px;color:#e8ecef;margin:24px 0 8px;letter-spacing:.1em;text-transform:uppercase}
+#screen-impressum p,#screen-datenschutz p,#screen-agb p{margin:0 0 12px;color:#8b95a1}
+#screen-impressum a,#screen-datenschutz a,#screen-agb a{color:var(--blue)}
 .legal-footer{text-align:center;padding:10px 0 4px;font:10px var(--mono);color:#3a4450;letter-spacing:.1em}
 .legal-footer a{color:#3a4450;text-decoration:none;margin:0 8px}
 .legal-footer a:hover{color:var(--blue)}
@@ -1430,6 +1460,33 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 <div id="flash-screen"></div>
 <div id="vignette" class="hidden"></div>
 <div id="mirror-wrap"></div>
+
+<!-- ===== Tutorial (Erststart-Einführung) ===== -->
+<div id="tut-welcome" class="hidden">
+  <div class="modal-panel">
+    <div class="eyebrow">WILLKOMMEN</div>
+    <h2>Kurze Einführung?</h2>
+    <p>Wir zeigen dir in unter 2 Minuten, wie Menü, Steuerung und HUD funktionieren. Danach kannst du frei loslegen.</p>
+    <div class="btnrow">
+      <button class="btn secondary" id="tut-welcome-skip">Überspringen</button>
+      <button class="btn primary" id="tut-welcome-start">Los geht's</button>
+    </div>
+  </div>
+</div>
+<div id="tut-coach" class="modal-panel hidden">
+  <div class="tut-body"></div>
+  <div class="tut-actions"><button class="btn primary" id="tut-next" style="padding:8px 16px">Verstanden</button></div>
+</div>
+<button id="tut-skip-global" class="hidden">TUTORIAL ÜBERSPRINGEN</button>
+<div id="tut-highlight" style="display:none"></div>
+<div id="tut-final" class="hidden">
+  <div class="modal-panel">
+    <div class="eyebrow">GESCHAFFT</div>
+    <h2>Bereit für die Strecke!</h2>
+    <p style="color:var(--dim);font-size:13px;line-height:1.6;margin-bottom:20px">Du kennst jetzt Menü, Steuerung und HUD. Viel Spaß beim Fahren — das Tutorial findest du jederzeit wieder unter Einstellungen.</p>
+    <button class="btn primary" id="tut-final-close">Zum Hauptmenü</button>
+  </div>
+</div>
 <div id="flag-border"></div>
 <div id="pit-car-select" class="modal-panel"><div class="pcs-title">FAHRZEUG WECHSELN — WIRD BEI STOPP-ENDE ANGEWENDET</div><div class="pcs-grid" id="pit-car-grid"></div></div>
 <div id="fl-notif"><div class="fl-label">SCHNELLSTE RUNDE</div><div class="fl-time" id="fl-time">--:--.---</div><div class="fl-driver" id="fl-driver"></div></div>
@@ -1743,6 +1800,11 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 2px 0">
       <a href="/index.html" style="font:400 9px var(--mono);color:rgba(255,255,255,.25);letter-spacing:.1em;text-decoration:none" onmouseover="this.style.color='rgba(255,255,255,.6)'" onmouseout="this.style.color='rgba(255,255,255,.25)'">ANDERE SPIELE</a>
+      <span style="display:flex;gap:14px">
+        <a href="javascript:void(0)" onclick="Game.showScreen('screen-impressum')" style="font:400 9px var(--mono);color:rgba(255,255,255,.25);letter-spacing:.1em;text-decoration:none" onmouseover="this.style.color='rgba(255,255,255,.6)'" onmouseout="this.style.color='rgba(255,255,255,.25)'">IMPRESSUM</a>
+        <a href="javascript:void(0)" onclick="Game.showScreen('screen-datenschutz')" style="font:400 9px var(--mono);color:rgba(255,255,255,.25);letter-spacing:.1em;text-decoration:none" onmouseover="this.style.color='rgba(255,255,255,.6)'" onmouseout="this.style.color='rgba(255,255,255,.25)'">DATENSCHUTZ</a>
+        <a href="javascript:void(0)" onclick="Game.showScreen('screen-agb')" style="font:400 9px var(--mono);color:rgba(255,255,255,.25);letter-spacing:.1em;text-decoration:none" onmouseover="this.style.color='rgba(255,255,255,.6)'" onmouseout="this.style.color='rgba(255,255,255,.25)'">AGB</a>
+      </span>
       <span style="font:400 9px var(--mono);color:rgba(255,255,255,.2);letter-spacing:.1em">BUILD <span id="build-sha">DEV</span></span>
     </div>
 
@@ -2039,7 +2101,9 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
   </section>
 
   <section class="screen hidden" id="screen-settings">
-    <div class="eyebrow">KONFIGURATION</div>
+    <div class="eyebrow">HILFE</div>
+    <div class="setrow"><span>Einführungs-Tutorial</span><button class="btn secondary" id="btn-tutorial-replay">Erneut anzeigen</button></div>
+    <div class="eyebrow" style="margin-top:22px">KONFIGURATION</div>
     <h2>GRAFIK &amp; SOUND</h2>
     <p class="sub">Wähle ein Qualitätsprofil oder passe die Einstellungen manuell an. Schattenqualität wirkt erst beim nächsten Rennen.</p>
     <div class="setrow" style="gap:8px;flex-wrap:wrap">
@@ -2638,8 +2702,8 @@ const CARS = [
     id:'porsche', name:'Porsche 911 GT3 R', classType:'gt3',
     color:0xe8e8e8, accent:0xd5001c, rim:0xc8a44a,
     liveries:[
-      {name:'Classic', desc:'Porsche 911 GT3 R — Klassisches Cup-Design', model:{url:'assets/models/porsche-gt3.glb',scale:1,targetLength:4.6,yOffset:0,rotY:Math.PI}},
-      {name:'992 GT3 R', desc:'Porsche 992 GT3 R — Modernes Werkslook', model:{url:'assets/models/porsche_992_gt3_r.glb',scale:1,targetLength:4.6,yOffset:0,rotY:0}}
+      {id:'classic', name:'Classic', desc:'Porsche 911 GT3 R — Klassisches Cup-Design', model:{url:'assets/models/porsche-gt3.glb',scale:1,targetLength:4.6,yOffset:0,rotY:Math.PI}},
+      {id:'992gt3r', name:'992 GT3 R', desc:'Porsche 992 GT3 R — Modernes Werkslook', model:{url:'assets/models/porsche_992_gt3_r.glb',scale:1,targetLength:4.6,yOffset:0,rotY:0}}
     ],
     model:{
       url:'assets/models/porsche-gt3.glb',
@@ -3229,8 +3293,7 @@ const TRACKS = [
    sondern nur zum Rendern der Shop-Karten. Muss inhaltlich synchron zum
    Server-Katalog gehalten werden (itemId muss exakt übereinstimmen). */
 const SHOP_ITEMS = [
-  { id:'skin_amg_gold',       type:'skin',    price:'2.49', currency:'EUR', name:'AMG GT3 — Gold Livery',              desc:'Exklusive Gold-Lackierung für den Mercedes-AMG GT3.', targetId:'amg' },
-  { id:'skin_porsche_carbon', type:'skin',    price:'2.49', currency:'EUR', name:'Porsche 911 GT3 R — Carbon Livery',  desc:'Carbon-Optik-Lackierung für den Porsche 911 GT3 R.',  targetId:'porsche' },
+  { id:'skin_porsche_992gt3r', type:'skin',    price:'2.49', currency:'EUR', name:'Porsche 992 GT3 R — Werkslook',     desc:'Schaltet die 992 GT3 R Livery für den Porsche 911 GT3 R frei.', targetId:'992gt3r' },
   { id:'car_ferrari499p',     type:'car',     price:'4.99', currency:'EUR', name:'Ferrari 499P',                       desc:'Schaltet den Ferrari 499P Hypercar dauerhaft frei.',  targetId:'ferrari499p' },
   { id:'track_norisring',     type:'track',   price:'3.49', currency:'EUR', name:'Norisring',                          desc:'Schaltet den Stadtkurs Norisring dauerhaft frei.',    targetId:'norisring' },
   { id:'credits_1000',        type:'credits', price:'0.99', currency:'EUR', name:'1.000 Credits',  amount:1000, desc:'Ingame-Währung — fester Gegenwert, kein Zufall.' },
@@ -4709,7 +4772,7 @@ class Track {
     if(TH.rocks>0){
       const rockG=new THREE.DodecahedronGeometry(1,0);
       const rockCol=theme==='desert'?0xb09468:(theme==='coastal'?0x9a948a:0x8a8f96);
-      const rocks=new THREE.InstancedMesh(rockG,new THREE.MeshLambertMaterial({color:rockCol,flatShading:true}),TH.rocks);
+      const rocks=new THREE.InstancedMesh(rockG,new THREE.MeshLambertMaterial({color:rockCol}),TH.rocks);
       const RM=new THREE.Matrix4(), RQ=new THREE.Quaternion(), RE=new THREE.Euler();
       let ri=0;
       for(let tries=0;tries<TH.rocks*10 && ri<TH.rocks;tries++){
@@ -5705,13 +5768,20 @@ class Car {
       const loader = new THREE.GLTFLoader();
       // Ohne Timeout hängt loader.load() bei Netzwerkabbruch/Tab-Throttling für immer
       // (weder onLoad noch onError feuert) → blockiert startRace()s await Promise.all()
-      // unbegrenzt und friert das Spiel ein (Reload nötig). Timeout erzwingt Reject,
-      // der bestehende Fallback auf die prozedurale Hülle greift dann normal.
-      const timeoutId = setTimeout(()=>reject(new Error('GLTF-Ladezeit überschritten: '+url)), 15000);
+      // unbegrenzt und friert das Spiel ein (Reload nötig). WICHTIG: Stillstands-Timeout
+      // statt starrem Gesamt-Timeout — die Fahrzeugmodelle sind 30-90MB groß, ein fixes
+      // 15s-Zeitlimit hat auf normalen Verbindungen gesunde, nur langsame Downloads
+      // abgebrochen (Regression: grauer Fallback-Klotz statt echtem Modell). Solange
+      // onProgress noch Fortschritt meldet, läuft der Download weiter; erst wenn 20s
+      // lang GAR NICHTS mehr ankommt (echter Hänger), wird abgebrochen.
+      const STALL_TIMEOUT_MS = 20000;
+      let timeoutId = setTimeout(onStall, STALL_TIMEOUT_MS);
+      function onStall(){ reject(new Error('GLTF-Download hängt (kein Fortschritt): '+url)); }
+      function resetStallTimer(){ clearTimeout(timeoutId); timeoutId = setTimeout(onStall, STALL_TIMEOUT_MS); }
       loader.load(
         url,
         gltf => { clearTimeout(timeoutId); resolve(gltf.scene); },
-        undefined,
+        () => resetStallTimer(),
         err => { clearTimeout(timeoutId); reject(err); }
       );
     });
@@ -11945,6 +12015,10 @@ const Game = {
   _refreshShopLocks(){
     if(document.getElementById('carlist')) this.renderCarList();
     if(document.getElementById('tracklist')) this.renderTrackList();
+    const liveryModal = document.getElementById('livery-modal');
+    if(liveryModal && liveryModal.style.display !== 'none' && this._liveryModalCarIdx != null){
+      this.showLiveryModal(this._liveryModalCarIdx);
+    }
   },
   /** Fahrzeugwahl rendern. Nicht freigeschaltete Käufe (Shop) bekommen ein
       🔒-Overlay statt der normalen Auswahl-Aktion — Kernauswahllogik bleibt
@@ -14135,17 +14209,29 @@ const Game = {
       ctrl.lastAt = performance.now();
     }
   },
+  /** Livery-Auswahl rendern. Nicht freigeschaltete Skins (Shop) bekommen dasselbe
+      🔒-Overlay wie gesperrte Autos/Strecken statt der normalen Auswahl-Aktion. */
   showLiveryModal(carIdx){
+    this._liveryModalCarIdx = carIdx; // für Live-Refresh nach einem Kauf gemerkt
     const c = CARS[carIdx];
     document.getElementById('livery-car-name').textContent = c.name;
     const opts = document.getElementById('livery-options');
     opts.innerHTML = '';
     c.liveries.forEach((liv, i) => {
+      const locked = typeof Shop !== 'undefined' && liv.id && !Shop.isUnlocked('skin', liv.id);
       const btn = document.createElement('button');
-      btn.className = 'card';
+      btn.className = 'card' + (locked ? ' locked' : '');
       btn.style.cssText = 'text-align:left;padding:12px 16px';
-      btn.innerHTML = `<div><b>${liv.name}</b><span style="display:block;font-size:11px;opacity:.7;margin-top:2px">${liv.desc}</span></div>`;
+      const lockBadge = locked ? `<div class="lock-badge">🔒 Kaufen</div>` : '';
+      btn.innerHTML = `${lockBadge}<div><b>${liv.name}</b><span style="display:block;font-size:11px;opacity:.7;margin-top:2px">${liv.desc}</span></div>`;
       btn.onclick = () => {
+        if(locked){
+          document.getElementById('livery-modal').style.display = 'none';
+          this.showScreen('screen-shop');
+          const it = Shop.findItemFor('skin', liv.id);
+          if(it) Shop.openCheckout(it.id);
+          return;
+        }
         this.selLivery = i;
         document.getElementById('livery-modal').style.display = 'none';
         this._afterCarSelect();
@@ -15456,7 +15542,10 @@ const Game = {
     if($('btn-device-desktop')) $('btn-device-desktop').onclick = () => this.setDeviceMode('desktop');
     if($('btn-device-mobile')) $('btn-device-mobile').onclick = () => this.setDeviceMode('mobile');
     this.setDeviceMode(this.deviceMode);
-    $('btn-play').onclick=()=>this.showScreen('screen-mode-select');
+    $('btn-play').onclick=()=>{
+      if(typeof Tutorial !== 'undefined' && !Tutorial.isDone()) Tutorial.start();
+      else this.showScreen('screen-mode-select');
+    };
     $('btn-settings').onclick=()=>this.showScreen('screen-settings');
     if($('btn-ms-settings')) $('btn-ms-settings').onclick=()=>this.showScreen('screen-settings');
     $('btn-editor').onclick=()=>this.showScreen('screen-editor');
@@ -16021,15 +16110,15 @@ const Shop = {
 
   isConfigured(){ return this.PAYPAL_CLIENT_ID && this.PAYPAL_CLIENT_ID !== 'DEINE_PAYPAL_CLIENT_ID_HIER'; },
 
-  /* Nur Autos/Strecken, die EXPLIZIT im Shop-Katalog gelistet sind, können überhaupt
-     gesperrt sein — alles andere bleibt wie bisher frei nutzbar (verhindert, dass durch
-     das Hinzufügen des Shops plötzlich alle 14 Bestandsautos/18 Bestandsstrecken als
-     gesperrt erscheinen). Skins sind reine Zusatz-Liveries, per Definition nie "frei". */
+  /* Nur Autos/Strecken/Liveries, die EXPLIZIT im Shop-Katalog gelistet sind, können
+     überhaupt gesperrt sein — alles andere bleibt wie bisher frei nutzbar. Gilt auch für
+     Skins: die bestehende freie "Classic"-Porsche-Livery ist nicht im Katalog gelistet
+     und darf daher nie gesperrt erscheinen (identisches Prinzip wie bei Autos/Strecken,
+     verhindert dieselbe Regressionsklasse). */
   isUnlocked(type, id){
-    if(type === 'skin') return this.entitlements.unlockedSkins.includes(id);
     const catalogItem = SHOP_ITEMS.find(i => i.type === type && i.targetId === id);
     if(!catalogItem) return true; // nicht im Shop gelistet → weiterhin frei
-    const arr = type === 'car' ? this.entitlements.unlockedCars : this.entitlements.unlockedTracks;
+    const arr = { car: this.entitlements.unlockedCars, track: this.entitlements.unlockedTracks, skin: this.entitlements.unlockedSkins }[type];
     return arr.includes(id);
   },
 
@@ -17670,6 +17759,212 @@ const DailyChallenge = (() => {
 // Initial render attempt (Game may not be ready yet — render() guards this)
 setTimeout(() => DailyChallenge.render(), 500);
 
+/* ═══════════════════════════════════════════════
+   TUTORIAL (Erststart-Einführung für neue Spieler)
+   ═══════════════════════════════════════════════
+   Läuft komplett lokal über Store/localStorage — Solo-Spiel ist nicht
+   login-gated, daher darf das Tutorial nicht von einem Firebase-Account
+   abhängen. Patcht Game.showScreen/Game._afterCarSelect nur temporär
+   (Muster aus DailyChallenge.start() oben), keine Kern-Eingriffe. */
+const Tutorial = (() => {
+  const FLAG_KEY = 'tutorial_done_v1';
+  const RECOMMENDED_TRACK_ID = 'flat'; // "Flugfeld Nord" — flach, breit, viel Auslauf
+
+  let active = false;
+  let timers = [];
+  let _origShowScreen = null;
+  let _origAfterCarSelect = null;
+
+  function isDone(){ return !!Store.get(FLAG_KEY); }
+  function markDone(){ Store.set(FLAG_KEY, '1'); }
+
+  function clearTimers(){ timers.forEach(id => { clearTimeout(id); clearInterval(id); }); timers = []; }
+
+  function highlightEl(el){
+    const hl = document.getElementById('tut-highlight');
+    if(!hl) return;
+    if(!el){ hl.style.display = 'none'; return; }
+    const r = el.getBoundingClientRect();
+    hl.style.display = 'block';
+    hl.style.top = (r.top - 4) + 'px';
+    hl.style.left = (r.left - 4) + 'px';
+    hl.style.width = (r.width + 8) + 'px';
+    hl.style.height = (r.height + 8) + 'px';
+  }
+
+  /** Kurzer Hinweis am unteren Bildschirmrand. opts.dismiss=false blendet den
+      "Verstanden"-Button aus (für Menü-Schritte, die durch den echten Klick
+      des Spielers fortschreiten, nicht durch einen Tutorial-Button). */
+  function showCoach(text, opts = {}){
+    const box = document.getElementById('tut-coach');
+    if(!box) return;
+    box.querySelector('.tut-body').textContent = text;
+    const btn = document.getElementById('tut-next');
+    if(opts.dismiss === false){
+      btn.style.display = 'none';
+    } else {
+      btn.style.display = '';
+      btn.onclick = () => hideCoach();
+    }
+    box.classList.remove('hidden');
+    if(opts.autoHideMs){
+      const id = setTimeout(() => hideCoach(), opts.autoHideMs);
+      timers.push(id);
+    }
+  }
+  function hideCoach(){
+    const box = document.getElementById('tut-coach');
+    if(box) box.classList.add('hidden');
+  }
+
+  function finish(){
+    if(!active) return;
+    active = false;
+    clearTimers();
+    if(_origShowScreen){ Game.showScreen = _origShowScreen; _origShowScreen = null; }
+    if(_origAfterCarSelect){ Game._afterCarSelect = _origAfterCarSelect; _origAfterCarSelect = null; }
+    hideCoach();
+    highlightEl(null);
+    document.getElementById('tut-skip-global')?.classList.add('hidden');
+    document.getElementById('tut-welcome')?.classList.add('hidden');
+    document.getElementById('tut-final')?.classList.add('hidden');
+    markDone();
+  }
+
+  function patchNavigation(){
+    _origShowScreen = Game.showScreen.bind(Game);
+    Game.showScreen = function(id){
+      _origShowScreen(id);
+      if(!active) return;
+      if(id === 'screen-mode-select') onModeSelectScreen();
+      else if(id === 'screen-track') onTrackScreen();
+      else if(id === 'screen-car') onCarScreen();
+    };
+    _origAfterCarSelect = Game._afterCarSelect.bind(Game);
+    Game._afterCarSelect = function(){
+      _origAfterCarSelect();
+      if(active && Game.mode === 'tt') waitForRaceStart();
+    };
+  }
+
+  function onModeSelectScreen(){
+    highlightEl(document.getElementById('btn-msel-tt'));
+    showCoach('Wähle „Zeitfahren" — frei fahren, ohne Gegner und ohne Zeitdruck.', { dismiss:false });
+  }
+  function onTrackScreen(){
+    const pool = Game.getTrackPool();
+    const idx = pool.findIndex(t => t.id === RECOMMENDED_TRACK_ID);
+    const list = document.getElementById('tracklist');
+    let target = null;
+    if(idx >= 0 && list?.children[idx]) target = list.children[idx].querySelector('.card') || list.children[idx];
+    highlightEl(target);
+    showCoach('Wähle am besten „Flugfeld Nord" — breit, flach, viel Auslauf zum Üben.', { dismiss:false });
+  }
+  function onCarScreen(){
+    highlightEl(null);
+    showCoach('Wähle ein beliebiges Auto — für den Einstieg spielt das keine Rolle.', { dismiss:false });
+  }
+
+  /** Wartet bis startRace() (async, lädt Szene) tatsächlich state='race' erreicht
+      hat, bevor In-Race-Hinweise eingeblendet werden. */
+  function waitForRaceStart(){
+    hideCoach();
+    highlightEl(null);
+    let waited = 0;
+    const id = setInterval(() => {
+      waited += 200;
+      if(!active){ clearInterval(id); return; }
+      if(Game.state === 'race'){ clearInterval(id); armRaceHints(); }
+      else if(waited > 20000){ clearInterval(id); } // Sicherheitsabbruch, falls Ladevorgang fehlschlägt
+    }, 200);
+    timers.push(id);
+  }
+
+  function armRaceHints(){
+    const t0 = performance.now();
+    // Fahrhilfen für den Einstieg auf Maximum, falls vorhanden
+    if(Game.car){ Game.absLevel = 6; Game.tcLevel = 6; }
+
+    timers.push(setTimeout(() => {
+      if(active) showCoach('Oben links: Rundenzeit. Unten rechts: Tempo & Gang. Rechts: Minikarte.', { autoHideMs:6000 });
+    }, 2000));
+
+    timers.push(setTimeout(() => {
+      if(!active) return;
+      const isMobile = Game.deviceMode === 'mobile';
+      showCoach(isMobile
+        ? 'Steuere über die Touch-Pedale/das Lenkrad am Bildschirmrand.'
+        : 'Gas: W · Bremse: S · Lenken: A/D (oder Pfeiltasten).',
+        { autoHideMs:6000 });
+    }, 8000));
+
+    // Stuck-Erkennung nutzt car._stuckT, das ohnehin pro Frame für alle Autos
+    // inkl. Spieler mitgezählt wird — keine neue Erkennungslogik nötig.
+    let stuckHintShown = false;
+    const stuckId = setInterval(() => {
+      if(!active){ clearInterval(stuckId); return; }
+      if(!stuckHintShown && (Game.car?._stuckT || 0) > 3){
+        stuckHintShown = true;
+        showCoach('Festgefahren? Drück E, um zurückgesetzt zu werden.', { autoHideMs:6000 });
+      }
+    }, 500);
+    timers.push(stuckId);
+
+    // Abschluss nach 1 Runde oder 45s
+    const doneId = setInterval(() => {
+      if(!active){ clearInterval(doneId); return; }
+      if(Game.state !== 'race') return;
+      const lapDone = (Game.race?.lap || 0) >= 2;
+      const timeUp = (performance.now() - t0) > 45000;
+      if(lapDone || timeUp){ clearInterval(doneId); showFinalPanel(); }
+    }, 1000);
+    timers.push(doneId);
+  }
+
+  function showFinalPanel(){
+    hideCoach();
+    const el = document.getElementById('tut-final');
+    if(!el){ finish(); return; }
+    el.classList.remove('hidden');
+    document.getElementById('tut-final-close').onclick = () => {
+      el.classList.add('hidden');
+      finish();
+      Game.toMenu();
+    };
+  }
+
+  function start(){
+    active = true;
+    clearTimers();
+    patchNavigation();
+    document.getElementById('tut-skip-global')?.classList.remove('hidden');
+    const skipBtn = document.getElementById('tut-skip-global');
+    if(skipBtn) skipBtn.onclick = () => finish();
+
+    const el = document.getElementById('tut-welcome');
+    if(!el){ beginNavigation(); return; }
+    el.classList.remove('hidden');
+    document.getElementById('tut-welcome-start').onclick = () => {
+      el.classList.add('hidden');
+      beginNavigation();
+    };
+    document.getElementById('tut-welcome-skip').onclick = () => finish();
+  }
+
+  function beginNavigation(){
+    Game._pendingMode = 'tt';
+    Game.showScreen('screen-mode-select');
+  }
+
+  return { start, finish, isDone };
+})();
+
+/* Tutorial erneut aufrufbar aus den Einstellungen */
+document.addEventListener('DOMContentLoaded', () => {
+  const replayBtn = document.getElementById('btn-tutorial-replay');
+  if(replayBtn) replayBtn.onclick = () => Tutorial.start();
+});
+
 })();
 </script>
 
@@ -17681,7 +17976,7 @@ setTimeout(() => DailyChallenge.render(), 500);
     <h2>Kontakt</h2>
     <p>E-Mail: <a href="mailto:tyler.neuhaus2000@gmail.com">tyler.neuhaus2000@gmail.com</a></p>
     <h2>Hinweis</h2>
-    <p>Dies ist ein privates, nicht-kommerzielles Projekt. Es werden keine Waren oder Dienstleistungen angeboten.</p>
+    <p>Im Spiel k&ouml;nnen digitale Zusatzinhalte (Fahrzeug-/Streckenfreischaltungen, Lackierungen, Ingame-W&auml;hrung, Werbefrei-Premium) gegen Entgelt &uuml;ber PayPal erworben werden. Es werden keine physischen Waren versendet.</p>
   </section>
 
   <section class="screen hidden" id="screen-datenschutz">
@@ -17693,18 +17988,43 @@ setTimeout(() => DailyChallenge.render(), 500);
     <p>Bei der Registrierung werden folgende Daten gespeichert:<br>
     &mdash; E-Mail-Adresse und Passwort (Firebase Authentication)<br>
     &mdash; Frei gew&auml;hlter Benutzername<br>
-    &mdash; Rundenzeiten und Rennstatistiken (Lizenzpunkte, Kilometer, Rennanzahl)</p>
-    <p>Es werden kein Klarname, keine Zahlungsdaten und keine weiteren pers&ouml;nlichen Daten erhoben.</p>
+    &mdash; Rundenzeiten und Rennstatistiken (Lizenzpunkte, Kilometer, Rennanzahl)<br>
+    &mdash; Bei K&auml;ufen im Shop: erworbenes Item, Betrag, W&auml;hrung und Kaufzeitpunkt (keine Zahlungsdaten wie Kartennummern &mdash; diese verarbeitet ausschlie&szlig;lich PayPal, siehe unten)</p>
+    <p>Es wird kein Klarname au&szlig;er dem selbst gew&auml;hlten Benutzernamen erhoben.</p>
     <h2>3. Zweck der Verarbeitung</h2>
-    <p>Die Daten dienen ausschlie&szlig;lich dem Betrieb des Spiels (Anmeldung, Bestenliste, Lizenz-Fortschritt). Eine Weitergabe an Dritte findet nicht statt.</p>
+    <p>Die Daten dienen dem Betrieb des Spiels (Anmeldung, Bestenliste, Lizenz-Fortschritt) sowie der Abwicklung und Zuordnung von Shop-K&auml;ufen. Eine Weitergabe an Dritte findet nicht statt, au&szlig;er an die zur Zahlungsabwicklung notwendigen Dienstleister (siehe Punkt 5).</p>
     <h2>4. Dienstleister: Google Firebase</h2>
-    <p>Diese Seite nutzt Firebase (Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland) f&uuml;r Authentifizierung und Datenspeicherung. Datenschutzerkl&auml;rung: <a href="https://policies.google.com/privacy" target="_blank">policies.google.com/privacy</a></p>
-    <h2>5. Hosting</h2>
+    <p>Diese Seite nutzt Firebase (Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland) f&uuml;r Authentifizierung, Datenspeicherung und die serverseitige Kaufabwicklung (Cloud Functions). Datenschutzerkl&auml;rung: <a href="https://policies.google.com/privacy" target="_blank">policies.google.com/privacy</a></p>
+    <h2>5. Zahlungsdienstleister: PayPal</h2>
+    <p>K&auml;ufe im Shop werden &uuml;ber PayPal (Europe) S.&agrave;.r.l. et Cie, S.C.A., 22-24 Boulevard Royal, L-2449 Luxemburg abgewickelt. PayPal verarbeitet dabei die eigentlichen Zahlungsdaten (z.B. Kontoverbindung/Kartendaten) eigenverantwortlich als Zahlungsdienstleister. Datenschutzerkl&auml;rung: <a href="https://www.paypal.com/de/webapps/mpp/ua/privacy-full" target="_blank">paypal.com/de/webapps/mpp/ua/privacy-full</a></p>
+    <h2>6. Hosting</h2>
     <p>Hosting &uuml;ber GitHub Pages (GitHub Inc., San Francisco, USA). Beim Seitenaufruf erfasst GitHub automatisch Zugriffsdaten (IP, Zeitstempel). Datenschutzerkl&auml;rung: <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement" target="_blank">docs.github.com</a></p>
-    <h2>6. Deine Rechte</h2>
+    <h2>7. Deine Rechte</h2>
     <p>Du hast das Recht auf Auskunft, Berichtigung und L&ouml;schung deiner Daten. Kontakt: <a href="mailto:tyler.neuhaus2000@gmail.com">tyler.neuhaus2000@gmail.com</a></p>
-    <h2>7. Lokale Speicherung</h2>
+    <h2>8. Lokale Speicherung</h2>
     <p>Das Spiel nutzt ausschlie&szlig;lich technisch notwendiges localStorage f&uuml;r Einstellungen und Bestzeiten. Es werden keine Tracking-Cookies gesetzt.</p>
+  </section>
+
+  <section class="screen hidden" id="screen-agb">
+    <button class="btn" onclick="Game.showScreen('screen-start')" style="margin-bottom:24px">&larr; ZUR&Uuml;CK</button>
+    <h1>ALLGEMEINE GESCH&Auml;FTSBEDINGUNGEN</h1>
+    <p style="color:var(--amber);font-size:12px;margin-bottom:20px">Hinweis: Dieser Entwurf wurde nicht anwaltlich gepr&uuml;ft und stellt keine Rechtsberatung dar.</p>
+    <h2>1. Geltungsbereich &amp; Anbieter</h2>
+    <p>Diese AGB gelten f&uuml;r den Kauf digitaler Zusatzinhalte im Spiel Gridline, angeboten von Tyler Neuhaus, Hue&szlig;tra&szlig;e 85a, 45309 Essen (siehe <a href="javascript:void(0)" onclick="Game.showScreen('screen-impressum')">Impressum</a>).</p>
+    <h2>2. Digitale Inhalte</h2>
+    <p>Angeboten werden ausschlie&szlig;lich digitale Inhalte: Fahrzeug- und Streckenfreischaltungen, kosmetische Lackierungen (Skins), eine Ingame-W&auml;hrung (Credits) sowie ein einmaliger Werbefrei-Premium-Kauf. Es handelt sich um Einmalk&auml;ufe ohne Abonnement.</p>
+    <h2>3. Preise &amp; Zahlung</h2>
+    <p>Alle Preise verstehen sich in Euro inkl. der jeweils geltenden gesetzlichen Umsatzsteuer. Die Zahlung erfolgt ausschlie&szlig;lich &uuml;ber PayPal.</p>
+    <h2>4. Vertragsschluss &amp; Leistungserbringung</h2>
+    <p>Der Kaufvertrag kommt mit erfolgreicher Best&auml;tigung der Zahlung durch PayPal zustande. Digitale Inhalte werden unmittelbar nach erfolgreicher Zahlung freigeschaltet.</p>
+    <h2>5. Widerrufsrecht</h2>
+    <p>Dir steht grunds&auml;tzlich ein gesetzliches Widerrufsrecht zu. Da es sich um digitale Inhalte handelt, die nicht auf einem k&ouml;rperlichen Datentr&auml;ger geliefert werden, erlischt dein Widerrufsrecht gem&auml;&szlig; &sect;356 Abs.&nbsp;5 BGB vorzeitig, sobald du der sofortigen Ausf&uuml;hrung des Vertrags ausdr&uuml;cklich zustimmst und gleichzeitig best&auml;tigst, dass du dadurch dein Widerrufsrecht verlierst. Diese Best&auml;tigung wird beim Kaufvorgang eingeholt.</p>
+    <h2>6. Gew&auml;hrleistung</h2>
+    <p>Es gelten die gesetzlichen Gew&auml;hrleistungsrechte. Bei Problemen mit einem Kauf wende dich an <a href="mailto:tyler.neuhaus2000@gmail.com">tyler.neuhaus2000@gmail.com</a>.</p>
+    <h2>7. Haftung</h2>
+    <p>Es wird gehaftet nach den gesetzlichen Bestimmungen, au&szlig;er in F&auml;llen einfacher Fahrl&auml;ssigkeit bei nicht wesentlichen Vertragspflichten.</p>
+    <h2>8. Schlussbestimmungen</h2>
+    <p>Es gilt das Recht der Bundesrepublik Deutschland. Sollten einzelne Bestimmungen dieser AGB unwirksam sein, bleibt die Wirksamkeit der &uuml;brigen Bestimmungen unber&uuml;hrt.</p>
   </section>
 </body>
 </html>

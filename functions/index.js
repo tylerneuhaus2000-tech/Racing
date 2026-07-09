@@ -51,8 +51,7 @@ function paypalApiBase() {
  */
 const CATALOG = {
   // Kosmetik-Skins
-  skin_amg_gold:        { type: 'skin',    price: '2.49', currency: 'EUR', name: 'AMG GT3 — Gold Livery' },
-  skin_porsche_carbon:  { type: 'skin',    price: '2.49', currency: 'EUR', name: 'Porsche 911 GT3 R — Carbon Livery' },
+  skin_porsche_992gt3r: { type: 'skin',    price: '2.49', currency: 'EUR', name: 'Porsche 992 GT3 R — Werkslook' },
   // Auto-/Streckenfreischaltungen
   car_ferrari499p:      { type: 'car',     price: '4.99', currency: 'EUR', name: 'Ferrari 499P' },
   track_norisring:      { type: 'track',   price: '3.49', currency: 'EUR', name: 'Norisring' },
