@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gridline – Browserspiele von Tyler Neuhaus</title>
-<meta name="description" content="Drei selbstgebaute Browserspiele: eine GT3-Rennsimulation mit Multiplayer und Bestenliste, Casino-Minispiele mit virtuellen Chips und ein Länder-Quiz.">
-<meta name="theme-color" content="#0c0c0e">
-<meta property="og:title" content="Gridline – Browserspiele von Tyler Neuhaus">
-<meta property="og:description" content="Eine GT3-Rennsimulation, Casino-Minispiele und ein Länder-Quiz. Kostenlos, direkt im Browser.">
+<title>Gridline – Browserspiele von Tyler</title>
+<meta name="description" content="Rennsimulation, Casino-Minigames und Länder-Quiz. Kostenlos im Browser, ein Account für alle Spiele.">
+<meta name="theme-color" content="#070f18">
+<meta property="og:title" content="Gridline – Browserspiele">
+<meta property="og:description" content="Kostenlose Browserspiele: Rennsimulation, Casino und Geo-Quiz.">
 <meta property="og:type" content="website">
 
 <link rel="stylesheet" href="assets/gridline-site.css">
@@ -15,271 +15,371 @@
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 
 <style>
-	/* ============================================================
-	   Startseite
-	   Ruhige, redaktionelle Anmutung: eine Akzentfarbe, Haarlinien
-	   statt Kacheln, Zahlen und Meta-Angaben in Monospace.
-	   ============================================================ */
-
-	.intro { padding: 74px 0 0; }
-	.kicker {
-		font: 600 11px/1 var(--mono);
-		letter-spacing: .18em;
-		text-transform: uppercase;
-		color: var(--muted);
-		margin: 0 0 26px;
+	/* ---------- Hero ---------- */
+	.hero {
+		position: relative;
+		padding: 60px 0 40px;
+		overflow: hidden;
 	}
-	.intro h1 {
-		margin: 0 0 22px;
-		font-size: clamp(32px, 5.4vw, 54px);
-		line-height: 1.06;
-		letter-spacing: -.028em;
-		font-weight: 700;
-		max-width: 15ch;
+	.hero::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		background:
+			repeating-linear-gradient(115deg, transparent 0 42px, #ffffff06 42px 43px),
+			radial-gradient(700px 300px at 15% 0%, #58d7ff1f, transparent 70%);
+		pointer-events: none;
 	}
-	.intro h1 em {
-		font-style: normal;
-		color: var(--muted);
-	}
-	.intro p {
-		margin: 0 0 14px;
-		max-width: 52ch;
-		font-size: 16px;
-		line-height: 1.72;
-		color: #b4afa8;
-	}
-	.intro p a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
-	.intro p a:hover { color: var(--accent); }
-
-	.rule {
-		border: 0;
-		border-top: 1px solid var(--line-soft);
-		margin: 52px 0 0;
-	}
-
-	/* ---------- Abschnittsköpfe ---------- */
-	.sec-head {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 16px;
-		padding: 34px 0 22px;
-	}
-	.sec-head h2 {
-		margin: 0;
-		font: 600 11px/1 var(--mono);
-		letter-spacing: .18em;
-		text-transform: uppercase;
-		color: var(--muted);
-	}
-	.sec-head .aside {
-		font: 400 12px/1 var(--mono);
-		color: #5e5a55;
-	}
-
-	/* ---------- Spieleliste ---------- */
-	.game {
-		display: grid;
-		grid-template-columns: 44px minmax(0, 1fr) 340px;
-		gap: 0 32px;
-		align-items: start;
-		padding: 30px 0;
-		border-top: 1px solid var(--line-soft);
-	}
-	.game:last-of-type { border-bottom: 1px solid var(--line-soft); }
-
-	/* Das Hauptspiel bekommt bewusst mehr Gewicht als die anderen. */
-	.game.lead { grid-template-columns: 44px minmax(0, 1fr) 460px; padding: 38px 0; }
-	.game.lead .g-title { font-size: 34px; }
-	.game.lead .g-desc { font-size: 15.5px; max-width: 46ch; }
-
-	.g-num {
-		font: 400 12px/1.6 var(--mono);
-		color: #56524d;
-		padding-top: 7px;
-	}
-	.g-main { min-width: 0; }
-	.g-title {
-		margin: 0 0 10px;
-		font-size: 25px;
-		font-weight: 700;
-		letter-spacing: -.02em;
-		line-height: 1.15;
-	}
-	.g-title .flag {
-		display: inline-block;
-		vertical-align: 5px;
-		margin-left: 10px;
-		font: 600 10px/1 var(--mono);
-		letter-spacing: .12em;
-		color: var(--accent);
-		border: 1px solid #4a2620;
-		background: #1d1310;
-		border-radius: 3px;
-		padding: 4px 6px;
-	}
-	.g-desc {
-		margin: 0 0 16px;
-		font-size: 14.5px;
-		line-height: 1.68;
-		color: #a09a92;
-		max-width: 54ch;
-	}
-	.g-meta {
-		margin: 0 0 20px;
-		font: 400 12px/1.7 var(--mono);
-		color: #6d6862;
-	}
-	.g-meta span + span::before { content: "  ·  "; color: #3d3a36; }
-
-	.g-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-	.btn {
+	.hero-inner { position: relative; }
+	.eyebrow {
 		display: inline-flex;
 		align-items: center;
-		border: 1px solid var(--line);
-		background: transparent;
-		color: var(--text);
-		padding: 10px 18px;
-		border-radius: var(--radius);
-		font: 600 13.5px/1 var(--font);
-		text-decoration: none;
-		cursor: pointer;
-		transition: background .15s, border-color .15s;
-	}
-	.btn:hover { background: #1c1c20; border-color: #3a3a41; }
-	.btn.solid {
-		background: var(--text);
-		border-color: var(--text);
-		color: #0c0c0e;
-	}
-	.btn.solid:hover { background: #fff; border-color: #fff; }
-
-	/* ---------- Cover ---------- */
-	.g-art {
-		border: 1px solid var(--line-soft);
-		border-radius: var(--radius);
-		overflow: hidden;
-		aspect-ratio: 16 / 9;
-		position: relative;
-		cursor: pointer;
-		background: #111;
-	}
-	.g-art svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-	.g-art:hover { border-color: #3a3a41; }
-	.g-art .hint {
-		position: absolute;
-		left: 0; right: 0; bottom: 0;
-		padding: 22px 12px 9px;
-		background: linear-gradient(180deg, transparent, #000000b8);
-		font: 600 10.5px/1 var(--mono);
-		letter-spacing: .14em;
+		gap: 8px;
+		font-size: 11px;
+		letter-spacing: .22em;
 		text-transform: uppercase;
-		color: #cfcbc5;
-		opacity: 0;
-		transition: opacity .18s;
+		color: var(--accent);
+		border: 1px solid #2a5a75;
+		background: #0d2231;
+		padding: 6px 13px;
+		border-radius: 999px;
+		margin-bottom: 18px;
 	}
-	@media (hover: hover) {
-		.g-art:hover .hint { opacity: 1; }
+	.dot {
+		width: 6px; height: 6px; border-radius: 50%;
+		background: var(--accent-2);
+		box-shadow: 0 0 0 0 #37d48899;
+		animation: pulse 2.4s infinite;
+	}
+	@keyframes pulse {
+		0% { box-shadow: 0 0 0 0 #37d48899; }
+		70% { box-shadow: 0 0 0 8px #37d48800; }
+		100% { box-shadow: 0 0 0 0 #37d48800; }
+	}
+	.hero h1 {
+		margin: 0 0 14px;
+		font-size: clamp(34px, 6vw, 62px);
+		line-height: 1.05;
+		letter-spacing: -.01em;
+	}
+	.hero h1 span {
+		background: linear-gradient(100deg, var(--accent), var(--accent-2));
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+	}
+	.hero p.lead {
+		margin: 0 0 26px;
+		max-width: 620px;
+		font-size: 16px;
+		line-height: 1.7;
+		color: #b6cadd;
+	}
+	.hero-stats { display: flex; flex-wrap: wrap; gap: 12px 34px; }
+	.hstat .n {
+		font-size: 26px;
+		font-weight: 800;
+		color: var(--text);
+		line-height: 1.1;
+	}
+	.hstat .l {
+		font-size: 11px;
+		letter-spacing: .13em;
+		text-transform: uppercase;
+		color: var(--muted);
+		margin-top: 3px;
 	}
 
-	/* ---------- Changelog ---------- */
-	.log { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line-soft); }
-	.log li {
+	/* ---------- Toolbar ---------- */
+	.toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px;
+		align-items: center;
+		margin: 10px 0 22px;
+	}
+	.search {
+		position: relative;
+		flex: 1 1 230px;
+		max-width: 320px;
+	}
+	.search input {
+		width: 100%;
+		padding: 10px 14px 10px 36px;
+		border-radius: 999px;
+		border: 1px solid var(--line);
+		background: #0c1a27;
+		color: var(--text);
+		font: 14px var(--font);
+	}
+	.search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px #58d7ff22; }
+	.search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); opacity: .5; }
+	.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+	.pill {
+		border: 1px solid var(--line);
+		background: #0f2437;
+		color: var(--text);
+		padding: 9px 15px;
+		border-radius: 999px;
+		font: 700 11.5px/1 var(--font);
+		letter-spacing: .1em;
+		text-transform: uppercase;
+		cursor: pointer;
+		transition: .16s;
+	}
+	.pill:hover { border-color: #4d7a9c; }
+	.pill.active {
+		background: linear-gradient(120deg, var(--accent), #7de6c2);
+		color: #04263a;
+		border-color: transparent;
+	}
+
+	/* ---------- Karten ---------- */
+	.grid {
 		display: grid;
-		grid-template-columns: 108px minmax(0, 1fr);
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 		gap: 20px;
-		padding: 13px 0;
+		padding-bottom: 10px;
+	}
+	.card {
+		position: relative;
+		border: 1px solid var(--line-soft);
+		border-radius: 18px;
+		background: linear-gradient(180deg, #10202fdd, #0b1826ee);
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		transition: transform .22s cubic-bezier(.2,.7,.3,1), border-color .22s, box-shadow .22s;
+		animation: rise .45s cubic-bezier(.2,.8,.3,1) both;
+	}
+	@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+	.card:hover {
+		transform: translateY(-5px);
+		border-color: #3d6f91;
+		box-shadow: 0 22px 44px #00000066, 0 0 0 1px #58d7ff22;
+	}
+	.cover {
+		position: relative;
+		aspect-ratio: 16 / 9;
+		cursor: pointer;
+		overflow: hidden;
 		border-bottom: 1px solid var(--line-soft);
+	}
+	.cover svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+	.cover::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(180deg, transparent 45%, #0b1826cc 100%);
+		pointer-events: none;
+	}
+
+	.play-overlay {
+		position: absolute;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		background: #04121ba8;
+		opacity: 0;
+		transition: opacity .2s;
+		z-index: 2;
+	}
+	/* Nur auf Geraeten mit echtem Zeiger - auf Touch bleibt das Overlay sonst
+	   nach dem Antippen sichtbar haengen. */
+	@media (hover: hover) {
+		.cover:hover .play-overlay { opacity: 1; }
+	}
+	.play-overlay span {
+		border: 1px solid #6de3ff;
+		background: #0b2a3ccc;
+		color: #d8f4ff;
+		border-radius: 999px;
+		padding: 9px 18px;
+		font: 700 11px/1 var(--font);
+		letter-spacing: .16em;
+		text-transform: uppercase;
+		backdrop-filter: blur(4px);
+	}
+
+	.fav {
+		position: absolute;
+		top: 10px; right: 10px;
+		z-index: 3;
+		width: 32px; height: 32px;
+		border-radius: 50%;
+		border: 1px solid #ffffff2b;
+		background: #06121cbf;
+		color: #7d95ac;
+		cursor: pointer;
+		display: grid;
+		place-items: center;
 		font-size: 14px;
-		line-height: 1.6;
-		color: #a09a92;
+		backdrop-filter: blur(6px);
+		transition: .16s;
 	}
-	.log time { font: 400 12.5px/1.75 var(--mono); color: #6d6862; }
+	.fav:hover { color: var(--gold); border-color: var(--gold); }
+	.fav.on { color: var(--gold); border-color: #fbbf2466; background: #2e230bcc; }
 
-	.colophon {
-		padding: 40px 0 10px;
-		font-size: 13.5px;
-		line-height: 1.8;
-		color: #7d7973;
-		max-width: 58ch;
+	.badges { position: absolute; top: 10px; left: 10px; z-index: 3; display: flex; gap: 6px; flex-wrap: wrap; }
+	.badge {
+		font: 700 9.5px/1 var(--font);
+		letter-spacing: .13em;
+		text-transform: uppercase;
+		padding: 5px 9px;
+		border-radius: 999px;
+		background: #06121cd9;
+		border: 1px solid #ffffff24;
+		color: #cfe3f5;
+		backdrop-filter: blur(6px);
 	}
-	.colophon a { color: #b4afa8; text-decoration: underline; text-underline-offset: 3px; }
-	.colophon a:hover { color: var(--accent); }
+	.badge.age { background: #3a121acc; border-color: #ff8f9a5c; color: #ffb3bb; }
+	.badge.hot { background: #35240acc; border-color: #fbbf2455; color: #ffd98a; }
+	.badge.new { background: #0b2f22cc; border-color: #37d48855; color: #7ff0bb; }
 
-	/* ---------- Vorschau ---------- */
+	.body { padding: 16px 17px 17px; display: flex; flex-direction: column; gap: 9px; flex: 1; }
+	.name { font-size: 20px; margin: 0; letter-spacing: .01em; }
+	.desc { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.6; }
+	.meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+	.chip {
+		font-size: 10.5px;
+		letter-spacing: .06em;
+		color: #9fb8cd;
+		border: 1px solid var(--line-soft);
+		background: #0d1c2a;
+		border-radius: 6px;
+		padding: 4px 8px;
+	}
+	.actions { margin-top: auto; padding-top: 12px; display: flex; gap: 9px; }
+	.btn {
+		border: 1px solid var(--line);
+		background: #14324a;
+		color: #e8f3ff;
+		padding: 11px 14px;
+		border-radius: 11px;
+		font: 700 11.5px/1 var(--font);
+		letter-spacing: .11em;
+		text-transform: uppercase;
+		text-decoration: none;
+		text-align: center;
+		cursor: pointer;
+		transition: .16s;
+	}
+	.btn:hover { background: #1d4462; border-color: #4a7ea3; }
+	.btn.play {
+		flex: 1;
+		background: linear-gradient(120deg, #1f8f63, #2fb37c);
+		border-color: #3ad18b;
+		color: #f0fff8;
+	}
+	.btn.play:hover { background: linear-gradient(120deg, #26a874, #3ecb90); }
+
+	.empty {
+		grid-column: 1 / -1;
+		text-align: center;
+		padding: 50px 20px;
+		color: var(--muted);
+		border: 1px dashed var(--line);
+		border-radius: 16px;
+	}
+
+	.section-head {
+		display: flex;
+		align-items: baseline;
+		gap: 12px;
+		margin: 34px 0 14px;
+	}
+	.section-head h2 { font-size: 15px; letter-spacing: .16em; text-transform: uppercase; margin: 0; color: #b9d0e4; }
+	.section-head .line { flex: 1; height: 1px; background: var(--line-soft); }
+
+	/* ---------- Preview-Modal ---------- */
 	.modal {
 		position: fixed;
 		inset: 0;
 		display: none;
 		place-items: center;
-		background: #07070899;
+		background: #03070cd9;
+		backdrop-filter: blur(5px);
 		padding: 18px;
 		z-index: 1500;
 	}
 	.modal.open { display: grid; }
 	.modal-card {
-		width: min(1060px, 97vw);
+		width: min(1040px, 97vw);
 		height: min(700px, 92vh);
 		border: 1px solid var(--line);
-		background: #0c0c0e;
-		border-radius: var(--radius);
+		background: #08131e;
+		border-radius: 16px;
 		overflow: hidden;
+		box-shadow: 0 30px 70px #000000a0;
 		display: grid;
 		grid-template-rows: auto 1fr;
 	}
 	.modal-top {
-		padding: 11px 14px;
+		padding: 12px 14px;
 		border-bottom: 1px solid var(--line-soft);
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		gap: 10px;
+		background: #0d1e2d;
 	}
-	.modal-title { font: 600 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+	.modal-title { font-size: 12.5px; letter-spacing: .12em; text-transform: uppercase; color: #b6cce2; font-weight: 700; }
 	.modal-acts { display: flex; gap: 8px; }
 	.modal-btn {
-		border: 1px solid var(--line);
-		background: transparent;
-		color: var(--text);
-		border-radius: var(--radius);
-		padding: 7px 13px;
+		border: 1px solid #3f5a77;
+		background: #17324a;
+		color: #e2eef9;
+		border-radius: 9px;
+		padding: 7px 12px;
 		cursor: pointer;
-		font: 600 12.5px/1 var(--font);
+		font: 700 11px/1 var(--font);
+		letter-spacing: .1em;
+		text-transform: uppercase;
 		text-decoration: none;
 	}
-	.modal-btn:hover { background: #1c1c20; }
-	.modal-btn.solid { background: var(--text); border-color: var(--text); color: #0c0c0e; }
-	iframe { width: 100%; height: 100%; border: 0; background: #0c0c0e; }
+	.modal-btn:hover { background: #1f4361; }
+	.modal-btn.go { background: #1f6d4f; border-color: #3ad18b; }
+	iframe { width: 100%; height: 100%; border: 0; background: #040a12; }
 
 	/* ---------- Altersabfrage ---------- */
 	.age-modal {
 		position: fixed; inset: 0; display: none; place-items: center;
-		background: #070708e6; z-index: 3000; padding: 18px;
+		background: #03070ce6; backdrop-filter: blur(6px); z-index: 3000; padding: 18px;
 	}
 	.age-modal.open { display: grid; }
 	.age-card {
-		width: min(420px, 100%);
-		background: var(--panel);
+		width: min(430px, 100%);
+		background: #0b1725;
 		border: 1px solid var(--line);
-		border-radius: var(--radius);
-		padding: 26px;
+		border-radius: 16px;
+		padding: 28px;
+		text-align: center;
+		box-shadow: 0 26px 60px #00000090;
 	}
-	.age-card h3 { margin: 0 0 12px; font-size: 19px; letter-spacing: -.01em; }
-	.age-card p { margin: 0 0 12px; font-size: 13.5px; line-height: 1.7; color: #a09a92; }
-	.age-card .small { font-size: 12px; color: #6d6862; }
-	.age-card a { color: #b4afa8; }
-	.age-acts { display: flex; gap: 9px; margin-top: 20px; }
-	.age-acts button { flex: 1; justify-content: center; }
+	.age-card .icon { font-size: 34px; margin-bottom: 10px; }
+	.age-card h3 { margin: 0 0 10px; font-size: 20px; }
+	.age-card p { margin: 0 0 12px; font-size: 13.5px; line-height: 1.65; color: #b9cddf; }
+	.age-card .small { font-size: 11.5px; color: #8199ae; }
+	.age-card .small a { color: var(--accent); }
+	.age-acts { display: flex; gap: 9px; margin-top: 18px; }
+	.age-acts button {
+		flex: 1;
+		padding: 12px;
+		border-radius: 11px;
+		border: 1px solid var(--line);
+		background: #15344d;
+		color: #dceaf7;
+		font: 700 12px/1 var(--font);
+		letter-spacing: .08em;
+		text-transform: uppercase;
+		cursor: pointer;
+	}
+	.age-acts button.yes { background: #1f6d4f; border-color: #3ad18b; color: #eafff5; }
 
-	@media (max-width: 900px) {
-		.game, .game.lead { grid-template-columns: 30px minmax(0, 1fr); gap: 0 18px; }
-		.g-art { grid-column: 2; margin-bottom: 18px; }
-		.g-body { grid-column: 2; }
-		.game.lead .g-title { font-size: 28px; }
-	}
 	@media (max-width: 640px) {
-		.intro { padding: 44px 0 0; }
-		.log li { grid-template-columns: 1fr; gap: 3px; }
+		.hero { padding: 36px 0 26px; }
+		.grid { grid-template-columns: 1fr; gap: 16px; }
+		.search { max-width: none; }
 	}
 </style>
 </head>
@@ -292,51 +392,39 @@
 	</div>
 </header>
 
+<section class="hero">
+	<div class="wrap hero-inner">
+		<span class="eyebrow"><span class="dot"></span> Kostenlos im Browser</span>
+		<h1>Spiele von Tyler.<br><span>Ohne Download.</span></h1>
+		<p class="lead">
+			Rennsimulation mit echten Strecken, Casino-Minigames und ein Länder-Quiz.
+			Ein Account genügt für alles – Bestzeiten, Multiplayer und Fortschritt
+			wandern automatisch mit.
+		</p>
+		<div class="hero-stats">
+			<div class="hstat"><div class="n" id="stat-games">3</div><div class="l">Spiele</div></div>
+		</div>
+	</div>
+</section>
+
 <main class="wrap">
-
-	<section class="intro">
-		<p class="kicker">Browserspiele von Tyler Neuhaus</p>
-		<h1>Drei Spiele, die ich in meiner Freizeit gebaut habe.</h1>
-		<p>
-			Alles läuft direkt im Browser – nichts installieren, nichts bezahlen. Zum Spielen
-			brauchst du keinen Account. Einer lohnt sich nur, wenn du im Rennspiel in die
-			Bestenliste willst oder gegen andere fährst.
-		</p>
-		<p>
-			Gebaut mit Three.js und Firebase, gehostet über GitHub Pages. Fragen oder Bugs gerne an
-			<a href="mailto:tyler.neuhaus2000@gmail.com">tyler.neuhaus2000@gmail.com</a>.
-		</p>
-		<hr class="rule">
-	</section>
-
-	<section>
-		<div class="sec-head">
-			<h2>Spiele</h2>
-			<span class="aside" id="count-note"></span>
+	<div class="toolbar">
+		<div class="search">
+			<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+				<circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path>
+			</svg>
+			<input id="search" type="search" placeholder="Spiel suchen …" aria-label="Spiel suchen">
 		</div>
-		<div id="games"></div>
-	</section>
-
-	<section>
-		<div class="sec-head">
-			<h2>Zuletzt geändert</h2>
-			<span class="aside">Auszug</span>
+		<div class="filters" id="filters">
+			<button class="pill active" data-filter="all">Alle</button>
+			<button class="pill" data-filter="fav">★ Favoriten</button>
+			<button class="pill" data-filter="racing">Racing</button>
+			<button class="pill" data-filter="gambling">Casino</button>
+			<button class="pill" data-filter="quiz">Quiz</button>
 		</div>
-		<ul class="log">
-			<li><time datetime="2026-08-08">08.08.2026</time><span>Casino behält Guthaben, Rundenzahl und Verlauf jetzt zwischen Besuchen.</span></li>
-			<li><time datetime="2026-08-08">08.08.2026</time><span>Fahrzeugmodelle neu komprimiert – das Rennspiel lädt deutlich schneller.</span></li>
-			<li><time datetime="2026-08-08">08.08.2026</time><span>Ein Account gilt jetzt für alle Spiele, plus Impressum und Datenschutz.</span></li>
-			<li><time datetime="2026-07-07">07.07.2026</time><span>Streckeneditor: eigene GLB-Strecken lassen sich importieren.</span></li>
-			<li><time datetime="2026-07-04">04.07.2026</time><span>Regen-Effekte, F1-Start, dynamische Schwierigkeit und KI-Reifenstrategie.</span></li>
-			<li><time datetime="2026-07-02">02.07.2026</time><span>Weltrekord-Abzeichen in der Bestenliste und Replay der Bestzeiten.</span></li>
-		</ul>
-	</section>
+	</div>
 
-	<p class="colophon">
-		Gridline ist ein privates Hobbyprojekt, kein Studio und keine Firma. Die Seite finanziert sich
-		über Werbung, damit Hosting und Domain gedeckt sind. Fahrzeug- und Streckennamen gehören den
-		jeweiligen Rechteinhabern – eine offizielle Lizenz gibt es nicht.
-	</p>
+	<section class="grid" id="grid"></section>
 </main>
 
 <footer class="site-footer">
@@ -349,20 +437,22 @@
 			<a href="#" onclick="GridlineConsent&amp;&amp;GridlineConsent.reopen();return false">Cookie-Einstellungen</a>
 		</nav>
 		<p class="footer-note">
-			© <span id="yr">2026</span> Tyler Neuhaus.
-			Das Casino-Spiel läuft ausschließlich mit virtuellen Chips – kein Einsatz von echtem Geld,
+			© <span id="yr">2026</span> Tyler Neuhaus · Gridline ist ein privates Hobbyprojekt.<br>
+			Das Casino-Spiel wird ausschließlich mit virtuellen Chips gespielt – kein Einsatz von echtem Geld,
 			keine Auszahlung, kein Glücksspiel. Nutzung ab 18 Jahren.
-			Hilfe bei Spielsucht: 0800 1 37 27 00 (BZgA, kostenlos und anonym).
+			Hilfe bei Spielsucht: <strong>0800 1 37 27 00</strong> (BZgA, kostenlos &amp; anonym).<br>
+			Genannte Marken- und Fahrzeugnamen gehören den jeweiligen Rechteinhabern; es besteht keine offizielle Lizenzierung.
 		</p>
 	</div>
 </footer>
 
+<!-- Preview -->
 <div class="modal" id="previewModal" aria-hidden="true">
 	<div class="modal-card">
 		<div class="modal-top">
 			<div class="modal-title" id="previewTitle">Vorschau</div>
 			<div class="modal-acts">
-				<a class="modal-btn solid" id="previewOpen" href="#">In neuem Tab öffnen</a>
+				<a class="modal-btn go" id="previewOpen" href="#">In neuem Tab</a>
 				<button class="modal-btn" id="previewClose">Schließen</button>
 			</div>
 		</div>
@@ -370,21 +460,24 @@
 	</div>
 </div>
 
+<!-- Altersabfrage Casino -->
 <div class="age-modal" id="ageModal" aria-hidden="true">
 	<div class="age-card" role="dialog" aria-modal="true">
-		<h3>Erst ab 18</h3>
+		<div class="icon">🔞</div>
+		<h3>Nur für Erwachsene</h3>
 		<p>
-			Das Casino-Spiel ist eine reine Simulation. Chips sind kostenlos, lassen sich nicht kaufen
-			und nicht auszahlen – es wird kein echtes Geld eingesetzt und keins gewonnen.
+			Dieses Spiel ist eine <strong>Casino-Simulation ohne echten Geldeinsatz</strong>.
+			Chips sind kostenlos, können nicht gekauft und nicht ausgezahlt werden – es findet
+			kein Glücksspiel statt.
 		</p>
-		<p>Trotzdem ist die Nutzung aus Jugendschutzgründen erst ab 18 Jahren gestattet.</p>
+		<p>Aus Gründen des Jugendschutzes ist die Nutzung erst ab 18 Jahren gestattet.</p>
 		<p class="small">
-			Hilfe bei Spielsucht: 0800 1 37 27 00 (BZgA) ·
-			<a href="jugendschutz.html" target="_blank">Mehr dazu</a>
+			Hilfe bei Spielsucht: 0800 1 37 27 00 (BZgA, kostenlos &amp; anonym) ·
+			<a href="jugendschutz.html" target="_blank">Mehr erfahren</a>
 		</p>
 		<div class="age-acts">
-			<button class="btn" id="ageNo">Ich bin jünger</button>
-			<button class="btn solid" id="ageYes">Ich bin 18 oder älter</button>
+			<button id="ageNo">Ich bin jünger</button>
+			<button class="yes" id="ageYes">Ich bin 18+</button>
 		</div>
 	</div>
 </div>
@@ -398,145 +491,173 @@
 <script>
 'use strict';
 
+/* ============================================================
+   Spielkatalog
+   ============================================================ */
 const GAMES = [
 	{
 		id: 'racer',
 		title: 'GT3 Web Racer',
-		description: 'Eine Rennsimulation mit nachgebauten Strecken, KI-Gegnern mit eigenen Fahrstilen, ' +
-			'Reifenverschleiß und Schadensmodell. Dazu Bestenliste mit Replays, Multiplayer und ein ' +
-			'Editor für eigene Strecken.',
+		description: 'Rennsimulation mit KI-Gegnern, Reifenverschleiß, Schadensmodell, Multiplayer und Streckeneditor.',
 		file: 'gt3-web-racer.html',
-		meta: ['Rennsimulation', '11 Fahrzeuge', 'Multiplayer', 'Bestenliste'],
-		cover: 'racer',
-		lead: true
+		category: 'racing',
+		tags: ['Simulation', 'Multiplayer', 'Bestenliste'],
+		badges: [{ t: 'Flaggschiff', c: 'hot' }],
+		cover: 'racer'
 	},
 	{
 		id: 'casino',
 		title: 'Casino Minispiele',
-		description: 'Blackjack, Slots, Roulette, Poker, Crash und ein paar mehr. Gespielt wird mit ' +
-			'virtuellen Chips, die es umsonst gibt – kein Kauf, keine Auszahlung.',
+		description: 'Slots, Blackjack, Roulette, Poker und mehr – ausschließlich mit virtuellen Chips, ohne echten Geldeinsatz.',
 		file: 'casino-v19.html',
-		meta: ['18 Minispiele', 'Virtuelle Chips', 'Spielstand wird gespeichert'],
-		cover: 'casino',
-		flag: 'AB 18',
-		ageGate: true
+		category: 'gambling',
+		tags: ['18 Minispiele', 'Virtuelle Chips', 'Kein Echtgeld'],
+		badges: [{ t: 'Ab 18', c: 'age' }],
+		ageGate: true,
+		cover: 'casino'
 	},
 	{
 		id: 'geo',
 		title: 'Geo Country Guess',
-		description: 'Errate Länder anhand echter Kennzahlen: Fläche, Einwohner, Bruttoinlandsprodukt. ' +
-			'Wird von Runde zu Runde schwerer.',
+		description: 'Erkenne Länder an echten Daten – Fläche, Bevölkerung, BIP. Wissensquiz mit steigender Schwierigkeit.',
 		file: 'geo-country-guess.html',
-		meta: ['Quiz', 'Echte Daten', 'Einzelspieler'],
+		category: 'quiz',
+		tags: ['Wissen', 'Echte Daten', 'Solo'],
+		badges: [],
 		cover: 'geo'
 	}
 ];
 
 /* ============================================================
-   Cover-Grafiken als Inline-SVG – keine Bilddateien, nichts nachzuladen
+   Cover-Grafiken (inline SVG – keine Bilddateien, kein Nachladen)
    ============================================================ */
 const COVERS = {
 	racer: `
 		<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
 			<defs>
+				<linearGradient id="rbg" x1="0" y1="0" x2="1" y2="1">
+					<stop offset="0" stop-color="#0f1822"/><stop offset="60%" stop-color="#131f2c"/><stop offset="100%" stop-color="#1b3247"/>
+				</linearGradient>
+				<radialGradient id="rglow" cx="72%" cy="22%">
+					<stop offset="0" stop-color="#ff3d4d" stop-opacity=".3"/><stop offset="1" stop-color="#ff3d4d" stop-opacity="0"/>
+				</radialGradient>
 				<linearGradient id="rrev" x1="0" y1="0" x2="1" y2="0">
-					<stop offset="0" stop-color="#6fbf8b"/><stop offset="58%" stop-color="#e0a44a"/><stop offset="100%" stop-color="#ff4d3d"/>
+					<stop offset="0" stop-color="#37d488"/><stop offset="58%" stop-color="#ffd34f"/><stop offset="100%" stop-color="#ff3d4d"/>
 				</linearGradient>
 				<path id="rtrack" d="M64 132 C30 130 26 96 52 84 C80 71 92 92 116 86
 					C140 80 138 48 168 44 C202 39 214 62 238 60 C268 57 284 74 276 96
 					C268 118 236 112 214 122 C186 134 168 150 132 148 C100 146 92 134 64 132 Z"/>
 			</defs>
 
-			<rect width="320" height="180" fill="#111114"/>
-			<g stroke="#ffffff" stroke-width=".5" opacity=".05">
+			<rect width="320" height="180" fill="url(#rbg)"/>
+			<rect width="320" height="180" fill="url(#rglow)"/>
+
+			<!-- feines Raster wie ein Telemetrie-Screen -->
+			<g stroke="#7fd8ff" stroke-width=".5" opacity=".07">
 				<path d="M0 30h320M0 60h320M0 90h320M0 120h320M0 150h320"/>
 				<path d="M40 0v180M80 0v180M120 0v180M160 0v180M200 0v180M240 0v180M280 0v180"/>
 			</g>
 
+			<!-- Streckenverlauf (leicht versetzt, damit links Platz fuer die Rundenzeit bleibt) -->
 			<g transform="translate(26 9) scale(0.9)">
-				<use href="#rtrack" fill="none" stroke="#232328" stroke-width="15" stroke-linejoin="round"/>
-				<use href="#rtrack" fill="none" stroke="#4a4a54" stroke-width="2" stroke-linejoin="round"/>
-				<use href="#rtrack" fill="none" stroke="#8d8880" stroke-width="1" stroke-linejoin="round"
-					stroke-dasharray="6 10" opacity=".55">
-					<animate attributeName="stroke-dashoffset" from="32" to="0" dur="1.4s" repeatCount="indefinite"/>
-				</use>
+			<use href="#rtrack" fill="none" stroke="#20364b" stroke-width="15" stroke-linejoin="round"/>
+			<use href="#rtrack" fill="none" stroke="#3f6d93" stroke-width="2.2" stroke-linejoin="round" opacity=".95"/>
+			<use href="#rtrack" fill="none" stroke="#7fd8ff" stroke-width="1" stroke-linejoin="round"
+				stroke-dasharray="6 10" opacity=".5">
+				<animate attributeName="stroke-dashoffset" from="32" to="0" dur="1.4s" repeatCount="indefinite"/>
+			</use>
 
-				<g transform="translate(64 132) rotate(-84)">
-					<rect x="-1.5" y="-8" width="3" height="16" fill="#e6e2dc" opacity=".8"/>
-					<rect x="-1.5" y="-8" width="3" height="4" fill="#111114"/>
-					<rect x="-1.5" y="0" width="3" height="4" fill="#111114"/>
-				</g>
-
-				<circle r="9" fill="#ff4d3d" opacity=".18">
-					<animateMotion dur="6s" repeatCount="indefinite" rotate="auto"><mpath href="#rtrack"/></animateMotion>
-				</circle>
-				<g>
-					<animateMotion dur="6s" repeatCount="indefinite" rotate="auto"><mpath href="#rtrack"/></animateMotion>
-					<rect x="-6" y="-3.2" width="12" height="6.4" rx="1.5" fill="#ff4d3d"/>
-					<rect x="-1.5" y="-2.4" width="4.5" height="4.8" rx="1" fill="#f3efe9" opacity=".85"/>
-				</g>
+			<!-- Start-/Ziellinie -->
+			<g transform="translate(64 132) rotate(-84)">
+				<rect x="-1.5" y="-8" width="3" height="16" fill="#e8f2fb" opacity=".85"/>
+				<rect x="-1.5" y="-8" width="3" height="4" fill="#0f1822"/>
+				<rect x="-1.5" y="0" width="3" height="4" fill="#0f1822"/>
 			</g>
 
+			<!-- fahrendes Auto mit Leuchtspur -->
+			<circle r="9" fill="#ff3d4d" opacity=".22">
+				<animateMotion dur="6s" repeatCount="indefinite" rotate="auto"><mpath href="#rtrack"/></animateMotion>
+			</circle>
+			<g>
+				<animateMotion dur="6s" repeatCount="indefinite" rotate="auto"><mpath href="#rtrack"/></animateMotion>
+				<rect x="-6" y="-3.2" width="12" height="6.4" rx="2" fill="#ff3d4d"/>
+				<rect x="-1.5" y="-2.4" width="4.5" height="4.8" rx="1.2" fill="#9ee3ff" opacity=".9"/>
+			</g>
+			</g>
+
+			<!-- Rundenzeit -->
 			<g font-family="ui-monospace,SFMono-Regular,Menlo,monospace">
-				<text x="18" y="52" font-size="8.5" font-weight="600" fill="#8d8880" letter-spacing="1.8">BESTZEIT</text>
-				<text x="18" y="75" font-size="21" font-weight="700" fill="#eceae6" letter-spacing=".5">1:42.887</text>
-				<text x="18" y="90" font-size="8" font-weight="600" fill="#6d6862" letter-spacing="1.4">SPA-FRANCORCHAMPS</text>
+				<text x="18" y="52" font-size="9" font-weight="700" fill="#7fd8ff" letter-spacing="1.8" opacity=".8">BEST LAP</text>
+				<text x="18" y="75" font-size="21" font-weight="700" fill="#eaf4ff" letter-spacing=".5">1:42.887</text>
+				<text x="18" y="90" font-size="8" font-weight="700" fill="#8fb4d4" letter-spacing="1.4" opacity=".75">SPA-FRANCORCHAMPS</text>
 			</g>
 
+			<!-- Drehzahlband mit Schaltlichtern -->
 			<g transform="translate(196 156)">
-				<rect width="106" height="6" rx="3" fill="#1c1c20" stroke="#2a2a30" stroke-width=".8"/>
-				<clipPath id="rclip"><rect width="106" height="6" rx="3"/></clipPath>
+				<rect width="106" height="7" rx="3.5" fill="#0b1420" stroke="#2a4256" stroke-width=".8"/>
+				<clipPath id="rclip"><rect width="106" height="7" rx="3.5"/></clipPath>
 				<g clip-path="url(#rclip)">
-					<rect width="106" height="6" fill="url(#rrev)">
+					<rect width="106" height="7" fill="url(#rrev)" opacity=".95">
 						<animate attributeName="width" values="18;104;30;96;18" keyTimes="0;0.45;0.55;0.92;1"
 							dur="2.6s" repeatCount="indefinite"/>
 					</rect>
 				</g>
-				<text x="-8" y="6" text-anchor="end" font-family="ui-monospace,monospace" font-size="8.5"
-					font-weight="600" fill="#6d6862" letter-spacing="1">RPM</text>
+				<text x="-8" y="6" text-anchor="end" font-family="ui-monospace,monospace" font-size="9"
+					font-weight="700" fill="#8fb4d4" letter-spacing="1">RPM</text>
 			</g>
 
+			<!-- Gang -->
 			<g transform="translate(272 108)">
-				<rect x="-15" y="-16" width="30" height="32" rx="4" fill="#1c1c20" stroke="#2a2a30"/>
-				<text y="8" text-anchor="middle" font-family="ui-monospace,monospace" font-size="19"
-					font-weight="700" fill="#e0a44a">4
+				<rect x="-15" y="-16" width="30" height="32" rx="7" fill="#0b1420" stroke="#2a4256" stroke-width="1"/>
+				<text y="8" text-anchor="middle" font-family="ui-monospace,monospace" font-size="20"
+					font-weight="700" fill="#ffd34f">4
 					<animate attributeName="opacity" values="1;1;.35;1" keyTimes="0;.44;.5;1" dur="2.6s" repeatCount="indefinite"/>
 				</text>
 			</g>
 		</svg>`,
-
 	casino: `
 		<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
 			<defs>
-				<linearGradient id="cfade" x1="0" y1="0" x2="0" y2="1">
-					<stop offset="0" stop-color="#151518"/><stop offset="9%" stop-color="#151518cc"/>
-					<stop offset="26%" stop-color="#15151800"/>
-					<stop offset="74%" stop-color="#15151800"/>
-					<stop offset="91%" stop-color="#151518cc"/><stop offset="100%" stop-color="#151518"/>
+				<linearGradient id="cg" x1="0" y1="0" x2="1" y2="1">
+					<stop offset="0" stop-color="#2d1b3c"/><stop offset="50%" stop-color="#1a1327"/><stop offset="100%" stop-color="#33254a"/>
 				</linearGradient>
+				<radialGradient id="cgold" cx="26%" cy="20%">
+					<stop offset="0" stop-color="#ffd34f" stop-opacity=".38"/><stop offset="1" stop-color="#ffd34f" stop-opacity="0"/>
+				</radialGradient>
+				<linearGradient id="cfade" x1="0" y1="0" x2="0" y2="1">
+					<stop offset="0" stop-color="#191129"/><stop offset="9%" stop-color="#191129cc"/>
+					<stop offset="26%" stop-color="#19112900"/>
+					<stop offset="74%" stop-color="#19112900"/>
+					<stop offset="91%" stop-color="#191129cc"/><stop offset="100%" stop-color="#191129"/>
+				</linearGradient>
+				<!-- Ein Walzenband: 6 Symbole a 34px, doppelt fuer nahtlose Schleife -->
 				<g id="creel" font-family="sans-serif" font-size="25" font-weight="700" text-anchor="middle">
-					<text y="0"   fill="#e0a44a">7</text>
-					<text y="34"  fill="#7fa8c9">◆</text>
-					<text y="68"  fill="#c9849f">★</text>
-					<text y="102" fill="#6fbf8b">♠</text>
-					<text y="136" fill="#ff4d3d">♥</text>
-					<text y="170" fill="#9a94b8">●</text>
-					<text y="204" fill="#e0a44a">7</text>
-					<text y="238" fill="#7fa8c9">◆</text>
-					<text y="272" fill="#c9849f">★</text>
-					<text y="306" fill="#6fbf8b">♠</text>
-					<text y="340" fill="#ff4d3d">♥</text>
-					<text y="374" fill="#9a94b8">●</text>
+					<text y="0"   fill="#ffd34f">7</text>
+					<text y="34"  fill="#7ce0ff">◆</text>
+					<text y="68"  fill="#ff7ab8">★</text>
+					<text y="102" fill="#8affc1">♠</text>
+					<text y="136" fill="#ff6b7a">♥</text>
+					<text y="170" fill="#c9a6ff">●</text>
+					<text y="204" fill="#ffd34f">7</text>
+					<text y="238" fill="#7ce0ff">◆</text>
+					<text y="272" fill="#ff7ab8">★</text>
+					<text y="306" fill="#8affc1">♠</text>
+					<text y="340" fill="#ff6b7a">♥</text>
+					<text y="374" fill="#c9a6ff">●</text>
 				</g>
-				<clipPath id="cwin1"><rect x="98" y="58" width="36" height="64" rx="4"/></clipPath>
-				<clipPath id="cwin2"><rect x="142" y="58" width="36" height="64" rx="4"/></clipPath>
-				<clipPath id="cwin3"><rect x="186" y="58" width="36" height="64" rx="4"/></clipPath>
+				<clipPath id="cwin1"><rect x="98" y="58" width="36" height="64" rx="5"/></clipPath>
+				<clipPath id="cwin2"><rect x="142" y="58" width="36" height="64" rx="5"/></clipPath>
+				<clipPath id="cwin3"><rect x="186" y="58" width="36" height="64" rx="5"/></clipPath>
 			</defs>
 
-			<rect width="320" height="180" fill="#111114"/>
-			<rect x="86" y="46" width="148" height="88" rx="6" fill="#191a1e" stroke="#2f2f37" stroke-width="1.4"/>
+			<rect width="320" height="180" fill="url(#cg)"/>
+			<rect width="320" height="180" fill="url(#cgold)"/>
 
-			<rect x="98" y="58" width="36" height="64" rx="4" fill="#151518"/>
+			<!-- Automatengehaeuse -->
+			<rect x="86" y="46" width="148" height="88" rx="10" fill="#0f0b18" stroke="#4a3766" stroke-width="1.6"/>
+
+			<!-- Walze 1 -->
+			<rect x="98" y="58" width="36" height="64" rx="5" fill="#191129"/>
 			<g clip-path="url(#cwin1)">
 				<g transform="translate(116 58)">
 					<g>
@@ -549,9 +670,10 @@ const COVERS = {
 				</g>
 				<rect x="98" y="58" width="36" height="64" fill="url(#cfade)"/>
 			</g>
-			<rect x="98" y="58" width="36" height="64" rx="4" fill="none" stroke="#2a2a30"/>
+			<rect x="98" y="58" width="36" height="64" rx="5" fill="none" stroke="#33224d" stroke-width="1"/>
 
-			<rect x="142" y="58" width="36" height="64" rx="4" fill="#151518"/>
+			<!-- Walze 2 -->
+			<rect x="142" y="58" width="36" height="64" rx="5" fill="#191129"/>
 			<g clip-path="url(#cwin2)">
 				<g transform="translate(160 58)">
 					<g>
@@ -564,9 +686,10 @@ const COVERS = {
 				</g>
 				<rect x="142" y="58" width="36" height="64" fill="url(#cfade)"/>
 			</g>
-			<rect x="142" y="58" width="36" height="64" rx="4" fill="none" stroke="#2a2a30"/>
+			<rect x="142" y="58" width="36" height="64" rx="5" fill="none" stroke="#33224d" stroke-width="1"/>
 
-			<rect x="186" y="58" width="36" height="64" rx="4" fill="#151518"/>
+			<!-- Walze 3 -->
+			<rect x="186" y="58" width="36" height="64" rx="5" fill="#191129"/>
 			<g clip-path="url(#cwin3)">
 				<g transform="translate(204 58)">
 					<g>
@@ -579,142 +702,215 @@ const COVERS = {
 				</g>
 				<rect x="186" y="58" width="36" height="64" fill="url(#cfade)"/>
 			</g>
-			<rect x="186" y="58" width="36" height="64" rx="4" fill="none" stroke="#2a2a30"/>
+			<rect x="186" y="58" width="36" height="64" rx="5" fill="none" stroke="#33224d" stroke-width="1"/>
 
-			<line x1="94" y1="90" x2="226" y2="90" stroke="#e0a44a" stroke-width="1.2" opacity="0">
-				<animate attributeName="opacity" values="0;0;.8;.2;.8;0"
+			<!-- Gewinnlinie, leuchtet auf wenn alle Walzen stehen -->
+			<line x1="94" y1="90" x2="226" y2="90" stroke="#ffd34f" stroke-width="1.4" opacity="0">
+				<animate attributeName="opacity" values="0;0;.85;.2;.85;0"
 					keyTimes="0;0.72;0.78;0.85;0.92;1" dur="3.4s" repeatCount="indefinite"/>
 			</line>
 
-			<g stroke="#4a4a54" stroke-width="2.6" stroke-linecap="round">
+			<!-- Hebel -->
+			<g stroke="#6b5290" stroke-width="3" stroke-linecap="round">
 				<line x1="238" y1="66" x2="238" y2="88">
 					<animate attributeName="y1" values="66;84;66" keyTimes="0;0.06;0.16" dur="3.4s" repeatCount="indefinite"/>
 				</line>
 			</g>
-			<circle cx="238" cy="66" r="5" fill="#ff4d3d">
+			<circle cx="238" cy="66" r="5.5" fill="#e0393f">
 				<animate attributeName="cy" values="66;84;66" keyTimes="0;0.06;0.16" dur="3.4s" repeatCount="indefinite"/>
 			</circle>
 
-			<g opacity=".9">
-				<circle cx="42" cy="112" r="15" fill="#a8352f" stroke="#eceae6" stroke-width="2" stroke-dasharray="5 5"/>
-				<circle cx="63" cy="123" r="15" fill="#2f5878" stroke="#eceae6" stroke-width="2" stroke-dasharray="5 5"/>
-				<circle cx="280" cy="118" r="15" fill="#2f6b48" stroke="#eceae6" stroke-width="2" stroke-dasharray="5 5"/>
+			<!-- Chips -->
+			<g opacity=".92">
+				<circle cx="42" cy="112" r="16" fill="#e0393f" stroke="#fff" stroke-width="2.4" stroke-dasharray="5 5"/>
+				<circle cx="64" cy="124" r="16" fill="#2f74d0" stroke="#fff" stroke-width="2.4" stroke-dasharray="5 5"/>
+				<circle cx="280" cy="118" r="16" fill="#26a35f" stroke="#fff" stroke-width="2.4" stroke-dasharray="5 5"/>
 			</g>
 
-			<text x="160" y="170" font-family="ui-monospace,monospace" font-size="8.5" font-weight="600"
-				fill="#6d6862" text-anchor="middle" letter-spacing="1.6">KEIN ECHTGELD</text>
+			<text x="160" y="170" font-family="sans-serif" font-size="9.5" font-weight="700"
+				fill="#c3b0e0" text-anchor="middle" letter-spacing="1.8">NUR VIRTUELLE CHIPS · KEIN ECHTGELD</text>
 		</svg>`,
-
 	geo: `
 		<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-			<rect width="320" height="180" fill="#111114"/>
-			<g transform="translate(196 90)">
-				<circle r="58" fill="#16171b" stroke="#3a3a44" stroke-width="1.4"/>
-				<g fill="none" stroke="#2f2f38" stroke-width="1">
-					<ellipse rx="58" ry="20"/><ellipse rx="58" ry="41"/>
-					<ellipse rx="20" ry="58"/><ellipse rx="41" ry="58"/>
-					<line y1="-58" y2="58"/>
-				</g>
-				<g fill="#4a7d63" opacity=".95">
+			<defs>
+				<linearGradient id="gg" x1="0" y1="0" x2="1" y2="1">
+					<stop offset="0" stop-color="#122741"/><stop offset="55%" stop-color="#0f2233"/><stop offset="100%" stop-color="#1d3560"/>
+				</linearGradient>
+			</defs>
+			<rect width="320" height="180" fill="url(#gg)"/>
+			<g transform="translate(160 90)">
+				<circle r="58" fill="#0d2138" stroke="#4d80b8" stroke-width="1.6"/>
+				<ellipse rx="58" ry="20" fill="none" stroke="#3f6f9e" stroke-width="1" opacity=".7"/>
+				<ellipse rx="58" ry="41" fill="none" stroke="#3f6f9e" stroke-width="1" opacity=".5"/>
+				<ellipse rx="20" ry="58" fill="none" stroke="#3f6f9e" stroke-width="1" opacity=".7"/>
+				<ellipse rx="41" ry="58" fill="none" stroke="#3f6f9e" stroke-width="1" opacity=".5"/>
+				<line y1="-58" y2="58" stroke="#3f6f9e" stroke-width="1" opacity=".7"/>
+				<g fill="#4fd39a" opacity=".85">
 					<path d="M-40 -18 q14 -12 28 -3 q10 7 2 17 q-13 12 -27 4 q-9 -8 -3 -18z"/>
 					<path d="M6 -30 q20 -8 33 6 q9 12 -4 20 q-19 8 -30 -6 q-6 -12 1 -20z"/>
 					<path d="M-16 16 q16 -6 24 8 q5 12 -8 18 q-16 5 -22 -9 q-3 -11 6 -17z"/>
 				</g>
-				<circle cx="18" cy="-8" r="4" fill="#ff4d3d">
-					<animate attributeName="r" values="4;6.5;4" dur="1.9s" repeatCount="indefinite"/>
+				<circle cx="18" cy="-8" r="4.5" fill="#ffd34f">
+					<animate attributeName="r" values="4.5;7;4.5" dur="1.7s" repeatCount="indefinite" class="anim"/>
 				</circle>
 			</g>
-			<g font-family="ui-monospace,monospace" font-size="8.5" font-weight="600" letter-spacing="1.2">
-				<g fill="#6d6862">
-					<text x="20" y="62">FLÄCHE</text><text x="20" y="86">EINWOHNER</text><text x="20" y="110">BIP</text>
-				</g>
-				<g fill="#c6c2bc">
-					<text x="20" y="74">357.588 km²</text><text x="20" y="98">83,2 Mio.</text><text x="20" y="122">4,46 Bio. $</text>
-				</g>
+			<g font-family="sans-serif" font-size="8.5" font-weight="700" fill="#7ba4cc" letter-spacing="1.4" opacity=".9">
+				<text x="16" y="26">FLÄCHE</text><text x="16" y="42">BIP</text><text x="16" y="58">EINWOHNER</text>
 			</g>
 		</svg>`
 };
 
 /* ============================================================
-   Aufbau
+   Zustand
    ============================================================ */
+const FAV_KEY = 'gridline_favs';
 const AGE_KEY = 'gridline_age_ok';
-const ageOk = () => { try { return localStorage.getItem(AGE_KEY) === '1'; } catch (e) { return false; } };
-const setAgeOk = () => { try { localStorage.setItem(AGE_KEY, '1'); } catch (e) {} };
 
-const gamesEl = document.getElementById('games');
+const store = {
+	favs() {
+		try { return JSON.parse(localStorage.getItem(FAV_KEY)) || []; } catch (e) { return []; }
+	},
+	setFavs(v) {
+		try { localStorage.setItem(FAV_KEY, JSON.stringify(v)); } catch (e) {}
+	},
+	ageOk() {
+		try { return localStorage.getItem(AGE_KEY) === '1'; } catch (e) { return false; }
+	},
+	setAgeOk() {
+		try { localStorage.setItem(AGE_KEY, '1'); } catch (e) {}
+	}
+};
+
+const state = { filter: 'all', query: '' };
+
+const grid = document.getElementById('grid');
+const filters = document.getElementById('filters');
+const searchEl = document.getElementById('search');
 const modal = document.getElementById('previewModal');
 const frame = document.getElementById('previewFrame');
 const previewTitle = document.getElementById('previewTitle');
 const previewOpen = document.getElementById('previewOpen');
 const ageModal = document.getElementById('ageModal');
 
+document.getElementById('stat-games').textContent = GAMES.length;
 document.getElementById('yr').textContent = new Date().getFullYear();
-document.getElementById('count-note').textContent =
-	GAMES.length + ' Titel, alle kostenlos';
 
-GAMES.forEach((game, i) => {
-	const row = document.createElement('article');
-	row.className = 'game' + (game.lead ? ' lead' : '');
-	row.innerHTML = `
-		<div class="g-num">${String(i + 1).padStart(2, '0')}</div>
-		<div class="g-main g-body">
-			<h3 class="g-title">${game.title}${game.flag ? `<span class="flag">${game.flag}</span>` : ''}</h3>
-			<p class="g-desc">${game.description}</p>
-			<p class="g-meta">${game.meta.map(m => `<span>${m}</span>`).join('')}</p>
-			<div class="g-actions">
-				<a class="btn solid" href="${game.file}" data-start="${game.id}">Spielen</a>
-				<button class="btn" data-preview="${game.id}">Vorschau</button>
+/* ============================================================
+   Rendern
+   ============================================================ */
+function visibleGames() {
+	const favs = store.favs();
+	const q = state.query.trim().toLowerCase();
+	return GAMES.filter(g => {
+		if (state.filter === 'fav' && favs.indexOf(g.id) === -1) return false;
+		if (state.filter !== 'all' && state.filter !== 'fav' && g.category !== state.filter) return false;
+		if (!q) return true;
+		return (g.title + ' ' + g.description + ' ' + g.tags.join(' ')).toLowerCase().includes(q);
+	});
+}
+
+function render() {
+	const list = visibleGames();
+	const favs = store.favs();
+	grid.innerHTML = '';
+
+	if (!list.length) {
+		const e = document.createElement('div');
+		e.className = 'empty';
+		e.textContent = state.filter === 'fav'
+			? 'Noch keine Favoriten – tippe auf den Stern an einem Spiel.'
+			: 'Kein Spiel gefunden.';
+		grid.appendChild(e);
+		return;
+	}
+
+	list.forEach((game, i) => {
+		const isFav = favs.indexOf(game.id) !== -1;
+		const card = document.createElement('article');
+		card.className = 'card';
+		card.style.animationDelay = (i * 55) + 'ms';
+
+		const badges = (game.badges || [])
+			.map(b => `<span class="badge ${b.c}">${b.t}</span>`).join('');
+		const tags = game.tags.map(t => `<span class="chip">${t}</span>`).join('');
+
+		card.innerHTML = `
+			<div class="cover" data-preview="${game.id}">
+				<div class="badges">${badges}</div>
+				<button class="fav ${isFav ? 'on' : ''}" data-fav="${game.id}"
+					aria-label="${isFav ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}"
+					title="Favorit">${isFav ? '★' : '☆'}</button>
+				${COVERS[game.cover] || ''}
+				<div class="play-overlay"><span>Vorschau ansehen</span></div>
 			</div>
-		</div>
-		<div class="g-art" data-preview="${game.id}" role="button" tabindex="0"
-			aria-label="${game.title} – Vorschau öffnen">
-			${COVERS[game.cover] || ''}
-			<div class="hint">Vorschau</div>
-		</div>
-	`;
-	gamesEl.appendChild(row);
-});
+			<div class="body">
+				<h2 class="name">${game.title}</h2>
+				<p class="desc">${game.description}</p>
+				<div class="meta">${tags}</div>
+				<div class="actions">
+					<a class="btn play" href="${game.file}" data-start="${game.id}">Jetzt spielen</a>
+					<button class="btn" data-preview="${game.id}">Vorschau</button>
+				</div>
+			</div>
+		`;
+		grid.appendChild(card);
+	});
+}
 
-/* ---------- Altersabfrage ---------- */
-let pending = null;
+/* ============================================================
+   Altersabfrage (Casino)
+   ============================================================ */
+let pendingAction = null;
 
-function askAge(run) {
-	pending = run;
+function needsAgeCheck(game) {
+	return !!game.ageGate && !store.ageOk();
+}
+
+function askAge(onOk) {
+	pendingAction = onOk;
 	ageModal.classList.add('open');
 	ageModal.setAttribute('aria-hidden', 'false');
 }
+
 function closeAge() {
 	ageModal.classList.remove('open');
 	ageModal.setAttribute('aria-hidden', 'true');
-	pending = null;
+	pendingAction = null;
 }
+
 document.getElementById('ageYes').onclick = () => {
-	setAgeOk();
-	const run = pending;
+	store.setAgeOk();
+	const run = pendingAction;
 	closeAge();
 	if (run) run();
 };
-document.getElementById('ageNo').onclick = closeAge;
+document.getElementById('ageNo').onclick = () => {
+	closeAge();
+	alert('Dieses Spiel ist erst ab 18 Jahren zugänglich. Die anderen Spiele kannst du natürlich weiterhin spielen.');
+};
 ageModal.addEventListener('click', e => { if (e.target === ageModal) closeAge(); });
 
-/* ---------- Vorschau ---------- */
+/* ============================================================
+   Vorschau
+   ============================================================ */
 function openPreview(game) {
 	frame.src = game.file;
 	previewOpen.href = game.file;
 	previewOpen.target = '_blank';
 	previewOpen.rel = 'noopener';
-	previewTitle.textContent = game.title;
+	previewTitle.textContent = game.title + ' – Vorschau';
 	modal.classList.add('open');
 	modal.setAttribute('aria-hidden', 'false');
 	document.body.style.overflow = 'hidden';
 }
+
 function closePreview() {
 	modal.classList.remove('open');
 	modal.setAttribute('aria-hidden', 'true');
 	frame.src = 'about:blank';
 	document.body.style.overflow = '';
 }
+
 document.getElementById('previewClose').onclick = closePreview;
 modal.addEventListener('click', e => { if (e.target === modal) closePreview(); });
 document.addEventListener('keydown', e => {
@@ -723,33 +919,61 @@ document.addEventListener('keydown', e => {
 	else if (ageModal.classList.contains('open')) closeAge();
 });
 
-/* ---------- Klicks ---------- */
-gamesEl.addEventListener('click', ev => {
-	const start = ev.target.closest('[data-start]');
-	if (start) {
-		const game = GAMES.find(g => g.id === start.dataset.start);
-		if (game && game.ageGate && !ageOk()) {
+/* ============================================================
+   Events
+   ============================================================ */
+grid.addEventListener('click', ev => {
+	const favBtn = ev.target.closest('[data-fav]');
+	if (favBtn) {
+		ev.preventDefault();
+		ev.stopPropagation();
+		const id = favBtn.dataset.fav;
+		const favs = store.favs();
+		const i = favs.indexOf(id);
+		if (i === -1) favs.push(id); else favs.splice(i, 1);
+		store.setFavs(favs);
+		render();
+		return;
+	}
+
+	const startEl = ev.target.closest('[data-start]');
+	if (startEl) {
+		const game = GAMES.find(g => g.id === startEl.dataset.start);
+		if (game && needsAgeCheck(game)) {
 			ev.preventDefault();
 			askAge(() => { window.location.href = game.file; });
 		}
 		return;
 	}
-	const prev = ev.target.closest('[data-preview]');
-	if (!prev) return;
-	const game = GAMES.find(g => g.id === prev.dataset.preview);
-	if (!game) return;
-	if (game.ageGate && !ageOk()) askAge(() => openPreview(game));
-	else openPreview(game);
+
+	const prevEl = ev.target.closest('[data-preview]');
+	if (prevEl) {
+		const game = GAMES.find(g => g.id === prevEl.dataset.preview);
+		if (!game) return;
+		if (needsAgeCheck(game)) askAge(() => openPreview(game));
+		else openPreview(game);
+	}
 });
 
-// Cover sind per Tastatur erreichbar, also auch per Enter/Space ausloesbar.
-gamesEl.addEventListener('keydown', ev => {
-	if (ev.key !== 'Enter' && ev.key !== ' ') return;
-	const art = ev.target.closest('.g-art[data-preview]');
-	if (!art) return;
-	ev.preventDefault();
-	art.click();
+filters.addEventListener('click', ev => {
+	const btn = ev.target.closest('[data-filter]');
+	if (!btn) return;
+	state.filter = btn.dataset.filter;
+	filters.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+	btn.classList.add('active');
+	render();
 });
+
+let searchTimer;
+searchEl.addEventListener('input', () => {
+	clearTimeout(searchTimer);
+	searchTimer = setTimeout(() => {
+		state.query = searchEl.value;
+		render();
+	}, 120);
+});
+
+render();
 </script>
 </body>
 </html>
