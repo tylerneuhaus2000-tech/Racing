@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2540143321826138" crossorigin="anonymous"></script>
+<script src="assets/gridline-consent.js" defer></script>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -2613,7 +2613,18 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="assets/GLTFLoader.js"></script>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="assets/meshopt_decoder.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
+<script>
+/* Alle Fahrzeugmodelle sind mit EXT_meshopt_compression gepackt (ca. 8x kleiner
+   als vorher). Jeder GLTFLoader braucht deshalb den Meshopt-Decoder, sonst
+   schlaegt das Laden mit "Unsupported extension" fehl. */
+function _makeGLTFLoader(){
+  const l = new THREE.GLTFLoader();
+  if(typeof MeshoptDecoder !== 'undefined' && l.setMeshoptDecoder) l.setMeshoptDecoder(MeshoptDecoder);
+  return l;
+}
+</script>
 <script>
 /* ============================================================
    GT3 WEB RACER — Assetto-Style Browser-Rennsimulation
@@ -5765,7 +5776,7 @@ class Car {
         reject(new Error('GLTFLoader fehlt'));
         return;
       }
-      const loader = new THREE.GLTFLoader();
+      const loader = _makeGLTFLoader();
       // Ohne Timeout hängt loader.load() bei Netzwerkabbruch/Tab-Throttling für immer
       // (weder onLoad noch onError feuert) → blockiert startRace()s await Promise.all()
       // unbegrenzt und friert das Spiel ein (Reload nötig). WICHTIG: Stillstands-Timeout
@@ -12981,7 +12992,7 @@ const Game = {
 
     try{
       const arrayBuffer = await file.arrayBuffer();
-      const loader = new THREE.GLTFLoader();
+      const loader = _makeGLTFLoader();
       const gltf = await new Promise((resolve, reject)=>{
         loader.parse(arrayBuffer, '', resolve, reject);
       });
@@ -18002,7 +18013,16 @@ document.addEventListener('DOMContentLoaded', () => {
     <h2>7. Deine Rechte</h2>
     <p>Du hast das Recht auf Auskunft, Berichtigung und L&ouml;schung deiner Daten. Kontakt: <a href="mailto:tyler.neuhaus2000@gmail.com">tyler.neuhaus2000@gmail.com</a></p>
     <h2>8. Lokale Speicherung</h2>
-    <p>Das Spiel nutzt ausschlie&szlig;lich technisch notwendiges localStorage f&uuml;r Einstellungen und Bestzeiten. Es werden keine Tracking-Cookies gesetzt.</p>
+    <p>Das Spiel nutzt technisch notwendiges localStorage f&uuml;r Einstellungen, Bestzeiten und deine Cookie-Entscheidung.</p>
+    <h2>9. Werbung (Google AdSense)</h2>
+    <p>Die Seite finanziert sich &uuml;ber Google AdSense. Das Werbeskript wird erst geladen, nachdem du im Einwilligungsbanner eine Auswahl getroffen hast: bei &bdquo;Alle akzeptieren&ldquo; mit personalisierter Werbung, bei &bdquo;Nur notwendige&ldquo; ausschlie&szlig;lich mit nicht-personalisierter Werbung. Deine Einwilligung kannst du jederzeit widerrufen.</p>
+    <p style="margin-top:22px">
+      <a href="datenschutz.html" target="_blank">Vollst&auml;ndige Datenschutzerkl&auml;rung</a> &middot;
+      <a href="impressum.html" target="_blank">Impressum</a> &middot;
+      <a href="agb.html" target="_blank">AGB</a> &middot;
+      <a href="jugendschutz.html" target="_blank">Jugendschutz</a> &middot;
+      <a href="javascript:void(0)" onclick="window.GridlineConsent&amp;&amp;GridlineConsent.reopen()">Cookie-Einstellungen</a>
+    </p>
   </section>
 
   <section class="screen hidden" id="screen-agb">

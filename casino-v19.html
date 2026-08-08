@@ -473,7 +473,7 @@ canvas#crash-canvas{height:190px!important}
 .bigwin-text{font-size:42px!important}
 </style>
 
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2540143321826138" crossorigin="anonymous"></script>
+<script src="assets/gridline-consent.js" defer></script>
 
 </head>
 
@@ -739,16 +739,17 @@ async function startRewardedVideo(){
   }
 }
 
-/* ---- TOP-UP ---- */
-/* openTopup defined below in payment script block */
-/* closeTopup defined below in payment script block */
-function topup(n){
-  const lookup={10000:'starter',25000:'silver',75000:'gold',250000:'platinum',1000000:'whale'};
-  pendingPackage=paymentPackages.find(p=>p.chips===n||p.id===lookup[n])||paymentPackages[0];
-  if($('paymentModal'))$('paymentModal').classList.add('open');
-  if(typeof renderPaymentModal==='function')renderPaymentModal();
-}
-function claimDaily(){if(dailyClaimed)return;dailyClaimed=true;bal+=2500;refreshStats(true);const db=$('daily-bonus');if(db){db.disabled=true;db.textContent='✓ TAGESBONUS ABGEHOLT';}closeTopup();showBanner('🎁 Tagesbonus +2.500 Chips!','win');spawnParticles(24);}
+/* ---- CHIPS AUFFUELLEN ----
+   openTopup/closeTopup/claimDaily kommen aus dem Block "SIMPLE FREE TOPUP"
+   weiter unten. Alle Chips dort sind kostenlos - es gibt bewusst KEINEN Kauf
+   gegen echtes Geld: sobald man virtuelle Chips gegen Entgelt erwerben
+   koennte, um sie anschliessend zu verspielen, waere das kein reines
+   Unterhaltungsangebot mehr, sondern glücksspielrechtlich relevant.
+
+   Der frühere, nie fertiggestellte Bezahl-Dialog (paymentPackages/paymentModal,
+   inkl. Euro-Preisen) wurde deshalb komplett entfernt. */
+
+function claimDaily_legacy(){if(dailyClaimed)return;dailyClaimed=true;bal+=2500;refreshStats(true);const db=$('daily-bonus');if(db){db.disabled=true;db.textContent='✓ TAGESBONUS ABGEHOLT';}closeTopup();showBanner('🎁 Tagesbonus +2.500 Chips!','win');spawnParticles(24);}
 
 /* ---- BIG WIN FX ---- */
 function showBigWin(text){
@@ -3318,12 +3319,12 @@ initScratch();initDragon();initWheel2();
       </div>
       <div class="settings-row">
         <div class="setting-card"><strong>Spin Keybind</strong><div style="margin-top:10px"><input class="small-input" id="spinKeybind" placeholder="Space"></div></div>
-        <div class="setting-card"><strong>Statistik</strong><div class="stats-grid">
-          <div class="stat-card"><div class="cap">Heute</div><div class="num" id="spentToday">0,00 €</div></div>
-          <div class="stat-card"><div class="cap">Diese Woche</div><div class="num" id="spentWeek">0,00 €</div></div>
-          <div class="stat-card"><div class="cap">Gesamt</div><div class="num" id="spentTotal">0,00 €</div></div>
-          <div class="stat-card"><div class="cap">Käufe / Chips</div><div class="num" id="spentMeta">0 / 0</div></div>
-        </div></div>
+        <div class="setting-card"><strong>Hinweis</strong>
+          <div class="hint-line" style="margin-top:10px;line-height:1.7">
+            Alle Chips sind virtuell und kostenlos. Es gibt keinen Kauf mit echtem Geld
+            und keine Auszahlung. Dein Spielstand liegt nur lokal in diesem Browser.
+          </div>
+        </div>
       </div>
       <div class="settings-row">
         <div class="setting-card"><strong>Audio</strong><div class="hint-line">Sound an/aus</div><label class="toggle-box" style="margin-top:12px"><span>Aktiv</span><span class="switch"><input type="checkbox" id="soundEnabled"><span class="slider"></span></span></label></div>
@@ -3341,7 +3342,10 @@ initScratch();initDragon();initWheel2();
 <div id="topup-modal" style="position:fixed;inset:0;z-index:10001;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,6,12,.75);backdrop-filter:blur(14px)" onclick="if(event.target===this)closeTopup()">
   <div style="width:min(460px,100%);background:linear-gradient(165deg,var(--bg3),var(--bg2));border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:0 24px 64px rgba(0,0,0,.55)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <div style="font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:var(--gold)">CHIPS AUFLADEN</div>
+      <div>
+        <div style="font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:var(--gold)">CHIPS AUFLADEN</div>
+        <div style="font-size:10.5px;color:var(--text3);margin-top:3px">Immer gratis &middot; kein Kauf mit echtem Geld</div>
+      </div>
       <button onclick="closeTopup()" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text3);cursor:pointer;font-size:16px;display:grid;place-items:center">✕</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px" id="tu-pkg-grid"></div>
@@ -3465,6 +3469,98 @@ document.addEventListener('DOMContentLoaded',function(){
   if(us)us.addEventListener('input',e=>{document.body.style.zoom=(e.target.value/100).toString();const sv=$('scaleValue');if(sv)sv.textContent=e.target.value+'%';});
 });
 window.openSettings=openSettings;window.closeSettings=closeSettings;window.saveSettings=saveSettings;window.resetSettings=resetSettings;window.applyTheme=applyTheme;window.applyScale=applyScale;
+</script>
+
+<!-- ===================== RECHTLICHES / JUGENDSCHUTZ ===================== -->
+<style>
+.cs-legal-bar{max-width:1400px;margin:26px auto 0;padding:14px 18px;border:1px solid var(--border);
+  border-left:3px solid var(--gold);border-radius:var(--radius);background:var(--bg2);
+  font-size:12px;line-height:1.7;color:var(--text2)}
+.cs-legal-bar strong{color:var(--text)}
+.cs-footer{max-width:1400px;margin:14px auto 30px;padding:0 18px;display:flex;flex-wrap:wrap;
+  gap:8px 18px;align-items:center}
+.cs-footer a{color:var(--text2);font-size:12px;text-decoration:none;font-weight:600}
+.cs-footer a:hover{color:var(--cyan)}
+.cs-gate{position:fixed;inset:0;background:#05070ceb;backdrop-filter:blur(8px);z-index:99999;
+  display:grid;place-items:center;padding:18px;font-family:'Inter',system-ui,sans-serif}
+.cs-gate.hidden{display:none}
+.cs-gate-card{width:min(440px,100%);background:var(--bg2);border:1px solid var(--border2);
+  border-radius:18px;padding:30px;text-align:center;box-shadow:0 28px 70px #000000a0}
+.cs-gate-card .ic{font-size:38px;margin-bottom:8px}
+.cs-gate-card h2{font-family:'Orbitron',monospace;font-size:21px;margin-bottom:12px;color:var(--text)}
+.cs-gate-card p{font-size:13.5px;line-height:1.7;color:var(--text2);margin-bottom:12px}
+.cs-gate-card p.small{font-size:11.5px;color:var(--text3)}
+.cs-gate-card a{color:var(--cyan)}
+.cs-gate-acts{display:flex;gap:10px;margin-top:20px}
+.cs-gate-acts button{flex:1;padding:13px;border-radius:12px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text);font-family:'Orbitron',monospace;font-size:12px;
+  font-weight:700;letter-spacing:.06em;cursor:pointer}
+.cs-gate-acts button.yes{background:linear-gradient(135deg,#22c55e,#06b6d4);color:#03140f;border-color:transparent}
+</style>
+
+<div class="cs-legal-bar">
+  <strong>Kein Glücksspiel:</strong> Hier wird ausschließlich mit kostenlosen, virtuellen Chips gespielt.
+  Chips lassen sich <strong>nicht kaufen, nicht auszahlen und nicht eintauschen</strong> – sie haben keinen Geldwert.
+  Nutzung ab 18 Jahren. Hilfe bei Spielsucht: <strong>0800 1 37 27 00</strong> (BZgA, kostenlos &amp; anonym).
+</div>
+
+<div style="position:fixed;top:12px;left:14px;z-index:9500;display:flex;align-items:center;gap:8px">
+  <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;border:1px solid var(--border2);background:rgba(8,16,24,.75);color:var(--text2);text-decoration:none;font-size:12.5px;font-weight:700;backdrop-filter:blur(8px)">&larr; Alle Spiele</a>
+  <div data-gridline-account></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="assets/gridline-account.js"></script>
+
+<div class="cs-footer">
+  <a href="index.html">← Alle Spiele</a>
+  <a href="impressum.html">Impressum</a>
+  <a href="datenschutz.html">Datenschutz</a>
+  <a href="agb.html">AGB</a>
+  <a href="jugendschutz.html">Jugendschutz &amp; Spielerschutz</a>
+  <a href="#" onclick="window.GridlineConsent&amp;&amp;GridlineConsent.reopen();return false">Cookie-Einstellungen</a>
+</div>
+
+<!-- Altersabfrage -->
+<div class="cs-gate hidden" id="csGate">
+  <div class="cs-gate-card">
+    <div class="ic">🔞</div>
+    <h2>Nur für Erwachsene</h2>
+    <p>
+      Dieses Spiel ist eine <strong>Casino-Simulation ohne echten Geldeinsatz</strong>.
+      Es kann kein Geld eingesetzt, gewonnen oder ausgezahlt werden.
+    </p>
+    <p>Aus Gründen des Jugendschutzes ist die Nutzung erst ab 18 Jahren gestattet.</p>
+    <p class="small">
+      Hilfe bei Spielsucht: 0800 1 37 27 00 (BZgA) ·
+      <a href="jugendschutz.html" target="_blank">Mehr erfahren</a>
+    </p>
+    <div class="cs-gate-acts">
+      <button onclick="location.href='index.html'">Ich bin jünger</button>
+      <button class="yes" onclick="csAcceptAge()">Ich bin 18+</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Altersabfrage: dieselbe Entscheidung wie auf der Startseite (gleicher Key),
+   damit sie nicht zweimal abgefragt wird. */
+(function(){
+  'use strict';
+  var KEY='gridline_age_ok';
+  function ok(){ try{ return localStorage.getItem(KEY)==='1'; }catch(e){ return false; } }
+  window.csAcceptAge=function(){
+    try{ localStorage.setItem(KEY,'1'); }catch(e){}
+    var g=document.getElementById('csGate');
+    if(g)g.classList.add('hidden');
+  };
+  if(!ok()){
+    var g=document.getElementById('csGate');
+    if(g)g.classList.remove('hidden');
+  }
+})();
 </script>
 </body>
 </html>

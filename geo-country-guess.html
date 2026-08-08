@@ -406,7 +406,7 @@
       .flag { font-size: 54px; }
     }
   </style>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2540143321826138" crossorigin="anonymous"></script>
+  <script src="assets/gridline-consent.js" defer></script>
 </head>
 <body>
   <main class="app">
@@ -803,5 +803,39 @@
 
     boot();
   </script>
+
+<!-- ===================== GRIDLINE: KONTO & RECHTLICHES ===================== -->
+<style>
+.gl-bar{position:fixed;top:10px;right:12px;z-index:9500;display:flex;align-items:center;gap:8px;
+  font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif}
+.gl-home{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.16);background:rgba(8,16,24,.72);color:#dbe9f6;
+  text-decoration:none;font-size:12.5px;font-weight:700;backdrop-filter:blur(8px)}
+.gl-home:hover{background:rgba(20,40,58,.85);border-color:rgba(255,255,255,.3)}
+.gl-foot{padding:18px;text-align:center;background:#060d15;border-top:1px solid #1a2f42;
+  font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif}
+.gl-foot a{color:#94abc2;font-size:12px;text-decoration:none;font-weight:600;margin:0 9px;
+  display:inline-block;line-height:2}
+.gl-foot a:hover{color:#58d7ff}
+</style>
+
+<div class="gl-bar">
+  <a class="gl-home" href="index.html">&larr; Alle Spiele</a>
+  <div data-gridline-account></div>
+</div>
+
+<div class="gl-foot">
+  <a href="index.html">Startseite</a>
+  <a href="impressum.html">Impressum</a>
+  <a href="datenschutz.html">Datenschutz</a>
+  <a href="agb.html">AGB</a>
+  <a href="jugendschutz.html">Jugendschutz</a>
+  <a href="#" onclick="window.GridlineConsent&amp;&amp;GridlineConsent.reopen();return false">Cookie-Einstellungen</a>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="assets/gridline-account.js"></script>
 </body>
 </html>
