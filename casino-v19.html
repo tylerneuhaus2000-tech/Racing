@@ -381,6 +381,119 @@ body.light .settings-shell{background:linear-gradient(160deg,rgba(255,255,255,.9
 .field.invalid{border-color:var(--red)}
 .shake{animation:shake .24s ease}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+
+/* ═════════ ANIMATIONEN & BANK ═════════ */
+
+/* Guthaben: Zahl zaehlt hoch/runter, Kachel reagiert auf Gewinn und Verlust */
+.stat.balance{position:relative;transition:box-shadow .25s,border-color .25s}
+.stat.balance.win{border-color:rgba(52,211,153,.55);box-shadow:0 0 0 1px rgba(52,211,153,.3),0 0 30px rgba(52,211,153,.22)}
+.stat.balance.loss{animation:balShake .4s cubic-bezier(.36,.07,.19,.97)}
+@keyframes balShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-2px)}80%{transform:translateX(2px)}}
+
+/* Schwebender +/- Betrag ueber dem Guthaben */
+.bal-float{position:absolute;left:50%;top:2px;transform:translateX(-50%);pointer-events:none;
+  font-family:'Orbitron',monospace;font-weight:900;font-size:15px;white-space:nowrap;z-index:5;
+  animation:balFloat 1.25s cubic-bezier(.2,.7,.3,1) forwards;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+.bal-float.up{color:var(--green)}
+.bal-float.down{color:var(--red)}
+@keyframes balFloat{
+  0%{opacity:0;transform:translate(-50%,6px) scale(.7)}
+  18%{opacity:1;transform:translate(-50%,-2px) scale(1.12)}
+  32%{transform:translate(-50%,-6px) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-40px) scale(.95)}}
+
+/* Muenzen fliegen zum Guthaben */
+.coin-fly{position:fixed;width:15px;height:15px;border-radius:50%;pointer-events:none;z-index:9999;
+  background:radial-gradient(circle at 32% 30%,#ffe9a8,#f0b429 55%,#b57d10);
+  box-shadow:0 0 10px rgba(251,191,36,.75),inset 0 -2px 3px rgba(0,0,0,.28);
+  animation:coinFly var(--cd,.72s) cubic-bezier(.35,-0.35,.35,1) forwards}
+@keyframes coinFly{
+  0%{opacity:0;transform:translate(0,0) scale(.3)}
+  12%{opacity:1;transform:translate(calc(var(--sx,0px)*.35),calc(var(--sy,-40px))) scale(1.18)}
+  100%{opacity:0;transform:translate(var(--dx,0px),var(--dy,0px)) scale(.42)}}
+
+/* Wellenkreis beim Antippen von Knoepfen */
+.primary-btn,.secondary-btn,.chip-btn,.bank-btn{position:relative;overflow:hidden}
+.ripple{position:absolute;border-radius:50%;transform:scale(0);opacity:.55;pointer-events:none;
+  background:radial-gradient(circle,rgba(255,255,255,.75),rgba(255,255,255,0) 68%);
+  animation:rippleGo .6s cubic-bezier(.2,.8,.3,1) forwards}
+@keyframes rippleGo{to{transform:scale(2.6);opacity:0}}
+
+/* Spielwechsel: sanft einblenden statt hart umschalten */
+.game-enter{animation:gameIn .34s cubic-bezier(.2,.85,.3,1) both}
+@keyframes gameIn{from{opacity:0;transform:translateY(10px) scale(.994)}to{opacity:1;transform:none}}
+
+/* Meldungsleiste federt herein */
+.banner{animation:bannerIn .4s cubic-bezier(.2,1.35,.4,1)}
+@keyframes bannerIn{from{opacity:0;transform:translateY(-10px) scale(.96)}to{opacity:1;transform:none}}
+
+/* Navigation: aktives Spiel bekommt einen laufenden Unterstrich */
+.nav-btn{position:relative}
+.nav-btn.active::after{content:"";position:absolute;left:14%;right:14%;bottom:2px;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,var(--cyan),var(--violet));animation:navUnder .34s cubic-bezier(.2,.9,.3,1) both}
+@keyframes navUnder{from{transform:scaleX(0);opacity:0}to{transform:scaleX(1);opacity:1}}
+
+/* Grosser Gewinn: Strahlenkranz hinter dem Text */
+.bigwin-rays{position:absolute;inset:-45%;pointer-events:none;opacity:.5;
+  background:repeating-conic-gradient(from 0deg,rgba(251,191,36,.32) 0deg 9deg,transparent 9deg 18deg);
+  animation:raySpin 9s linear infinite;mask-image:radial-gradient(circle,#000 12%,transparent 66%);
+  -webkit-mask-image:radial-gradient(circle,#000 12%,transparent 66%)}
+@keyframes raySpin{to{transform:rotate(360deg)}}
+
+/* Bank ─────────────────────────────── */
+.bank-modal{position:fixed;inset:0;z-index:10001;display:none;align-items:center;justify-content:center;
+  padding:18px;background:rgba(2,6,12,.78);backdrop-filter:blur(14px)}
+.bank-modal.open{display:flex;animation:fadeIn .22s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.bank-shell{width:min(440px,100%);max-height:92vh;overflow-y:auto;
+  background:linear-gradient(165deg,var(--bg3),var(--bg2));border:1px solid var(--border);
+  border-radius:18px;padding:20px;box-shadow:0 24px 64px rgba(0,0,0,.6);
+  animation:bankIn .34s cubic-bezier(.2,.9,.3,1)}
+@keyframes bankIn{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+.bank-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.bank-title{font-family:'Orbitron',monospace;font-size:15px;font-weight:900;color:var(--gold);letter-spacing:.06em}
+.bank-note{font-size:10.5px;color:var(--text3);margin-top:3px}
+.bank-x{width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:none;
+  color:var(--text3);cursor:pointer;font-size:15px;display:grid;place-items:center;flex:none}
+.bank-x:hover{color:var(--text);border-color:var(--border2)}
+.bank-bal{text-align:center;padding:14px 0 16px;margin-bottom:14px;border-bottom:1px solid var(--border)}
+.bank-bal-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--text3)}
+.bank-bal-val{font-family:'Orbitron',monospace;font-size:32px;font-weight:900;color:var(--gold);
+  margin-top:5px;text-shadow:0 0 24px rgba(251,191,36,.32)}
+.bank-card{border:1px solid var(--border);background:var(--bg2);border-radius:14px;padding:14px;margin-bottom:11px}
+.bank-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+.bank-card-name{font-weight:700;font-size:14px;color:var(--text)}
+.bank-card-desc{font-size:11.5px;color:var(--text2);line-height:1.55;margin-top:3px}
+.bank-card-amt{font-family:'Orbitron',monospace;font-weight:900;font-size:17px;color:var(--green);white-space:nowrap}
+.bank-btn{width:100%;padding:11px;border-radius:11px;border:1px solid var(--border2);background:var(--bg3);
+  color:var(--text);font-family:'Orbitron',monospace;font-size:11.5px;font-weight:700;letter-spacing:.05em;
+  cursor:pointer;transition:filter .15s,transform .1s}
+.bank-btn:not(:disabled):hover{filter:brightness(1.18)}
+.bank-btn:not(:disabled):active{transform:scale(.985)}
+.bank-btn:disabled{opacity:.42;cursor:not-allowed}
+.bank-btn.primary:not(:disabled){background:linear-gradient(135deg,#22c55e,#06b6d4);color:#03140f;border-color:transparent;
+  animation:bankPulse 2.4s ease-in-out infinite}
+@keyframes bankPulse{0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,.42)}55%{box-shadow:0 0 0 11px rgba(52,211,153,0)}}
+.bank-legal{font-size:11px;color:var(--text3);line-height:1.65;margin-top:14px;
+  padding-top:13px;border-top:1px solid var(--border)}
+.bank-legal strong{color:var(--text2)}
+
+/* Serien-Punkte */
+.streak-dots{display:flex;gap:5px;margin:9px 0 11px}
+.sdot{flex:1;height:4px;border-radius:2px;background:var(--bg4);transition:background .3s,box-shadow .3s}
+.sdot.on{background:linear-gradient(90deg,var(--gold),#f59e0b);box-shadow:0 0 8px rgba(251,191,36,.5)}
+
+/* Seitenleiste */
+.bank-sub{font-size:10.5px;color:var(--text3);line-height:1.5;margin:6px 0 2px;text-align:center}
+#bank-panel .primary-btn,#bank-panel .secondary-btn{width:100%;padding:10px;font-size:11.5px;justify-content:center}
+#bank-panel .primary-btn:disabled,#bank-panel .secondary-btn:disabled{opacity:.42;cursor:not-allowed}
+.bank-daily.ready{animation:bankPulse 2.4s ease-in-out infinite}
+.bank-rescue.ready{border-color:rgba(251,191,36,.55);color:var(--gold)}
+
+@media(max-width:900px){
+  .bank-shell{padding:16px}
+  .bank-bal-val{font-size:27px}
+}
 .hidden{display:none !important}
 @media(max-width:640px){.settings-row,.stats-grid{grid-template-columns:1fr}.pay-pkg-grid{grid-template-columns:1fr 1fr}.pay-field-row{grid-template-columns:1fr}}
 
@@ -490,10 +603,10 @@ canvas#crash-canvas{height:190px!important}
 <div style="display:flex;align-items:center;justify-content:center;position:relative"><div class="brand" style="flex:1;justify-content:center"><div class="dot"></div><h1>Tyler's Casino</h1><div class="dot"></div></div><button onclick="openSettings()" style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:18px;transition:all .22s;display:grid;place-items:center" onmouseover="this.style.borderColor='var(--cyan)';this.style.color='var(--cyan)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">⚙</button></div>
 
 <div class="stats-bar">
-  <div class="stat balance" onclick="openTopup()" title="Klicken zum Öffnen">
+  <div class="stat balance" onclick="openTopup()" title="Bank öffnen">
     <div class="sl">Guthaben</div>
     <div class="sv" id="s-bal">1.000</div>
-    <div class="topup-hint">＋</div>
+    <div class="topup-hint">🏦</div>
   </div>
   <div class="stat"><div class="sl">Einsatz</div><div class="sv" id="s-bet" style="font-size:19px">50</div></div>
   <div class="stat"><div class="sl">Session +/-</div><div class="sv" id="s-pl" style="color:var(--text3);font-size:19px">±0</div></div>
@@ -556,7 +669,7 @@ canvas#crash-canvas{height:190px!important}
     <button class="chip-btn" onclick="sb(100)">100</button>
     <button class="chip-btn" onclick="sb(250)">250</button>
     <button class="chip-btn" onclick="sbAll()">All-in</button>
-    <button class="chip-btn" onclick="openTopup()" style="margin-left:auto;border-color:rgba(251,191,36,.4);color:var(--gold)">＋ Chips</button>
+    <button class="chip-btn" onclick="openTopup()" style="margin-left:auto;border-color:rgba(251,191,36,.4);color:var(--gold)">Bank</button>
   </div>
   <button class="primary-btn" id="main-btn" onclick="mainAction()">
     <svg id="main-icon" viewBox="0 0 24 24"><rect x="2" y="4" width="10" height="14" rx="2"/><rect x="12" y="6" width="10" height="14" rx="2"/></svg>
@@ -564,11 +677,15 @@ canvas#crash-canvas{height:190px!important}
   </button>
 </div>
 
-<div class="panel" id="rewarded-panel" style="padding:10px 12px">
-  <div class="section-lbl" style="margin-bottom:8px">Video Bonus</div>
-  <button class="primary-btn" id="rewarded-btn" onclick="startRewardedVideo()" style="padding:10px;font-size:12px;background:linear-gradient(135deg,#22c55e,#06b6d4);color:#03140f">Video schauen +500 Chips</button>
-  <div id="rewarded-status" style="margin-top:8px;font-size:11px;color:var(--text2);line-height:1.4">Bereit: Hol dir einen Bonus.</div>
-  <div id="rewarded-limit" style="margin-top:4px;font-size:10px;color:var(--text3)">Limit: 10 pro Tag · Cooldown 5 Minuten</div>
+<div class="panel" id="bank-panel" style="padding:12px">
+  <div class="section-lbl" style="margin-bottom:10px">Chips verdienen</div>
+  <button class="primary-btn bank-daily" id="side-daily" onclick="claimDaily()">
+    <span id="side-daily-lbl">Tagesbonus</span>
+  </button>
+  <div id="side-daily-sub" class="bank-sub"></div>
+  <div class="streak-dots" id="side-streak"></div>
+  <button class="secondary-btn bank-rescue" id="side-rescue" onclick="claimRescue()">Notgroschen</button>
+  <div id="side-rescue-sub" class="bank-sub"></div>
 </div>
 
 <div class="hist-section"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><span class="section-lbl" style="margin:0">Verlauf</span><button onclick="clearHist13()" style="font-size:10px;color:var(--text3);background:none;border:none;cursor:pointer" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">löschen</button></div><div style="max-height:260px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border2) transparent"><div id="hist-rows"></div><p id="no-hist" style="font-size:12px;color:var(--text3);padding:4px 0">Noch keine Spiele</p></div></div>
@@ -632,13 +749,6 @@ window.addEventListener('pagehide',()=>{if(_saveTimer){clearTimeout(_saveTimer);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveNow();});
 
 loadSave();
-const REWARDED_KEY='casinoRewardedDeviceId';
-const REWARDED_DAILY_LIMIT=10;
-const REWARDED_COOLDOWN_SECONDS=300;
-let rewardedBusy=false;
-let rewardedTick=null;
-let rewardedWaitSeconds=0;
-let rewardedRemainingToday=REWARDED_DAILY_LIMIT;
 
 const SVG_ICONS={
   bj:'<rect x="2" y="4" width="10" height="14" rx="2"/><rect x="12" y="6" width="10" height="14" rx="2"/>',
@@ -654,9 +764,117 @@ const SVG_ICONS={
 };
 function makeSvg(k){return `<svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0">${SVG_ICONS[k]||''}</svg>`;}
 
+/* ═════════ ANIMATIONEN ═════════
+   Bewegung nur dort, wo sie etwas aussagt: das Guthaben zaehlt sichtbar
+   hoch oder runter, der Betrag schwebt kurz auf, bei Gewinnen fliegen
+   Muenzen zur Guthabenkachel. Wer "Bewegung reduzieren" im System
+   eingestellt hat, bekommt alles sofort ohne Animation. */
+
+const reduceMotion = () => {
+  try{ return matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; }
+};
+
+let _shownBal = null;      // aktuell angezeigter Wert
+let _balAnim = null;       // laufende Zaehl-Animation
+
+function animateBalance(from, to, el){
+  if(_balAnim) cancelAnimationFrame(_balAnim);
+  const diff = to - from;
+  const dur = Math.min(900, 320 + Math.abs(diff) * 0.35);
+  if(reduceMotion() || Math.abs(diff) < 2){ el.textContent = fN(to); return; }
+  const t0 = performance.now();
+  const step = now => {
+    const p = Math.min(1, (now - t0) / dur);
+    const e = 1 - Math.pow(1 - p, 3);               // sanft auslaufend
+    el.textContent = fN(from + diff * e);
+    if(p < 1) _balAnim = requestAnimationFrame(step);
+    else { el.textContent = fN(to); _balAnim = null; }
+  };
+  _balAnim = requestAnimationFrame(step);
+}
+
+function floatDelta(diff){
+  const card = document.querySelector('.stat.balance');
+  if(!card || reduceMotion()) return;
+  const f = document.createElement('div');
+  f.className = 'bal-float ' + (diff > 0 ? 'up' : 'down');
+  f.textContent = (diff > 0 ? '+' : '−') + fN(Math.abs(diff));
+  card.appendChild(f);
+  setTimeout(() => f.remove(), 1300);
+}
+
+function flashBalance(diff){
+  const card = document.querySelector('.stat.balance');
+  if(!card) return;
+  const cls = diff > 0 ? 'win' : 'loss';
+  card.classList.remove('win', 'loss');
+  void card.offsetWidth;
+  card.classList.add(cls);
+  setTimeout(() => card.classList.remove(cls), 900);
+}
+
+/* Muenzen fliegen von der Bildschirmmitte zur Guthabenkachel. */
+function coinBurst(n){
+  const card = document.querySelector('.stat.balance');
+  if(!card || reduceMotion()) return;
+  const t = card.getBoundingClientRect();
+  const tx = t.left + t.width / 2, ty = t.top + t.height / 2;
+  const sx = innerWidth / 2, sy = innerHeight * 0.42;
+  for(let i = 0; i < n; i++){
+    const c = document.createElement('div');
+    c.className = 'coin-fly';
+    const jx = (Math.random() - 0.5) * 190;
+    c.style.left = (sx + jx) + 'px';
+    c.style.top = sy + 'px';
+    c.style.setProperty('--sx', jx + 'px');
+    c.style.setProperty('--sy', (-50 - Math.random() * 70) + 'px');
+    c.style.setProperty('--dx', (tx - sx - jx) + 'px');
+    c.style.setProperty('--dy', (ty - sy) + 'px');
+    c.style.setProperty('--cd', (0.62 + Math.random() * 0.3) + 's');
+    c.style.animationDelay = (i * 28) + 'ms';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 1400 + i * 28);
+  }
+}
+
+/* Muenzen bei Gewinnen - gedrosselt, damit Auto-Spin nicht zur Konfettikanone wird.
+   Kleine Gewinne bekommen ein paar Muenzen, grosse entsprechend mehr. */
+let _lastCoins = 0;
+function winCoins(diff){
+  const now = performance.now();
+  if(now - _lastCoins < 450) return;
+  const ref = Math.max(getBet(), 50);
+  if(diff < ref) return;                       // Kleinkram nicht feiern
+  _lastCoins = now;
+  coinBurst(Math.max(4, Math.min(16, Math.round(diff / ref) * 3)));
+}
+
+/* Wellenkreis beim Antippen */
+document.addEventListener('pointerdown', ev => {
+  const b = ev.target.closest('.primary-btn,.secondary-btn,.chip-btn,.bank-btn');
+  if(!b || b.disabled || reduceMotion()) return;
+  const r = b.getBoundingClientRect(), size = Math.max(r.width, r.height);
+  const el = document.createElement('span');
+  el.className = 'ripple';
+  el.style.width = el.style.height = size + 'px';
+  el.style.left = (ev.clientX - r.left - size / 2) + 'px';
+  el.style.top = (ev.clientY - r.top - size / 2) + 'px';
+  b.appendChild(el);
+  setTimeout(() => el.remove(), 620);
+}, {passive:true});
+
 function refreshStats(bump){
   const balEl=$('s-bal');
-  balEl.textContent=fN(bal);
+  if(_shownBal === null){ balEl.textContent = fN(bal); _shownBal = bal; }
+  else if(_shownBal !== bal){
+    const diff = bal - _shownBal;
+    animateBalance(_shownBal, bal, balEl);
+    floatDelta(diff);
+    flashBalance(diff);
+    if(diff > 0) winCoins(diff);
+    else if(typeof checkBroke === 'function') checkBroke();
+    _shownBal = bal;
+  }
   if(bump){balEl.classList.remove('bump');void balEl.offsetWidth;balEl.classList.add('bump');}
   $('s-bet').textContent=fN(getBet());
   $('s-rounds').textContent=rounds;
@@ -686,117 +904,11 @@ function addHist(game,label,profit){
 }
 function clearHist13(){hist=[];renderHist();saveNow();}
 
-function getRewardedDeviceId(){
-  let id=localStorage.getItem(REWARDED_KEY);
-  if(id&&/^[a-zA-Z0-9_-]{16,80}$/.test(id))return id;
-  const raw=(globalThis.crypto&&typeof globalThis.crypto.randomUUID==='function')
-    ?globalThis.crypto.randomUUID()
-    :('dev-'+Math.random().toString(36).slice(2)+Date.now().toString(36));
-  id=raw.replace(/[^a-zA-Z0-9_-]/g,'').slice(0,48);
-  localStorage.setItem(REWARDED_KEY,id);
-  return id;
-}
-
-function fmtSecs(total){
-  const s=Math.max(0,Math.floor(total));
-  const m=Math.floor(s/60);
-  const r=s%60;
-  return `${m}:${String(r).padStart(2,'0')}`;
-}
-
-function renderRewarded(){
-  const btn=$('rewarded-btn');
-  const status=$('rewarded-status');
-  const limit=$('rewarded-limit');
-  if(!btn||!status||!limit)return;
-
-  if(rewardedBusy){
-    btn.disabled=true;
-    btn.textContent='Video laeuft...';
-    status.textContent='Bitte bis zum Ende schauen, dann werden Chips angefragt.';
-    limit.textContent=`Verfuegbar heute: ${rewardedRemainingToday}/${REWARDED_DAILY_LIMIT}`;
-    return;
-  }
-
-  if(rewardedRemainingToday<=0){
-    btn.disabled=true;
-    btn.textContent='Tageslimit erreicht';
-    status.textContent='Heute sind keine weiteren Video-Boni mehr moeglich.';
-    limit.textContent=`Verfuegbar heute: 0/${REWARDED_DAILY_LIMIT}`;
-    return;
-  }
-
-  if(rewardedWaitSeconds>0){
-    btn.disabled=true;
-    btn.textContent=`Naechstes Video in ${fmtSecs(rewardedWaitSeconds)}`;
-    status.textContent='Cooldown aktiv. Danach kannst du erneut einen Bonus holen.';
-    limit.textContent=`Verfuegbar heute: ${rewardedRemainingToday}/${REWARDED_DAILY_LIMIT}`;
-    return;
-  }
-
-  btn.disabled=false;
-  btn.textContent='Video schauen +500 Chips';
-  status.textContent='Bereit: Hol dir einen Bonus.';
-  limit.textContent=`Verfuegbar heute: ${rewardedRemainingToday}/${REWARDED_DAILY_LIMIT} · Cooldown 5 Minuten`;
-}
-
-function startRewardedCountdown(seconds){
-  rewardedWaitSeconds=Math.max(0,Math.floor(seconds));
-  if(rewardedTick)clearInterval(rewardedTick);
-  renderRewarded();
-  if(rewardedWaitSeconds<=0)return;
-  rewardedTick=setInterval(()=>{
-    rewardedWaitSeconds=Math.max(0,rewardedWaitSeconds-1);
-    renderRewarded();
-    if(rewardedWaitSeconds<=0){
-      clearInterval(rewardedTick);
-      rewardedTick=null;
-    }
-  },1000);
-}
-
-async function claimRewardedVideo(){
-  const deviceId=getRewardedDeviceId();
-  const r=await fetch('/api/rewarded-video',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({deviceId,adToken:'video-complete-v1'})
-  });
-  let data=null;
-  try{data=await r.json();}catch(_e){data={ok:false,error:'invalid-json'};}
-  if(!data||data.ok!==true){
-    rewardedRemainingToday=Number.isFinite(data?.remainingToday)?data.remainingToday:rewardedRemainingToday;
-    const wait=Number.isFinite(data?.waitSeconds)?data.waitSeconds:0;
-    if(data?.reason==='cooldown')startRewardedCountdown(wait);
-    if(data?.reason==='daily-limit'){rewardedRemainingToday=0;startRewardedCountdown(0);}
-    renderRewarded();
-    throw new Error(data?.reason||'reward-failed');
-  }
-
-  const coins=Number.isFinite(data.grantedCoins)?data.grantedCoins:500;
-  rewardedRemainingToday=Number.isFinite(data.remainingToday)?data.remainingToday:rewardedRemainingToday;
-  bal+=coins;
-  refreshStats(true);
-  addHist('Video',`Bonusvideo +${fN(coins)}`,coins);
-  showBanner(`Video-Bonus: +${fN(coins)} Chips`,'win');
-  spawnParticles(14);
-  startRewardedCountdown(Number.isFinite(data.waitSeconds)?data.waitSeconds:REWARDED_COOLDOWN_SECONDS);
-}
-
-async function startRewardedVideo(){
-  if(rewardedBusy||rewardedWaitSeconds>0||rewardedRemainingToday<=0)return;
-  rewardedBusy=true;
-  renderRewarded();
-  try{
-    await new Promise(resolve=>setTimeout(resolve,18000));
-    await claimRewardedVideo();
-  }catch(_err){
-    showBanner('Video-Bonus aktuell nicht verfuegbar. Bitte gleich erneut probieren.','loss');
-  }finally{
-    rewardedBusy=false;
-    renderRewarded();
-  }
-}
+/* Der frühere "Video-Bonus" ist entfernt. Er wartete 18 Sekunden ohne
+   irgendeine Werbung zu zeigen und rief danach /api/rewarded-video auf -
+   eine Firebase-Function, die es auf GitHub Pages gar nicht gibt. Der
+   Aufruf lief also immer ins Leere und endete in einer Fehlermeldung.
+   Chips gibt es jetzt über Tagesbonus und Notgroschen. */
 
 /* ---- CHIPS AUFFUELLEN ----
    openTopup/closeTopup/claimDaily kommen aus dem Block "SIMPLE FREE TOPUP"
@@ -814,7 +926,13 @@ function claimDaily_legacy(){if(dailyClaimed)return;dailyClaimed=true;bal+=2500;
 function showBigWin(text){
   const o=$('bigwin'),t=$('bigwin-text');
   t.textContent=text;o.classList.add('show');
+  if(!reduceMotion() && !o.querySelector('.bigwin-rays')){
+    const rays=document.createElement('div');
+    rays.className='bigwin-rays';
+    o.insertBefore(rays,o.firstChild);
+  }
   spawnParticles(36);
+  coinBurst(16);
   setTimeout(()=>o.classList.remove('show'),1900);
 }
 function spawnParticles(n){
@@ -837,7 +955,13 @@ function setGame(g){
   if(curGame==='crash'&&g!=='crash')stopCrash();
   if(curGame==='slot'&&g!=='slot')stopAutoSpin();
   curGame=g;
-  ['bj','slot','mega','coin','wheel','rou','crash','dice','keno','limbo','poker','plinko','hilo','mines','vidpoker','scratch','dragon','wheel2'].forEach(id=>{$('game-'+id).style.display=id===g?'':'none';$('nav-'+id).className=$('nav-'+id).className.replace(' active','');if(id===g)$('nav-'+id).className+=' active';});
+  ['bj','slot','mega','coin','wheel','rou','crash','dice','keno','limbo','poker','plinko','hilo','mines','vidpoker','scratch','dragon','wheel2'].forEach(id=>{
+    const panel=$('game-'+id);
+    panel.style.display=id===g?'':'none';
+    if(id===g && !reduceMotion()){ panel.classList.remove('game-enter'); void panel.offsetWidth; panel.classList.add('game-enter'); }
+    $('nav-'+id).className=$('nav-'+id).className.replace(' active','');
+    if(id===g)$('nav-'+id).className+=' active';
+  });
   hideBanner();
   if(g==='crash'){$('bet-panel').style.display='none';initCrashUI();}
   else{
@@ -3398,66 +3522,240 @@ initScratch();initDragon();initWheel2();
   </div>
 </div>
 
-<div id="topup-modal" style="position:fixed;inset:0;z-index:10001;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,6,12,.75);backdrop-filter:blur(14px)" onclick="if(event.target===this)closeTopup()">
-  <div style="width:min(460px,100%);background:linear-gradient(165deg,var(--bg3),var(--bg2));border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:0 24px 64px rgba(0,0,0,.55)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<div id="bank-modal" class="bank-modal" onclick="if(event.target===this)closeTopup()">
+  <div class="bank-shell">
+    <div class="bank-head">
       <div>
-        <div style="font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:var(--gold)">CHIPS AUFLADEN</div>
-        <div style="font-size:10.5px;color:var(--text3);margin-top:3px">Immer gratis &middot; kein Kauf mit echtem Geld</div>
+        <div class="bank-title">Bank</div>
+        <div class="bank-note">Chips sind kostenlos und ohne Geldwert</div>
       </div>
-      <button onclick="closeTopup()" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text3);cursor:pointer;font-size:16px;display:grid;place-items:center">✕</button>
+      <button class="bank-x" onclick="closeTopup()" aria-label="Schließen">✕</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px" id="tu-pkg-grid"></div>
-    <button id="tu-daily" onclick="claimDaily()" style="width:100%;padding:12px;border-radius:10px;border:1px dashed rgba(52,211,153,.5);background:var(--green-dim);color:var(--green);font-weight:700;font-size:12px;cursor:pointer;font-family:'Orbitron',monospace;letter-spacing:.04em;margin-bottom:12px;transition:all .15s">🎁 TAGESBONUS +2.500 ABHOLEN</button>
-    <div style="padding-top:12px;border-top:1px solid var(--border)">
-      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Eigener Betrag</div>
-      <div style="display:flex;gap:7px;align-items:center;margin-bottom:10px">
-        <input id="custom-topup-inp" type="number" min="1" placeholder="z.B. 7500" style="flex:1;padding:9px 11px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--gold);font-family:'Orbitron',monospace;font-size:14px;font-weight:700;outline:none;transition:border-color .15s" onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')customTopup()">
-        <button onclick="customTopup()" style="padding:9px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#00e5ff,#38f0ff);color:#021018;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap">+ Hinzufügen</button>
-      </div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap">
-        <span style="font-size:10px;color:var(--text3);align-self:center;margin-right:2px">Schnell:</span>
-        <button class="chip-btn" onclick="quickTopup(500)">+500</button>
-        <button class="chip-btn" onclick="quickTopup(1000)">+1.000</button>
-        <button class="chip-btn" onclick="quickTopup(5000)">+5.000</button>
-        <button class="chip-btn" onclick="quickTopup(25000)">+25k</button>
-        <button class="chip-btn" onclick="quickTopup(100000)">+100k</button>
-      </div>
+
+    <div class="bank-bal">
+      <div class="bank-bal-lbl">Dein Guthaben</div>
+      <div class="bank-bal-val" id="bank-bal">0</div>
     </div>
+
+    <div class="bank-card" id="bank-card-daily">
+      <div class="bank-card-top">
+        <div>
+          <div class="bank-card-name">Tagesbonus</div>
+          <div class="bank-card-desc" id="bank-daily-desc">Einmal pro Tag. Je länger die Serie, desto mehr.</div>
+        </div>
+        <div class="bank-card-amt" id="bank-daily-amt">+0</div>
+      </div>
+      <div class="streak-dots" id="bank-streak"></div>
+      <button class="bank-btn primary" id="bank-daily-btn" onclick="claimDaily()">Abholen</button>
+    </div>
+
+    <div class="bank-card" id="bank-card-rescue">
+      <div class="bank-card-top">
+        <div>
+          <div class="bank-card-name">Notgroschen</div>
+          <div class="bank-card-desc" id="bank-rescue-desc">Füllt auf 500 Chips auf, wenn du fast blank bist.</div>
+        </div>
+        <div class="bank-card-amt" id="bank-rescue-amt">—</div>
+      </div>
+      <button class="bank-btn" id="bank-rescue-btn" onclick="claimRescue()">Auffüllen</button>
+    </div>
+
+    <p class="bank-legal">
+      Es gibt bewusst <strong>keine unbegrenzte Aufladung</strong> und keinen Kauf mit echtem Geld.
+      Wenn die Chips alle sind, kommst du am nächsten Tag mit dem Tagesbonus zurück ins Spiel.
+    </p>
   </div>
+</div>
 </div>
 
 <script>
-/* ══════════════ SIMPLE FREE TOPUP ══════════════ */
-/* Der Tagesbonus wird mit Datum gespeichert. Vorher liess er sich durch
-   simples Neuladen beliebig oft abholen. */
-const DAILY_KEY='casinoDaily_v1';
-const _today=()=>new Date().toISOString().slice(0,10);
-let v16Daily=(()=>{ try{ return localStorage.getItem(DAILY_KEY)===_today(); }catch(e){ return false; } })();
-const TOPUP_PKGS=[
-  {chips:1000,label:'Starter',color:'var(--cyan)'},
-  {chips:5000,label:'Gamer',color:'var(--violet)'},
-  {chips:25000,label:'High Roller',color:'var(--gold)'},
-  {chips:100000,label:'Whale 🐋',color:'var(--green)'},
-];
-function openTopup(){
-  const g=$('tu-pkg-grid');
-  if(g) g.innerHTML=TOPUP_PKGS.map(p=>`<button onclick="quickTopup(${p.chips})" class="tu-pkg" style="border-color:${p.color}20"><div class="tu-pkg-lbl">${p.label}</div><div class="tu-pkg-chips" style="color:${p.color}">+${fN(p.chips)}</div><div class="tu-pkg-free">GRATIS</div></button>`).join('');
-  const db=$('tu-daily');
-  if(db){db.disabled=v16Daily;db.textContent=v16Daily?'✓ Tagesbonus bereits abgeholt':'🎁 TAGESBONUS +2.500 ABHOLEN';}
-  $('topup-modal').style.display='flex';
+/* ══════════════ CHIP-WIRTSCHAFT ══════════════
+   Frueher konnte man sich hier per Knopfdruck beliebig viele Chips geben
+   (+500 bis +100.000, dazu ein Feld fuer Wunschbetraege). Damit war jedes
+   Ergebnis bedeutungslos - verlieren hatte keine Folgen.
+
+   Jetzt gibt es genau zwei Quellen, beide gedeckelt:
+
+     Tagesbonus   einmal pro Kalendertag, Betrag steigt mit der Serie
+                  (Tag 1: 1.000 ... ab Tag 7: 5.000). Ein ausgelassener
+                  Tag setzt die Serie zurueck.
+     Notgroschen  nur wenn das Guthaben unter 100 liegt, fuellt auf 500 auf,
+                  hoechstens dreimal am Tag.
+
+   Chips bleiben kostenlos und ohne Geldwert - ein Kauf mit echtem Geld
+   waere glücksspielrechtlich heikel und ist bewusst nicht vorgesehen.
+   ══════════════════════════════════════════════ */
+
+const ECO_KEY = 'casinoEco_v1';
+const DAILY_TIERS = [1000, 1500, 2000, 2500, 3000, 4000, 5000];
+const RESCUE_TARGET = 500;
+const RESCUE_THRESHOLD = 100;
+const RESCUE_PER_DAY = 3;
+
+function dayStr(d){
+  d = d || new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
-function closeTopup(){$('topup-modal').style.display='none';}
-function customTopup(){
-  const inp=document.getElementById('custom-topup-inp');
-  const n=parseInt(inp?.value||'0');
-  if(!n||n<1){if(inp){inp.style.borderColor='var(--red)';setTimeout(()=>inp.style.borderColor='var(--border)',1200);}return;}
-  quickTopup(n);
-  if(inp)inp.value='';
+const today = () => dayStr();
+const yesterday = () => dayStr(new Date(Date.now() - 86400000));
+
+let eco = { lastDaily:null, streak:0, rescueDay:null, rescueUsed:0 };
+
+function loadEco(){
+  let d = null;
+  try{ d = JSON.parse(localStorage.getItem(ECO_KEY) || 'null'); }catch(e){}
+  if(d && typeof d === 'object'){
+    if(typeof d.lastDaily === 'string') eco.lastDaily = d.lastDaily;
+    if(Number.isFinite(d.streak) && d.streak >= 0) eco.streak = Math.min(Math.floor(d.streak), 9999);
+    if(typeof d.rescueDay === 'string') eco.rescueDay = d.rescueDay;
+    if(Number.isFinite(d.rescueUsed) && d.rescueUsed >= 0) eco.rescueUsed = Math.floor(d.rescueUsed);
+    return;
+  }
+  // Uebernahme aus der alten Fassung: dort stand nur das Datum des letzten Bonus.
+  try{
+    const legacy = localStorage.getItem('casinoDaily_v1');
+    if(legacy){ eco.lastDaily = legacy; eco.streak = 1; saveEco(); }
+  }catch(e){}
 }
-function quickTopup(n){bal+=n;refreshStats(true);closeTopup();showBanner('+'+fN(n)+' Chips aufgeladen!','push');spawnParticles(16);}
-function claimDaily(){if(v16Daily)return;v16Daily=true;try{localStorage.setItem(DAILY_KEY,_today());}catch(e){}bal+=2500;refreshStats(true);saveNow();const db=$('tu-daily');if(db){db.disabled=true;db.textContent='✓ Tagesbonus abgeholt';}closeTopup();showBanner('🎁 Tagesbonus +2.500 Chips!','win');spawnParticles(24);}
-window.openTopup=openTopup;window.closeTopup=closeTopup;window.claimDaily=claimDaily;
+function saveEco(){ try{ localStorage.setItem(ECO_KEY, JSON.stringify(eco)); }catch(e){} }
+loadEco();
+
+/* ---- Tagesbonus ---- */
+function dailyReady(){ return eco.lastDaily !== today(); }
+function nextStreak(){
+  if(eco.lastDaily === today())     return eco.streak;      // heute schon geholt
+  if(eco.lastDaily === yesterday()) return eco.streak + 1;  // Serie laeuft weiter
+  return 1;                                                 // Serie gerissen oder erster Tag
+}
+function tierFor(streak){ return DAILY_TIERS[Math.min(streak, DAILY_TIERS.length) - 1]; }
+function dailyAmount(){ return tierFor(nextStreak()); }
+
+function claimDaily(){
+  if(!dailyReady()) return;
+  const s = nextStreak(), amount = tierFor(s);
+  eco.streak = s;
+  eco.lastDaily = today();
+  saveEco();
+  grantChips(amount, 'Tagesbonus', 'Tag ' + s + ' der Serie');
+  renderBank();
+}
+
+/* ---- Notgroschen ---- */
+function rescueLeft(){
+  if(eco.rescueDay !== today()) return RESCUE_PER_DAY;
+  return Math.max(0, RESCUE_PER_DAY - eco.rescueUsed);
+}
+function rescueReady(){ return bal < RESCUE_THRESHOLD && rescueLeft() > 0; }
+
+function claimRescue(){
+  if(!rescueReady()) return;
+  if(eco.rescueDay !== today()){ eco.rescueDay = today(); eco.rescueUsed = 0; }
+  eco.rescueUsed++;
+  saveEco();
+  grantChips(RESCUE_TARGET - bal, 'Notgroschen', rescueLeft() + ' heute noch übrig');
+  renderBank();
+}
+
+/* ---- Gutschrift ---- */
+/* Wer blank ist, kommt allein nicht mehr weiter - einmal pro Sitzung
+   machen wir deshalb ungefragt auf die Bank aufmerksam. */
+let _brokeShown = false;
+function checkBroke(){
+  if(_brokeShown || bal >= 10 || busy) return;
+  _brokeShown = true;
+  setTimeout(() => {
+    if(bal < 10){
+      openTopup();
+      showBanner(rescueReady() ? 'Keine Chips mehr - hol dir den Notgroschen.'
+                               : 'Keine Chips mehr - morgen gibt es wieder den Tagesbonus.', 'loss');
+    }
+  }, 900);
+}
+
+function grantChips(amount, quelle, detail){
+  if(!(amount > 0)) return;
+  bal += amount;
+  _brokeShown = false;
+  refreshStats(true);
+  saveNow();
+  addHist(quelle, detail || '', amount);
+  showBanner(quelle + ': +' + fN(amount) + ' Chips', 'win');
+  coinBurst(Math.min(18, 6 + Math.round(amount / 500)));
+}
+
+/* ---- Zeit bis Mitternacht ---- */
+function untilMidnight(){
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+  const s = Math.max(0, Math.floor((next - now) / 1000));
+  return String(Math.floor(s/3600)).padStart(2,'0') + ':' +
+         String(Math.floor(s%3600/60)).padStart(2,'0') + ':' +
+         String(s%60).padStart(2,'0');
+}
+
+/* ---- Anzeige ---- */
+function streakDots(active){
+  let out = '';
+  for(let i = 1; i <= DAILY_TIERS.length; i++){
+    out += '<span class="sdot' + (i <= active ? ' on' : '') + '" title="Tag ' + i + ': ' + fN(DAILY_TIERS[i-1]) + '"></span>';
+  }
+  return out;
+}
+
+function renderBank(){
+  const ready = dailyReady(), amt = dailyAmount(), s = nextStreak();
+
+  const bbal = $('bank-bal'); if(bbal) bbal.textContent = fN(bal);
+
+  const dBtn = $('bank-daily-btn'), dAmt = $('bank-daily-amt'), dDesc = $('bank-daily-desc');
+  if(dBtn){
+    dBtn.disabled = !ready;
+    dBtn.textContent = ready ? 'Abholen' : 'Nächster in ' + untilMidnight();
+  }
+  if(dAmt) dAmt.textContent = ready ? '+' + fN(amt) : '✓';
+  if(dDesc) dDesc.textContent = ready
+    ? (s === 1 ? 'Startet eine neue Serie.' : 'Tag ' + s + ' der Serie.' + (s < DAILY_TIERS.length ? ' Morgen ' + fN(tierFor(s+1)) + '.' : ' Höchststufe erreicht.'))
+    : 'Heute bereits abgeholt. Serie: ' + eco.streak + ' Tag' + (eco.streak === 1 ? '' : 'e') + '.';
+
+  const bs = $('bank-streak'); if(bs) bs.innerHTML = streakDots(ready ? s - 1 : eco.streak);
+
+  const rBtn = $('bank-rescue-btn'), rAmt = $('bank-rescue-amt'), rDesc = $('bank-rescue-desc');
+  const left = rescueLeft(), can = rescueReady();
+  if(rBtn){
+    rBtn.disabled = !can;
+    rBtn.textContent = left === 0 ? 'Heute aufgebraucht'
+                     : can ? 'Auf ' + fN(RESCUE_TARGET) + ' auffüllen'
+                     : 'Erst unter ' + fN(RESCUE_THRESHOLD) + ' Chips';
+  }
+  if(rAmt) rAmt.textContent = can ? '+' + fN(RESCUE_TARGET - bal) : left + '/' + RESCUE_PER_DAY;
+  if(rDesc) rDesc.textContent = 'Füllt auf ' + fN(RESCUE_TARGET) + ' auf, wenn du unter ' + fN(RESCUE_THRESHOLD) +
+    ' Chips fällst. Noch ' + left + ' von ' + RESCUE_PER_DAY + ' heute.';
+
+  // Seitenleiste
+  const sd = $('side-daily'), sdl = $('side-daily-lbl'), sds = $('side-daily-sub');
+  if(sd){ sd.disabled = !ready; sd.classList.toggle('ready', ready); }
+  if(sdl) sdl.textContent = ready ? 'Tagesbonus +' + fN(amt) : 'Tagesbonus geholt';
+  if(sds) sds.textContent = ready ? (s === 1 ? 'Neue Serie starten' : 'Tag ' + s + ' der Serie')
+                                  : 'Neuer Bonus in ' + untilMidnight();
+  const ss = $('side-streak'); if(ss) ss.innerHTML = streakDots(ready ? s - 1 : eco.streak);
+
+  const sr = $('side-rescue'), srs = $('side-rescue-sub');
+  if(sr){ sr.disabled = !can; sr.classList.toggle('ready', can); sr.textContent = can ? 'Notgroschen holen' : 'Notgroschen'; }
+  if(srs) srs.textContent = left === 0 ? 'Heute aufgebraucht'
+                          : can ? 'Füllt auf ' + fN(RESCUE_TARGET) + ' auf'
+                          : 'Ab unter ' + fN(RESCUE_THRESHOLD) + ' Chips · ' + left + '/' + RESCUE_PER_DAY;
+}
+
+/* Sekundentakt, damit die Countdowns mitlaufen. */
+setInterval(renderBank, 1000);
+
+function openTopup(){ renderBank(); $('bank-modal').classList.add('open'); }
+function closeTopup(){ $('bank-modal').classList.remove('open'); }
+
+window.openTopup = openTopup;
+window.closeTopup = closeTopup;
+window.claimDaily = claimDaily;
+window.claimRescue = claimRescue;
 
 /* ══════════════ SETTINGS ══════════════ */
 const SK={theme:'cTheme',scale:'cScale',bet:'cBet',spin:'cSpin'};
@@ -3515,10 +3813,8 @@ window.addEventListener('load',function(){
   applyTheme(cTheme);applyScale(cScale);
   const bi=$('bet-inp'),sl=$('bet-sl');
   if(bi)bi.value=Math.min(cBet,bal);if(sl&&bi)sl.value=bi.value;
-  rewardedRemainingToday=REWARDED_DAILY_LIMIT;
-  startRewardedCountdown(0);
-  renderRewarded();
   renderHist();
+  renderBank();
   refreshStats();
   if(typeof updateAutoBtns==='function')updateAutoBtns();
 });
