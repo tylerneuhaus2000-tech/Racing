@@ -4,7 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tyler's Casino</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Nicht blockierend laden: die Seite wird sofort mit Systemschrift gezeichnet
+     und auf Orbitron/Inter umgestellt, sobald die Schriften da sind. -->
+<link rel="stylesheet" media="print" onload="this.media='all';this.onload=null"
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap">
+<noscript><link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap"></noscript>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -3566,10 +3573,7 @@ window.openSettings=openSettings;window.closeSettings=closeSettings;window.saveS
   <div data-gridline-account></div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="assets/gridline-account.js"></script>
+<script src="assets/gridline-account.js" defer></script>
 
 <div class="cs-footer">
   <a href="index.html">← Alle Spiele</a>

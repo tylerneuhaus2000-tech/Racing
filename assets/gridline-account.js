@@ -12,11 +12,17 @@
    gleichen Collections benutzt, die der GT3 Web Racer schon nutzt
    ('users' fuer das Profil, 'usernames' fuer die Namensreservierung).
 
-   Einbinden:
-     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-     <script src="assets/gridline-account.js"></script>
+   Das Firebase-SDK wird NICHT vorab geladen. Es sind ueber 500 KB, die
+   sonst jeden Seitenaufbau blockieren - nur um oben rechts einen
+   Anmelden-Knopf zu zeichnen. Stattdessen:
+
+     * app + auth (~210 KB) erst wenn jemand auf Anmelden klickt oder
+       bereits eine Sitzung im localStorage liegt
+     * firestore (~350 KB) erst wenn tatsaechlich ein Profil gelesen
+       oder ein Spielername gespeichert wird
+
+   Einbinden - eine Zeile, defer, blockiert nichts:
+     <script src="assets/gridline-account.js" defer></script>
 
    API:
      GridlineAccount.ready                -> Promise, erfuellt nach erstem Auth-State
@@ -41,30 +47,11 @@
 		appId: '1:907704359886:web:5f123aa225fa78293f699f'
 	};
 
-	if (typeof firebase === 'undefined') {
-		console.error('[GridlineAccount] Firebase SDK fehlt - Account-System inaktiv.');
-		global.GridlineAccount = {
-			ready: Promise.resolve(null),
-			user: null,
-			profile: null,
-			isLoggedIn: function () { return false; },
-			openLogin: function () {},
-			logout: function () {},
-			requireLogin: function () { return Promise.resolve(false); },
-			onChange: function () {},
-			mountChip: function () {}
-		};
-		return;
-	}
-
-	// Bereits initialisierte App wiederverwenden (Spiele initialisieren teils selbst).
-	var app = firebase.apps && firebase.apps.length
-		? firebase.app()
-		: firebase.initializeApp(FB_CONFIG);
-	var auth = firebase.auth();
-	var db = firebase.firestore();
-
+	var SDK = 'https://www.gstatic.com/firebasejs/10.12.0/';
 	var USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
+
+	var auth = null;   // erst nach ensureAuth() gesetzt
+	var db = null;     // erst nach ensureDb() gesetzt
 
 	var state = {
 		user: null,
@@ -74,6 +61,80 @@
 	var listeners = [];
 	var readyResolve;
 	var ready = new Promise(function (res) { readyResolve = res; });
+
+	/* ---------------------------------------------------------
+	   Nachladen des SDK
+	   --------------------------------------------------------- */
+	var scriptCache = {};
+
+	function loadScript(url) {
+		if (scriptCache[url]) return scriptCache[url];
+		scriptCache[url] = new Promise(function (resolve, reject) {
+			var s = document.createElement('script');
+			s.src = url;
+			s.async = true;
+			s.onload = resolve;
+			s.onerror = function () { reject(new Error('Konnte ' + url + ' nicht laden')); };
+			(document.head || document.documentElement).appendChild(s);
+		});
+		return scriptCache[url];
+	}
+
+	var authPromise = null;
+
+	function ensureAuth() {
+		if (authPromise) return authPromise;
+		authPromise = loadScript(SDK + 'firebase-app-compat.js')
+			.then(function () { return loadScript(SDK + 'firebase-auth-compat.js'); })
+			.then(function () {
+				// Bereits initialisierte App wiederverwenden - einzelne Spiele
+				// binden Firebase teilweise selbst ein.
+				if (!(firebase.apps && firebase.apps.length)) firebase.initializeApp(FB_CONFIG);
+				auth = firebase.auth();
+				API.auth = auth;
+				auth.onAuthStateChanged(onAuthChanged);
+				return auth;
+			})
+			.catch(function (err) {
+				console.warn('[GridlineAccount] Anmeldung nicht verfuegbar:', err.message);
+				authPromise = null;   // spaeterer Versuch darf es erneut probieren
+				if (!state.resolved) { state.resolved = true; readyResolve(null); }
+				throw err;
+			});
+		return authPromise;
+	}
+
+	var dbPromise = null;
+
+	function ensureDb() {
+		if (dbPromise) return dbPromise;
+		dbPromise = ensureAuth()
+			.then(function () { return loadScript(SDK + 'firebase-firestore-compat.js'); })
+			.then(function () {
+				db = firebase.firestore();
+				API.db = db;
+				return db;
+			})
+			.catch(function (err) {
+				dbPromise = null;
+				throw err;
+			});
+		return dbPromise;
+	}
+
+	/* Liegt schon eine Anmeldung im Browser? Firebase Auth legt die Sitzung
+	   unter diesem Schluessel ab. Wenn ja, laden wir das SDK von selbst nach,
+	   damit der Name im Chip erscheint - aber erst nachdem die Seite steht. */
+	function hasStoredSession() {
+		try {
+			var key = 'firebase:authUser:' + FB_CONFIG.apiKey + ':[DEFAULT]';
+			if (localStorage.getItem(key)) return true;
+			for (var i = 0; i < localStorage.length; i++) {
+				if (localStorage.key(i).indexOf('firebase:authUser:') === 0) return true;
+			}
+		} catch (e) {}
+		return false;
+	}
 
 	/* ---------------------------------------------------------
 	   Styles
@@ -224,10 +285,10 @@
 		els.google.onclick = function () {
 			els.err.textContent = '';
 			els.google.disabled = true;
-			var provider = new firebase.auth.GoogleAuthProvider();
-			auth.signInWithPopup(provider)
-				.then(function () { els.google.disabled = false; })
-				.catch(fail);
+			ensureAuth().then(function () {
+				var provider = new firebase.auth.GoogleAuthProvider();
+				return auth.signInWithPopup(provider);
+			}).then(function () { els.google.disabled = false; }).catch(fail);
 		};
 
 		els.submit.onclick = function () {
@@ -241,10 +302,11 @@
 				return;
 			}
 			els.submit.disabled = true;
-			var p = mode === 'login'
-				? auth.signInWithEmailAndPassword(email, pw)
-				: auth.createUserWithEmailAndPassword(email, pw);
-			p.then(function () { els.submit.disabled = false; }).catch(fail);
+			ensureAuth().then(function () {
+				return mode === 'login'
+					? auth.signInWithEmailAndPassword(email, pw)
+					: auth.createUserWithEmailAndPassword(email, pw);
+			}).then(function () { els.submit.disabled = false; }).catch(fail);
 		};
 
 		els.pw.addEventListener('keydown', function (e) { if (e.key === 'Enter') els.submit.click(); });
@@ -253,7 +315,9 @@
 		els.reset.onclick = function () {
 			var email = els.email.value.trim();
 			if (!email) { els.err.classList.remove('ga-ok'); els.err.textContent = 'Bitte zuerst deine E-Mail eintragen.'; return; }
-			auth.sendPasswordResetEmail(email).then(function () {
+			ensureAuth().then(function () {
+				return auth.sendPasswordResetEmail(email);
+			}).then(function () {
 				els.err.classList.add('ga-ok');
 				els.err.textContent = 'E-Mail zum Zurücksetzen wurde verschickt.';
 			}).catch(fail);
@@ -302,6 +366,8 @@
 
 	function openModal(view, subText) {
 		var e = buildModal();
+		// Schon mal anfangen zu laden, waehrend getippt wird.
+		if (view !== 'username') ensureAuth().catch(function () {});
 		e.viewAuth.style.display = view === 'username' ? 'none' : '';
 		e.viewName.style.display = view === 'username' ? '' : 'none';
 		if (subText && view !== 'username') e.sub.textContent = subText;
@@ -328,7 +394,9 @@
 		e.unameSave.textContent = 'Speichert...';
 		var key = val.toLowerCase();
 
-		db.collection('usernames').doc(key).get().then(function (snap) {
+		ensureDb().then(function () {
+			return db.collection('usernames').doc(key).get();
+		}).then(function (snap) {
 			if (snap.exists && snap.data().uid !== state.user.uid) {
 				throw { code: 'taken' };
 			}
@@ -429,7 +497,10 @@
 		var out = document.createElement('button');
 		out.className = 'ga-menu-item danger';
 		out.textContent = 'Abmelden';
-		out.onclick = function () { menu.classList.remove('open'); auth.signOut(); };
+		out.onclick = function () {
+			menu.classList.remove('open');
+			if (auth) auth.signOut();
+		};
 		menu.appendChild(out);
 
 		chip.onclick = function (ev) {
@@ -465,7 +536,7 @@
 		}));
 	}
 
-	auth.onAuthStateChanged(function (user) {
+	function onAuthChanged(user) {
 		state.user = user || null;
 		API.user = state.user;
 
@@ -481,7 +552,9 @@
 		state.profile = null;
 		notify();
 
-		db.collection('users').doc(user.uid).get().then(function (snap) {
+		ensureDb().then(function () {
+			return db.collection('users').doc(user.uid).get();
+		}).then(function (snap) {
 			var data = snap.exists ? snap.data() : null;
 			state.profile = data;
 			API.profile = data;
@@ -505,7 +578,7 @@
 		}).then(function () {
 			if (!state.resolved) { state.resolved = true; readyResolve(state.user); }
 		});
-	});
+	}
 
 	function closeModalForce() {
 		if (!els) return;
@@ -532,7 +605,12 @@
 			openModal('auth', subText);
 		},
 
-		logout: function () { return auth.signOut(); },
+		/** Laedt das SDK im Voraus, z.B. wenn klar ist dass gleich angemeldet wird. */
+		preload: function () { return ensureAuth(); },
+
+		logout: function () {
+			return ensureAuth().then(function () { return auth.signOut(); });
+		},
 
 		requireLogin: function (subText) {
 			return ready.then(function () {
@@ -564,19 +642,39 @@
 
 		mountChip: mountChip,
 
-		auth: auth,
-		db: db
+		/* Erst nach dem Nachladen des SDK gesetzt - vorher null. */
+		auth: null,
+		db: null
 	};
 
 	global.GridlineAccount = API;
 
-	// Chips automatisch an alle [data-gridline-account] Container haengen.
-	function autoMount() {
+	/* ---------------------------------------------------------
+	   Start
+	   --------------------------------------------------------- */
+	function boot() {
 		document.querySelectorAll('[data-gridline-account]').forEach(mountChip);
+
+		if (hasStoredSession()) {
+			// Angemeldet: SDK nachladen, damit der Name erscheint - aber erst
+			// wenn die Seite fertig ist, damit nichts blockiert wird.
+			var start = function () {
+				(global.requestIdleCallback || function (fn) { setTimeout(fn, 200); })(function () {
+					ensureAuth().catch(function () {});
+				});
+			};
+			if (document.readyState === 'complete') start();
+			else global.addEventListener('load', start);
+		} else {
+			// Nicht angemeldet: gar nichts nachladen. Das SDK kommt erst,
+			// wenn jemand auf Anmelden klickt.
+			if (!state.resolved) { state.resolved = true; readyResolve(null); }
+		}
 	}
+
 	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', autoMount);
+		document.addEventListener('DOMContentLoaded', boot);
 	} else {
-		autoMount();
+		boot();
 	}
 })(window);

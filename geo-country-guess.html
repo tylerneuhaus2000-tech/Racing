@@ -444,7 +444,7 @@
     <section class="result" id="result"></section>
   </main>
 
-  <script src="countries.js"></script>
+  <!-- countries.js wird nur noch als Notnagel nachgeladen, siehe loadPayload() -->
   <script>
     const TARGET_CATEGORY_SLOTS = 7;
 
@@ -765,6 +765,21 @@
       nextCountry();
     }
 
+    /* Die Laenderdaten lagen doppelt auf der Seite: countries.js wurde
+       blockierend eingebunden UND countries.json zusaetzlich geholt - gleicher
+       Inhalt, 418 statt 209 KB. Jetzt nur noch countries.json per fetch
+       (blockiert nicht und wird schneller geparst als ein JS-Objektliteral).
+       countries.js kommt nur zum Zug, wenn das fehlschlaegt. */
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const el = document.createElement('script');
+        el.src = src;
+        el.onload = resolve;
+        el.onerror = () => reject(new Error('konnte ' + src + ' nicht laden'));
+        document.head.appendChild(el);
+      });
+    }
+
     async function loadPayload() {
       try {
         const res = await fetch('countries.json');
@@ -772,6 +787,10 @@
           const json = await res.json();
           if (Array.isArray(json?.countries)) return json;
         }
+      } catch (_) {}
+
+      try {
+        if (!window.__COUNTRIES_DB__) await loadScript('countries.js');
       } catch (_) {}
 
       if (window.__COUNTRIES_DB__ && Array.isArray(window.__COUNTRIES_DB__.countries)) {
@@ -833,9 +852,6 @@
   <a href="#" onclick="window.GridlineConsent&amp;&amp;GridlineConsent.reopen();return false">Cookie-Einstellungen</a>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="assets/gridline-account.js"></script>
+<script src="assets/gridline-account.js" defer></script>
 </body>
 </html>

@@ -43,9 +43,7 @@
 
 	var adsLoaded = false;
 
-	function loadAds(personalized) {
-		if (adsLoaded) return;
-		adsLoaded = true;
+	function injectAds(personalized) {
 		global.adsbygoogle = global.adsbygoogle || [];
 		if (!personalized) global.adsbygoogle.requestNonPersonalizedAds = 1;
 		var s = document.createElement('script');
@@ -53,6 +51,23 @@
 		s.src = ADS_SRC;
 		s.crossOrigin = 'anonymous';
 		document.head.appendChild(s);
+	}
+
+	/* AdSense ist schwer und zieht selbst wieder etliche Dateien nach. Es wird
+	   deshalb erst gestartet, wenn die Seite fertig geladen ist und der Browser
+	   Leerlauf hat - so konkurriert die Werbung nie mit dem eigentlichen Inhalt
+	   um Bandbreite und Rechenzeit. */
+	function loadAds(personalized) {
+		if (adsLoaded) return;
+		adsLoaded = true;
+
+		var start = function () {
+			var idle = global.requestIdleCallback || function (fn) { setTimeout(fn, 300); };
+			idle(function () { injectAds(personalized); }, { timeout: 3000 });
+		};
+
+		if (document.readyState === 'complete') start();
+		else global.addEventListener('load', start);
 	}
 
 	function apply(level) {
