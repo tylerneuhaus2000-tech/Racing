@@ -17,6 +17,22 @@ const FB_CONFIG = {
   appId: "1:907704359886:web:5f123aa225fa78293f699f"
 };
 
+/* Wenn die Firebase-SDKs nicht geladen wurden (Adblocker, kaputtes CDN, offline),
+   wirft der Rest der Datei sofort und der Anmelde-Knopf reagiert dann gar nicht
+   mehr - ohne jede Meldung. Darum hier abfangen und es dem Nutzer sagen. */
+if(typeof firebase === 'undefined' || !firebase.initializeApp){
+  console.error('[FB] Firebase-SDK wurde nicht geladen.');
+  document.addEventListener('DOMContentLoaded', () => {
+    const chip = document.getElementById('btn-fb-login-chip');
+    if(chip) chip.onclick = () => alert(
+      'Die Anmeldung kann gerade nicht geladen werden.\n\n' +
+      'Meist blockiert ein Adblocker oder Tracking-Schutz die Google-Server ' +
+      '(gstatic.com / googleapis.com). Deaktiviere ihn für grid-line.de und lade die Seite neu.'
+    );
+  });
+  return;
+}
+
 const app  = firebase.initializeApp(FB_CONFIG);
 const auth = firebase.auth();
 const db   = firebase.firestore();
@@ -618,6 +634,16 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// Ergebnis einer Google-Anmeldung per Weiterleitung einsammeln (Fallback zum Pop-up).
+auth.getRedirectResult().then(res => {
+  if(res && res.user) closeAuthModal();
+}).catch(e => {
+  document.addEventListener('DOMContentLoaded', () => {
+    openAuthModal();
+    zeigeAuthFehler(e);
+  });
+});
+
 auth.onAuthStateChanged(user => {
   fbUser = user;
   if(!user){ _clearUser(); return; }
@@ -742,6 +768,49 @@ window.FB_saveBestLap = function(trackId, carId, timeMs, carName, classType, rep
 /* ── Auth Modal ── */
 let fbAuthMode = 'login'; // 'login' | 'register'
 
+/* Firebase liefert seine Fehlertexte auf Englisch und teils sehr technisch
+   ("Firebase: Error (auth/unauthorized-domain)."). Fuer die Anmeldemaske
+   uebersetzen wir sie in verstaendliches Deutsch und sagen, was zu tun ist. */
+const AUTH_FEHLER = {
+  'auth/invalid-email':            'Diese E-Mail-Adresse sieht nicht gültig aus.',
+  'auth/missing-email':            'Bitte gib eine E-Mail-Adresse ein.',
+  'auth/missing-password':         'Bitte gib ein Passwort ein.',
+  'auth/user-disabled':            'Dieses Konto wurde gesperrt.',
+  'auth/user-not-found':           'Zu dieser E-Mail gibt es kein Konto. Registriere dich zuerst.',
+  'auth/wrong-password':           'Passwort falsch.',
+  'auth/invalid-credential':       'E-Mail oder Passwort stimmt nicht.',
+  'auth/invalid-login-credentials':'E-Mail oder Passwort stimmt nicht.',
+  'auth/email-already-in-use':     'Für diese E-Mail gibt es schon ein Konto. Melde dich stattdessen an.',
+  'auth/weak-password':            'Das Passwort ist zu kurz – mindestens 6 Zeichen.',
+  'auth/too-many-requests':        'Zu viele Versuche. Warte einen Moment und probiere es erneut.',
+  'auth/network-request-failed':   'Keine Verbindung zu Firebase. Prüfe deine Internetverbindung oder deinen Adblocker.',
+  'auth/popup-blocked':            'Dein Browser hat das Google-Fenster blockiert. Erlaube Pop-ups für grid-line.de.',
+  'auth/popup-closed-by-user':     'Das Google-Fenster wurde geschlossen.',
+  'auth/cancelled-popup-request':  'Anmeldung abgebrochen.',
+  'auth/account-exists-with-different-credential':
+    'Diese E-Mail ist bereits mit einer anderen Anmeldeart verknüpft. Melde dich so an, wie beim ersten Mal.',
+  'auth/operation-not-allowed':
+    'Diese Anmeldeart ist im Firebase-Projekt nicht aktiviert (Authentication → Sign-in method).',
+  'auth/unauthorized-domain':
+    'Diese Domain ist bei Firebase nicht freigegeben. In der Firebase Console unter Authentication → Settings → Authorized domains muss grid-line.de (und www.grid-line.de) eingetragen sein.',
+  'auth/api-key-not-valid':        'Der Firebase-API-Schlüssel wird abgelehnt. Bitte die Konfiguration prüfen.',
+  'auth/internal-error':           'Firebase meldet einen internen Fehler. Bitte später erneut versuchen.'
+};
+
+function authFehler(e){
+  if(!e) return 'Unbekannter Fehler.';
+  const code = e.code || '';
+  if(AUTH_FEHLER[code]) return AUTH_FEHLER[code];
+  // Code trotzdem mitgeben, sonst ist der Fehler nicht diagnostizierbar
+  console.error('[FB] Auth-Fehler:', code, e.message);
+  return (e.message || 'Anmeldung fehlgeschlagen.') + (code ? ' (' + code + ')' : '');
+}
+
+function zeigeAuthFehler(e){
+  const el = document.getElementById('fb-error-msg');
+  if(el) el.textContent = authFehler(e);
+}
+
 function openAuthModal(){
   document.getElementById('fb-auth-modal').classList.remove('hidden');
   document.getElementById('fb-error-msg').textContent='';
@@ -812,7 +881,13 @@ document.getElementById('btn-fb-username-save').onclick = async () => {
 document.getElementById('btn-fb-google').onclick = () => {
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider).then(closeAuthModal).catch(e => {
-    document.getElementById('fb-error-msg').textContent = e.message;
+    // Pop-ups werden auf iOS/iPadOS und mit strengen Blockern haeufig verhindert.
+    // Dann auf die Weiterleitung ausweichen statt den Nutzer im Regen stehen zu lassen.
+    if(e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment')){
+      auth.signInWithRedirect(provider).catch(zeigeAuthFehler);
+      return;
+    }
+    zeigeAuthFehler(e);
   });
 };
 
@@ -830,11 +905,21 @@ document.getElementById('btn-fb-email').onclick = () => {
   const email = document.getElementById('fb-email-input').value.trim();
   const pw    = document.getElementById('fb-pw-input').value;
   const errEl = document.getElementById('fb-error-msg');
+  const btn   = document.getElementById('btn-fb-email');
   errEl.textContent = '';
+  if(!email){ errEl.textContent = 'Bitte gib eine E-Mail-Adresse ein.'; return; }
+  if(!pw){    errEl.textContent = 'Bitte gib ein Passwort ein.'; return; }
+  if(fbAuthMode === 'register' && pw.length < 6){
+    errEl.textContent = 'Das Passwort muss mindestens 6 Zeichen haben.'; return;
+  }
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = '…';
+  const fertig = () => { btn.disabled = false; btn.textContent = label; };
   const p = fbAuthMode === 'login'
     ? auth.signInWithEmailAndPassword(email, pw)
     : auth.createUserWithEmailAndPassword(email, pw);
-  p.then(closeAuthModal).catch(e => { errEl.textContent = e.message; });
+  p.then(() => { fertig(); closeAuthModal(); })
+   .catch(e => { fertig(); zeigeAuthFehler(e); });
 };
 
 /* ── Leaderboard Screen ── */

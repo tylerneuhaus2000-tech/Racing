@@ -2130,7 +2130,8 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
       <button class="btn" id="btn-keybind-reset">Default Keybinds</button>
     </div>
     <div class="eyebrow" style="margin-top:22px">CONTROLLER</div>
-    <p class="sub">Xbox-Controller wird per Gamepad API erkannt. Klicke eine Belegung und drücke dann die gewünschte Taste oder das gewünschte Steuerkreuz.</p>
+    <p class="sub">Xbox-Controller sowie PlayStation-Controller (DualShock 4 / PS4 und DualSense / PS5) werden per Gamepad API erkannt – per USB oder Bluetooth. Klicke eine Belegung und drücke dann die gewünschte Taste oder das gewünschte Steuerkreuz.</p>
+    <p class="sub" id="controller-status">Kein Controller verbunden. Verbinde ihn per USB oder Bluetooth und drücke eine Taste.</p>
     <div id="controller-bindings"></div>
     <div class="eyebrow" style="margin-top:22px">SETUP &amp; WETTER</div>
     <div class="setrow"><span>Flügel</span><input type="range" id="set-wing" min="0" max="100" step="1" value="55"></div>
@@ -2666,6 +2667,105 @@ const GAME_DATA_VERSION = '12';
     }
   } catch(e){}
 })();
+/* ===================== GAMEPAD-NORMALISIERUNG =====================
+   Xbox-Pads melden sich praktisch immer mit mapping:"standard". PlayStation-
+   Pads (DualShock 4, DualSense) tun das in Chrome und Safari ebenfalls - in
+   Firefox und bei manchen Bluetooth-Stacks aber nicht: dort kommt mapping:""
+   mit einer voellig anderen Reihenfolge, Triggern auf Achsen und dem
+   Steuerkreuz als "Hat"-Achse. Ohne Umsetzung waere Gas dann auf einer Achse,
+   die das Spiel gar nicht liest.
+   Deshalb wird jedes Pad hier auf das Standard-Layout umgerechnet, bevor der
+   Rest des Spiels es anfasst. */
+const GP = {
+  /* Pad-Typ aus der ID raten - nur fuer die Beschriftung in den Optionen. */
+  typ(pad){
+    const id = ((pad && pad.id) || '').toLowerCase();
+    // Xbox zuerst pruefen: "Xbox Wireless Controller" enthaelt sonst das
+    // PlayStation-Merkmal "wireless controller".
+    if(/xbox|xinput|045e/.test(id)) return 'xbox';
+    if(/dualsense|dualshock|playstation|\bps[345]\b|wireless controller|054c/.test(id)) return 'ps';
+    return 'standard';
+  },
+  /* DualShock-4-/DualSense-Reihenfolge (Firefox) -> Standard-Reihenfolge.
+     Quelle-Index = Position im Array, Ziel-Index = Wert. */
+  _PS_BTN: [2, 0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 16, 17],
+  /* Steuerkreuz als Hat-Achse: -1 = oben, im Uhrzeigersinn in 0.2857-Schritten,
+     Werte ausserhalb von [-1,1] bedeuten "nicht gedrueckt". */
+  _hat(v){
+    const aus = [false,false,false,false]; // up, down, left, right
+    if(v == null || v < -1.2 || v > 1.2) return aus;
+    const stufe = Math.round((v + 1) * 3.5); // 0..7, 0 = oben
+    if(stufe === 0 || stufe === 1 || stufe === 7) aus[0] = true;  // oben
+    if(stufe >= 3 && stufe <= 5)                  aus[1] = true;  // unten
+    if(stufe >= 5 && stufe <= 7)                  aus[2] = true;  // links
+    if(stufe >= 1 && stufe <= 3)                  aus[3] = true;  // rechts
+    return aus;
+  },
+  normalize(pad){
+    if(!pad) return null;
+    if(pad.mapping === 'standard') return pad;
+
+    const qB = pad.buttons || [], qA = pad.axes || [];
+    const btn = [];
+    const setzen = (i, wert, gedrueckt) => {
+      btn[i] = {value: wert, pressed: gedrueckt !== undefined ? gedrueckt : wert > 0.5};
+    };
+    for(let i = 0; i < 17; i++) setzen(i, 0, false);
+
+    if(this.typ(pad) === 'ps' && qB.length >= 12){
+      for(let i = 0; i < qB.length; i++){
+        const ziel = this._PS_BTN[i];
+        if(ziel == null) continue;
+        const q = qB[i];
+        setzen(ziel, typeof q.value === 'number' ? q.value : (q.pressed ? 1 : 0), !!q.pressed);
+      }
+      // Trigger liegen analog auf den Achsen 3 (L2) und 4 (R2), -1 = losgelassen.
+      const l2 = qA.length > 3 ? (qA[3] + 1) / 2 : 0;
+      const r2 = qA.length > 4 ? (qA[4] + 1) / 2 : 0;
+      if(l2 > (btn[6].value || 0)) setzen(6, l2);
+      if(r2 > (btn[7].value || 0)) setzen(7, r2);
+      // Steuerkreuz aus der Hat-Achse (meist Index 9).
+      for(let a = 6; a < qA.length; a++){
+        const v = qA[a];
+        // Ungenutzte Achsen liegen auf exakt 0; ein neutraler Hat meldet
+        // dagegen einen Wert weit ausserhalb von [-1,1]. Beides ist kein Druck.
+        if(!v || Math.abs(v) > 1.2) continue;
+        const h = this._hat(v);
+        if(h[0] || h[1] || h[2] || h[3]){
+          if(h[0]) setzen(12, 1, true);
+          if(h[1]) setzen(13, 1, true);
+          if(h[2]) setzen(14, 1, true);
+          if(h[3]) setzen(15, 1, true);
+          break;
+        }
+      }
+      const ax = [qA[0] || 0, qA[1] || 0, qA[2] || 0, (qA.length > 5 ? qA[5] : qA[3]) || 0];
+      return {index: pad.index, id: pad.id, connected: true, mapping: 'standard', buttons: btn, axes: ax, _roh: pad};
+    }
+
+    // Unbekanntes Nicht-Standard-Pad: 1:1 durchreichen, aber mit gefuellten Luecken.
+    for(let i = 0; i < qB.length; i++){
+      const q = qB[i];
+      setzen(i, typeof q.value === 'number' ? q.value : (q.pressed ? 1 : 0), !!q.pressed);
+    }
+    return {index: pad.index, id: pad.id, connected: true, mapping: 'standard', buttons: btn, axes: qA.slice(), _roh: pad};
+  },
+  /* Erstes verbundenes Pad, bereits normalisiert. */
+  aktiv(){
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for(const p of pads){ if(p && p.connected) return this.normalize(p); }
+    return null;
+  }
+};
+
+// Beim An-/Abstecken die Optionen neu zeichnen, damit Status und
+// Tastenbeschriftung zum tatsaechlich verbundenen Pad passen.
+['gamepadconnected','gamepaddisconnected'].forEach(ev => {
+  window.addEventListener(ev, () => {
+    if(typeof Game !== 'undefined' && Game.renderControllerBindings) Game.renderControllerBindings();
+  });
+});
+
 const defaultControllerBindings = {
   steering:{type:'axis', axis:'lx'},
   throttle:{type:'trigger', button:7, axis:'rt'},
@@ -3361,11 +3461,7 @@ class Input {
   }
   axis(neg,pos){ return (this.keys[pos]?1:0)-(this.keys[neg]?1:0); }
   pollGamepad(){
-    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
-    for(const pad of pads){
-      if(pad && pad.connected) return pad;
-    }
-    return null;
+    return GP.aktiv();
   }
   gamepadButtonValue(pad, idx){
     const btn = pad && pad.buttons && pad.buttons[idx];
@@ -11340,14 +11436,35 @@ const Game = {
       restart:'Neustart',
       help:'Hilfe'
     };
+    // Beschriftung passend zum angeschlossenen Pad: PlayStation-Nutzer sollen
+    // "R2" und "Kreuz" lesen und nicht "RT" und "Taste 0".
+    const pad = GP.aktiv();
+    const ps = pad && GP.typ(pad) === 'ps';
+    const TASTEN = ps
+      ? {0:'Kreuz', 1:'Kreis', 2:'Quadrat', 3:'Dreieck', 4:'L1', 5:'R1', 6:'L2', 7:'R2',
+         8:'Share/Create', 9:'Options', 10:'L3', 11:'R3',
+         12:'Steuerkreuz ↑', 13:'Steuerkreuz ↓', 14:'Steuerkreuz ←', 15:'Steuerkreuz →',
+         16:'PS-Taste', 17:'Touchpad'}
+      : {0:'A', 1:'B', 2:'X', 3:'Y', 4:'LB', 5:'RB', 6:'LT', 7:'RT',
+         8:'View', 9:'Menu', 10:'LS', 11:'RS',
+         12:'Steuerkreuz ↑', 13:'Steuerkreuz ↓', 14:'Steuerkreuz ←', 15:'Steuerkreuz →',
+         16:'Guide'};
     const bindName = b => {
       if(!b) return 'Nicht belegt';
-      if(b.type === 'trigger' && b.axis === 'rt') return 'RT';
-      if(b.type === 'trigger' && b.axis === 'lt') return 'LT';
-      if(b.axis === 'lx') return 'LS X';
-      if(b.axis === 'rx') return 'RS X';
-      return 'Taste ' + b.button;
+      if(b.type === 'trigger' && b.axis === 'rt') return ps ? 'R2' : 'RT';
+      if(b.type === 'trigger' && b.axis === 'lt') return ps ? 'L2' : 'LT';
+      if(b.axis === 'lx') return ps ? 'Linker Stick ←→' : 'LS X';
+      if(b.axis === 'rx') return ps ? 'Rechter Stick ←→' : 'RS X';
+      return TASTEN[b.button] || ('Taste ' + b.button);
     };
+    const status = document.getElementById('controller-status');
+    if(status){
+      status.textContent = pad
+        ? 'Erkannt: ' + (GP.typ(pad) === 'ps' ? 'PlayStation-Controller (PS4/PS5)'
+          : GP.typ(pad) === 'xbox' ? 'Xbox-Controller' : 'Controller')
+          + ' – ' + (pad.id || '').slice(0, 60)
+        : 'Kein Controller verbunden. Verbinde ihn per USB oder Bluetooth und drücke eine Taste.';
+    }
     host.innerHTML = Object.keys(labels).map(action => `
       <div class="setrow">
         <span>${labels[action]}</span>
@@ -14217,7 +14334,7 @@ const Game = {
     this._padFrame = (this._padFrame||0)+1;
     const pads = (this._padFrame%3===0) && navigator.getGamepads ? navigator.getGamepads() : (this._lastPads||[]);
     if(this._padFrame%3===0) this._lastPads=pads;
-    const activePad = Array.from(pads).find(p => p && p.connected);
+    const activePad = GP.normalize(Array.from(pads).find(p => p && p.connected));
     if(this.bindingAction && activePad){
       this.captureControllerBinding(activePad);
     }
