@@ -580,6 +580,51 @@ const fM=n=>n.toFixed(2)+'×';
 let bal=1000,pl=0,rounds=0,hist=[];
 let curGame='bj',busy=false;
 let dailyClaimed=false;
+
+/* ---- SPIELSTAND ----
+   Guthaben, Rundenzahl und Verlauf bleiben zwischen Besuchen erhalten.
+   Gespeichert wird lokal im Browser, es geht nichts an einen Server.
+   "Session +/-" ist bewusst NICHT dabei: das soll die aktuelle Sitzung
+   zeigen und bei jedem Besuch wieder bei 0 starten. */
+const SAVE_KEY='casinoSave_v1';
+let _saveTimer=null;
+
+function loadSave(){
+  let raw=null;
+  try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){ return; }
+  if(!raw)return;
+  let d;
+  try{ d=JSON.parse(raw); }catch(e){ return; }
+  if(!d||typeof d!=='object')return;
+  if(Number.isFinite(d.bal)&&d.bal>=0)bal=Math.floor(d.bal);
+  if(Number.isFinite(d.rounds)&&d.rounds>=0)rounds=Math.floor(d.rounds);
+  if(Array.isArray(d.hist)){
+    hist=d.hist.filter(h=>h&&typeof h.game==='string'&&typeof h.label==='string'&&Number.isFinite(h.profit))
+               .slice(0,10)
+               .map(h=>({game:h.game,label:h.label,profit:h.profit,
+                         type:h.profit>0?'win':h.profit<0?'loss':'push'}));
+  }
+}
+
+function saveNow(){
+  try{
+    localStorage.setItem(SAVE_KEY,JSON.stringify({bal:bal,rounds:rounds,hist:hist,ts:Date.now()}));
+  }catch(e){/* z.B. privater Modus oder Speicher voll - Spiel laeuft trotzdem weiter */}
+}
+
+/* Waehrend Animationen wird refreshStats() sehr oft aufgerufen; deshalb
+   gebuendelt schreiben statt bei jedem Frame. */
+function saveState(){
+  if(_saveTimer)return;
+  _saveTimer=setTimeout(()=>{_saveTimer=null;saveNow();},400);
+}
+
+/* Beim Verlassen der Seite sofort schreiben, damit der letzte Spin nicht
+   verloren geht, falls der Timer noch laeuft. */
+window.addEventListener('pagehide',()=>{if(_saveTimer){clearTimeout(_saveTimer);_saveTimer=null;}saveNow();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveNow();});
+
+loadSave();
 const REWARDED_KEY='casinoRewardedDeviceId';
 const REWARDED_DAILY_LIMIT=10;
 const REWARDED_COOLDOWN_SECONDS=300;
@@ -611,6 +656,7 @@ function refreshStats(bump){
   const e=$('s-pl');e.textContent=fPL(pl);
   e.style.color=pl>0?'var(--green)':pl<0?'var(--red)':'var(--text3)';
   $('bet-sl').max=Math.max(bal,1);
+  saveState();
 }
 function getBet(){return Math.min(Math.max(parseInt($('bet-inp').value)||1,1),bal)}
 function syncI(){$('bet-inp').value=$('bet-sl').value;refreshStats()}
@@ -619,13 +665,19 @@ function sb(v){$('bet-inp').value=Math.min(v,bal);syncS()}
 function sbAll(){sb(bal)}
 function showBanner(msg,type){const e=$('banner');e.textContent=msg;e.className='banner '+type;e.style.display='block';}
 function hideBanner(){$('banner').style.display='none'}
+function renderHist(){
+  const rows=$('hist-rows'),none=$('no-hist');
+  if(!rows||!none)return;
+  none.style.display=hist.length?'none':'block';
+  rows.innerHTML=hist.map(h=>{const s=h.profit>=0?'+':'';return`<div class="hist-row"><span style="font-size:10px;color:var(--text3);margin-right:6px;flex-shrink:0">${h.game}</span><span style="flex:1">${h.label}</span><span class="badge ${h.type}">${s}${fN(h.profit)}</span></div>`;}).join('');
+}
 function addHist(game,label,profit){
   const type=profit>0?'win':profit<0?'loss':'push';
   hist.unshift({game,label,profit,type});if(hist.length>10)hist.pop();
-  $('no-hist').style.display='none';
-  $('hist-rows').innerHTML=hist.map(h=>{const s=h.profit>=0?'+':'';return`<div class="hist-row"><span style="font-size:10px;color:var(--text3);margin-right:6px;flex-shrink:0">${h.game}</span><span style="flex:1">${h.label}</span><span class="badge ${h.type}">${s}${fN(h.profit)}</span></div>`;}).join('');
+  renderHist();
+  saveState();
 }
-function clearHist13(){hist=[];$('hist-rows').innerHTML='';$('no-hist').style.display='block';}
+function clearHist13(){hist=[];renderHist();saveNow();}
 
 function getRewardedDeviceId(){
   let id=localStorage.getItem(REWARDED_KEY);
@@ -3370,7 +3422,11 @@ initScratch();initDragon();initWheel2();
 
 <script>
 /* ══════════════ SIMPLE FREE TOPUP ══════════════ */
-let v16Daily=false;
+/* Der Tagesbonus wird mit Datum gespeichert. Vorher liess er sich durch
+   simples Neuladen beliebig oft abholen. */
+const DAILY_KEY='casinoDaily_v1';
+const _today=()=>new Date().toISOString().slice(0,10);
+let v16Daily=(()=>{ try{ return localStorage.getItem(DAILY_KEY)===_today(); }catch(e){ return false; } })();
 const TOPUP_PKGS=[
   {chips:1000,label:'Starter',color:'var(--cyan)'},
   {chips:5000,label:'Gamer',color:'var(--violet)'},
@@ -3393,7 +3449,7 @@ function customTopup(){
   if(inp)inp.value='';
 }
 function quickTopup(n){bal+=n;refreshStats(true);closeTopup();showBanner('+'+fN(n)+' Chips aufgeladen!','push');spawnParticles(16);}
-function claimDaily(){if(v16Daily)return;v16Daily=true;bal+=2500;refreshStats(true);const db=$('tu-daily');if(db){db.disabled=true;db.textContent='✓ Tagesbonus abgeholt';}closeTopup();showBanner('🎁 Tagesbonus +2.500 Chips!','win');spawnParticles(24);}
+function claimDaily(){if(v16Daily)return;v16Daily=true;try{localStorage.setItem(DAILY_KEY,_today());}catch(e){}bal+=2500;refreshStats(true);saveNow();const db=$('tu-daily');if(db){db.disabled=true;db.textContent='✓ Tagesbonus abgeholt';}closeTopup();showBanner('🎁 Tagesbonus +2.500 Chips!','win');spawnParticles(24);}
 window.openTopup=openTopup;window.closeTopup=closeTopup;window.claimDaily=claimDaily;
 
 /* ══════════════ SETTINGS ══════════════ */
@@ -3455,6 +3511,7 @@ window.addEventListener('load',function(){
   rewardedRemainingToday=REWARDED_DAILY_LIMIT;
   startRewardedCountdown(0);
   renderRewarded();
+  renderHist();
   refreshStats();
   if(typeof updateAutoBtns==='function')updateAutoBtns();
 });
