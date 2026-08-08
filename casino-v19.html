@@ -540,6 +540,57 @@ body.light .settings-shell{background:linear-gradient(160deg,rgba(255,255,255,.9
   background:linear-gradient(135deg,#22c55e,#06b6d4);color:#03140f;font-size:10.5px;font-weight:800;
   font-family:'Orbitron',monospace;animation:bankPulse 2s ease-in-out infinite}
 
+/* Pferderennen */
+.hr-track{position:relative;background:linear-gradient(180deg,#0f2417,#0c1a12);
+  border:1px solid var(--border);border-radius:13px;padding:11px 12px;overflow:hidden}
+.hr-track::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(90deg,transparent 0 38px,rgba(255,255,255,.03) 38px 39px)}
+.hr-lane{display:flex;align-items:center;gap:9px;height:30px;position:relative}
+.hr-lane+.hr-lane{border-top:1px dashed rgba(255,255,255,.06)}
+.hr-lane-nr{font-family:'Orbitron',monospace;font-size:12px;font-weight:900;width:15px;text-align:center;flex:none}
+.hr-lane-bahn{position:relative;flex:1;height:100%}
+.hr-horse{position:absolute;top:50%;transform:translate(-50%,-50%) scaleX(-1);font-size:19px;
+  transition:left .09s linear;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.hr-lane.mine .hr-lane-bahn{background:linear-gradient(90deg,rgba(0,229,255,.07),transparent)}
+.hr-lane.mine .hr-lane-nr{text-shadow:0 0 10px currentColor}
+.hr-lane.win .hr-lane-bahn{background:linear-gradient(90deg,rgba(251,191,36,.16),transparent)}
+.hr-goal{position:absolute;right:12px;top:8px;bottom:8px;width:6px;border-radius:2px;
+  background:repeating-linear-gradient(180deg,#f2f6fa 0 5px,#12181f 5px 10px);opacity:.75}
+.hr-picks{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.hr-pick{display:flex;align-items:center;gap:7px;padding:9px 10px;border-radius:11px;
+  border:1px solid var(--border);background:var(--bg3);cursor:pointer;transition:all .16s;text-align:left}
+.hr-pick:hover:not(:disabled){border-color:var(--border2)}
+.hr-pick:disabled{opacity:.55;cursor:default}
+.hr-pick.on{border-color:var(--cyan);background:var(--cyan-dim);box-shadow:0 0 15px rgba(0,229,255,.16)}
+.hr-nr{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;flex:none;
+  color:#0a0f16;font-size:11px;font-weight:900;font-family:'Orbitron',monospace}
+.hr-name{flex:1;font-size:11.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hr-quote{font-family:'Orbitron',monospace;font-size:11px;font-weight:800;color:var(--gold);flex:none}
+@media(max-width:700px){ .hr-picks{grid-template-columns:repeat(2,1fr)} }
+
+/* Spielmodus */
+#modus-btn{padding:7px 13px;border-radius:999px;backdrop-filter:blur(8px);
+  border:1px solid var(--border2);background:rgba(8,16,24,.75);color:var(--text2);cursor:pointer;
+  font-size:12.5px;font-weight:700;white-space:nowrap;transition:all .16s}
+#modus-btn:hover{color:var(--text);border-color:var(--cyan)}
+body.frei-modus #modus-btn{border-color:rgba(167,139,250,.6);color:var(--violet);background:var(--violet-dim)}
+body.frei-modus .stat.balance{border-color:rgba(167,139,250,.45)}
+.modus-karte{display:flex;gap:13px;align-items:flex-start;width:100%;text-align:left;padding:15px;
+  border-radius:14px;border:1px solid var(--border);background:var(--bg2);cursor:pointer;
+  margin-bottom:10px;transition:all .18s}
+.modus-karte:hover{border-color:var(--border2);background:var(--bg3)}
+.modus-karte.on{border-color:var(--cyan);background:var(--cyan-dim);box-shadow:0 0 22px rgba(0,229,255,.14)}
+.modus-ic{font-size:26px;flex:none;line-height:1}
+.modus-txt{display:flex;flex-direction:column;gap:5px;min-width:0}
+.modus-txt b{font-size:15px;color:var(--text)}
+.modus-karte.on .modus-txt b{color:var(--cyan)}
+.modus-txt span{font-size:11.5px;color:var(--text2);line-height:1.6}
+.frei-txt{font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:10px}
+
+@media(max-width:700px){
+  #modus-btn{font-size:10.5px;padding:6px 10px}
+}
+
 /* Rang */
 .rang-box{border:1px solid var(--border);background:var(--bg3);border-radius:11px;padding:10px 11px;margin-bottom:9px}
 .rang-name{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;color:var(--gold);letter-spacing:.03em}
@@ -726,6 +777,7 @@ canvas#crash-canvas{height:190px!important}
   <button class="nav-btn newg" id="nav-dragon" onclick="setGame('dragon')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2"/><path d="M8 12h8M12 8v8"/></svg><span>Dragon Tiger</span></button>
   <button class="nav-btn newg" id="nav-wheel2" onclick="setGame('wheel2')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/></svg><span>Mega Wheel</span></button>
   <button class="nav-btn newg" id="nav-tower" onclick="setGame('tower')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><rect x="4" y="15" width="16" height="5" rx="1"/><rect x="6" y="10" width="12" height="5" rx="1"/><rect x="8" y="5" width="8" height="5" rx="1"/></svg><span>Tower</span></button>
+  <button class="nav-btn newg" id="nav-horse" onclick="setGame('horse')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M4 18h9a5 5 0 0 0 5-5V8l3-2-1 4 2 1-3 2"/><path d="M13 18l-2-4-4-1-3 5"/></svg><span>Pferderennen</span></button>
   <button class="nav-btn newg" id="nav-bacc" onclick="setGame('bacc')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 21s-7-4.5-7-9.5A3.5 3.5 0 0 1 12 9a3.5 3.5 0 0 1 7 2.5C19 16.5 12 21 12 21z"/></svg><span>Baccarat</span></button>
   <button class="nav-btn" id="nav-crash" onclick="setGame('crash')"><svg viewBox="0 0 24 24"><path d="M21 16l-4-8-3 5-2-3-4 6"/><path d="M3 20h18"/><circle cx="17" cy="8" r="1" fill="currentColor" stroke="none"/></svg><span>Crash</span></button>
 </div>
@@ -746,6 +798,7 @@ canvas#crash-canvas{height:190px!important}
 <div id="game-wheel2" style="display:none"></div>
 <div id="game-tower" style="display:none"></div>
 <div id="game-bacc" style="display:none"></div>
+<div id="game-horse" style="display:none"></div>
 <div id="game-plinko" style="display:none"></div>
 <div id="game-hilo" style="display:none"></div>
 <div id="game-mines" style="display:none"></div>
@@ -773,6 +826,14 @@ canvas#crash-canvas{height:190px!important}
     <svg id="main-icon" viewBox="0 0 24 24"><rect x="2" y="4" width="10" height="14" rx="2"/><rect x="12" y="6" width="10" height="14" rx="2"/></svg>
     <span id="main-label">Karten austeilen</span>
   </button>
+</div>
+
+<div class="panel" id="frei-panel" style="padding:12px;display:none">
+  <div class="section-lbl" style="margin-bottom:8px">Freies Spiel</div>
+  <p class="frei-txt">Alle Spiele offen, kein Tischlimit. Fortschritt, Aufgaben und
+     Trophäen zählen hier nicht — dafür ist die Karriere da.</p>
+  <button class="primary-btn" onclick="freiAuffuellen()" style="width:100%;justify-content:center;padding:10px;font-size:11.5px">Guthaben auffüllen</button>
+  <button class="secondary-btn" onclick="setModus('karriere')" style="width:100%;justify-content:center;padding:9px;font-size:11px;margin-top:7px">Zur Karriere wechseln</button>
 </div>
 
 <div class="panel" id="prog-panel" style="padding:12px">
@@ -829,13 +890,30 @@ let dailyClaimed=false;
    Gespeichert wird lokal im Browser, es geht nichts an einen Server.
    "Session +/-" ist bewusst NICHT dabei: das soll die aktuelle Sitzung
    zeigen und bei jedem Besuch wieder bei 0 starten. */
-const SAVE_KEY='casinoSave_v1';
+/* ---- ZWEI SPIELSTÄNDE ----
+   Karriere und Freies Spiel haben getrennte Guthaben und Verläufe. Der
+   Modus entscheidet nur, unter welchem Schluessel gespeichert wird -
+   die Spiele selbst merken davon nichts.
+
+   Karriere: begrenztes Guthaben, Tischlimits, Spiele muessen freigeschaltet
+             werden, Erfahrung/Aufgaben/Trophaeen zaehlen.
+   Frei:     alle Spiele offen, kein Tischlimit, Guthaben jederzeit
+             auffuellbar - dafuer zaehlt nichts fuer den Fortschritt.
+             Zum Ausprobieren, ohne die Karriere zu entwerten. */
+const MODUS_KEY = 'casinoModus_v1';
+const SAVE_KEYS = { karriere:'casinoSave_v1', frei:'casinoFree_v1' };
+const FREI_START = 25000;
+
+let modus = (()=>{ try{ const m=localStorage.getItem(MODUS_KEY); return m==='frei'?'frei':'karriere'; }catch(e){ return 'karriere'; } })();
+const istFrei = () => modus === 'frei';
+const SAVE_KEY_AKTUELL = () => SAVE_KEYS[modus];
+
 let _saveTimer=null;
 
 function loadSave(){
   let raw=null;
-  try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){ return; }
-  if(!raw)return;
+  try{ raw=localStorage.getItem(SAVE_KEY_AKTUELL()); }catch(e){ raw=null; }
+  if(!raw){ if(istFrei()){ bal=FREI_START; rounds=0; hist=[]; } return; }
   let d;
   try{ d=JSON.parse(raw); }catch(e){ return; }
   if(!d||typeof d!=='object')return;
@@ -851,7 +929,7 @@ function loadSave(){
 
 function saveNow(){
   try{
-    localStorage.setItem(SAVE_KEY,JSON.stringify({bal:bal,rounds:rounds,hist:hist,ts:Date.now()}));
+    localStorage.setItem(SAVE_KEY_AKTUELL(),JSON.stringify({bal:bal,rounds:rounds,hist:hist,ts:Date.now()}));
   }catch(e){/* z.B. privater Modus oder Speicher voll - Spiel laeuft trotzdem weiter */}
 }
 
@@ -868,6 +946,67 @@ window.addEventListener('pagehide',()=>{if(_saveTimer){clearTimeout(_saveTimer);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveNow();});
 
 loadSave();
+
+/* Umschalten: aktuellen Stand sichern, Modus merken, anderen Stand laden. */
+function setModus(m){
+  if(m !== 'karriere' && m !== 'frei') return;
+  if(m === modus){ closeModus(); return; }
+  saveNow();
+  modus = m;
+  try{ localStorage.setItem(MODUS_KEY, modus); }catch(e){}
+  bal = 1000; rounds = 0; hist = [];
+  loadSave();
+  _shownBal = null;
+  _brokeShown = false;
+  refreshStats(true);
+  renderHist();
+  renderModus();
+  renderBank();
+  renderProg();
+  renderModus();
+  closeModus();
+  // Im freien Spiel sind alle Spiele offen; in der Karriere kann das
+  // gerade laufende Spiel gesperrt sein - dann zurueck auf Blackjack.
+  if(!istFrei() && !spielFrei(curGame)) setGame('bj');
+  showBanner(istFrei() ? 'Freies Spiel — alle Spiele offen, kein Tischlimit'
+                       : 'Karriere — dein Fortschritt zählt wieder', 'push');
+}
+window.setModus = setModus;
+
+function renderModus(){
+  document.body.classList.toggle('frei-modus', istFrei());
+  const b = $('modus-btn');
+  if(b) b.innerHTML = (istFrei() ? '🎈 Freies Spiel' : '🏆 Karriere');
+  document.querySelectorAll('[data-modus]').forEach(el=>{
+    el.classList.toggle('on', el.dataset.modus === modus);
+  });
+  const fp = $('frei-panel');
+  if(fp) fp.style.display = istFrei() ? '' : 'none';
+  const pp = $('prog-panel'), bp = $('bank-panel');
+  if(pp) pp.style.display = istFrei() ? 'none' : '';
+  if(bp) bp.style.display = istFrei() ? 'none' : '';
+  if(typeof renderRang === 'function') renderRang();
+}
+
+/* Im freien Spiel jederzeit auffuellen - hier ist es Absicht. */
+function freiAuffuellen(){
+  if(!istFrei()) return;
+  bal = FREI_START;
+  refreshStats(true);
+  saveNow();
+  showBanner('Guthaben auf ' + fN(FREI_START) + ' zurückgesetzt', 'push');
+  coinBurst(12);
+}
+window.freiAuffuellen = freiAuffuellen;
+
+function openModus(){ $('modus-modal').classList.add('open'); renderModus(); }
+
+/* So frueh wie moeglich anzeigen. Auf das load-Ereignis zu warten hiesse,
+   dass bei langsamer Verbindung kurz der falsche Modus im Knopf steht. */
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderModus);
+else renderModus();
+function closeModus(){ $('modus-modal').classList.remove('open'); }
+window.openModus = openModus; window.closeModus = closeModus;
 
 const SVG_ICONS={
   bj:'<rect x="2" y="4" width="10" height="14" rx="2"/><rect x="12" y="6" width="10" height="14" rx="2"/>',
@@ -1029,7 +1168,9 @@ function addHist(game,label,profit){
   renderHist();
   saveState();
   // Gutschriften aus der Bank sind keine Spielrunden und zaehlen nicht.
-  if(!KEINE_RUNDE[game] && typeof trackRound === 'function') trackRound(game, profit);
+  // Im freien Spiel zaehlt nichts fuer Erfahrung, Aufgaben und Trophaeen -
+  // sonst waere die Karriere mit unbegrenztem Guthaben sofort durchgespielt.
+  if(!KEINE_RUNDE[game] && !istFrei() && typeof trackRound === 'function') trackRound(game, profit);
 }
 function clearHist13(){hist=[];renderHist();saveNow();}
 
@@ -1089,7 +1230,7 @@ function setGame(g){
   if(curGame==='crash'&&g!=='crash')stopCrash();
   if(curGame==='slot'&&g!=='slot')stopAutoSpin();
   curGame=g;
-  ['bj','slot','mega','coin','wheel','rou','crash','dice','keno','limbo','poker','plinko','hilo','mines','vidpoker','scratch','dragon','wheel2','tower','bacc'].forEach(id=>{
+  ['bj','slot','mega','coin','wheel','rou','crash','dice','keno','limbo','poker','plinko','hilo','mines','vidpoker','scratch','dragon','wheel2','tower','bacc','horse'].forEach(id=>{
     const panel=$('game-'+id);
     panel.style.display=id===g?'':'none';
     if(id===g && !reduceMotion()){ panel.classList.remove('game-enter'); void panel.offsetWidth; panel.classList.add('game-enter'); }
@@ -1102,7 +1243,7 @@ function setGame(g){
     $('bet-panel').style.display='';
     $('main-icon').innerHTML=SVG_ICONS[g==='mega'?'mega':g]||'';
     $('main-btn').disabled=false;$('main-btn').style.display='flex';
-    const labels={bj:'Karten austeilen',slot:'Spin',mega:'Mega Spin',coin:'Werfen',wheel:'Drehen',rou:'Kugel werfen',dice:'Würfeln',keno:'Tippen & Ziehen',limbo:'Runde starten',poker:'Karten geben',plinko:'Ball droppen',hilo:'Starten',mines:'Spiel starten',vidpoker:'Karten ziehen',scratch:'Rubbeln!',dragon:'Wetten & Austeilen',wheel2:'Drehen',tower:'Turm besteigen',bacc:'Karten geben'};
+    const labels={bj:'Karten austeilen',slot:'Spin',mega:'Mega Spin',coin:'Werfen',wheel:'Drehen',rou:'Kugel werfen',dice:'Würfeln',keno:'Tippen & Ziehen',limbo:'Runde starten',poker:'Karten geben',plinko:'Ball droppen',hilo:'Starten',mines:'Spiel starten',vidpoker:'Karten ziehen',scratch:'Rubbeln!',dragon:'Wetten & Austeilen',wheel2:'Drehen',tower:'Turm besteigen',bacc:'Karten geben',horse:'Rennen starten'};
     $('main-label').textContent=labels[g]||'';
   }
   if(g==='bj')resetBJFull();
@@ -1116,7 +1257,8 @@ function setGame(g){
   if(g==='mines')initMines();
   if(g==='vidpoker')initVidPoker();
   if(g==='tower')initTower();
-  if(g==='bacc')initBacc();/* ═══════════════════════════════════════════════════════════════
+  if(g==='bacc')initBacc();
+  if(g==='horse')initHorse();/* ═══════════════════════════════════════════════════════════════
    SCRATCH CARD — 9-Felder Rubbellos, 3 Gleiche = Gewinn
    Verschiedene Themen, animiertes Rubbeln mit Canvas
 ═══════════════════════════════════════════════════════════════ */
@@ -1464,7 +1606,8 @@ function mainAction(){if(busy)return;if(curGame==='bj')startBJ();else if(curGame
   else if(curGame==='dragon')doDragon();
   else if(curGame==='wheel2')doWheel2();
   else if(curGame==='tower')towerAction();
-  else if(curGame==='bacc')doBacc();}
+  else if(curGame==='bacc')doBacc();
+  else if(curGame==='horse')doHorse();}
 
 /* ================= BLACKJACK ================= */
 const SUITS=['♠','♥','♦','♣'],RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'],REDS=['♥','♦'];
@@ -3962,6 +4105,126 @@ function doBacc(){
   },420);
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   PFERDERENNEN — sechs Pferde mit eigenen Quoten. Wer den Sieger
+   tippt, bekommt Einsatz mal Quote. Die Quoten spiegeln die echte
+   Gewinnchance wider, abzüglich 6 % Hausvorteil.
+═══════════════════════════════════════════════════════════════ */
+const PFERDE = [
+  { nr:1, name:'Donnerhuf',   farbe:'#f87171', staerke:26 },
+  { nr:2, name:'Silberpfeil', farbe:'#7fa8c9', staerke:22 },
+  { nr:3, name:'Nachtschatten',farbe:'#a78bfa', staerke:18 },
+  { nr:4, name:'Goldstaub',   farbe:'#fbbf24', staerke:14 },
+  { nr:5, name:'Wirbelwind',  farbe:'#34d399', staerke:12 },
+  { nr:6, name:'Außenseiter', farbe:'#f0a04b', staerke:8  }
+];
+const HORSE_HAUS = 0.94;
+let horseTipp = 1, horseLaeuft = false;
+
+function horseQuote(p){
+  const summe = PFERDE.reduce((a,x)=>a+x.staerke,0);
+  return Math.round((summe / p.staerke) * HORSE_HAUS * 100) / 100;
+}
+
+function initHorse(){
+  $('game-horse').innerHTML = `
+  <div class="felt" style="padding:14px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+      <div class="section-lbl" style="margin:0">Rennbahn</div>
+      <div id="horse-status" style="font-size:11px;color:var(--text2)">Wähle dein Pferd und starte das Rennen.</div>
+    </div>
+    <div class="hr-track" id="hr-track"></div>
+    <div class="section-lbl" style="margin:14px 0 8px">Dein Tipp</div>
+    <div class="hr-picks" id="hr-picks"></div>
+  </div>`;
+  renderHorseBahn(PFERDE.map(()=>0));
+  renderHorsePicks();
+}
+
+function renderHorsePicks(){
+  const el = $('hr-picks');
+  if(!el) return;
+  el.innerHTML = PFERDE.map(p => `
+    <button class="hr-pick${p.nr===horseTipp?' on':''}" onclick="setHorse(${p.nr})" ${horseLaeuft?'disabled':''}>
+      <span class="hr-nr" style="background:${p.farbe}">${p.nr}</span>
+      <span class="hr-name">${p.name}</span>
+      <span class="hr-quote">${horseQuote(p).toFixed(2)}×</span>
+    </button>`).join('');
+}
+function setHorse(nr){ if(horseLaeuft)return; horseTipp = nr; renderHorsePicks(); }
+window.setHorse = setHorse;
+
+function renderHorseBahn(pos, sieger){
+  const el = $('hr-track');
+  if(!el) return;
+  el.innerHTML = PFERDE.map((p,i) => `
+    <div class="hr-lane${sieger===p.nr?' win':''}${p.nr===horseTipp?' mine':''}">
+      <span class="hr-lane-nr" style="color:${p.farbe}">${p.nr}</span>
+      <div class="hr-lane-bahn">
+        <span class="hr-horse" style="left:${Math.min(100,pos[i])}%;color:${p.farbe}">🐎</span>
+      </div>
+    </div>`).join('') + '<div class="hr-goal"></div>';
+}
+
+function doHorse(){
+  if(busy||horseLaeuft)return;
+  const bet=getBet();
+  if(bal<bet||bet<1)return;
+  busy=true; horseLaeuft=true; $('main-btn').disabled=true;
+  bal-=bet; pl-=bet; rounds++; refreshStats(); hideBanner();
+  renderHorsePicks();
+  $('horse-status').textContent='Und sie laufen!';
+
+  // Sieger vorab nach Staerke ziehen, damit die Quoten stimmen. Die
+  // Animation erzaehlt dieses Ergebnis nur nach.
+  const summe = PFERDE.reduce((a,x)=>a+x.staerke,0);
+  let w = Math.random()*summe, siegerIdx = 0;
+  for(let i=0;i<PFERDE.length;i++){ w -= PFERDE[i].staerke; if(w<=0){ siegerIdx=i; break; } }
+
+  const pos = PFERDE.map(()=>0);
+  const tempo = PFERDE.map((p,i)=> 0.55 + Math.random()*0.5 + (i===siegerIdx?0.35:0));
+  const start = performance.now();
+  const dauer = 5200;
+
+  function frame(now){
+    const t = Math.min(1,(now-start)/dauer);
+    for(let i=0;i<PFERDE.length;i++){
+      // Leichtes Auf und Ab, damit die Fuehrung wechselt
+      const welle = Math.sin(t*Math.PI*3 + i*1.7)*4;
+      pos[i] = Math.min(i===siegerIdx?100:97, t*100*tempo[i]/1.35 + welle*(1-t));
+      if(pos[i]<0) pos[i]=0;
+    }
+    if(t>=1){ pos[siegerIdx]=100; }
+    renderHorseBahn(pos, t>=1?PFERDE[siegerIdx].nr:null);
+    if(t<1) requestAnimationFrame(frame);
+    else zielEinlauf(siegerIdx, bet);
+  }
+  requestAnimationFrame(frame);
+}
+
+function zielEinlauf(siegerIdx, bet){
+  const sieger = PFERDE[siegerIdx];
+  const getroffen = sieger.nr === horseTipp;
+  const quote = horseQuote(sieger);
+  const aus = getroffen ? Math.floor(bet*quote) : 0;
+  const gewinn = aus - bet;
+  bal += aus; pl += aus;
+
+  $('horse-status').textContent = 'Sieger: Nr. ' + sieger.nr + ' ' + sieger.name;
+  if(getroffen){
+    if(quote>=5) showBigWin(quote.toFixed(2)+'× SIEG!');
+    showBanner(sieger.name + ' gewinnt — +' + fN(gewinn) + ' Chips (' + quote.toFixed(2) + '×)','win');
+  } else {
+    showBanner(sieger.name + ' gewinnt. Dein Tipp lag daneben — −' + fN(bet) + ' Chips','loss');
+  }
+  addHist('Pferderennen', 'Nr.' + sieger.nr + ' ' + sieger.name, gewinn);
+  refreshStats(getroffen);
+  busy=false; horseLaeuft=false;
+  $('main-btn').disabled=false;
+  renderHorsePicks();
+}
+
 /* ══════════════ CHIP-WIRTSCHAFT ══════════════
    Frueher konnte man sich hier per Knopfdruck beliebig viele Chips geben
    (+500 bis +100.000, dazu ein Feld fuer Wunschbetraege). Damit war jedes
@@ -4057,7 +4320,7 @@ window.tilgeAlles = tilgeAlles;
    bestimmt Tischlimit, Kredithoehe und welche Spiele offen sind. */
 const RAENGE = [
   { ab:1,  name:'Kneipenspieler',  limit:250,    kredit:500,   frei:['bj','slot','coin','dice','scratch','wheel'] },
-  { ab:4,  name:'Stammgast',       limit:1000,   kredit:1500,  frei:['rou','hilo','limbo'] },
+  { ab:4,  name:'Stammgast',       limit:1000,   kredit:1500,  frei:['rou','hilo','limbo','horse'] },
   { ab:8,  name:'Kartenhai',       limit:5000,   kredit:5000,  frei:['poker','vidpoker','bacc'] },
   { ab:13, name:'High Roller',     limit:25000,  kredit:20000, frei:['mega','plinko','keno','tower'] },
   { ab:19, name:'Whale',           limit:100000, kredit:75000, frei:['mines','dragon','wheel2','crash'] },
@@ -4078,10 +4341,10 @@ function freieSpiele(){
   for(let k = 0; k <= rangIndex(); k++) RAENGE[k].frei.forEach(g => set[g] = 1);
   return set;
 }
-function spielFrei(g){ return !!freieSpiele()[g]; }
+function spielFrei(g){ return istFrei() ? true : !!freieSpiele()[g]; }
 
 /* Tischlimit: begrenzt den Einsatz nach oben. Gibt den Raengen Bedeutung. */
-function tischLimit(){ return rangJetzt().limit; }
+function tischLimit(){ return istFrei() ? Infinity : rangJetzt().limit; }
 
 function renderRang(){
   const r = rangJetzt(), n = rangNaechster();
@@ -4091,12 +4354,13 @@ function renderRang(){
   const nx = $('rang-next');
   if(nx) nx.textContent = n ? 'Nächster Rang: ' + n.name + ' ab Stufe ' + n.ab : 'Höchster Rang erreicht';
 
-  // Gesperrte Spiele in der Navigation kennzeichnen
+  // Gesperrte Spiele in der Navigation kennzeichnen.
+  // Im freien Spiel ist alles offen - dann darf auch kein Schloss zu sehen sein.
   const frei = freieSpiele();
   Object.keys(SPIEL_NAMEN).forEach(g => {
     const btn = $('nav-' + g);
     if(!btn) return;
-    const offen = !!frei[g];
+    const offen = istFrei() || !!frei[g];
     btn.classList.toggle('locked', !offen);
     btn.title = offen ? '' : 'Ab Rang ' + rangFuer(g);
   });
@@ -4172,7 +4436,7 @@ function claimRescue(){
    machen wir deshalb ungefragt auf die Bank aufmerksam. */
 let _brokeShown = false;
 function checkBroke(){
-  if(_brokeShown || bal >= 10 || busy) return;
+  if(istFrei() || _brokeShown || bal >= 10 || busy) return;
   _brokeShown = true;
   setTimeout(() => {
     if(bal < 10){
@@ -4619,6 +4883,7 @@ window.addEventListener('load',function(){
   const bi=$('bet-inp'),sl=$('bet-sl');
   if(bi)bi.value=Math.min(cBet,bal);if(sl&&bi)sl.value=bi.value;
   renderHist();
+  renderModus();
   renderBank();
   renderProg();
   renderTrophaeen();
@@ -4674,8 +4939,9 @@ window.openSettings=openSettings;window.closeSettings=closeSettings;window.saveS
   Nutzung ab 18 Jahren. Hilfe bei Spielsucht: <strong>0800 1 37 27 00</strong> (BZgA, kostenlos &amp; anonym).
 </div>
 
-<div style="position:fixed;top:12px;left:14px;z-index:9500;display:flex;align-items:center;gap:8px">
+<div style="position:fixed;top:12px;left:14px;z-index:9500;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:calc(100vw - 28px)">
   <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;border:1px solid var(--border2);background:rgba(8,16,24,.75);color:var(--text2);text-decoration:none;font-size:12.5px;font-weight:700;backdrop-filter:blur(8px)">&larr; Alle Spiele</a>
+  <button id="modus-btn" onclick="openModus()" title="Spielmodus wechseln">🏆 Karriere</button>
   <div data-gridline-account></div>
 </div>
 
@@ -4688,6 +4954,43 @@ window.openSettings=openSettings;window.closeSettings=closeSettings;window.saveS
   <a href="agb.html">AGB</a>
   <a href="jugendschutz.html">Jugendschutz &amp; Spielerschutz</a>
   <a href="#" onclick="window.GridlineConsent&amp;&amp;GridlineConsent.reopen();return false">Cookie-Einstellungen</a>
+</div>
+
+<div class="bank-modal" id="modus-modal" onclick="if(event.target===this)closeModus()">
+  <div class="bank-shell" style="max-width:430px">
+    <div class="bank-head">
+      <div>
+        <div class="bank-title">Spielmodus</div>
+        <div class="bank-note">Beide Modi haben ein eigenes Guthaben</div>
+      </div>
+      <button class="bank-x" onclick="closeModus()" aria-label="Schließen">✕</button>
+    </div>
+
+    <button class="modus-karte" data-modus="karriere" onclick="setModus('karriere')">
+      <div class="modus-ic">🏆</div>
+      <div class="modus-txt">
+        <b>Karriere</b>
+        <span>Das eigentliche Spiel. Begrenztes Guthaben, Tischlimits, Spiele
+              werden über Ränge freigeschaltet. Erfahrung, Aufgaben und
+              Trophäen zählen.</span>
+      </div>
+    </button>
+
+    <button class="modus-karte" data-modus="frei" onclick="setModus('frei')">
+      <div class="modus-ic">🎈</div>
+      <div class="modus-txt">
+        <b>Freies Spiel</b>
+        <span>Zum Ausprobieren. Alle zwanzig Spiele sofort offen, kein
+              Tischlimit, Guthaben jederzeit auffüllbar. Zählt nicht für
+              den Fortschritt.</span>
+      </div>
+    </button>
+
+    <p class="bank-legal">
+      Der Wechsel ist jederzeit möglich. Dein Karriere-Stand bleibt unangetastet,
+      während du frei spielst — beide Stände werden getrennt gespeichert.
+    </p>
+  </div>
 </div>
 
 <!-- Altersabfrage -->
