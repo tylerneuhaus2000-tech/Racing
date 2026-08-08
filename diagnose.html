@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Ladezeit-Diagnose – Gridline</title>
+<style>
+	:root { color-scheme: dark; }
+	* { box-sizing: border-box; }
+	body {
+		margin: 0; padding: 22px 16px 60px;
+		background: #08131f; color: #e9f2fb;
+		font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif;
+	}
+	.wrap { max-width: 620px; margin: 0 auto; }
+	h1 { font-size: 22px; margin: 0 0 6px; }
+	.sub { color: #94abc2; font-size: 13.5px; margin: 0 0 24px; }
+	h2 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase;
+	     color: #58d7ff; margin: 28px 0 10px; }
+	table { width: 100%; border-collapse: collapse; }
+	td { padding: 8px 0; border-bottom: 1px solid #1a2f42; font-size: 14px; vertical-align: top; }
+	td:last-child { text-align: right; font-variant-numeric: tabular-nums;
+	                font-family: ui-monospace, Menlo, monospace; white-space: nowrap; }
+	td .hint { display: block; color: #7d95ac; font-size: 11.5px; line-height: 1.5; margin-top: 2px; }
+	.good { color: #6fe3a8; } .warn { color: #ffd166; } .bad { color: #ff8f9a; }
+	#verdict {
+		margin: 26px 0 0; padding: 16px 18px; border-radius: 12px;
+		border: 1px solid #24405a; background: #0f1e2d; font-size: 14.5px; line-height: 1.7;
+	}
+	#verdict b { color: #fff; }
+	button {
+		margin-top: 22px; width: 100%; padding: 13px; border-radius: 10px;
+		border: 1px solid #3ad18b; background: #1f6d4f; color: #eafff5;
+		font: 700 13px/1 inherit; letter-spacing: .08em; text-transform: uppercase; cursor: pointer;
+	}
+	.note { margin-top: 18px; color: #7d95ac; font-size: 12.5px; line-height: 1.7; }
+	a { color: #58d7ff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+	<h1>Ladezeit-Diagnose</h1>
+	<p class="sub">
+		Misst, wo die Zeit beim Laden dieser Seite tatsächlich hingeht.
+		Diese Seite ist absichtlich winzig – was sie hier misst, gilt für alle Seiten.
+	</p>
+
+	<h2>Verbindung aufbauen</h2>
+	<table id="t-conn"></table>
+
+	<h2>Diese Seite laden</h2>
+	<table id="t-page"></table>
+
+	<h2>Testdatei vom Server holen</h2>
+	<table id="t-fetch"></table>
+
+	<h2>Dein Gerät</h2>
+	<table id="t-dev"></table>
+
+	<div id="verdict">Messung läuft …</div>
+
+	<button onclick="location.reload()">Nochmal messen</button>
+
+	<p class="note">
+		Am aussagekräftigsten: einmal direkt nach dem Öffnen messen und einmal
+		nach einem erneuten Aufruf. Schick mir am besten einen Screenshot von beidem.
+	</p>
+</div>
+
+<script>
+'use strict';
+
+const ms = v => (v === null || v === undefined || isNaN(v)) ? '–' : Math.round(v) + ' ms';
+const cls = (v, ok, warn) => v == null ? '' : (v <= ok ? 'good' : v <= warn ? 'warn' : 'bad');
+
+function row(table, label, hint, value, klass) {
+	const tr = document.createElement('tr');
+	const td1 = document.createElement('td');
+	td1.textContent = label;
+	if (hint) {
+		const s = document.createElement('span');
+		s.className = 'hint';
+		s.textContent = hint;
+		td1.appendChild(s);
+	}
+	const td2 = document.createElement('td');
+	td2.textContent = value;
+	if (klass) td2.className = klass;
+	tr.appendChild(td1); tr.appendChild(td2);
+	document.getElementById(table).appendChild(tr);
+}
+
+const results = {};
+
+function measure() {
+	const n = performance.getEntriesByType('navigation')[0];
+	if (!n) { document.getElementById('verdict').textContent = 'Dieser Browser liefert keine Messwerte.'; return; }
+
+	const dns  = n.domainLookupEnd - n.domainLookupStart;
+	const tcp  = n.connectEnd - n.connectStart;
+	const tls  = n.secureConnectionStart ? n.connectEnd - n.secureConnectionStart : null;
+	const ttfb = n.responseStart - n.requestStart;
+	const dl   = n.responseEnd - n.responseStart;
+	const dom  = n.domContentLoadedEventEnd - n.responseEnd;
+	const total = n.loadEventEnd || n.responseEnd;
+
+	results.ttfb = ttfb; results.dns = dns; results.tcp = tcp; results.dl = dl; results.total = total;
+
+	row('t-conn', 'Namensauflösung (DNS)', 'Adresse von grid-line.de nachschlagen', ms(dns), cls(dns, 50, 200));
+	row('t-conn', 'Verbindung (TCP)', 'Kontakt zum Server herstellen', ms(tcp), cls(tcp, 100, 300));
+	row('t-conn', 'Verschlüsselung (TLS)', 'HTTPS aushandeln', ms(tls), cls(tls, 150, 400));
+
+	row('t-page', 'Wartezeit auf den Server', 'Anfrage raus bis erstes Byte zurück (TTFB)', ms(ttfb), cls(ttfb, 200, 600));
+	row('t-page', 'Übertragung', 'Die Seite selbst herunterladen', ms(dl), cls(dl, 150, 600));
+	row('t-page', 'Aufbau im Browser', 'HTML und Skripte verarbeiten', ms(dom), cls(dom, 300, 1000));
+	row('t-page', 'Gesamt', 'bis alles fertig war', ms(total), cls(total, 800, 2500));
+	row('t-page', 'Aus dem Zwischenspeicher?', 'Wurde die Seite frisch geladen?',
+		n.transferSize === 0 ? 'ja (Cache)' : (n.transferSize / 1024).toFixed(0) + ' KB übertragen');
+
+	const c = navigator.connection || {};
+	row('t-dev', 'Verbindungsart', 'Einschätzung des Browsers', c.effectiveType || 'unbekannt');
+	row('t-dev', 'Geschätzte Bandbreite', '', c.downlink ? c.downlink + ' Mbit/s' : 'unbekannt');
+	row('t-dev', 'Geschätzte Latenz', 'Round-Trip-Zeit', c.rtt ? c.rtt + ' ms' : 'unbekannt');
+	row('t-dev', 'Prozessorkerne', '', navigator.hardwareConcurrency || 'unbekannt');
+
+	testFetch();
+}
+
+// Eine kleine Datei ohne Cache holen, um die reine Serverantwort zu messen
+function testFetch() {
+	const url = 'assets/gridline-site.css?cachebuster=' + Date.now();
+	const t0 = performance.now();
+	fetch(url, { cache: 'no-store' })
+		.then(r => r.text().then(txt => ({ ok: r.ok, size: txt.length })))
+		.then(res => {
+			const t = performance.now() - t0;
+			results.fetch = t;
+			row('t-fetch', 'Kleine Datei (5 KB)', 'ohne Zwischenspeicher, misst reine Serverzeit',
+				ms(t), cls(t, 250, 700));
+			row('t-fetch', 'Erhalten', '', res.ok ? (res.size / 1024).toFixed(1) + ' KB' : 'Fehler');
+			verdict();
+		})
+		.catch(() => { row('t-fetch', 'Kleine Datei', '', 'Fehler'); verdict(); });
+}
+
+function verdict() {
+	const v = document.getElementById('verdict');
+	const { ttfb, dns, dl, total, fetch: f } = results;
+	const parts = [];
+
+	if (ttfb > 600 || f > 700) {
+		parts.push('<b>Der Server antwortet langsam.</b> Die Wartezeit bis zum ersten Byte ist hoch, ' +
+			'obwohl diese Seite fast nichts enthält. Das liegt dann nicht am Inhalt der Seiten, ' +
+			'sondern am Hosting oder an der Verbindung dorthin.');
+	}
+	if (dns > 200) {
+		parts.push('<b>Die Namensauflösung dauert lange.</b> Das deutet auf die DNS-Einstellungen ' +
+			'der Domain hin, nicht auf die Seite selbst.');
+	}
+	if (dl > 800 && ttfb < 400) {
+		parts.push('<b>Die Übertragung ist der Engpass.</b> Der Server antwortet zügig, ' +
+			'aber die Daten fließen langsam – typisch für eine schwache Mobilverbindung.');
+	}
+	if (!parts.length && total < 1200) {
+		parts.push('<b>Diese Seite lädt hier normal schnell.</b> Wenn sich andere Seiten trotzdem ' +
+			'zäh anfühlen, liegt es an deren Inhalt und nicht am Server – dann sag mir, welche.');
+	}
+	if (!parts.length) {
+		parts.push('Die Werte liegen im Mittelfeld. Bitte einmal direkt nach dem Öffnen messen ' +
+			'und einmal bei erneutem Aufruf, dann lässt sich Cache von Server trennen.');
+	}
+	v.innerHTML = parts.join('<br><br>');
+}
+
+if (document.readyState === 'complete') setTimeout(measure, 50);
+else addEventListener('load', () => setTimeout(measure, 50));
+</script>
+</body>
+</html>
