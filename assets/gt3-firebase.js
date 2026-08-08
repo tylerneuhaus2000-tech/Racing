@@ -878,13 +878,49 @@ document.getElementById('btn-fb-username-save').onclick = async () => {
   }
 };
 
+/* Safari - und damit jeder Browser auf iPhone und iPad - blockiert die
+   Cross-Origin-Speicherung, auf die signInWithPopup angewiesen ist. Das Pop-up
+   geht dann auf, kommt aber nie zurueck; beim zweiten Tippen meldet Firebase
+   auth/cancelled-popup-request, weil die erste Anfrage noch offen haengt.
+   Auf diesen Geraeten deshalb gleich per Seitenweiterleitung anmelden - das
+   funktioniert dort zuverlaessig und ist auch Googles Empfehlung. */
+const BRAUCHT_REDIRECT = (() => {
+  const ua = navigator.userAgent || '';
+  const iOS = /iPad|iPhone|iPod/.test(ua) ||
+    // iPadOS meldet sich seit Version 13 als Mac, hat aber einen Touchscreen.
+    (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const safari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
+  return iOS || safari;
+})();
+
+let googleLaeuft = false;
+
 document.getElementById('btn-fb-google').onclick = () => {
+  // Zweites Tippen ignorieren, solange die erste Anfrage noch laeuft -
+  // sonst bricht Firebase beide ab (auth/cancelled-popup-request).
+  if(googleLaeuft) return;
+  googleLaeuft = true;
+
   const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).then(closeAuthModal).catch(e => {
-    // Pop-ups werden auf iOS/iPadOS und mit strengen Blockern haeufig verhindert.
-    // Dann auf die Weiterleitung ausweichen statt den Nutzer im Regen stehen zu lassen.
-    if(e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment')){
-      auth.signInWithRedirect(provider).catch(zeigeAuthFehler);
+  const fertig = () => { googleLaeuft = false; };
+  const perWeiterleitung = () => auth.signInWithRedirect(provider)
+    .catch(e => { fertig(); zeigeAuthFehler(e); });
+
+  if(BRAUCHT_REDIRECT){ perWeiterleitung(); return; }
+
+  auth.signInWithPopup(provider).then(() => { fertig(); closeAuthModal(); }).catch(e => {
+    const code = e && e.code;
+    // Pop-up wurde blockiert oder haengt: auf die Weiterleitung ausweichen.
+    if(code === 'auth/popup-blocked' ||
+       code === 'auth/cancelled-popup-request' ||
+       code === 'auth/operation-not-supported-in-this-environment'){
+      perWeiterleitung();
+      return;
+    }
+    fertig();
+    // Selbst geschlossenes Fenster ist kein Fehler, den man anmeckern muss.
+    if(code === 'auth/popup-closed-by-user'){
+      document.getElementById('fb-error-msg').textContent = '';
       return;
     }
     zeigeAuthFehler(e);
