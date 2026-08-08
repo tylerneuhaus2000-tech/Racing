@@ -540,6 +540,37 @@ body.light .settings-shell{background:linear-gradient(160deg,rgba(255,255,255,.9
   background:linear-gradient(135deg,#22c55e,#06b6d4);color:#03140f;font-size:10.5px;font-weight:800;
   font-family:'Orbitron',monospace;animation:bankPulse 2s ease-in-out infinite}
 
+/* Rang */
+.rang-box{border:1px solid var(--border);background:var(--bg3);border-radius:11px;padding:10px 11px;margin-bottom:9px}
+.rang-name{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;color:var(--gold);letter-spacing:.03em}
+.rang-sub{font-size:10.5px;color:var(--text2);margin-top:3px}
+.rang-sub.dim{color:var(--text3)}
+.nav-btn.locked{opacity:.35;filter:grayscale(.7)}
+.nav-btn.locked::before{content:"🔒";position:absolute;top:2px;right:3px;font-size:8px}
+
+/* Kredit */
+.schuld-bar{margin:4px 0 10px}
+.schuld-lbl{font-size:10.5px;color:var(--text2);margin-bottom:5px}
+.schuld-lbl b{font-family:'Orbitron',monospace;color:var(--red);font-size:12px}
+.schuld-track{height:6px;border-radius:3px;background:var(--bg4);overflow:hidden}
+.schuld-track span{display:block;height:100%;border-radius:3px;
+  background:linear-gradient(90deg,#f87171,#fb923c);transition:width .6s cubic-bezier(.2,.8,.3,1)}
+
+/* Trophäen */
+.troph-count{display:inline-block;margin-left:7px;padding:2px 7px;border-radius:8px;
+  background:var(--bg4);color:var(--gold);font-size:10px;font-weight:800;font-family:'Orbitron',monospace}
+.troph{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;
+  border:1px solid var(--border);background:var(--bg3);margin-bottom:6px;opacity:.5}
+.troph.got{opacity:1;border-color:rgba(251,191,36,.4);background:var(--gold-dim)}
+.troph-ic{font-size:17px;flex:none;filter:grayscale(1)}
+.troph.got .troph-ic{filter:none}
+.troph-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.troph-txt b{font-size:12.5px;color:var(--text)}
+.troph-txt span{font-size:10.5px;color:var(--text3);line-height:1.4}
+.troph-lohn{font-family:'Orbitron',monospace;font-size:11px;font-weight:800;color:var(--gold);
+  white-space:nowrap;flex:none}
+.troph.got .troph-lohn{color:var(--text3)}
+
 /* Serien-Punkte */
 .streak-dots{display:flex;gap:5px;margin:9px 0 11px}
 .sdot{flex:1;height:4px;border-radius:2px;background:var(--bg4);transition:background .3s,box-shadow .3s}
@@ -752,8 +783,16 @@ canvas#crash-canvas{height:190px!important}
       <div class="prog-track"><span id="prog-bar"></span></div>
     </div>
   </div>
+  <div class="rang-box">
+    <div class="rang-name" id="rang-name">Kneipenspieler</div>
+    <div class="rang-sub" id="rang-limit">Tischlimit 250</div>
+    <div class="rang-sub dim" id="rang-next">Nächster Rang: Stammgast ab Stufe 4</div>
+  </div>
   <button class="secondary-btn prog-missions" onclick="openMissions()">
     Tagesaufgaben <span class="prog-badge" id="prog-badge" style="display:none">0</span>
+  </button>
+  <button class="secondary-btn prog-missions" onclick="openTrophaeen()" style="margin-top:7px">
+    Trophäen <span class="troph-count" id="troph-count">0 / 12</span>
   </button>
 </div>
 
@@ -963,7 +1002,10 @@ function refreshStats(bump){
   $('bet-sl').max=Math.max(bal,1);
   saveState();
 }
-function getBet(){return Math.min(Math.max(parseInt($('bet-inp').value)||1,1),bal)}
+function getBet(){
+  const limit = typeof tischLimit === 'function' ? tischLimit() : Infinity;
+  return Math.min(Math.max(parseInt($('bet-inp').value)||1,1), bal, limit);
+}
 function syncI(){$('bet-inp').value=$('bet-sl').value;refreshStats()}
 function syncS(){$('bet-sl').value=Math.min(parseInt($('bet-inp').value)||1,bal);refreshStats()}
 function sb(v){$('bet-inp').value=Math.min(v,bal);syncS()}
@@ -976,7 +1018,11 @@ function renderHist(){
   none.style.display=hist.length?'none':'block';
   rows.innerHTML=hist.map(h=>{const s=h.profit>=0?'+':'';return`<div class="hist-row"><span style="font-size:10px;color:var(--text3);margin-right:6px;flex-shrink:0">${h.game}</span><span style="flex:1">${h.label}</span><span class="badge ${h.type}">${s}${fN(h.profit)}</span></div>`;}).join('');
 }
-const KEINE_RUNDE = {'Bonus':1,'Aufgabe':1,'Tagesbonus':1,'Notgroschen':1,'Level':1,'Video':1};
+/* Buchungen, die keine Spielrunde sind: sie duerfen weder Erfahrung geben
+   noch in Aufgaben, Statistik oder Trophaeen zaehlen. Ein aufgenommener
+   Kredit ist kein Gewinn. */
+const KEINE_RUNDE = {'Bonus':1,'Aufgabe':1,'Tagesbonus':1,'Notgroschen':1,
+                     'Level':1,'Video':1,'Kredit':1,'Trophäe':1};
 function addHist(game,label,profit){
   const type=profit>0?'win':profit<0?'loss':'push';
   hist.unshift({game,label,profit,type});if(hist.length>10)hist.pop();
@@ -1035,6 +1081,11 @@ function spawnParticles(n){
 }
 
 function setGame(g){
+  // Spiele werden ueber Raenge freigeschaltet - das gibt dem Aufstieg Sinn.
+  if(typeof spielFrei === 'function' && !spielFrei(g)){
+    showBanner('Noch gesperrt — freigeschaltet ab ' + rangFuer(g), 'loss');
+    return;
+  }
   if(curGame==='crash'&&g!=='crash')stopCrash();
   if(curGame==='slot'&&g!=='slot')stopAutoSpin();
   curGame=g;
@@ -3648,6 +3699,33 @@ initScratch();initDragon();initWheel2();
       <button class="bank-btn" id="bank-rescue-btn" onclick="claimRescue()">Auffüllen</button>
     </div>
 
+    <div class="bank-card" id="bank-card-kredit">
+      <div class="bank-card-top">
+        <div>
+          <div class="bank-card-name">Kredit</div>
+          <div class="bank-card-desc" id="kredit-desc">Einmal am Tag, wenn dein Guthaben knapp wird.</div>
+        </div>
+        <div class="bank-card-amt" id="kredit-amt">—</div>
+      </div>
+      <div class="schuld-bar" id="schuld-wrap" style="display:none">
+        <div class="schuld-lbl">Offene Schuld <b id="schuld-val">0</b></div>
+        <div class="schuld-track"><span id="schuld-bar"></span></div>
+      </div>
+      <button class="bank-btn" id="kredit-btn" onclick="takeKredit()">Kredit aufnehmen</button>
+      <button class="bank-btn" id="tilgen-btn" onclick="tilgeAlles()" style="display:none;margin-top:7px">Jetzt tilgen</button>
+    </div>
+
+    <div class="bank-card" id="bank-card-troph">
+      <div class="bank-card-top">
+        <div>
+          <div class="bank-card-name">Trophäen</div>
+          <div class="bank-card-desc">Einmalige Ziele. Die Belohnung kommt automatisch.</div>
+        </div>
+        <div class="bank-card-amt" id="troph-amt">0/12</div>
+      </div>
+      <div id="troph-list"></div>
+    </div>
+
     <div class="bank-card" id="bank-card-missions">
       <div class="bank-card-top">
         <div>
@@ -3914,7 +3992,123 @@ function dayStr(d){
 const today = () => dayStr();
 const yesterday = () => dayStr(new Date(Date.now() - 86400000));
 
-let eco = { lastDaily:null, streak:0, rescueDay:null, rescueUsed:0 };
+let eco = { lastDaily:null, streak:0, rescueDay:null, rescueUsed:0, schuld:0, kreditTag:null };
+
+/* ══════════════ KREDIT ══════════════
+   Ein Kredit ist bewusst kein zweiter Geldhahn, sondern eine Entscheidung
+   mit Folgen:
+     - Hoehe richtet sich nach dem Rang, nicht nach Wunsch
+     - 20 % Zinsen, die sofort auf die Schuld aufgeschlagen werden
+     - solange etwas offen ist, gibt es keinen neuen Kredit
+     - Tagesbonus und Notgroschen tilgen zuerst die Schuld
+     - hoechstens ein Kredit pro Tag
+   So bleibt "sich hochleihen" unmoeglich, aber ein Kredit kann eine Runde
+   retten, wenn man ihn zurueckspielt. */
+const KREDIT_ZINS = 0.20;
+
+function kreditMax(){ return rangJetzt().kredit; }
+function kreditOffen(){ return eco.schuld > 0; }
+function kreditMoeglich(){
+  return !kreditOffen() && eco.kreditTag !== today() && bal < kreditMax() * 0.5;
+}
+
+function takeKredit(){
+  if(!kreditMoeglich()) return;
+  const betrag = kreditMax();
+  eco.schuld = Math.round(betrag * (1 + KREDIT_ZINS));
+  eco.kreditTag = today();
+  saveEco();
+  bal += betrag;
+  refreshStats(true);
+  saveNow();
+  addHist('Kredit', 'aufgenommen', betrag);
+  showBanner('Kredit über ' + fN(betrag) + ' Chips — zurückzuzahlen: ' + fN(eco.schuld), 'push');
+  coinBurst(10);
+  renderBank();
+}
+
+/* Rueckzahlung: von Hand oder automatisch aus Boni. */
+function zahleSchuld(betrag, still){
+  if(eco.schuld <= 0 || betrag <= 0) return 0;
+  const zahlung = Math.min(betrag, eco.schuld, bal);
+  if(zahlung <= 0) return 0;
+  bal -= zahlung;
+  eco.schuld -= zahlung;
+  saveEco(); saveNow(); refreshStats();
+  if(!still){
+    addHist('Kredit', eco.schuld > 0 ? 'Teilzahlung' : 'abbezahlt', -zahlung);
+    showBanner(eco.schuld > 0
+      ? 'Getilgt: ' + fN(zahlung) + ' — offen: ' + fN(eco.schuld)
+      : 'Kredit vollständig abbezahlt!', eco.schuld > 0 ? 'push' : 'win');
+    if(eco.schuld === 0){
+      spawnParticles(20);
+      if(prog.stats){ prog.stats.krediteGetilgt = (prog.stats.krediteGetilgt||0) + 1; saveProg(); pruefeTrophaeen(); }
+    }
+  }
+  renderBank();
+  return zahlung;
+}
+function tilgeAlles(){ zahleSchuld(eco.schuld); }
+window.takeKredit = takeKredit;
+window.tilgeAlles = tilgeAlles;
+
+/* ══════════════ KARRIERE: RÄNGE ══════════════
+   Gibt dem Ganzen eine Richtung. Der Rang steigt mit der Stufe und
+   bestimmt Tischlimit, Kredithoehe und welche Spiele offen sind. */
+const RAENGE = [
+  { ab:1,  name:'Kneipenspieler',  limit:250,    kredit:500,   frei:['bj','slot','coin','dice','scratch','wheel'] },
+  { ab:4,  name:'Stammgast',       limit:1000,   kredit:1500,  frei:['rou','hilo','limbo'] },
+  { ab:8,  name:'Kartenhai',       limit:5000,   kredit:5000,  frei:['poker','vidpoker','bacc'] },
+  { ab:13, name:'High Roller',     limit:25000,  kredit:20000, frei:['mega','plinko','keno','tower'] },
+  { ab:19, name:'Whale',           limit:100000, kredit:75000, frei:['mines','dragon','wheel2','crash'] },
+  { ab:26, name:'Legende',         limit:Infinity, kredit:250000, frei:[] }
+];
+
+function rangIndex(){
+  let i = 0;
+  for(let k = 0; k < RAENGE.length; k++) if(prog.level >= RAENGE[k].ab) i = k;
+  return i;
+}
+function rangJetzt(){ return RAENGE[rangIndex()]; }
+function rangNaechster(){ return RAENGE[rangIndex() + 1] || null; }
+
+/* Alle bis zum aktuellen Rang freigeschalteten Spiele. */
+function freieSpiele(){
+  const set = {};
+  for(let k = 0; k <= rangIndex(); k++) RAENGE[k].frei.forEach(g => set[g] = 1);
+  return set;
+}
+function spielFrei(g){ return !!freieSpiele()[g]; }
+
+/* Tischlimit: begrenzt den Einsatz nach oben. Gibt den Raengen Bedeutung. */
+function tischLimit(){ return rangJetzt().limit; }
+
+function renderRang(){
+  const r = rangJetzt(), n = rangNaechster();
+  const el = $('rang-name'); if(el) el.textContent = r.name;
+  const li = $('rang-limit');
+  if(li) li.textContent = r.limit === Infinity ? 'Kein Tischlimit' : 'Tischlimit ' + fN(r.limit);
+  const nx = $('rang-next');
+  if(nx) nx.textContent = n ? 'Nächster Rang: ' + n.name + ' ab Stufe ' + n.ab : 'Höchster Rang erreicht';
+
+  // Gesperrte Spiele in der Navigation kennzeichnen
+  const frei = freieSpiele();
+  Object.keys(SPIEL_NAMEN).forEach(g => {
+    const btn = $('nav-' + g);
+    if(!btn) return;
+    const offen = !!frei[g];
+    btn.classList.toggle('locked', !offen);
+    btn.title = offen ? '' : 'Ab Rang ' + rangFuer(g);
+  });
+}
+
+const SPIEL_NAMEN = {};
+RAENGE.forEach(r => r.frei.forEach(g => SPIEL_NAMEN[g] = 1));
+
+function rangFuer(g){
+  for(const r of RAENGE) if(r.frei.includes(g)) return r.name + ' (Stufe ' + r.ab + ')';
+  return '—';
+}
 
 function loadEco(){
   let d = null;
@@ -3924,6 +4118,8 @@ function loadEco(){
     if(Number.isFinite(d.streak) && d.streak >= 0) eco.streak = Math.min(Math.floor(d.streak), 9999);
     if(typeof d.rescueDay === 'string') eco.rescueDay = d.rescueDay;
     if(Number.isFinite(d.rescueUsed) && d.rescueUsed >= 0) eco.rescueUsed = Math.floor(d.rescueUsed);
+    if(Number.isFinite(d.schuld) && d.schuld >= 0) eco.schuld = Math.min(Math.floor(d.schuld), 1e9);
+    if(typeof d.kreditTag === 'string') eco.kreditTag = d.kreditTag;
     return;
   }
   // Uebernahme aus der alten Fassung: dort stand nur das Datum des letzten Bonus.
@@ -3990,6 +4186,17 @@ function checkBroke(){
 function grantChips(amount, quelle, detail){
   if(!(amount > 0)) return;
   bal += amount;
+  // Offene Schuld wird zuerst bedient - ein Kredit soll sich anfuehlen.
+  if(eco.schuld > 0 && quelle !== 'Kredit'){
+    const weg = Math.min(eco.schuld, amount);
+    setTimeout(() => {
+      const gezahlt = zahleSchuld(weg, true);
+      if(gezahlt > 0){
+        showBanner('Davon ' + fN(gezahlt) + ' an die Bank zurückgezahlt' +
+          (eco.schuld > 0 ? ' — offen: ' + fN(eco.schuld) : ' — Kredit getilgt!'), 'push');
+      }
+    }, 1400);
+  }
   _brokeShown = false;
   refreshStats(true);
   saveNow();
@@ -4045,6 +4252,40 @@ function renderBank(){
   if(rAmt) rAmt.textContent = can ? '+' + fN(RESCUE_TARGET - bal) : left + '/' + RESCUE_PER_DAY;
   if(rDesc) rDesc.textContent = 'Füllt auf ' + fN(RESCUE_TARGET) + ' auf, wenn du unter ' + fN(RESCUE_THRESHOLD) +
     ' Chips fällst. Noch ' + left + ' von ' + RESCUE_PER_DAY + ' heute.';
+
+  // Kredit
+  const kb = $('kredit-btn'), ka = $('kredit-amt'), kd = $('kredit-desc');
+  const tb = $('tilgen-btn'), sw = $('schuld-wrap');
+  if(kreditOffen()){
+    if(sw) sw.style.display = '';
+    const sv = $('schuld-val'); if(sv) sv.textContent = fN(eco.schuld);
+    const start = Math.round(kreditMax() * (1 + KREDIT_ZINS)) || 1;
+    const sb = $('schuld-bar'); if(sb) sb.style.width = Math.min(100, eco.schuld / start * 100) + '%';
+    if(ka) ka.textContent = '−' + fN(eco.schuld);
+    if(ka) ka.style.color = 'var(--red)';
+    if(kd) kd.textContent = 'Solange etwas offen ist, gibt es keinen neuen Kredit. Boni tilgen automatisch.';
+    if(kb){ kb.disabled = true; kb.textContent = 'Kredit läuft'; }
+    if(tb){ tb.style.display = ''; tb.disabled = bal <= 0;
+            tb.textContent = bal >= eco.schuld ? 'Komplett tilgen (' + fN(eco.schuld) + ')'
+                                               : 'Tilgen mit ' + fN(Math.min(bal, eco.schuld)); }
+  } else {
+    if(sw) sw.style.display = 'none';
+    if(tb) tb.style.display = 'none';
+    if(ka){ ka.textContent = '+' + fN(kreditMax()); ka.style.color = 'var(--green)'; }
+    const geht = kreditMoeglich();
+    if(kb){
+      kb.disabled = !geht;
+      kb.textContent = eco.kreditTag === today() ? 'Heute schon geliehen'
+        : geht ? 'Kredit über ' + fN(kreditMax()) + ' aufnehmen'
+        : 'Erst unter ' + fN(Math.floor(kreditMax() * 0.5)) + ' Chips';
+    }
+    if(kd) kd.textContent = 'Bis ' + fN(kreditMax()) + ' Chips, ' + Math.round(KREDIT_ZINS * 100) +
+      ' % Zinsen. Einmal am Tag. Höhere Ränge leihen mehr.';
+  }
+  const ta = $('troph-amt');
+  if(ta) ta.textContent = Object.keys(prog.trophaeen || {}).length + '/' + TROPHAEEN.length;
+
+  renderRang();
 
   // Seitenleiste
   const sd = $('side-daily'), sdl = $('side-daily-lbl'), sds = $('side-daily-sub');
@@ -4120,12 +4361,14 @@ function loadProg(){
       m && typeof m.id === 'string' && Number.isFinite(m.ziel) && Number.isFinite(m.fortschritt)
     ).slice(0,3);
     if(d.seen && typeof d.seen === 'object') prog.seen = d.seen;
+    if(d.stats && typeof d.stats === 'object') prog.stats = d.stats;
+    if(d.trophaeen && typeof d.trophaeen === 'object') prog.trophaeen = d.trophaeen;
   }
   if(prog.day !== today() || prog.missions.length !== 3){
     prog.day = today();
     prog.missions = rollMissions();
     prog.seen = {};
-    saveProg();
+    saveProg();   // Statistik und Trophaeen bleiben bewusst erhalten
   }
 }
 function saveProg(){ try{ localStorage.setItem(PROG_KEY, JSON.stringify(prog)); }catch(e){} }
@@ -4160,6 +4403,17 @@ function trackRound(spiel, profit){
   winStreakRun = gewonnen ? winStreakRun + 1 : 0;
   prog.seen[spiel] = 1;
 
+  // Dauerhafte Statistik fuer Trophaeen und die Rekordanzeige
+  if(!prog.stats) prog.stats = { runden:0, bestGewinn:0, bestSerie:0, gespielt:0,
+                                 hoechstesGuthaben:0, krediteGetilgt:0, alleSpiele:{} };
+  const st = prog.stats;
+  st.runden++;
+  st.alleSpiele[spiel] = 1;
+  st.gespielt = Object.keys(st.alleSpiele).length;
+  if(profit > st.bestGewinn) st.bestGewinn = profit;
+  if(winStreakRun > st.bestSerie) st.bestSerie = winStreakRun;
+  if(bal > st.hoechstesGuthaben) st.hoechstesGuthaben = bal;
+
   // Erfahrung: Grundwert pro Runde, Zuschlag nach Gewinnhoehe
   const ref = Math.max(getBet(), 1);
   addXP(3 + (gewonnen ? Math.min(20, Math.round(profit / ref) * 2) : 0));
@@ -4178,6 +4432,7 @@ function trackRound(spiel, profit){
   });
   saveProg();
   renderProg();
+  pruefeTrophaeen();
 }
 
 function missionText(m){
@@ -4233,9 +4488,68 @@ function renderProg(){
   }
 }
 
+/* ══════════════ TROPHÄEN ══════════════
+   Einmalige Ziele mit Belohnung. Anders als die Tagesaufgaben bleiben sie
+   dauerhaft und geben laengerfristige Motivation. */
+const TROPHAEEN = [
+  { id:'first',    name:'Erster Einsatz',      text:'Spiele deine erste Runde',           lohn:200,   test:st=>st.runden>=1 },
+  { id:'hundred',  name:'Stammkunde',          text:'Spiele 100 Runden',                  lohn:1500,  test:st=>st.runden>=100 },
+  { id:'thousand', name:'Dauergast',           text:'Spiele 1.000 Runden',                lohn:10000, test:st=>st.runden>=1000 },
+  { id:'big1k',    name:'Fetter Fang',         text:'Gewinne 1.000 Chips in einer Runde', lohn:1000,  test:st=>st.bestGewinn>=1000 },
+  { id:'big10k',   name:'Volltreffer',         text:'Gewinne 10.000 in einer Runde',      lohn:7500,  test:st=>st.bestGewinn>=10000 },
+  { id:'streak5',  name:'Glückssträhne',       text:'Gewinne 5 Runden hintereinander',    lohn:1500,  test:st=>st.bestSerie>=5 },
+  { id:'streak8',  name:'Unaufhaltsam',        text:'Gewinne 8 Runden hintereinander',    lohn:6000,  test:st=>st.bestSerie>=8 },
+  { id:'allgames', name:'Alleskönner',         text:'Spiele jedes Spiel mindestens einmal', lohn:5000, test:st=>st.gespielt>=20 },
+  { id:'rich',     name:'Vermögend',           text:'Besitze 100.000 Chips',              lohn:5000,  test:st=>st.hoechstesGuthaben>=100000 },
+  { id:'debtfree', name:'Schuldenfrei',        text:'Zahle einen Kredit vollständig zurück', lohn:2000, test:st=>st.krediteGetilgt>=1 },
+  { id:'lvl10',    name:'Aufsteiger',          text:'Erreiche Stufe 10',                  lohn:4000,  test:()=>prog.level>=10 },
+  { id:'lvl25',    name:'Veteran',             text:'Erreiche Stufe 25',                  lohn:20000, test:()=>prog.level>=25 }
+];
+
+function pruefeTrophaeen(){
+  if(!prog.trophaeen) prog.trophaeen = {};
+  let neu = null;
+  TROPHAEEN.forEach(t => {
+    if(prog.trophaeen[t.id]) return;
+    let erfuellt = false;
+    try{ erfuellt = !!t.test(prog.stats || {}); }catch(e){}
+    if(erfuellt){ prog.trophaeen[t.id] = 1; neu = neu || t; }
+  });
+  if(neu){
+    saveProg();
+    setTimeout(() => {
+      showBigWin('TROPHÄE');
+      showBanner('Trophäe „' + neu.name + '" — +' + fN(neu.lohn) + ' Chips', 'win');
+      bal += neu.lohn;
+      refreshStats(true); saveNow();
+      addHist('Trophäe', neu.name, neu.lohn);
+    }, 900);
+  }
+  renderTrophaeen();
+}
+
+function renderTrophaeen(){
+  const l = $('troph-list');
+  if(!l) return;
+  const hab = prog.trophaeen || {};
+  l.innerHTML = TROPHAEEN.map(t => `
+    <div class="troph${hab[t.id] ? ' got' : ''}">
+      <div class="troph-ic">${hab[t.id] ? '🏆' : '🔒'}</div>
+      <div class="troph-txt"><b>${t.name}</b><span>${t.text}</span></div>
+      <div class="troph-lohn">${hab[t.id] ? 'erhalten' : '+' + fN(t.lohn)}</div>
+    </div>`).join('');
+  const z = $('troph-count');
+  if(z) z.textContent = Object.keys(hab).length + ' / ' + TROPHAEEN.length;
+}
+
 loadProg();
 
-function openTopup(){ renderBank(); renderProg(); $('bank-modal').classList.add('open'); }
+function openTopup(){ renderBank(); renderProg(); renderTrophaeen(); $('bank-modal').classList.add('open'); }
+function openTrophaeen(){
+  openTopup();
+  setTimeout(()=>{ const el=$('bank-card-troph'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); },120);
+}
+window.openTrophaeen = openTrophaeen;
 function openMissions(){
   openTopup();
   setTimeout(()=>{ const el=$('bank-card-missions'); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); },120);
@@ -4307,6 +4621,8 @@ window.addEventListener('load',function(){
   renderHist();
   renderBank();
   renderProg();
+  renderTrophaeen();
+  pruefeTrophaeen();
   refreshStats();
   if(typeof updateAutoBtns==='function')updateAutoBtns();
 });
