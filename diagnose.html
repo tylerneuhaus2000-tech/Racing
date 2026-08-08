@@ -192,7 +192,16 @@ function verdict(stall, cmp) {
 
 	let title, body;
 
-	if (unknown(gh) && unknown(other) && slow(own)) {
+	// Reihenfolge ist wichtig: ein schneller unbeteiligter Server entlastet das
+	// Geraet bereits vollstaendig - dafuer braucht es den GitHub-Vergleich nicht.
+	if (slow(own) && fast(other) && unknown(gh)) {
+		title = 'Es liegt an deiner Domain oder deren Hosting.';
+		body = 'Ein unbeteiligter Server antwortet von hier aus in Millisekunden – deine Verbindung, ' +
+			'dein WLAN und dein Gerät sind also in Ordnung. Nur grid-line.de hängt. ' +
+			'Prüfe, worauf die Domain zeigt: Steht ein Dienst wie Cloudflare davor, ist das der ' +
+			'wahrscheinlichste Verursacher. Am schnellsten geht es, die Domain direkt auf GitHub Pages ' +
+			'zeigen zu lassen (A-Records 185.199.108.153, .109.153, .110.153, .111.153).';
+	} else if (unknown(gh) && unknown(other) && slow(own)) {
 		title = 'Deine Seite ist langsam, die Vergleichsziele nicht erreichbar.';
 		body = 'GitHub und Cloudflare liessen sich gar nicht abfragen – meist blockiert ein Werbeblocker, ' +
 			'ein VPN oder iCloud Private Relay diese Anfragen. Damit fehlt der Vergleich. ' +
