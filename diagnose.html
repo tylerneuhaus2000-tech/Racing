@@ -13,11 +13,12 @@
 		background: #08131f; color: #e9f2fb;
 		font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif;
 	}
-	.wrap { max-width: 620px; margin: 0 auto; }
+	.wrap { max-width: 640px; margin: 0 auto; }
 	h1 { font-size: 22px; margin: 0 0 6px; }
-	.sub { color: #94abc2; font-size: 13.5px; margin: 0 0 24px; }
+	.sub { color: #94abc2; font-size: 13.5px; margin: 0 0 22px; }
 	h2 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase;
-	     color: #58d7ff; margin: 28px 0 10px; }
+	     color: #58d7ff; margin: 26px 0 8px; }
+	.h2note { color: #7d95ac; font-size: 12px; margin: 0 0 8px; line-height: 1.55; }
 	table { width: 100%; border-collapse: collapse; }
 	td { padding: 8px 0; border-bottom: 1px solid #1a2f42; font-size: 14px; vertical-align: top; }
 	td:last-child { text-align: right; font-variant-numeric: tabular-nums;
@@ -29,42 +30,45 @@
 		border: 1px solid #24405a; background: #0f1e2d; font-size: 14.5px; line-height: 1.7;
 	}
 	#verdict b { color: #fff; }
+	#verdict ul { margin: 10px 0 0; padding-left: 20px; }
+	#verdict li { margin-bottom: 6px; }
 	button {
-		margin-top: 22px; width: 100%; padding: 13px; border-radius: 10px;
+		margin-top: 20px; width: 100%; padding: 13px; border-radius: 10px;
 		border: 1px solid #3ad18b; background: #1f6d4f; color: #eafff5;
 		font: 700 13px/1 inherit; letter-spacing: .08em; text-transform: uppercase; cursor: pointer;
 	}
-	.note { margin-top: 18px; color: #7d95ac; font-size: 12.5px; line-height: 1.7; }
-	a { color: #58d7ff; }
+	.note { margin-top: 16px; color: #7d95ac; font-size: 12.5px; line-height: 1.7; }
+	.running { color: #94abc2; }
 </style>
 </head>
 <body>
 <div class="wrap">
 	<h1>Ladezeit-Diagnose</h1>
 	<p class="sub">
-		Misst, wo die Zeit beim Laden dieser Seite tatsächlich hingeht.
-		Diese Seite ist absichtlich winzig – was sie hier misst, gilt für alle Seiten.
+		Vergleicht drei Ziele miteinander. Daran lässt sich ablesen, ob es an der Seite,
+		an der Domain oder an der Internetverbindung des Geräts liegt.
 	</p>
-
-	<h2>Verbindung aufbauen</h2>
-	<table id="t-conn"></table>
 
 	<h2>Diese Seite laden</h2>
 	<table id="t-page"></table>
 
-	<h2>Testdatei vom Server holen</h2>
-	<table id="t-fetch"></table>
+	<h2>Drei Ziele im Vergleich</h2>
+	<p class="h2note">
+		Jeweils eine winzige Datei, zweimal hintereinander, ohne Zwischenspeicher.
+		Entscheidend ist nicht der einzelne Wert, sondern ob sich die drei Ziele unterscheiden.
+	</p>
+	<table id="t-cmp"></table>
 
 	<h2>Dein Gerät</h2>
 	<table id="t-dev"></table>
 
-	<div id="verdict">Messung läuft …</div>
+	<div id="verdict" class="running">Messung läuft, bitte einen Moment …</div>
 
 	<button onclick="location.reload()">Nochmal messen</button>
 
 	<p class="note">
-		Am aussagekräftigsten: einmal direkt nach dem Öffnen messen und einmal
-		nach einem erneuten Aufruf. Schick mir am besten einen Screenshot von beidem.
+		Tipp: Wenn möglich einmal über WLAN und einmal über Mobilfunk messen –
+		und wenn vorhanden auf einem zweiten Gerät.
 	</p>
 </div>
 
@@ -72,7 +76,7 @@
 'use strict';
 
 const ms = v => (v === null || v === undefined || isNaN(v)) ? '–' : Math.round(v) + ' ms';
-const cls = (v, ok, warn) => v == null ? '' : (v <= ok ? 'good' : v <= warn ? 'warn' : 'bad');
+const cls = (v, ok, warn) => v == null ? '' : v === Infinity ? 'bad' : (v <= ok ? 'good' : v <= warn ? 'warn' : 'bad');
 
 function row(table, label, hint, value, klass) {
 	const tr = document.createElement('tr');
@@ -89,92 +93,154 @@ function row(table, label, hint, value, klass) {
 	if (klass) td2.className = klass;
 	tr.appendChild(td1); tr.appendChild(td2);
 	document.getElementById(table).appendChild(tr);
+	return td2;
 }
 
-const results = {};
-
-function measure() {
+/* ---------- Diese Seite ---------- */
+function pageTimings() {
 	const n = performance.getEntriesByType('navigation')[0];
-	if (!n) { document.getElementById('verdict').textContent = 'Dieser Browser liefert keine Messwerte.'; return; }
-
-	const dns  = n.domainLookupEnd - n.domainLookupStart;
-	const tcp  = n.connectEnd - n.connectStart;
-	const tls  = n.secureConnectionStart ? n.connectEnd - n.secureConnectionStart : null;
-	const ttfb = n.responseStart - n.requestStart;
-	const dl   = n.responseEnd - n.responseStart;
-	const dom  = n.domContentLoadedEventEnd - n.responseEnd;
-	const total = n.loadEventEnd || n.responseEnd;
-
-	results.ttfb = ttfb; results.dns = dns; results.tcp = tcp; results.dl = dl; results.total = total;
-
-	row('t-conn', 'Namensauflösung (DNS)', 'Adresse von grid-line.de nachschlagen', ms(dns), cls(dns, 50, 200));
-	row('t-conn', 'Verbindung (TCP)', 'Kontakt zum Server herstellen', ms(tcp), cls(tcp, 100, 300));
-	row('t-conn', 'Verschlüsselung (TLS)', 'HTTPS aushandeln', ms(tls), cls(tls, 150, 400));
-
-	row('t-page', 'Wartezeit auf den Server', 'Anfrage raus bis erstes Byte zurück (TTFB)', ms(ttfb), cls(ttfb, 200, 600));
-	row('t-page', 'Übertragung', 'Die Seite selbst herunterladen', ms(dl), cls(dl, 150, 600));
-	row('t-page', 'Aufbau im Browser', 'HTML und Skripte verarbeiten', ms(dom), cls(dom, 300, 1000));
-	row('t-page', 'Gesamt', 'bis alles fertig war', ms(total), cls(total, 800, 2500));
-	row('t-page', 'Aus dem Zwischenspeicher?', 'Wurde die Seite frisch geladen?',
-		n.transferSize === 0 ? 'ja (Cache)' : (n.transferSize / 1024).toFixed(0) + ' KB übertragen');
-
-	const c = navigator.connection || {};
-	row('t-dev', 'Verbindungsart', 'Einschätzung des Browsers', c.effectiveType || 'unbekannt');
-	row('t-dev', 'Geschätzte Bandbreite', '', c.downlink ? c.downlink + ' Mbit/s' : 'unbekannt');
-	row('t-dev', 'Geschätzte Latenz', 'Round-Trip-Zeit', c.rtt ? c.rtt + ' ms' : 'unbekannt');
-	row('t-dev', 'Prozessorkerne', '', navigator.hardwareConcurrency || 'unbekannt');
-
-	testFetch();
+	if (!n) return null;
+	const stall = n.responseEnd - n.requestStart;   // Warten + Übertragung zusammen
+	row('t-page', 'Bis die Seite da war',
+		'Anfrage raus bis letztes Byte da – hier steckt die Wartezeit', ms(stall), cls(stall, 400, 1500));
+	row('t-page', 'Verarbeitung im Browser',
+		'HTML und Skripte ausführen – das ist die eigentliche Arbeit der Seite',
+		ms(n.domContentLoadedEventEnd - n.responseEnd), cls(n.domContentLoadedEventEnd - n.responseEnd, 300, 1000));
+	row('t-page', 'Menge', '', n.transferSize === 0 ? 'aus dem Cache' : (n.transferSize / 1024).toFixed(0) + ' KB');
+	return stall;
 }
 
-// Eine kleine Datei ohne Cache holen, um die reine Serverantwort zu messen
-function testFetch() {
-	const url = 'assets/gridline-site.css?cachebuster=' + Date.now();
+/* ---------- Drei Ziele ---------- */
+// Eigene Domain, dieselbe Seite direkt bei GitHub, und ein unbeteiligter Dritter.
+const TARGETS = [
+	{ name: 'grid-line.de', hint: 'deine Domain',
+	  url: () => 'assets/gridline-site.css?d=' + Math.random(), cors: true },
+	{ name: 'GitHub direkt', hint: 'dieselbe Datei ohne deine Domain',
+	  url: () => 'https://tylerneuhaus2000-tech.github.io/Racing/assets/gridline-site.css?d=' + Math.random(), cors: false },
+	{ name: 'Unbeteiligter Server', hint: 'Cloudflare – zeigt, ob das Internet allgemein hakt',
+	  url: () => 'https://cloudflare.com/cdn-cgi/trace?d=' + Math.random(), cors: false }
+];
+
+/* Jede Anfrage nach 8 Sekunden abbrechen. Sonst dauert der Test bei genau dem
+   Problem, das er finden soll, mehrere Minuten. Ein Abbruch ist selbst ein
+   Ergebnis: langsamer als 8 Sekunden. */
+const LIMIT = 8000;
+
+function timeOnce(t) {
 	const t0 = performance.now();
-	fetch(url, { cache: 'no-store' })
-		.then(r => r.text().then(txt => ({ ok: r.ok, size: txt.length })))
-		.then(res => {
-			const t = performance.now() - t0;
-			results.fetch = t;
-			row('t-fetch', 'Kleine Datei (5 KB)', 'ohne Zwischenspeicher, misst reine Serverzeit',
-				ms(t), cls(t, 250, 700));
-			row('t-fetch', 'Erhalten', '', res.ok ? (res.size / 1024).toFixed(1) + ' KB' : 'Fehler');
-			verdict();
+	const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+	const timer = setTimeout(() => ctrl && ctrl.abort(), LIMIT);
+	return fetch(t.url(), {
+			cache: 'no-store',
+			mode: t.cors ? 'cors' : 'no-cors',
+			signal: ctrl ? ctrl.signal : undefined
 		})
-		.catch(() => { row('t-fetch', 'Kleine Datei', '', 'Fehler'); verdict(); });
+		.then(() => { clearTimeout(timer); return performance.now() - t0; })
+		.catch(() => { clearTimeout(timer); return performance.now() - t0 >= LIMIT - 200 ? Infinity : null; });
 }
 
-function verdict() {
+async function compare() {
+	const out = {};
+	for (const t of TARGETS) {
+		const cell = row('t-cmp', t.name, t.hint, 'misst …');
+		const runs = [];
+		const fmt = r => r === Infinity ? '>8s' : r == null ? 'Fehler' : Math.round(r);
+		for (let i = 0; i < 2; i++) {
+			const v = await timeOnce(t);
+			runs.push(v);
+			cell.textContent = runs.map(fmt).join(' / ') + (runs.some(r => r === Infinity) ? '' : ' ms');
+		}
+		// Bester Versuch zaehlt. Fehlgeschlagene Versuche sind KEIN gutes Ergebnis -
+		// sie bedeuten "unbekannt" und duerfen nicht als schnell durchgehen.
+		const numeric = runs.filter(r => typeof r === 'number' && isFinite(r));
+		let state;
+		if (numeric.length) state = { kind: 'zeit', value: Math.min.apply(null, numeric) };
+		else if (runs.some(r => r === Infinity)) state = { kind: 'langsam' };
+		else state = { kind: 'fehler' };
+		out[t.name] = state;
+		cell.className = state.kind === 'zeit' ? cls(state.value, 400, 1500)
+		               : state.kind === 'langsam' ? 'bad' : 'warn';
+	}
+	return out;
+}
+
+/* ---------- Gerät ---------- */
+function device() {
+	const c = navigator.connection || {};
+	row('t-dev', 'Verbindungsart', '', c.effectiveType || 'wird von Safari nicht verraten');
+	row('t-dev', 'Prozessorkerne', '', navigator.hardwareConcurrency || 'unbekannt');
+	if (navigator.getBattery) {
+		navigator.getBattery().then(b => {
+			row('t-dev', 'Akku', 'Bei niedrigem Stand drosselt iOS das Netzwerk',
+				Math.round(b.level * 100) + '%' + (b.charging ? ' (lädt)' : ''),
+				b.level < 0.2 && !b.charging ? 'warn' : '');
+		}).catch(() => {});
+	}
+}
+
+/* ---------- Urteil ---------- */
+function verdict(stall, cmp) {
 	const v = document.getElementById('verdict');
-	const { ttfb, dns, dl, total, fetch: f } = results;
-	const parts = [];
+	v.className = '';
+	const own = cmp['grid-line.de'], gh = cmp['GitHub direkt'], other = cmp['Unbeteiligter Server'];
 
-	if (ttfb > 600 || f > 700) {
-		parts.push('<b>Der Server antwortet langsam.</b> Die Wartezeit bis zum ersten Byte ist hoch, ' +
-			'obwohl diese Seite fast nichts enthält. Das liegt dann nicht am Inhalt der Seiten, ' +
-			'sondern am Hosting oder an der Verbindung dorthin.');
+	// Drei Zustaende sauber unterscheiden. "fehler" heisst unbekannt und wird
+	// nirgends als schnell gewertet - sonst kommen falsche Schluesse heraus.
+	const slow = x => x && (x.kind === 'langsam' || (x.kind === 'zeit' && x.value > 2000));
+	const fast = x => x && x.kind === 'zeit' && x.value <= 2000;
+	const unknown = x => !x || x.kind === 'fehler';
+
+	let title, body;
+
+	if (unknown(gh) && unknown(other) && slow(own)) {
+		title = 'Deine Seite ist langsam, die Vergleichsziele nicht erreichbar.';
+		body = 'GitHub und Cloudflare liessen sich gar nicht abfragen – meist blockiert ein Werbeblocker, ' +
+			'ein VPN oder iCloud Private Relay diese Anfragen. Damit fehlt der Vergleich. ' +
+			'Bitte einmal ohne Blocker oder in einem privaten Fenster erneut messen.';
+	} else if (slow(own) && slow(gh) && slow(other)) {
+		title = 'Es liegt an der Internetverbindung dieses Geräts.';
+		body = 'Auch ein völlig unbeteiligter Server braucht hier ewig. Mit der Seite hat das nichts zu tun.';
+		body += '<ul>' +
+			'<li>Akku fast leer? Bei niedrigem Stand und im Stromsparmodus drosselt iOS das Netzwerk stark.</li>' +
+			'<li>Einmal WLAN aus und über Mobilfunk probieren – oder umgekehrt.</li>' +
+			'<li>iCloud Private Relay, VPN oder ein Werbeblocker können jede Anfrage aufhalten.</li>' +
+			'<li>Wenn möglich mit einem zweiten Gerät im selben Netz gegenprüfen.</li>' +
+			'</ul>';
+	} else if (slow(own) && slow(gh) && fast(other)) {
+		title = 'Das Hosting bei GitHub Pages ist der Engpass.';
+		body = 'Andere Server antworten von hier aus zügig, GitHub nicht – und zwar auch ohne deine Domain. ' +
+			'Dann hilft nur ein Wechsel des Hostings oder ein CDN davor.';
+	} else if (slow(own) && fast(gh)) {
+		title = 'Es liegt an der Domain grid-line.de.';
+		body = 'Dieselbe Datei direkt bei GitHub ist schnell, über deine Domain nicht. ' +
+			'Das deutet auf die DNS-Einträge der Domain hin – prüf die A-Records auf die GitHub-Pages-Adressen ' +
+			'und ob in den Repository-Einstellungen unter Pages „Enforce HTTPS“ aktiv ist.';
+	} else if (fast(own) && stall != null && stall > 3000) {
+		title = 'Der erste Aufruf war langsam, die Nachmessungen nicht.';
+		body = 'Das spricht für einen einmaligen Aussetzer der Verbindung, nicht für ein dauerhaftes Problem. ' +
+			'Bitte noch ein paar Mal messen.';
+	} else if (fast(own)) {
+		title = 'Hier ist alles im grünen Bereich.';
+		body = 'Weder die Seite noch der Server noch die Verbindung fallen auf. ' +
+			'Wenn es sich trotzdem zäh anfühlt, sag mir bitte welche Seite genau und was du dort machst.';
+	} else {
+		title = 'Kein eindeutiges Bild.';
+		body = 'Die Messwerte widersprechen sich oder einzelne Abfragen sind fehlgeschlagen. ' +
+			'Bitte noch ein- bis zweimal messen – am besten einmal über WLAN und einmal über Mobilfunk.';
 	}
-	if (dns > 200) {
-		parts.push('<b>Die Namensauflösung dauert lange.</b> Das deutet auf die DNS-Einstellungen ' +
-			'der Domain hin, nicht auf die Seite selbst.');
-	}
-	if (dl > 800 && ttfb < 400) {
-		parts.push('<b>Die Übertragung ist der Engpass.</b> Der Server antwortet zügig, ' +
-			'aber die Daten fließen langsam – typisch für eine schwache Mobilverbindung.');
-	}
-	if (!parts.length && total < 1200) {
-		parts.push('<b>Diese Seite lädt hier normal schnell.</b> Wenn sich andere Seiten trotzdem ' +
-			'zäh anfühlen, liegt es an deren Inhalt und nicht am Server – dann sag mir, welche.');
-	}
-	if (!parts.length) {
-		parts.push('Die Werte liegen im Mittelfeld. Bitte einmal direkt nach dem Öffnen messen ' +
-			'und einmal bei erneutem Aufruf, dann lässt sich Cache von Server trennen.');
-	}
-	v.innerHTML = parts.join('<br><br>');
+
+	v.innerHTML = '<b>' + title + '</b><br>' + body;
 }
 
-if (document.readyState === 'complete') setTimeout(measure, 50);
-else addEventListener('load', () => setTimeout(measure, 50));
+async function run() {
+	const stall = pageTimings();
+	device();
+	const cmp = await compare();
+	verdict(stall, cmp);
+}
+
+if (document.readyState === 'complete') setTimeout(run, 50);
+else addEventListener('load', () => setTimeout(run, 50));
 </script>
 </body>
 </html>
