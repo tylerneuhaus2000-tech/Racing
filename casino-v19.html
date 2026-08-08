@@ -478,6 +478,68 @@ body.light .settings-shell{background:linear-gradient(160deg,rgba(255,255,255,.9
   padding-top:13px;border-top:1px solid var(--border)}
 .bank-legal strong{color:var(--text2)}
 
+/* Tower */
+.tw-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;opacity:.4;transition:opacity .3s}
+.tw-row.now{opacity:1}
+.tw-row.done{opacity:.72}
+.tw-mult{font-family:'Orbitron',monospace;font-size:11px;font-weight:800;color:var(--text3);
+  width:52px;text-align:right;flex:none}
+.tw-row.now .tw-mult{color:var(--gold)}
+.tw-cells{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex:1}
+.tw-cell{height:40px;border-radius:9px;border:1px solid var(--border);background:var(--bg3);
+  color:var(--text3);font-size:15px;cursor:pointer;transition:all .16s}
+.tw-cell:disabled{cursor:default}
+.tw-row.now .tw-cell{border-color:var(--border2);background:var(--bg4);cursor:pointer}
+.tw-row.now .tw-cell:hover{border-color:var(--cyan);background:rgba(0,229,255,.1);transform:translateY(-2px)}
+.tw-cell.safe{background:var(--green-dim);border-color:rgba(52,211,153,.5);color:var(--green)}
+.tw-cell.bomb{background:var(--red-dim);border-color:rgba(248,113,113,.55);color:var(--red)}
+
+/* Baccarat */
+.bc-side{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:13px;padding:12px;text-align:center}
+.bc-lbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:9px}
+.bc-cards{display:flex;gap:5px;justify-content:center;min-height:74px;align-items:center;flex-wrap:wrap}
+.bc-score{font-family:'Orbitron',monospace;font-size:25px;font-weight:900;color:var(--cyan);margin-top:8px}
+.bc-bets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bc-bet{padding:11px 8px;border-radius:11px;border:1px solid var(--border);background:var(--bg3);
+  color:var(--text2);cursor:pointer;display:flex;flex-direction:column;gap:3px;transition:all .16s}
+.bc-bet b{font-size:12.5px;color:var(--text)}
+.bc-bet span{font-size:10px;color:var(--text3)}
+.bc-bet:hover{border-color:var(--border2)}
+.bc-bet.on{border-color:var(--cyan);background:var(--cyan-dim);box-shadow:0 0 16px rgba(0,229,255,.18)}
+.bc-bet.on b{color:var(--cyan)}
+
+/* Fortschritt: Stufe, Erfahrungsbalken, Aufgaben */
+.prog-head{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+.prog-lv{display:grid;place-items:center;width:46px;height:46px;border-radius:13px;flex:none;
+  background:linear-gradient(140deg,#3b2a63,#1d2b4a);border:1px solid var(--border2);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
+.prog-lv-num{font-family:'Orbitron',monospace;font-size:19px;font-weight:900;color:var(--violet);line-height:1}
+.prog-lv-lbl{font-size:7.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-top:1px}
+.prog-meta{flex:1;min-width:0}
+.prog-xp{font-size:10.5px;color:var(--text2);margin-bottom:5px;font-family:'Orbitron',monospace}
+.prog-track{height:7px;border-radius:4px;background:var(--bg4);overflow:hidden}
+.prog-track span{display:block;height:100%;width:0;border-radius:4px;
+  background:linear-gradient(90deg,var(--violet),var(--cyan));transition:width .7s cubic-bezier(.2,.8,.3,1);
+  box-shadow:0 0 12px rgba(167,139,250,.55)}
+.prog-missions{width:100%;justify-content:center;padding:9px;font-size:11.5px;position:relative}
+.prog-badge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;margin-left:7px;
+  border-radius:9px;background:var(--red);color:#fff;font-size:10px;font-weight:800;
+  animation:bankPulse 1.8s ease-in-out infinite}
+
+.mission{border:1px solid var(--border);background:var(--bg3);border-radius:11px;padding:11px;margin-bottom:8px}
+.mission.done{opacity:.5}
+.mission-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:8px}
+.mission-txt{font-size:12.5px;color:var(--text);line-height:1.4}
+.mission-lohn{font-family:'Orbitron',monospace;font-size:12px;font-weight:800;color:var(--gold);white-space:nowrap}
+.mission-bar{height:5px;border-radius:3px;background:var(--bg4);overflow:hidden;margin-bottom:7px}
+.mission-bar span{display:block;height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--green),var(--cyan));transition:width .6s cubic-bezier(.2,.8,.3,1)}
+.mission-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;
+  font-size:10.5px;color:var(--text3);font-family:'Orbitron',monospace}
+.mission-btn{padding:6px 11px;border-radius:8px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,#22c55e,#06b6d4);color:#03140f;font-size:10.5px;font-weight:800;
+  font-family:'Orbitron',monospace;animation:bankPulse 2s ease-in-out infinite}
+
 /* Serien-Punkte */
 .streak-dots{display:flex;gap:5px;margin:9px 0 11px}
 .sdot{flex:1;height:4px;border-radius:2px;background:var(--bg4);transition:background .3s,box-shadow .3s}
@@ -594,6 +656,7 @@ canvas#crash-canvas{height:190px!important}
 </style>
 
 <script src="assets/gridline-consent.js" defer></script>
+<script src="assets/gridline-ads.js" defer></script>
 
 </head>
 
@@ -631,6 +694,8 @@ canvas#crash-canvas{height:190px!important}
     <button class="nav-btn newg" id="nav-scratch" onclick="setGame('scratch')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9 Q10 7 13 9 Q16 11 19 9"/><path d="M7 13 Q10 11 13 13 Q16 15 19 13"/></svg><span>Scratch</span></button>
   <button class="nav-btn newg" id="nav-dragon" onclick="setGame('dragon')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2"/><path d="M8 12h8M12 8v8"/></svg><span>Dragon Tiger</span></button>
   <button class="nav-btn newg" id="nav-wheel2" onclick="setGame('wheel2')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/></svg><span>Mega Wheel</span></button>
+  <button class="nav-btn newg" id="nav-tower" onclick="setGame('tower')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><rect x="4" y="15" width="16" height="5" rx="1"/><rect x="6" y="10" width="12" height="5" rx="1"/><rect x="8" y="5" width="8" height="5" rx="1"/></svg><span>Tower</span></button>
+  <button class="nav-btn newg" id="nav-bacc" onclick="setGame('bacc')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 21s-7-4.5-7-9.5A3.5 3.5 0 0 1 12 9a3.5 3.5 0 0 1 7 2.5C19 16.5 12 21 12 21z"/></svg><span>Baccarat</span></button>
   <button class="nav-btn" id="nav-crash" onclick="setGame('crash')"><svg viewBox="0 0 24 24"><path d="M21 16l-4-8-3 5-2-3-4 6"/><path d="M3 20h18"/><circle cx="17" cy="8" r="1" fill="currentColor" stroke="none"/></svg><span>Crash</span></button>
 </div>
 
@@ -648,6 +713,8 @@ canvas#crash-canvas{height:190px!important}
 <div id="game-scratch" style="display:none"></div>
 <div id="game-dragon" style="display:none"></div>
 <div id="game-wheel2" style="display:none"></div>
+<div id="game-tower" style="display:none"></div>
+<div id="game-bacc" style="display:none"></div>
 <div id="game-plinko" style="display:none"></div>
 <div id="game-hilo" style="display:none"></div>
 <div id="game-mines" style="display:none"></div>
@@ -674,6 +741,19 @@ canvas#crash-canvas{height:190px!important}
   <button class="primary-btn" id="main-btn" onclick="mainAction()">
     <svg id="main-icon" viewBox="0 0 24 24"><rect x="2" y="4" width="10" height="14" rx="2"/><rect x="12" y="6" width="10" height="14" rx="2"/></svg>
     <span id="main-label">Karten austeilen</span>
+  </button>
+</div>
+
+<div class="panel" id="prog-panel" style="padding:12px">
+  <div class="prog-head">
+    <div class="prog-lv"><span class="prog-lv-num" id="prog-level">1</span><span class="prog-lv-lbl">Stufe</span></div>
+    <div class="prog-meta">
+      <div class="prog-xp" id="prog-xp">0 / 0 XP</div>
+      <div class="prog-track"><span id="prog-bar"></span></div>
+    </div>
+  </div>
+  <button class="secondary-btn prog-missions" onclick="openMissions()">
+    Tagesaufgaben <span class="prog-badge" id="prog-badge" style="display:none">0</span>
   </button>
 </div>
 
@@ -896,11 +976,14 @@ function renderHist(){
   none.style.display=hist.length?'none':'block';
   rows.innerHTML=hist.map(h=>{const s=h.profit>=0?'+':'';return`<div class="hist-row"><span style="font-size:10px;color:var(--text3);margin-right:6px;flex-shrink:0">${h.game}</span><span style="flex:1">${h.label}</span><span class="badge ${h.type}">${s}${fN(h.profit)}</span></div>`;}).join('');
 }
+const KEINE_RUNDE = {'Bonus':1,'Aufgabe':1,'Tagesbonus':1,'Notgroschen':1,'Level':1,'Video':1};
 function addHist(game,label,profit){
   const type=profit>0?'win':profit<0?'loss':'push';
   hist.unshift({game,label,profit,type});if(hist.length>10)hist.pop();
   renderHist();
   saveState();
+  // Gutschriften aus der Bank sind keine Spielrunden und zaehlen nicht.
+  if(!KEINE_RUNDE[game] && typeof trackRound === 'function') trackRound(game, profit);
 }
 function clearHist13(){hist=[];renderHist();saveNow();}
 
@@ -955,7 +1038,7 @@ function setGame(g){
   if(curGame==='crash'&&g!=='crash')stopCrash();
   if(curGame==='slot'&&g!=='slot')stopAutoSpin();
   curGame=g;
-  ['bj','slot','mega','coin','wheel','rou','crash','dice','keno','limbo','poker','plinko','hilo','mines','vidpoker','scratch','dragon','wheel2'].forEach(id=>{
+  ['bj','slot','mega','coin','wheel','rou','crash','dice','keno','limbo','poker','plinko','hilo','mines','vidpoker','scratch','dragon','wheel2','tower','bacc'].forEach(id=>{
     const panel=$('game-'+id);
     panel.style.display=id===g?'':'none';
     if(id===g && !reduceMotion()){ panel.classList.remove('game-enter'); void panel.offsetWidth; panel.classList.add('game-enter'); }
@@ -968,7 +1051,7 @@ function setGame(g){
     $('bet-panel').style.display='';
     $('main-icon').innerHTML=SVG_ICONS[g==='mega'?'mega':g]||'';
     $('main-btn').disabled=false;$('main-btn').style.display='flex';
-    const labels={bj:'Karten austeilen',slot:'Spin',mega:'Mega Spin',coin:'Werfen',wheel:'Drehen',rou:'Kugel werfen',dice:'Würfeln',keno:'Tippen & Ziehen',limbo:'Runde starten',poker:'Karten geben',plinko:'Ball droppen',hilo:'Starten',mines:'Spiel starten',vidpoker:'Karten ziehen',scratch:'Rubbeln!',dragon:'Wetten & Austeilen',wheel2:'Drehen'};
+    const labels={bj:'Karten austeilen',slot:'Spin',mega:'Mega Spin',coin:'Werfen',wheel:'Drehen',rou:'Kugel werfen',dice:'Würfeln',keno:'Tippen & Ziehen',limbo:'Runde starten',poker:'Karten geben',plinko:'Ball droppen',hilo:'Starten',mines:'Spiel starten',vidpoker:'Karten ziehen',scratch:'Rubbeln!',dragon:'Wetten & Austeilen',wheel2:'Drehen',tower:'Turm besteigen',bacc:'Karten geben'};
     $('main-label').textContent=labels[g]||'';
   }
   if(g==='bj')resetBJFull();
@@ -980,7 +1063,9 @@ function setGame(g){
   if(g==='plinko')initPlinko();
   if(g==='hilo')initHilo();
   if(g==='mines')initMines();
-  if(g==='vidpoker')initVidPoker();/* ═══════════════════════════════════════════════════════════════
+  if(g==='vidpoker')initVidPoker();
+  if(g==='tower')initTower();
+  if(g==='bacc')initBacc();/* ═══════════════════════════════════════════════════════════════
    SCRATCH CARD — 9-Felder Rubbellos, 3 Gleiche = Gewinn
    Verschiedene Themen, animiertes Rubbeln mit Canvas
 ═══════════════════════════════════════════════════════════════ */
@@ -1313,6 +1398,7 @@ function doWheel2(){
 }
 
 
+
 initScratch();initDragon();initWheel2();
   if(g==='scratch')initScratch();
   if(g==='dragon')initDragon();
@@ -1325,7 +1411,9 @@ function mainAction(){if(busy)return;if(curGame==='bj')startBJ();else if(curGame
   else if(curGame==='vidpoker')vidPokerAction();
   else if(curGame==='scratch')doScratch();
   else if(curGame==='dragon')doDragon();
-  else if(curGame==='wheel2')doWheel2();}
+  else if(curGame==='wheel2')doWheel2();
+  else if(curGame==='tower')towerAction();
+  else if(curGame==='bacc')doBacc();}
 
 /* ================= BLACKJACK ================= */
 const SUITS=['♠','♥','♦','♣'],RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'],REDS=['♥','♦'];
@@ -3560,6 +3648,16 @@ initScratch();initDragon();initWheel2();
       <button class="bank-btn" id="bank-rescue-btn" onclick="claimRescue()">Auffüllen</button>
     </div>
 
+    <div class="bank-card" id="bank-card-missions">
+      <div class="bank-card-top">
+        <div>
+          <div class="bank-card-name">Tagesaufgaben</div>
+          <div class="bank-card-desc">Drei Aufgaben pro Tag. Erledigte Aufgaben hier abholen.</div>
+        </div>
+      </div>
+      <div id="mission-list"></div>
+    </div>
+
     <p class="bank-legal">
       Es gibt bewusst <strong>keine unbegrenzte Aufladung</strong> und keinen Kauf mit echtem Geld.
       Wenn die Chips alle sind, kommst du am nächsten Tag mit dem Tagesbonus zurück ins Spiel.
@@ -3569,6 +3667,223 @@ initScratch();initDragon();initWheel2();
 </div>
 
 <script>
+/* ═══════════════════════════════════════════════════════════════
+   TOWER — Etage für Etage nach oben. Pro Etage drei Felder, eines
+   davon lässt dich abstürzen. Jederzeit aussteigen und mitnehmen.
+   Der Multiplikator steigt pro Etage um Faktor 1,45 (2 von 3 sicher,
+   abzüglich Hausvorteil).
+═══════════════════════════════════════════════════════════════ */
+const TOWER_ETAGEN = 8, TOWER_FELDER = 3, TOWER_SICHER = 2;
+let towerAktiv=false, towerEtage=0, towerEinsatz=0, towerBomben=[];
+
+function towerMult(etage){
+  // Faire Quote je Etage waere 3/2; mit 3% Hausvorteil bleibt 1,455
+  return Math.round(Math.pow(TOWER_FELDER/TOWER_SICHER*0.97, etage)*100)/100;
+}
+
+function initTower(){
+  $('game-tower').innerHTML = `
+  <div class="felt" style="padding:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div>
+        <div class="section-lbl" style="margin:0">Turm</div>
+        <div id="tower-info" style="font-size:11px;color:var(--text2);margin-top:3px">Wähle pro Etage ein Feld. Eines von dreien stürzt ab.</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:10px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase">Auszahlung</div>
+        <div id="tower-cash" style="font-family:'Orbitron',monospace;font-size:20px;font-weight:900;color:var(--gold)">—</div>
+      </div>
+    </div>
+    <div id="tower-grid"></div>
+    <button class="secondary-btn" id="tower-out" onclick="towerCashout()" disabled
+      style="width:100%;margin-top:12px;justify-content:center">Aussteigen</button>
+  </div>`;
+  towerAktiv=false; towerEtage=0;
+  renderTower();
+}
+
+function renderTower(){
+  const g=$('tower-grid');
+  if(!g)return;
+  let html='';
+  for(let e=TOWER_ETAGEN; e>=1; e--){
+    const erledigt = towerAktiv && towerEtage >= e;
+    const aktuell  = towerAktiv && towerEtage === e-1;
+    html += `<div class="tw-row${aktuell?' now':''}${erledigt?' done':''}">
+      <span class="tw-mult">${towerMult(e).toFixed(2)}×</span>
+      <div class="tw-cells">`;
+    for(let c=0;c<TOWER_FELDER;c++){
+      const bombe = towerBomben[e-1]===c;
+      const zeig = erledigt || (!towerAktiv && towerBomben.length);
+      const cls = zeig ? (bombe?'bomb':'safe') : '';
+      html += `<button class="tw-cell ${cls}" ${aktuell?'':'disabled'} onclick="towerPick(${c})">${
+        zeig ? (bombe?'✕':'●') : ''}</button>`;
+    }
+    html += '</div></div>';
+  }
+  g.innerHTML = html;
+  const cash=$('tower-cash');
+  if(cash) cash.textContent = towerAktiv && towerEtage>0
+    ? fN(Math.floor(towerEinsatz*towerMult(towerEtage))) : '—';
+  const out=$('tower-out');
+  if(out){ out.disabled = !towerAktiv || towerEtage===0;
+    out.textContent = towerAktiv && towerEtage>0
+      ? 'Aussteigen mit ' + fN(Math.floor(towerEinsatz*towerMult(towerEtage))) : 'Aussteigen'; }
+}
+
+function towerAction(){
+  if(towerAktiv||busy)return;
+  const bet=getBet();
+  if(bal<bet||bet<1)return;
+  bal-=bet; pl-=bet; towerEinsatz=bet; rounds++;
+  refreshStats(); hideBanner();
+  towerBomben = Array.from({length:TOWER_ETAGEN},()=>Math.floor(Math.random()*TOWER_FELDER));
+  towerAktiv=true; towerEtage=0;
+  $('main-btn').disabled=true;
+  $('tower-info').textContent='Etage 1 von '+TOWER_ETAGEN+' — wähle ein Feld.';
+  renderTower();
+}
+
+function towerPick(c){
+  if(!towerAktiv)return;
+  const etage=towerEtage;
+  if(towerBomben[etage]===c){
+    towerAktiv=false;
+    $('main-btn').disabled=false;
+    renderTower();
+    showBanner('Abgestürzt auf Etage '+(etage+1)+'. −'+fN(towerEinsatz)+' Chips','loss');
+    addHist('Tower','Etage '+(etage+1),-towerEinsatz);
+    refreshStats();
+    return;
+  }
+  towerEtage++;
+  if(towerEtage>=TOWER_ETAGEN){ towerCashout(true); return; }
+  $('tower-info').textContent='Etage '+(towerEtage+1)+' von '+TOWER_ETAGEN+' — weiter oder aussteigen?';
+  renderTower();
+}
+
+function towerCashout(gipfel){
+  if(!towerAktiv||towerEtage===0)return;
+  const aus=Math.floor(towerEinsatz*towerMult(towerEtage));
+  const gewinn=aus-towerEinsatz;
+  bal+=aus; pl+=aus;
+  towerAktiv=false;
+  $('main-btn').disabled=false;
+  renderTower();
+  if(gipfel)showBigWin('TURMSPITZE!');
+  showBanner((gipfel?'Turmspitze! ':'')+'Ausgestiegen: +'+fN(gewinn)+' Chips ('+towerMult(towerEtage).toFixed(2)+'×)','win');
+  addHist('Tower','Etage '+towerEtage+' · '+towerMult(towerEtage).toFixed(2)+'×',gewinn);
+  refreshStats(true);
+  $('tower-info').textContent='Wähle pro Etage ein Feld. Eines von dreien stürzt ab.';
+}
+window.towerPick=towerPick; window.towerCashout=towerCashout;
+
+/* ═══════════════════════════════════════════════════════════════
+   BACCARAT — Punto Banco. Auf Spieler, Bank oder Unentschieden
+   setzen. Auszahlung 1:1 (Bank 0,95:1), Unentschieden 8:1.
+═══════════════════════════════════════════════════════════════ */
+let baccWette='player';
+
+function baccKarte(){
+  const r=RANKS[Math.floor(Math.random()*RANKS.length)];
+  const su=SUITS[Math.floor(Math.random()*SUITS.length)];
+  return {r,s:su};
+}
+function baccWert(k){ if(k.r==='A')return 1; if(['10','J','Q','K'].includes(k.r))return 0; return parseInt(k.r); }
+function baccSumme(h){ return h.reduce((a,k)=>a+baccWert(k),0)%10; }
+
+function initBacc(){
+  $('game-bacc').innerHTML = `
+  <div class="felt" style="padding:14px">
+    <div style="display:flex;gap:12px;margin-bottom:14px">
+      <div class="bc-side">
+        <div class="bc-lbl">Spieler</div>
+        <div class="bc-cards" id="bacc-ph"></div>
+        <div class="bc-score" id="bacc-ps">—</div>
+      </div>
+      <div class="bc-side">
+        <div class="bc-lbl">Bank</div>
+        <div class="bc-cards" id="bacc-bh"></div>
+        <div class="bc-score" id="bacc-bs">—</div>
+      </div>
+    </div>
+    <div class="section-lbl" style="margin-bottom:8px">Deine Wette</div>
+    <div class="bc-bets">
+      <button class="bc-bet" data-b="player" onclick="setBaccBet('player')"><b>Spieler</b><span>zahlt 1:1</span></button>
+      <button class="bc-bet" data-b="banker" onclick="setBaccBet('banker')"><b>Bank</b><span>zahlt 0,95:1</span></button>
+      <button class="bc-bet" data-b="tie" onclick="setBaccBet('tie')"><b>Unentschieden</b><span>zahlt 8:1</span></button>
+    </div>
+  </div>`;
+  setBaccBet(baccWette);
+}
+
+function setBaccBet(b){
+  baccWette=b;
+  document.querySelectorAll('#game-bacc .bc-bet').forEach(el=>{
+    el.classList.toggle('on', el.dataset.b===b);
+  });
+}
+window.setBaccBet=setBaccBet;
+
+function doBacc(){
+  if(busy)return;
+  const bet=getBet();
+  if(bal<bet||bet<1)return;
+  busy=true; $('main-btn').disabled=true;
+  bal-=bet; pl-=bet; rounds++; refreshStats(); hideBanner();
+
+  const ph=[baccKarte(),baccKarte()], bh=[baccKarte(),baccKarte()];
+  // Dritte Karte nach vereinfachter Punto-Banco-Regel
+  const ps0=baccSumme(ph), bs0=baccSumme(bh);
+  let dritte=null;
+  if(ps0<=5 && !(ps0>=8||bs0>=8)){ ph.push(baccKarte()); dritte=baccWert(ph[2]); }
+  if(!(ps0>=8||bs0>=8)){
+    const bs=baccSumme(bh);
+    const zieht = dritte===null ? bs<=5
+      : bs<=2 ? true
+      : bs===3 ? dritte!==8
+      : bs===4 ? dritte>=2&&dritte<=7
+      : bs===5 ? dritte>=4&&dritte<=7
+      : bs===6 ? dritte>=6&&dritte<=7
+      : false;
+    if(zieht) bh.push(baccKarte());
+  }
+
+  const zeige=(el,h,n)=>{ $(el).innerHTML=h.slice(0,n).map(k=>cardEl(k,false,true)).join(''); };
+  let schritt=0;
+  const takt=setInterval(()=>{
+    schritt++;
+    zeige('bacc-ph',ph,Math.min(schritt,ph.length));
+    zeige('bacc-bh',bh,Math.min(schritt,bh.length));
+    if(schritt>=Math.max(ph.length,bh.length)){
+      clearInterval(takt);
+      const ps=baccSumme(ph), bs=baccSumme(bh);
+      $('bacc-ps').textContent=ps; $('bacc-bs').textContent=bs;
+      const sieger = ps>bs?'player' : bs>ps?'banker' : 'tie';
+      let aus=0;
+      if(sieger===baccWette){
+        aus = baccWette==='tie' ? bet*9 : baccWette==='banker' ? Math.floor(bet*1.95) : bet*2;
+      } else if(sieger==='tie' && baccWette!=='tie'){
+        aus = bet;   // Einsatz zurueck bei Unentschieden
+      }
+      const gewinn=aus-bet;
+      bal+=aus; pl+=aus;
+      const namen={player:'Spieler',banker:'Bank',tie:'Unentschieden'};
+      if(gewinn>0){
+        if(baccWette==='tie')showBigWin('UNENTSCHIEDEN 8×!');
+        showBanner(namen[sieger]+' gewinnt ('+ps+':'+bs+') — +'+fN(gewinn)+' Chips','win');
+      } else if(gewinn===0){
+        showBanner('Unentschieden — Einsatz zurück','push');
+      } else {
+        showBanner(namen[sieger]+' gewinnt ('+ps+':'+bs+') — −'+fN(bet)+' Chips','loss');
+      }
+      addHist('Baccarat',namen[sieger]+' '+ps+':'+bs,gewinn);
+      refreshStats(gewinn>0);
+      busy=false; $('main-btn').disabled=false;
+    }
+  },420);
+}
+
 /* ══════════════ CHIP-WIRTSCHAFT ══════════════
    Frueher konnte man sich hier per Knopfdruck beliebig viele Chips geben
    (+500 bis +100.000, dazu ein Feld fuer Wunschbetraege). Damit war jedes
@@ -3749,7 +4064,183 @@ function renderBank(){
 /* Sekundentakt, damit die Countdowns mitlaufen. */
 setInterval(renderBank, 1000);
 
-function openTopup(){ renderBank(); $('bank-modal').classList.add('open'); }
+/* ══════════════ FORTSCHRITT: LEVEL & AUFGABEN ══════════════
+   Gegenstueck zur begrenzten Wirtschaft: Chips gibt es nicht mehr geschenkt,
+   dafuer verdient man sie durchs Spielen. Jede Runde bringt Erfahrung, jeder
+   Stufenaufstieg Chips. Dazu drei Aufgaben pro Tag, die aus einem festen
+   Vorrat gezogen werden - abhaengig vom Datum, damit sie sich durch Neuladen
+   nicht neu wuerfeln lassen.
+   ═══════════════════════════════════════════════════════════ */
+
+const PROG_KEY = 'casinoProg_v1';
+
+let prog = { xp:0, level:1, day:null, missions:[], seen:{} };
+
+/* Erfahrung fuer Stufe n: waechst spuerbar, bleibt aber erreichbar. */
+function xpForLevel(n){ return Math.round(120 * Math.pow(n, 1.45)); }
+function levelReward(n){ return 200 + n * 150; }
+
+const MISSION_POOL = [
+  { id:'rounds',  text:n=>`Spiele ${n} Runden`,                  ziele:[15,25,40],    lohn:[400,700,1100],  feld:'rounds' },
+  { id:'wins',    text:n=>`Gewinne ${n} Runden`,                 ziele:[5,9,14],      lohn:[500,900,1400],  feld:'wins' },
+  { id:'profit',  text:n=>`Gewinne insgesamt ${fN(n)} Chips`,    ziele:[800,2000,4000], lohn:[500,900,1500],feld:'profit' },
+  { id:'variety', text:n=>`Spiele ${n} verschiedene Spiele`,     ziele:[3,5,7],       lohn:[400,800,1200],  feld:'variety' },
+  { id:'bigwin',  text:n=>`Erziele ${fN(n)} Chips in einer Runde`, ziele:[400,900,1800], lohn:[600,1000,1600], feld:'bigwin' },
+  { id:'streak',  text:n=>`Gewinne ${n} Runden hintereinander`,  ziele:[3,4,5],       lohn:[600,1000,1500], feld:'streak' }
+];
+
+/* Einfacher, stabiler Zufall aus dem Datum - gleicher Tag, gleiche Aufgaben. */
+function seedFromDay(str){
+  let h = 2166136261;
+  for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return () => { h ^= h<<13; h ^= h>>>17; h ^= h<<5; return ((h>>>0) % 1000) / 1000; };
+}
+
+function rollMissions(){
+  const rnd = seedFromDay(today());
+  const pool = MISSION_POOL.slice();
+  const out = [];
+  for(let i=0; i<3 && pool.length; i++){
+    const idx = Math.floor(rnd() * pool.length);
+    const m = pool.splice(idx, 1)[0];
+    const stufe = Math.min(2, Math.floor(rnd() * 3));
+    out.push({ id:m.id, stufe, ziel:m.ziele[stufe], lohn:m.lohn[stufe], fortschritt:0, abgeholt:false });
+  }
+  return out;
+}
+
+function loadProg(){
+  let d = null;
+  try{ d = JSON.parse(localStorage.getItem(PROG_KEY) || 'null'); }catch(e){}
+  if(d && typeof d === 'object'){
+    if(Number.isFinite(d.xp) && d.xp >= 0) prog.xp = Math.min(Math.floor(d.xp), 1e9);
+    if(Number.isFinite(d.level) && d.level >= 1) prog.level = Math.min(Math.floor(d.level), 999);
+    if(typeof d.day === 'string') prog.day = d.day;
+    if(Array.isArray(d.missions)) prog.missions = d.missions.filter(m =>
+      m && typeof m.id === 'string' && Number.isFinite(m.ziel) && Number.isFinite(m.fortschritt)
+    ).slice(0,3);
+    if(d.seen && typeof d.seen === 'object') prog.seen = d.seen;
+  }
+  if(prog.day !== today() || prog.missions.length !== 3){
+    prog.day = today();
+    prog.missions = rollMissions();
+    prog.seen = {};
+    saveProg();
+  }
+}
+function saveProg(){ try{ localStorage.setItem(PROG_KEY, JSON.stringify(prog)); }catch(e){} }
+
+/* ---- Erfahrung ---- */
+function addXP(n){
+  prog.xp += n;
+  let stieg = false;
+  while(prog.xp >= xpForLevel(prog.level)){
+    prog.xp -= xpForLevel(prog.level);
+    prog.level++;
+    stieg = true;
+    const lohn = levelReward(prog.level);
+    bal += lohn;
+    setTimeout(() => {
+      showBigWin('STUFE ' + prog.level);
+      showBanner('Stufe ' + prog.level + ' erreicht: +' + fN(lohn) + ' Chips', 'win');
+      addHist('Level', 'Stufe ' + prog.level, lohn);
+    }, 600);
+  }
+  if(stieg){ refreshStats(true); saveNow(); }
+  saveProg();
+  renderProg();
+}
+
+/* ---- Aufgaben ----
+   Wird nach jeder Runde aufgerufen. profit ist der Gewinn (negativ bei Verlust). */
+let winStreakRun = 0;
+
+function trackRound(spiel, profit){
+  const gewonnen = profit > 0;
+  winStreakRun = gewonnen ? winStreakRun + 1 : 0;
+  prog.seen[spiel] = 1;
+
+  // Erfahrung: Grundwert pro Runde, Zuschlag nach Gewinnhoehe
+  const ref = Math.max(getBet(), 1);
+  addXP(3 + (gewonnen ? Math.min(20, Math.round(profit / ref) * 2) : 0));
+
+  prog.missions.forEach(m => {
+    if(m.abgeholt || m.fortschritt >= m.ziel) return;
+    if(m.id === 'rounds')  m.fortschritt++;
+    if(m.id === 'wins'   && gewonnen) m.fortschritt++;
+    if(m.id === 'profit' && gewonnen) m.fortschritt += profit;
+    if(m.id === 'variety') m.fortschritt = Object.keys(prog.seen).length;
+    if(m.id === 'bigwin' && gewonnen) m.fortschritt = Math.max(m.fortschritt, profit);
+    if(m.id === 'streak')  m.fortschritt = Math.max(m.fortschritt, winStreakRun);
+    if(m.fortschritt >= m.ziel){
+      showBanner('Aufgabe geschafft: ' + missionText(m) + ' — Belohnung in der Bank', 'win');
+    }
+  });
+  saveProg();
+  renderProg();
+}
+
+function missionText(m){
+  const def = MISSION_POOL.find(x => x.id === m.id);
+  return def ? def.text(m.ziel) : m.id;
+}
+
+function claimMission(i){
+  const m = prog.missions[i];
+  if(!m || m.abgeholt || m.fortschritt < m.ziel) return;
+  m.abgeholt = true;
+  saveProg();
+  grantChips(m.lohn, 'Aufgabe', missionText(m));
+  renderProg();
+}
+window.claimMission = claimMission;
+
+/* ---- Anzeige ---- */
+function renderProg(){
+  const brauch = xpForLevel(prog.level);
+  const pct = Math.max(0, Math.min(100, prog.xp / brauch * 100));
+
+  const lv = $('prog-level'); if(lv) lv.textContent = prog.level;
+  const bar = $('prog-bar'); if(bar) bar.style.width = pct + '%';
+  const txt = $('prog-xp'); if(txt) txt.textContent = fN(prog.xp) + ' / ' + fN(brauch) + ' XP';
+
+  const offen = prog.missions.filter(m => m.fortschritt >= m.ziel && !m.abgeholt).length;
+  const badge = $('prog-badge');
+  if(badge){ badge.textContent = offen; badge.style.display = offen ? '' : 'none'; }
+
+  const list = $('mission-list');
+  if(list){
+    list.innerHTML = prog.missions.map((m, i) => {
+      const fertig = m.fortschritt >= m.ziel;
+      const p = Math.min(100, m.fortschritt / m.ziel * 100);
+      const stand = m.id === 'profit' || m.id === 'bigwin'
+        ? fN(Math.min(m.fortschritt, m.ziel)) + ' / ' + fN(m.ziel)
+        : Math.min(m.fortschritt, m.ziel) + ' / ' + m.ziel;
+      return `<div class="mission${m.abgeholt ? ' done' : ''}">
+        <div class="mission-top">
+          <span class="mission-txt">${missionText(m)}</span>
+          <span class="mission-lohn">+${fN(m.lohn)}</span>
+        </div>
+        <div class="mission-bar"><span style="width:${p}%"></span></div>
+        <div class="mission-foot">
+          <span>${m.abgeholt ? 'Abgeholt' : stand}</span>
+          ${m.abgeholt ? '' : fertig
+            ? `<button class="mission-btn" onclick="claimMission(${i})">Belohnung holen</button>`
+            : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+loadProg();
+
+function openTopup(){ renderBank(); renderProg(); $('bank-modal').classList.add('open'); }
+function openMissions(){
+  openTopup();
+  setTimeout(()=>{ const el=$('bank-card-missions'); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); },120);
+}
+window.openMissions = openMissions;
 function closeTopup(){ $('bank-modal').classList.remove('open'); }
 
 window.openTopup = openTopup;
@@ -3815,6 +4306,7 @@ window.addEventListener('load',function(){
   if(bi)bi.value=Math.min(cBet,bal);if(sl&&bi)sl.value=bi.value;
   renderHist();
   renderBank();
+  renderProg();
   refreshStats();
   if(typeof updateAutoBtns==='function')updateAutoBtns();
 });
@@ -3857,6 +4349,8 @@ window.openSettings=openSettings;window.closeSettings=closeSettings;window.saveS
   font-weight:700;letter-spacing:.06em;cursor:pointer}
 .cs-gate-acts button.yes{background:linear-gradient(135deg,#22c55e,#06b6d4);color:#03140f;border-color:transparent}
 </style>
+
+<div data-ad="spiel-unten" style="max-width:1400px;margin:24px auto 0;padding:0 18px"></div>
 
 <div class="cs-legal-bar">
   <strong>Kein Glücksspiel:</strong> Hier wird ausschließlich mit kostenlosen, virtuellen Chips gespielt.

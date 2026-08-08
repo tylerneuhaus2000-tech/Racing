@@ -73,6 +73,10 @@
 	function apply(level) {
 		if (level === 'all') loadAds(true);
 		else if (level === 'essential') loadAds(false);
+		// Signal fuer assets/gridline-ads.js, das erst danach Flaechen fuellt.
+		try {
+			document.dispatchEvent(new CustomEvent('gridline-consent', { detail: { level: level } }));
+		} catch (e) {}
 	}
 
 	function ensureStylesheet() {
