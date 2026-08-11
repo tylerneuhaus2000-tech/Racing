@@ -126,6 +126,22 @@ button:focus-visible{outline:2px solid var(--red);outline-offset:2px}
 @keyframes tut-pulse{0%,100%{opacity:1}50%{opacity:.55}}
 #tut-final{position:fixed;inset:0;z-index:301;display:flex;align-items:center;justify-content:center;background:rgba(6,8,12,0.72)}
 #tut-final .modal-panel{max-width:400px;padding:32px 36px;text-align:center}
+
+/* ===== Achievement-Toast ===== */
+#achv-popup{
+  position:fixed;left:20px;bottom:28px;z-index:300;
+  max-width:340px;padding:14px 18px;display:flex;align-items:center;gap:14px;
+  transform:translateY(12px);opacity:0;pointer-events:none;
+  transition:transform .25s ease,opacity .25s ease;
+}
+#achv-popup.show{transform:translateY(0);opacity:1;pointer-events:auto}
+#achv-popup .achv-icon{font-size:30px;flex:0 0 auto}
+#achv-popup .achv-text{flex:1;min-width:0}
+#achv-popup .achv-eyebrow{font:700 9px var(--mono);letter-spacing:.2em;color:var(--green);margin-bottom:2px}
+#achv-popup .achv-name{font-size:14px;font-weight:700;color:var(--txt)}
+#achv-popup .achv-desc{font-size:11px;color:var(--dim);margin-top:2px}
+#achv-popup-close{background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;flex:0 0 auto;padding:2px 4px}
+#achv-popup-close:hover{color:var(--txt)}
 .card b{display:block;font-size:18px;letter-spacing:.05em;margin-bottom:4px}
 .card span{color:var(--dim);font-size:12.5px;line-height:1.5}
 .swatch{width:54px;height:54px;border-radius:6px;border:3px solid;flex:0 0 auto}
@@ -1487,6 +1503,17 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
     <button class="btn primary" id="tut-final-close">Zum Hauptmenü</button>
   </div>
 </div>
+
+<!-- ===== Achievement-Toast ===== -->
+<div id="achv-popup" class="modal-panel hidden">
+  <div class="achv-icon"></div>
+  <div class="achv-text">
+    <div class="achv-eyebrow">ERFOLG FREIGESCHALTET</div>
+    <div class="achv-name"></div>
+    <div class="achv-desc"></div>
+  </div>
+  <button id="achv-popup-close">✕</button>
+</div>
 <div id="flag-border"></div>
 <div id="pit-car-select" class="modal-panel"><div class="pcs-title">FAHRZEUG WECHSELN — WIRD BEI STOPP-ENDE ANGEWENDET</div><div class="pcs-grid" id="pit-car-grid"></div></div>
 <div id="fl-notif"><div class="fl-label">SCHNELLSTE RUNDE</div><div class="fl-time" id="fl-time">--:--.---</div><div class="fl-driver" id="fl-driver"></div></div>
@@ -1766,6 +1793,12 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
         <div class="ms-card-icon">🛒</div>
         <div class="ms-card-title">Shop</div>
         <div class="ms-card-desc">Skins, Autos, Strecken &amp; Credits.</div>
+        <span class="ms-card-arrow">›</span>
+      </button>
+      <button class="ms-card" id="btn-achievements" onclick="if(typeof Achievements!=='undefined')Achievements.renderScreen();Game&&Game.showScreen('screen-achievements')">
+        <div class="ms-card-icon">🏆</div>
+        <div class="ms-card-title">Erfolge</div>
+        <div class="ms-card-desc">Deine Meilensteine im Spiel.</div>
         <span class="ms-card-arrow">›</span>
       </button>
     </div>
@@ -2181,6 +2214,14 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
       <div class="btnrow" style="margin-top:10px"><button class="btn secondary" id="btn-shop-checkout-close">Abbrechen</button></div>
     </div>
     <div class="btnrow"><button class="btn primary" id="btn-back-shop">Fertig</button></div>
+  </section>
+
+  <section class="screen hidden" id="screen-achievements">
+    <div class="eyebrow">FORTSCHRITT</div>
+    <h2>ERFOLGE</h2>
+    <p class="sub">Freigeschaltet: <span id="achv-count">0 / 0</span></p>
+    <div id="achv-grid" class="cards" style="margin-top:14px"></div>
+    <div class="btnrow"><button class="btn primary" id="btn-back-achievements">Fertig</button></div>
   </section>
 </div>
 
@@ -17829,6 +17870,7 @@ const Tutorial = (() => {
     document.getElementById('tut-welcome')?.classList.add('hidden');
     document.getElementById('tut-final')?.classList.add('hidden');
     markDone();
+    if(typeof Achievements !== 'undefined') Achievements.unlock('tutorial_done');
   }
 
   function patchNavigation(){
@@ -17964,6 +18006,165 @@ document.addEventListener('DOMContentLoaded', () => {
   const replayBtn = document.getElementById('btn-tutorial-replay');
   if(replayBtn) replayBtn.onclick = () => Tutorial.start();
 });
+
+/* ═══════════════════════════════════════════════
+   ACHIEVEMENTS (v1: reine Abzeichen, keine Credits)
+   ═══════════════════════════════════════════════
+   Läuft komplett lokal über Store/localStorage — wie Tutorial, funktioniert
+   dadurch sofort für Gäste (kein Login nötig). LicenseSystem._data ist für
+   Gäste null und daher NICHT als Datenquelle nutzbar, deshalb eigenes,
+   unabhängiges Zähler-Objekt. Hängt sich per Chain-Pattern (wie DailyChallenge
+   es bei onGameRaceFinish bereits vormacht) an window.onGameLapComplete und
+   window.onGameRaceFinish an — überschreibt bestehende Handler nicht. */
+const Achievements = (() => {
+  const STORE_KEY = 'achv_data_v1';
+
+  const CATALOG = [
+    {id:'first_race',    name:'Erstes Rennen',    desc:'Schließe dein erstes Rennen ab.',                    icon:'🏁'},
+    {id:'first_tt',       name:'Erste Zeitfahrt',  desc:'Fahre eine gültige Runde im Zeitfahren-Modus.',      icon:'⏱️'},
+    {id:'podium',         name:'Auf dem Podium',   desc:'Erreiche einmal einen Platz in den Top 3.',          icon:'🥉'},
+    {id:'champion',       name:'Champion',         desc:'Gewinne ein Rennen (P1).',                           icon:'🏆'},
+    {id:'races_10',       name:'Vielfahrer',       desc:'Schließe 10 Rennen ab.',                             icon:'🎖️'},
+    {id:'races_50',       name:'Profi',            desc:'Schließe 50 Rennen ab.',                             icon:'👑'},
+    {id:'km_100',         name:'100 km',           desc:'Fahre insgesamt 100 km.',                            icon:'📏'},
+    {id:'km_1000',        name:'1.000 km',         desc:'Fahre insgesamt 1.000 km.',                          icon:'🛣️'},
+    {id:'cars_5',         name:'Fuhrpark',         desc:'Fahre mit 5 verschiedenen Autos.',                   icon:'🚗'},
+    {id:'tracks_5',       name:'Weltenbummler',    desc:'Fahre auf 5 verschiedenen Strecken.',                icon:'🗺️'},
+    {id:'tracks_all',     name:'Alles gesehen',    desc:'Fahre auf jeder Strecke mindestens einmal.',         icon:'🌍'},
+    {id:'clean_race',     name:'Fehlerfrei',       desc:'Beende ein Rennen ohne Wand-/Fahrzeugkontakt.',      icon:'✨'},
+    {id:'tutorial_done',  name:'Startklar',        desc:'Schließe das Einführungs-Tutorial ab.',              icon:'🎓'},
+  ];
+
+  function defaultData(){
+    return { unlocked:{}, counters:{
+      racesCompleted:0, ttSessions:0, wins:0, podiums:0,
+      kmDriven:0, cleanRaces:0, carsUsed:[], tracksUsed:[]
+    }};
+  }
+  function load(){
+    try{
+      const raw = Store.get(STORE_KEY);
+      if(!raw) return defaultData();
+      const parsed = JSON.parse(raw);
+      const base = defaultData();
+      return {
+        unlocked: Object.assign({}, parsed.unlocked),
+        counters: Object.assign(base.counters, parsed.counters)
+      };
+    }catch(e){ return defaultData(); }
+  }
+  let _data = load();
+  function save(){ try{ Store.set(STORE_KEY, JSON.stringify(_data)); }catch(e){} }
+
+  function isUnlocked(id){ return !!_data.unlocked[id]; }
+  function addUnique(arr, val){ if(val && !arr.includes(val)) arr.push(val); }
+
+  function unlock(id){
+    if(_data.unlocked[id]) return; // schon freigeschaltet, kein doppelter Toast
+    const def = CATALOG.find(a => a.id === id);
+    if(!def) return;
+    _data.unlocked[id] = Date.now();
+    save();
+    showToast(def);
+  }
+
+  function checkThresholds(){
+    const c = _data.counters;
+    if(c.racesCompleted >= 1) unlock('first_race');
+    if(c.ttSessions >= 1) unlock('first_tt');
+    if(c.podiums >= 1) unlock('podium');
+    if(c.wins >= 1) unlock('champion');
+    if(c.racesCompleted >= 10) unlock('races_10');
+    if(c.racesCompleted >= 50) unlock('races_50');
+    if(c.kmDriven >= 100) unlock('km_100');
+    if(c.kmDriven >= 1000) unlock('km_1000');
+    if(c.carsUsed.length >= 5) unlock('cars_5');
+    if(c.tracksUsed.length >= 5) unlock('tracks_5');
+    if(typeof TRACKS !== 'undefined' && TRACKS.length > 0 && c.tracksUsed.length >= TRACKS.length) unlock('tracks_all');
+    if(c.cleanRaces >= 1) unlock('clean_race');
+  }
+
+  // Delta-Tracking für "Fehlerfrei" — wallContacts/carContacts sind kumulative
+  // Zähler auf dem Auto-Objekt, kein direktes Event pro Kontakt vorhanden.
+  let _raceCleanSoFar = true, _lastWall = 0, _lastCar = 0;
+
+  function onLap(info){
+    if((info.wallContacts||0) > _lastWall || (info.carContacts||0) > _lastCar) _raceCleanSoFar = false;
+    _lastWall = info.wallContacts || 0;
+    _lastCar  = info.carContacts  || 0;
+
+    if(info.trackId) addUnique(_data.counters.tracksUsed, info.trackId);
+    if(info.valid && typeof Game !== 'undefined' && Game.mode === 'tt') _data.counters.ttSessions = 1;
+    save();
+    checkThresholds();
+  }
+
+  function onRaceFinish(info){
+    // Kontakt zwischen letzter Runde und Zieldurchfahrt zusätzlich prüfen
+    if((info.wallContacts||0) > _lastWall || (info.carContacts||0) > _lastCar) _raceCleanSoFar = false;
+
+    _data.counters.racesCompleted++;
+    if(info.pos === 1) _data.counters.wins++;
+    if(info.pos && info.pos <= 3) _data.counters.podiums++;
+    if(_raceCleanSoFar) _data.counters.cleanRaces++;
+    if(typeof Game !== 'undefined' && typeof CARS !== 'undefined'){
+      addUnique(_data.counters.carsUsed, CARS[Game.selCar]?.id);
+      addUnique(_data.counters.tracksUsed, Game.trackDef?.id);
+    }
+    if(info.kmDriven) _data.counters.kmDriven = Math.max(_data.counters.kmDriven, info.kmDriven);
+
+    _raceCleanSoFar = true; _lastWall = 0; _lastCar = 0;
+    save();
+    checkThresholds();
+  }
+
+  function showToast(def){
+    const el = document.getElementById('achv-popup');
+    if(!el) return;
+    el.querySelector('.achv-icon').textContent = def.icon;
+    el.querySelector('.achv-name').textContent = def.name;
+    el.querySelector('.achv-desc').textContent = def.desc;
+    el.classList.remove('hidden');
+    el.classList.add('show');
+    clearTimeout(el._hideTimer);
+    el._hideTimer = setTimeout(() => el.classList.remove('show'), 5000);
+  }
+
+  function renderScreen(){
+    const grid = document.getElementById('achv-grid');
+    if(!grid) return;
+    grid.innerHTML = CATALOG.map(a => {
+      const done = isUnlocked(a.id);
+      return `<div class="card${done ? '' : ' locked'}" style="${done ? '' : 'filter:grayscale(0.8) brightness(0.6)'}">
+        <div style="font-size:28px;flex:0 0 auto">${a.icon}</div>
+        <div><b>${a.name}</b><span>${a.desc}</span></div>
+      </div>`;
+    }).join('');
+    const countEl = document.getElementById('achv-count');
+    if(countEl) countEl.textContent = Object.keys(_data.unlocked).length + ' / ' + CATALOG.length;
+  }
+
+  // Hook-Chaining: bestehende Handler (LicenseSystem, DailyChallenge) bleiben erhalten.
+  const _prevOnLap = window.onGameLapComplete;
+  window.onGameLapComplete = function(info){
+    if(typeof _prevOnLap === 'function') _prevOnLap(info);
+    onLap(info);
+  };
+  const _prevOnFinish = window.onGameRaceFinish;
+  window.onGameRaceFinish = function(info){
+    if(typeof _prevOnFinish === 'function') _prevOnFinish(info);
+    onRaceFinish(info);
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const closeBtn = document.getElementById('achv-popup-close');
+    if(closeBtn) closeBtn.onclick = () => document.getElementById('achv-popup')?.classList.remove('show');
+    const backBtn = document.getElementById('btn-back-achievements');
+    if(backBtn) backBtn.onclick = () => Game.showScreen('screen-start');
+  });
+
+  return { unlock, isUnlocked, renderScreen, CATALOG };
+})();
 
 })();
 </script>
