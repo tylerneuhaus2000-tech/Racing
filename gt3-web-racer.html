@@ -7639,7 +7639,12 @@ class AIDriver {
      Verklemmung) und erzwingt dann für ein paar Sekunden eine feste Ausweichseite,
      statt sie jeden Frame neu zu bestimmen (siehe Kommentar am Aufrufer). */
   _handleContactLock(car, q, dt, others, track){
-    const ccNow = car.carContacts || 0;
+    // WICHTIG: auch Wandkontakte zählen, nicht nur Auto-gegen-Auto. Ein Auto, das
+    // allein an einer Leitplanke hängt (kein Nachbar in der Nähe), erhöht nur
+    // wallContacts — carContacts bleibt bei 0, wodurch die Loslöse-Logik nie
+    // ausgelöst hätte (beobachtet auf Spa: Autos blieben nach einem Wandcrash
+    // dauerhaft bei 0 km/h stehen, cc/wc stiegen unbegrenzt weiter).
+    const ccNow = (car.carContacts||0) + (car.wallContacts||0);
     const ccDelta = ccNow - (this._lastCc || 0);
     this._lastCc = ccNow;
     if(ccDelta > 0) this._contactHeat = Math.min(6, (this._contactHeat||0) + ccDelta);
