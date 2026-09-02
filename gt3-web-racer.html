@@ -7375,19 +7375,34 @@ class AIDriver {
     }
   }
 
-  /* ───────────────── VERKEHR + ÜBERHOLEN ───────────────── */
+  /* ───────────────── VERKEHR + ÜBERHOLEN ─────────────────
+     Komplett neu geschrieben (v2). Der alte Code hat Überhol-/Verteidigungs-
+     entscheidungen bei JEDEM Frame per Math.random() neu gewürfelt (scanTraffic
+     läuft ~40x/s) — bei zusammengepacktem Feld (Rennstart!) bedeutet das
+     effektiv 40 Würfe pro Sekunde für jedes Auto, wodurch praktisch alle KIs
+     binnen Bruchteilen einer Sekunde gleichzeitig einen Überholversuch starten.
+     Zusammen mit vielen einzeln aufaddierten "dodge"-Signalen aus unabhängigen
+     Quellen (Ausweichen + Windschatten + Verteidigung + Pack-Zufallslenken
+     gleichzeitig) ergab das beim Start ein Kollisions-Chaos — im Test: 11-14
+     Kontakte in den ersten 4 Renn-Sekunden bei nur 4 KI-Autos, plus wild
+     schwankende Ideallinie.
+     Neu: Entscheidungen laufen auf einem Cooldown (~alle 0.5-1s neu bewertet,
+     nicht 40x/s), die ersten Sekunden nach dem Start sind ein Vorsichtsfenster
+     ohne neue Überholversuche, und pro Frame wird genau EIN Ausweichziel mit
+     klarer Priorität verfolgt statt mehrerer sich aufschaukelnder Signale. */
 
-  scanTraffic(car, others, v, track, q){
-    let dodge = 0, vCap = 95;
-    if(!others) return {dodge, vCap};
-    const SCAN_DT = 1/40; // scanTraffic läuft ~40x/s effektiv
+  scanTraffic(car, others, v, track, q, dt){
+    let vCap = 95;
+    if(!others) return {dodge:0, vCap};
+    dt = dt || 1/60;
 
-    const sin_h     = Math.sin(car.heading), cos_h = Math.cos(car.heading);
-    const curvLoad  = clamp((this.lastCurv||0) / 0.008, 0, 1);
+    const sin_h    = Math.sin(car.heading), cos_h = Math.cos(car.heading);
+    const curvLoad = clamp((this.lastCurv||0) / 0.008, 0, 1);
 
-    let bestOTDist = Infinity, bestOTTarget = null;
-    let carsClose = 0;
-    let fastAttackerLat = null;
+    let nearestFwd = Infinity, nearestLat = 0, nearestCar = null;
+    let carsCloseAhead = 0;
+    let bestOTDist = Infinity, bestOTTarget = null, bestOTLat = 0;
+    let attackerLat = null, attackerClosing = -Infinity;
 
     for(const o of others){
       if(o === car) continue;
@@ -7399,123 +7414,79 @@ class AIDriver {
       const lat    = cos_h*dx - sin_h*dz;
       const absLat = Math.abs(lat);
 
-      // === Auto VORAUS ===
-      if(fwd > 0.5 && fwd < 50){
-        if(absLat < 3.5){
-          if(fwd < 20) carsClose++;
-
-          // Ausweichen
-          if(absLat < 2.5 && fwd < 35){
-            dodge = (lat >= 0 ? -1 : 1) * 2.0;
-          }
-          // Anti-Bunching: wenn sehr nah und kein aktives Überholen → etwas Gas raus
-          if(fwd < 6 && absLat < 2.0 && !this._ov.phase){
-            vCap = Math.min(vCap, Math.max(o.vx||0, 0) * 0.96);
-          }
-          if(curvLoad > 0.25 && fwd < 28){
-            dodge += (lat >= 0 ? -1 : 1) * (0.16 + this.aggression*0.10);
-          }
-
-          // Speed-Cap für sicheres Folgen
-          const closing = v - Math.max(o.vx, 0);
-          if(closing > 0){
-            const safeGap = 4 + closing*0.8;
-            if(fwd < safeGap + closing*1.5){
-              vCap = Math.min(vCap, Math.max(o.vx,0) + Math.max(0,(fwd-safeGap))*0.3);
-            }
-          }
-
-          // Überholkandidat: auf Gerade, guter Abstand, raceCraft vorhanden
-          if(fwd > 5 && fwd < 55 && curvLoad < 0.35 && this.raceCraft > 0.28){
-            if(fwd < bestOTDist){ bestOTDist = fwd; bestOTTarget = o; }
-          }
-        }
-        // Seitlicher Puffer
-        if(absLat >= 2.0 && absLat < 5.5 && fwd < 10 && fwd > -3){
-          dodge += (lat > 0 ? -0.5 : 0.5);
+      if(fwd > 0.5 && fwd < 60 && absLat < 4.0){
+        if(fwd < 22 && absLat < 3.2) carsCloseAhead++;
+        if(fwd < nearestFwd){ nearestFwd = fwd; nearestLat = lat; nearestCar = o; }
+        if(fwd > 6 && fwd < 55 && curvLoad < 0.35 && this.raceCraft > 0.28 && fwd < bestOTDist){
+          bestOTDist = fwd; bestOTTarget = o; bestOTLat = lat;
         }
       }
-
-      // === Auto HINTEN (Verteidigung) ===
       if(fwd < -0.5 && fwd > -22 && absLat < 4.0){
-        const approaching = (o.vx||0) - v;
-        if(approaching > 1.8 && this.raceCraft > 0.35) fastAttackerLat = lat;
-        if(fwd > -10 && absLat < 3.2){
-          dodge += (lat > 0 ? -1 : 1) * 0.28 * this.aggression;
-        }
+        const closing = (o.vx||0) - v;
+        if(closing > attackerClosing){ attackerClosing = closing; attackerLat = lat; }
       }
     }
+    if(attackerClosing <= 1.8) attackerLat = null;
 
-    // === WINDSCHATTEN-JAGD: Auf Geraden hinter dem Vordermann positionieren ===
-    // AGGRESSIVE + PRO KIs suchen aktiv den Windschatten (direkt hinter dem Vordermann)
-    if((this.personalityType === 'AGGRESSIVE' || this.personalityType === 'PRO') && !this._ov.phase){
-      const curvForSlip = Math.abs(track.samples[q.idx].curv);
-      if(curvForSlip < 0.003 && bestOTTarget){
-        const dx2 = bestOTTarget.pos.x - car.pos.x, dz2 = bestOTTarget.pos.z - car.pos.z;
-        const fwdT = Math.sin(car.heading)*dx2 + Math.cos(car.heading)*dz2;
-        const latT = Math.cos(car.heading)*dx2 - Math.sin(car.heading)*dz2;
-        // 12-35m dahinter auf Gerade: lateralen Offset minimieren (in Windschatten fahren)
-        if(fwdT > 12 && fwdT < 35 && Math.abs(latT) < 3.5){
-          dodge += -latT * 0.18; // leicht in Richtung des Vordermanns korrigieren
-        }
+    // Sicherer Folgeabstand (bewährtes Konzept aus dem alten System übernommen)
+    if(nearestCar){
+      const closing = v - Math.max(nearestCar.vx||0, 0);
+      if(closing > 0){
+        const safeGap = 5 + closing*0.9;
+        if(nearestFwd < safeGap + closing*1.5)
+          vCap = Math.min(vCap, Math.max(nearestCar.vx||0,0) + Math.max(0,(nearestFwd-safeGap))*0.3);
       }
     }
+    // Pack-Bremsung wenn mehrere Autos eng voraus
+    if(carsCloseAhead >= 3)      vCap = Math.min(vCap, v * (curvLoad > 0.3 ? 0.90 : 0.80));
+    else if(carsCloseAhead >= 2) vCap = Math.min(vCap, v * (curvLoad > 0.3 ? 0.96 : 0.90));
 
-    // Pack-Bremsung
-    if(carsClose >= 3){
-      vCap = Math.min(vCap, v * (curvLoad > 0.3 ? 0.92 : 0.82));
-      dodge += (Math.random()<0.5 ? -1 : 1) * (0.20 + this.aggression*0.12);
-    } else if(carsClose >= 2){
-      vCap = Math.min(vCap, v * (curvLoad > 0.3 ? 0.97 : 0.90));
+    // Windschatten: nur ein leichter Top-Speed-Bonus auf der Geraden, kein Lenkeingriff
+    if(nearestCar && curvLoad < 0.1 && nearestFwd > 8 && nearestFwd < 30 && Math.abs(nearestLat) < 2.5){
+      const closing2 = Math.max(nearestCar.vx||0,0) - v;
+      if(closing2 < 3) vCap = Math.min(95, vCap * 1.03);
     }
 
-    // === ÜBERHOLENTSCHEIDUNG ===
-    const ov = this._ov;
-    if(bestOTTarget && !ov.phase){
-      // AGGRESSIVE: schnellere Entscheidung + niedrigere Schwelle
-      // DEFENSIVE/ROOKIE: deutlich seltener überholen
-      let otChance = this.aggression*0.16 + this.raceCraft*0.12;
-      if(this.personalityType === 'AGGRESSIVE') otChance *= 1.6;
-      if(this.personalityType === 'DEFENSIVE')  otChance *= 0.4;
+    // ── Überhol-/Verteidigungsentscheidung: max. ~1-2x/s neu bewertet ──
+    const ov = this._ov, def = this._def;
+    ov.timer  = Math.max(0, (ov.timer||0)  - dt);
+    def.timer = Math.max(0, (def.timer||0) - dt);
+    this._ovDecisionCd  = Math.max(0, (this._ovDecisionCd||0)  - dt);
+    this._defDecisionCd = Math.max(0, (this._defDecisionCd||0) - dt);
+
+    const raceT = (typeof Game !== 'undefined' && Game._raceTimeS != null) ? Game._raceTimeS : 99;
+    const startCaution = raceT < 5; // erste 5s: kein neuer Überholversuch, engeres Feld = größerer Puffer
+
+    if(!ov.phase && bestOTTarget && !startCaution && this._ovDecisionCd <= 0){
+      this._ovDecisionCd = 0.5 + Math.random()*0.5;
+      let otChance = this.aggression*0.28 + this.raceCraft*0.18;
+      if(this.personalityType === 'AGGRESSIVE') otChance *= 1.5;
+      if(this.personalityType === 'DEFENSIVE')  otChance *= 0.45;
       if(this.personalityType === 'ROOKIE')     otChance *= 0.6;
-      const readyToOvertake = (this.raceCraft + this.aggression) > 0.55
-        && Math.random() < otChance;
+      const readyToOvertake = (this.raceCraft + this.aggression) > 0.55 && Math.random() < otChance;
       if(readyToOvertake){
-        // Welche Seite hat mehr Platz? Verfolger-Position + Racingline-Bias berücksichtigen
         const qLat = q ? q.lat : 0;
         const hw = track.def.halfWidth || 8;
-        // Raum links vs rechts: positives lat = rechts der Mitte
-        // Seite mit mehr Abstand zur Wand bevorzugen
-        const roomLeft  = hw + qLat;   // Abstand zur linken Wand
-        const roomRight = hw - qLat;   // Abstand zur rechten Wand
-        // Auch schauen ob Gegner links oder rechts ist (ihn überholen auf seiner Außenseite)
-        const targetDx = bestOTTarget ? bestOTTarget.pos.x - car.pos.x : 0;
-        const targetDz = bestOTTarget ? bestOTTarget.pos.z - car.pos.z : 0;
-        const targetLat = Math.cos(car.heading)*targetDx - Math.sin(car.heading)*targetDz;
-        // Gegner links → wir gehen rechts (und umgekehrt), aber nur wenn da Platz ist
-        let preferredSide = targetLat > 0 ? -1 : 1; // außen überholen
-        if(preferredSide === 1 && roomRight < 2.5) preferredSide = -1; // zu wenig Platz rechts
-        if(preferredSide === -1 && roomLeft < 2.5) preferredSide = 1;  // zu wenig Platz links
+        const roomLeft  = hw + qLat, roomRight = hw - qLat;
+        let preferredSide = bestOTLat > 0 ? -1 : 1; // außen überholen
+        if(preferredSide === 1 && roomRight < 2.5) preferredSide = -1;
+        if(preferredSide === -1 && roomLeft < 2.5) preferredSide = 1;
         ov.side = preferredSide;
-        ov.phase   = 'setup';
+        ov.phase = 'setup';
         ov.targetId = bestOTTarget._uid;
-        // AGGRESSIVE: kürzer warten (2.5s), PRO: normal (5s), ROOKIE/DEFENSIVE: länger
         const baseSetupT = this.personalityType === 'AGGRESSIVE' ? 2.5 :
                            this.personalityType === 'PRO'        ? 4.5 :
                            this.personalityType === 'ROOKIE'     ? 7.0 : 5.0;
-        ov.timer   = baseSetupT + this.raceCraft * 2.5;
+        ov.timer = baseSetupT + this.raceCraft * 2.5;
       }
     }
-    // Close-range side-hold overtake: wenn < 15m auf Gerade und aggressiv genug
-    if(!ov.phase && bestOTDist < 15 && this.aggression > 0.4){
+    if(!ov.phase && bestOTDist < 15 && this.aggression > 0.4 && !startCaution){
       const qLat = q ? q.lat : 0;
-      ov.side    = qLat > 0 ? -1 : 1;
-      ov.phase   = 'attack';
+      ov.side = qLat > 0 ? -1 : 1;
+      ov.phase = 'attack';
       ov.targetId = bestOTTarget ? bestOTTarget._uid : null;
-      ov.timer   = 3 + Math.random() * 2; // 3-5 seconds
+      ov.timer = 3 + Math.random() * 2;
     }
-
-    // Überholautomatik ticken (timer wird in control() mit echtem dt dekrementiert)
     if(ov.phase){
       if(ov.phase === 'setup' && ov.timer < 2.8) ov.phase = 'attack';
       if(ov.phase === 'attack'){
@@ -7529,43 +7500,52 @@ class AIDriver {
         }
       }
       if(ov.phase === 'attack' && curvLoad < 0.25) vCap = Math.min(vCap * 1.08, 95);
-      // Dodge nur auf Geraden — in Kurven kein Ausscheren (sonst Kontrollverlust)
-      if(ov.phase === 'attack') dodge = ov.side * 2.2 * clamp(1.0 - curvLoad*3, 0, 1);
     }
 
-    // === VERTEIDIGUNG ===
-    const def = this._def;
-    if(fastAttackerLat !== null && !def.active){
-      // DEFENSIVE personality reagiert viel öfter und hält länger
-      const defThresh = this.personalityType === 'DEFENSIVE' ? 0.22 : 0.42;
-      const defChance = this.personalityType === 'DEFENSIVE' ? this.raceCraft * 0.70 : this.raceCraft * 0.38;
+    if(attackerLat !== null && !def.active && this._defDecisionCd <= 0){
+      this._defDecisionCd = 0.6 + Math.random()*0.5;
+      const race = (typeof Game !== 'undefined' && Game.race) ? Game.race : null;
+      const isLeader = !!(race && race.pos === 1);
+      const defThresh = this.personalityType === 'DEFENSIVE' ? 0.22 : (isLeader ? 0.30 : 0.42);
+      const defChance = (this.personalityType === 'DEFENSIVE' ? this.raceCraft * 0.55 : this.raceCraft * 0.30)
+                         * (isLeader ? 1.35 : 1.0);
       if(this.raceCraft > defThresh && Math.random() < defChance){
         def.active = true;
-        def.side   = fastAttackerLat > 0 ? 1 : -1;
-        const defBase = this.personalityType === 'DEFENSIVE' ? 2.8 : 1.8;
-        def.timer  = defBase + this.raceCraft * 2.0;
+        def.side   = attackerLat > 0 ? 1 : -1;
+        def.timer  = (this.personalityType === 'DEFENSIVE' ? 2.8 : 1.8) + this.raceCraft * 2.0;
       }
     }
-    if(def.active && def.timer <= 0) { def.active = false; def.side = 0; }
-    // P1 blocking: wenn führend und Verfolger < 20m hinten
-    if(this.raceCraft > 0.6 && fastAttackerLat !== null){
-      const race = (typeof Game !== 'undefined' && Game.race) ? Game.race : null;
-      if(race && race.pos === 1){
-        dodge += (fastAttackerLat > 0 ? 0.6 : -0.6);
-      }
+    if(def.active && def.timer <= 0){ def.active = false; def.side = 0; }
+
+    // ── Genau EIN Ausweich-/Linienziel pro Frame, klare Priorität statt
+    //    mehrerer sich addierender Signale ──
+    let dodge = 0;
+    if(ov.phase === 'attack'){
+      dodge = ov.side * 2.2 * clamp(1.0 - curvLoad*3, 0, 1);
+    } else if(def.active){
+      dodge = def.side * (curvLoad < 0.1 ? 0.35 : 1.1);
+    } else if(nearestCar && nearestFwd < 16 && Math.abs(nearestLat) < 2.3){
+      const urgency = clamp((16 - nearestFwd)/16, 0, 1);
+      dodge = (nearestLat >= 0 ? -1 : 1) * (0.5 + urgency*1.2);
     }
 
-    // Auf Geraden dodge stark dämpfen — sonst Schlangenlinie beim Überholen
+    // Auf Geraden außerhalb eines aktiven Überholmanövers dämpfen (keine Schlangenlinie)
     const curvForDodge = Math.abs(track.samples[q.idx].curv);
-    if(curvForDodge < 0.003) dodge *= 0.15;
+    if(curvForDodge < 0.003 && ov.phase !== 'attack') dodge *= 0.25;
 
-    // Dodge über Zeit glätten (Low-Pass-Filter) — verhindert Frame-zu-Frame-Springen
+    // Zeitlich glätten (Low-Pass) — verhindert Frame-zu-Frame-Sprünge
     if(this._dodgeSmooth === undefined) this._dodgeSmooth = 0;
-    const dodgeRate = curvForDodge < 0.003 ? SCAN_DT*2.5 : SCAN_DT*8;
+    const dodgeRate = (curvForDodge < 0.003 ? 2.5 : 8) * dt;
     this._dodgeSmooth += clamp(dodge - this._dodgeSmooth, -dodgeRate, dodgeRate);
-    dodge = this._dodgeSmooth;
 
-    return {dodge, vCap};
+    // Beim Rennstart (Feld noch eng zusammen) zusätzlichen Sicherheitsabstand erzwingen
+    if(startCaution && nearestCar){
+      const closing = v - Math.max(nearestCar.vx||0, 0);
+      if(closing > 0 && nearestFwd < 10 + closing*1.5)
+        vCap = Math.min(vCap, Math.max(nearestCar.vx||0,0) * 0.9);
+    }
+
+    return {dodge: this._dodgeSmooth, vCap};
   }
 
   /* ───────────────── REIFEN-STRATEGIE ───────────────── */
@@ -7877,7 +7857,7 @@ class AIDriver {
     this._def.timer -= dt;
 
     // Verkehr + Überholscan
-    const traffic = this.scanTraffic(car, others, v, track, q);
+    const traffic = this.scanTraffic(car, others, v, track, q, dt);
     if(traffic.vCap < tgtV) tgtV = traffic.vCap;
 
     // Windschatten
@@ -13932,6 +13912,9 @@ const Game = {
         d.stuckT=0; d.revT=0; d.turnT=0; d.fwdRescueT=0;
         d.pitState='racing'; d.loS=0; d._cgs=1; d._effALat=0;
         d._damagePit=false; d._lastPitLap=0;
+        d._ov = {phase:null, targetId:null, timer:0, side:0};
+        d._def = {active:false, side:0, timer:0};
+        d._dodgeSmooth = 0; d._ovDecisionCd = 0; d._defDecisionCd = 0;
         d.setupForRace(this.totalLaps, this.mandatoryPitStop);
       });
       this.car.rd=this.freshRD();
