@@ -6981,20 +6981,30 @@ class AIDriver {
     this.personalityType = preset ? preset.type : 'PRO';
 
     if(preset){
-      // Preset-Traits mit skill-basiertem Bonus kombinieren (Skill = Baseline-Anhebung)
-      this.aggression  = clamp(preset.aggression  + s*0.08 + (Math.random()-0.5)*0.12, 0, 1);
-      this.consistency = clamp(preset.consistency + s*0.06 + (Math.random()-0.5)*0.08, 0, 1);
-      this.wetSkill    = clamp(preset.wetSkill    + s*0.10 + (Math.random()-0.5)*0.10, 0, 1);
-      this.raceCraft   = clamp(preset.raceCraft   + s*0.05 + (Math.random()-0.5)*0.10, 0, 1);
-      this._aLatMul    = preset.aLatMul;
-      this._aBrkMul    = preset.aBrkMul;
+      /* Preset-Traits per Skill Richtung Elite-Niveau ziehen statt nur einen kleinen
+         additiven Bonus draufzurechnen. Vorher blieb z.B. ROOKIE (consistency 0.26,
+         raceCraft 0.30) auch bei KI-Schwierigkeit 100 quasi unverändert schlecht
+         (max. +0.06/+0.05), weshalb der Regler kaum spürbar war. Jetzt wird bei
+         niedriger Schwierigkeit die Persönlichkeit dominant beibehalten (schwache
+         Rookies bleiben schwach), bei hoher Schwierigkeit konvergiert das ganze Feld
+         Richtung eines starken, konkurrenzfähigen Niveaus. */
+      // Ziel = das jeweils Höhere aus Preset-Baseline und Elite-Wert, damit ohnehin
+      // starke Archetyp-Eigenschaften (z.B. AGGRESSIVE.aggression, PRO.raceCraft)
+      // durch die Skill-Anhebung nie abgeschwächt werden.
+      const eliteAggr = 0.74, eliteCons = 0.95, eliteWet = 0.90, eliteRC = 0.92;
+      this.aggression  = clamp(lerp(preset.aggression,  Math.max(preset.aggression,  eliteAggr), s*0.90) + (Math.random()-0.5)*0.08, 0, 1);
+      this.consistency = clamp(lerp(preset.consistency, Math.max(preset.consistency, eliteCons),  s*0.90) + (Math.random()-0.5)*0.05, 0, 1);
+      this.wetSkill    = clamp(lerp(preset.wetSkill,    Math.max(preset.wetSkill,    eliteWet),   s*0.85) + (Math.random()-0.5)*0.06, 0, 1);
+      this.raceCraft   = clamp(lerp(preset.raceCraft,   Math.max(preset.raceCraft,   eliteRC),    s*0.85) + (Math.random()-0.5)*0.06, 0, 1);
+      this._aLatMul    = lerp(preset.aLatMul, 1.06, s);
+      this._aBrkMul    = lerp(preset.aBrkMul, 1.05, s);
     } else {
-      this.aggression  = clamp(0.25 + Math.random()*0.55 + s*0.15, 0, 1);
-      this.consistency = clamp(0.30 + Math.random()*0.40 + s*0.35, 0, 1);
-      this.wetSkill    = clamp(0.25 + Math.random()*0.55 + s*0.20, 0, 1);
-      this.raceCraft   = clamp(0.25 + Math.random()*0.50 + s*0.25, 0, 1);
-      this._aLatMul    = 1.0;
-      this._aBrkMul    = 1.0;
+      this.aggression  = clamp(0.25 + Math.random()*0.35 + s*0.45, 0, 1);
+      this.consistency = clamp(0.30 + Math.random()*0.25 + s*0.55, 0, 1);
+      this.wetSkill    = clamp(0.25 + Math.random()*0.35 + s*0.50, 0, 1);
+      this.raceCraft   = clamp(0.25 + Math.random()*0.30 + s*0.55, 0, 1);
+      this._aLatMul    = lerp(0.92, 1.06, s);
+      this._aBrkMul    = lerp(0.92, 1.05, s);
     }
 
     // Physics parameters
@@ -7322,8 +7332,10 @@ class AIDriver {
     let chance = (1 - this.consistency) * 0.50;
     if(inCorner) chance *= 1.5;
     if(this.aggression > 0.65) chance *= 1.2;
-    // ROOKIE: deutlich mehr Fehler, besonders in Kurven
-    if(this.personalityType === 'ROOKIE') chance *= (inCorner ? 2.2 : 1.5);
+    // ROOKIE: mehr Fehler, besonders in Kurven — aber der Malus fadet bei hoher
+    // KI-Schwierigkeit aus (sonst bleibt ROOKIE auch bei Schwierigkeit 100 unfahrbar
+    // schlecht, obwohl consistency dort schon Elite-Niveau erreicht hat)
+    if(this.personalityType === 'ROOKIE') chance *= lerp(inCorner ? 2.2 : 1.5, 1.0, this.skill);
     // PRO: sehr selten Fehler
     if(this.personalityType === 'PRO') chance *= 0.35;
 
