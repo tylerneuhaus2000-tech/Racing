@@ -6460,7 +6460,14 @@ class Car {
     const minTire = this.tireWear ? Math.min(this.tireWear.FL||1, this.tireWear.FR||1, this.tireWear.RL||1, this.tireWear.RR||1) : 1;
     const engineFailed = (this.damage.engine || 0) >= 100;
     if(!this.retired && (this.totalDamage > 92 || minTire < 0.06 || engineFailed)){
-      this.retired = true;
+      // WICHTIG: this.retired NICHT hier setzen — Game.retireCar() prüft
+      // "if(car.retired) return;" ganz am Anfang und würde dann sofort
+      // abbrechen, OHNE das Auto tatsächlich einzufrieren/wegzuteleportieren.
+      // Ergebnis (verifiziert): das Auto bleibt für immer als "retired"
+      // markiert, fährt aber normal weiter mit und crasht munter weiter —
+      // in einem 50-Wagen-Vollgrid-Test endeten so 45 von 50 Autos als
+      // Geister-Ausfälle statt sauber aus dem Rennen genommen zu werden.
+      // Game.retireCar() setzt car.retired selbst, als Teil der echten Arbeit.
       if(typeof Game !== 'undefined' && Game.retireCar) Game.retireCar(this, engineFailed ? 'damage' : (this.totalDamage > 92 ? 'damage' : 'tyre'));
     }
 
