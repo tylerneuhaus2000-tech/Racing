@@ -3399,11 +3399,6 @@ class Input {
       }
       if(this._isAction('help', e.code)) document.getElementById('help').classList.toggle('hidden');
       if(this._isAction('respawn', e.code) && (Game.state==='race'||Game.state==='finished')){
-        const car=Game.car, q=Game.track.query(car.pos,car.sampleIdx), s=Game.track.samples[q.idx];
-        car.pos.copy(s.pos); car.heading=Math.atan2(s.tan.x,s.tan.z);
-        car.vx=0; car.vy=0; car.yawRate=0;
-      }
-      if(this._isAction('respawn', e.code) && (Game.state==='race'||Game.state==='finished')){
         /* Respawn: zurück auf die Strecke, mittig, richtige Richtung, Stillstand */
         const car = Game.car;
         const q = Game.track.query(car.pos, car.sampleIdx);
@@ -6837,7 +6832,13 @@ class SkidMarks {
    ═══════════════════════════════════════════════════ */
 class ReplayRecorder {
   constructor(){
+    /* Startkapazität nach Qualitätsstufe — wächst während der Aufnahme
+       automatisch mit (siehe _grow), damit das Replay die volle Renndauer
+       abdeckt statt nach ~40-120s alte Frames zu überschreiben. HARD_CAP
+       ist nur ein Sicherheitsnetz für den unwahrscheinlichen Fall, dass die
+       Aufnahme nie gestoppt wird (~3h bei 20 Frames/s). */
     this.CAP = window._REPLAY_CAP || 2400;
+    this.HARD_CAP = 216000;
     this._buf = new Array(this.CAP);
     this._head = 0; // oldest frame index (when full)
     this._len  = 0; // number of valid frames
@@ -6849,9 +6850,24 @@ class ReplayRecorder {
 
   markLap(t){ this.lapTimes.push(t); }
 
+  // Kapazität verdoppeln statt älteste Frames zu überschreiben. Wird nur
+  // aufgerufen solange der Puffer noch nicht einmal umgelaufen ist
+  // (_head===0), daher genügt ein simples Kopieren an dieselbe Stelle.
+  _grow(){
+    const newCap = Math.min(this.CAP * 2, this.HARD_CAP);
+    if(newCap <= this.CAP) return false;
+    const newBuf = new Array(newCap);
+    for(let i=0;i<this._len;i++) newBuf[i] = this._buf[(this._head+i)%this.CAP];
+    this._buf = newBuf;
+    this.CAP = newCap;
+    this._head = 0;
+    return true;
+  }
+
   record(allCars, t, playerInput){
     if(!this.recording) return;
     if(++this._fc % 3 !== 0) return;
+    if(this._len >= this.CAP) this._grow();
     const wi = (this._len < this.CAP) ? this._len : this._head;
     // Reuse existing slot object to avoid GC pressure
     let slot = this._buf[wi];
@@ -13788,28 +13804,95 @@ const Game = {
 
   requestRaceRestart(source='input', immediate=false){
     if(!(this.state === 'race' || this.state === 'finished' || this.state === 'pause')) return false;
+    /* Ein aktives Replay blockiert sonst den Haupt-Loop (loop() kehrt bei
+       _replayMode sofort zurück) — vor jedem Reset zwingend verlassen,
+       sonst friert das Spiel nach einem Reset ein. */
+    if(this._replayMode) this.stopReplay();
     const ctrl = this._restartCtrl || (this._restartCtrl = { inProgress:false, lastAt:0, armUntil:0, cooldownMs:1200, confirmWindowMs:1800 });
     if(ctrl.inProgress) return false;
     const now = performance.now();
     if(now - (ctrl.lastAt || 0) < ctrl.cooldownMs) return false;
 
-    if(immediate){
-      this.restartRace(true);
+    /* Im Multiplayer darf ein lokaler Reset nicht das ganze Rennen für alle
+       neu starten (das würde die Positionen/Runden der anderen Spieler
+       lokal überschreiben und zur Desynchronisation/"Freeze" führen).
+       Stattdessen: in der Lobby bleiben, eigene Runde ungültig beenden,
+       eigenes Auto komplett zurück an den Start setzen. */
+    const inMultiplayer = typeof MP !== 'undefined' && MP.peer && Object.keys(MP.conns||{}).length > 0;
+    if(inMultiplayer){
+      this.resetOwnCarToStart();
+      ctrl.armUntil = 0;
+      ctrl.lastAt = now;
       return true;
-    }
-
-    if((ctrl.armUntil || 0) < now){
-      ctrl.armUntil = now + ctrl.confirmWindowMs;
-      this._showFlash('R ERNEUT DRÜCKEN FÜR NEUSTART', '#ffd400', 1400);
-      return false;
     }
 
     this.restartRace(true);
     return true;
   },
 
+  /** Multiplayer-Reset: nur das eigene Auto wird "komplett entfernt" (Schaden,
+      Geschwindigkeit, Reifen etc. zurückgesetzt) und an den Start gesetzt.
+      Lobby, andere Spieler, Rennstand und laufende Zeit bleiben unverändert.
+      Die aktuell gefahrene Runde wird automatisch als ungültig gewertet. */
+  resetOwnCarToStart(){
+    const car = this.car;
+    if(!car) return;
+    if(this.race){
+      this.race.lapValid = false;
+      this.race.invalidReason = 'reset';
+      this.race.lapStart = performance.now();
+      this.race.lapStartRaceT = this._raceTimeS || 0;
+      this.race.offTrackTime = 0;
+      this.race.hardCutScore = 0;
+      this.race.maxLatExcess = 0;
+      this.race.lapSamples = [{progress:0, time:0}];
+      this.race.sector = 0; this.race.sectorStart = 0;
+      this.race.curSectors = [null,null,null]; this.race._prevSector = 0;
+    }
+    /* Auto komplett zurücksetzen ("entfernt und neu an den Start gesetzt") */
+    car.placeAtStart(this.track);
+    car.rd = this.freshRD();
+    car.damage = {front:0, rear:0, left:0, right:0, engine:0, susp:{FL:0,FR:0,RL:0,RR:0}};
+    car.smokeT = 0;
+    for(const tag in car.lostParts){
+      const mountSpec = car.partMounts && car.partMounts[tag];
+      const partMesh = car.parts[tag];
+      if(partMesh && mountSpec){
+        partMesh.position.copy(mountSpec.pos);
+        partMesh.quaternion.copy(mountSpec.quat);
+        partMesh.visible = true;
+        partMesh.scale.set(1,1,1);
+        if(partMesh.material){ partMesh.material.opacity = 1; partMesh.material.transparent = false; }
+        if(partMesh.parent && partMesh.parent !== car.group) partMesh.parent.remove(partMesh);
+        car.group.add(partMesh);
+      }
+    }
+    car.lostParts = {};
+    car.tireWear = {front:1, rear:1, FL:1, FR:1, RL:1, RR:1};
+    car.pitServiceFlashT = 0; car.pitServiceIntensity = 0;
+    car.penaltySec = 0; car.penaltySecConsumed = 0;
+    car._pitSpeedingPenaltyGiven = false; car._pitSpeedingNoticeUntil = 0;
+    car.driveThroughPenaltyPending = false; car.driveThroughInPit = false;
+    car.driveThroughNoticeUntil = 0; car._driveThroughAutoLimiter = false;
+    car._overtakeState = {};
+    car.vx = 0; car.vy = 0; car.yawRate = 0;
+    car.slipstreamFactor = 0;
+    car.wallContacts = 0; car.carContacts = 0; car._ccCD = {}; car._wcCD = 0;
+    car.retired = false;
+    car.pitLimiterActive = false;
+    car.pitStopState = 'idle'; car.pitStopT = 0;
+    car._stuckT = 0; car._everMoved = false; car._prevDmg = 0;
+    if(car.ers){
+      car.ers.charge = car.hasERS ? 0.42 : 0;
+      car.ers.active = false; car.ers.regenActive = false; car.ers.depleted = false;
+      car.ers.deployKw = 0; car.ers.regenKw = 0;
+    }
+    this._showFlash('AUTO ZURÜCKGESETZT — RUNDE UNGÜLTIG', '#ff6b00', 2200);
+  },
+
   restartRace(force=false){
     if(!(this.state === 'race' || this.state === 'finished' || this.state === 'pause' || this.state === 'countdown')) return;
+    if(this._replayMode) this.stopReplay();
     const ctrl = this._restartCtrl || (this._restartCtrl = { inProgress:false, lastAt:0, armUntil:0, cooldownMs:1200, confirmWindowMs:1800 });
     const now = performance.now();
     if(ctrl.inProgress) return;
@@ -15564,10 +15647,7 @@ const Game = {
     this._replayFromPause = !!fromPause;
     if(!fromPause){
       this.replay.stop();
-      // Trim to last 3 laps
-      const lts = this.replay.lapTimes;
-      const trimT = lts.length >= 3 ? lts[lts.length - 3] : this.replay.minT;
-      this.replay.trim(trimT);
+      // Volle Renndauer beibehalten (kein Trim mehr auf die letzten 3 Runden)
     }
     this._replayMode = true;
     this._replayT = this.replay.minT;
