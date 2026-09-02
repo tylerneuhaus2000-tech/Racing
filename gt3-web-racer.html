@@ -5123,6 +5123,25 @@ class Track {
       const d=dx*dx+dz*dz;
       if(d<bd){bd=d;best=i;}
     }
+    // Absicherung: wenn selbst der beste Treffer im ±150m-Fenster unplausibel
+    // weit weg liegt, wurde das Auto seit dem letzten query() weiter bewegt als
+    // das Fenster abdeckt (z.B. durch einen harten Kollisions-Ruck) — lastIdx
+    // ist dann kein brauchbarer Suchmittelpunkt mehr. Die Fenster-Suche rastet
+    // in diesem Fall auf irgendeinem zufällig nahen, aber lap-mäßig völlig
+    // falschen Segment ein, wodurch lat/side/tan Fantasiewerte liefern und die
+    // KI (und die Wandkollision) auf ein Phantom-Ziel reagiert — im Test
+    // beobachtet: Autos "off track" um 30-60m bei nur ~8m halber Streckenbreite.
+    // Volle Neusuche über alle Samples als Recovery (teurer, aber selten nötig).
+    const maxPlausible = (this.halfW + this.kerbW + 60);
+    if(bd > maxPlausible*maxPlausible){
+      let full=0, fd=Infinity;
+      for(let i=0;i<N;i++){
+        const dx=pos.x-S[i].pos.x, dz=pos.z-S[i].pos.z;
+        const d=dx*dx+dz*dz;
+        if(d<fd){fd=d;full=i;}
+      }
+      best=full; bd=fd;
+    }
     const s=S[best];
     const dx=pos.x-s.pos.x, dz=pos.z-s.pos.z;
     const lat = dx*s.side.x + dz*s.side.z;
@@ -7650,7 +7669,14 @@ class AIDriver {
     if(ccDelta > 0) this._contactHeat = Math.min(6, (this._contactHeat||0) + ccDelta);
     else this._contactHeat = Math.max(0, (this._contactHeat||0) - dt*1.2);
 
-    if(this._contactHeat > 2.5 && !(this._escapeT > 0)){
+    // NUR auslösen wenn das Auto auch wirklich langsam/steckt (echtes Deadlock-
+    // Symptom) — nicht bei normalem Renn-Rempeln in voller Fahrt. Vorher löste
+    // schon ein paar harmlose Streifkontakte im dichten Feld (z.B. 4 Kontakte
+    // ohne jeden Schaden bei 69 km/h) die Flucht-Manöver aus und hat dadurch
+    // Autos, die gar nicht feststeckten, aktiv 20+ m von der Strecke gelenkt
+    // (im Test beobachtet und reproduziert).
+    const isSlow = Math.abs(car.vx||0) < 8;
+    if(this._contactHeat > 2.5 && isSlow && !(this._escapeT > 0)){
       // Wand hat Vorrang (sie bewegt sich nicht) — sonst Richtung wählen, die vom
       // tatsächlich nächsten Nachbarn wegführt statt blind von der Streckenmitte
       // wegzurechnen (das konnte genau in den Nachbarn oder eine Wand hineinlenken,
@@ -7675,9 +7701,16 @@ class AIDriver {
           ? (neighborLat > 0 ? -1 : 1)              // weg vom nächsten Nachbarn
           : ((q && q.lat > 0) ? -1 : 1);             // Fallback: Richtung Mitte
       }
-      this._escapeT = 2.2;
+      this._escapeT = 1.5;
     }
     if(this._escapeT > 0){
+      // Vorzeitig abbrechen sobald das Auto sich wieder aus eigener Kraft löst
+      // (deutlich beschleunigt) — nicht blind die volle Dauer festhalten, egal
+      // wohin die Strecke inzwischen verläuft.
+      if(Math.abs(car.vx||0) > 11){
+        this._escapeT = 0; this._contactHeat = 0;
+        return null;
+      }
       this._escapeT -= dt;
       const inp = this.input;
       inp.steer += clamp(this._escapeSide*0.7 - inp.steer, -6*dt, 6*dt);
@@ -8053,6 +8086,22 @@ function setCarWorldVel(c,wx,wz){
 }
 function collideCars(cars){
   const R=1.8;                                   // Wirkungsradius pro Auto
+  /* Positions-Korrektur pro Auto sammeln statt sofort anzuwenden, und am Ende
+     pro Auto hart kappen. Grund: bei einem dichten Feld (z.B. Startgedränge mit
+     20+ Autos in 2 Reihen) kann ein Auto gleichzeitig mit mehreren Nachbarn
+     überlappen — die alte Version hat den vollen Push JEDES Paars sofort UND
+     ungekappt angewendet, Tick für Tick, solange die Überlappung anhielt. Bei
+     mehreren gleichzeitigen Kontakten summierte sich das über wenige Physik-
+     Ticks zu einer regelrechten Explosion auf (im Test gemessen: Autos landeten
+     30-55m neben der Strecke, obwohl die Streckenhälfte nur ~8m breit ist).
+     Jetzt: Verschiebung pro Auto sammeln, danach auf einen Maximalwert pro
+     Tick kappen, bevor sie tatsächlich angewendet wird. */
+  const pushX = new Map(), pushZ = new Map();
+  const impUsed = new Map();
+  const MAX_PUSH_PER_TICK = 0.4;      // m, hart pro Auto pro Physik-Tick
+  const MAX_IMPULSE_PER_TICK = 12;    // m/s, hart pro Auto pro Physik-Tick
+  const addPush = (c,x,z) => { pushX.set(c,(pushX.get(c)||0)+x); pushZ.set(c,(pushZ.get(c)||0)+z); };
+
   for(let i=0;i<cars.length;i++) for(let j=i+1;j<cars.length;j++){
     const a=cars[i], b=cars[j];
     if(a._frozen||b._frozen) continue;
@@ -8061,12 +8110,19 @@ function collideCars(cars){
     if(d>=R*2||d<0.001) continue;
     dx/=d; dz/=d;
     const push=(R*2-d)/2;
-    a.pos.x-=dx*push; a.pos.z-=dz*push;
-    b.pos.x+=dx*push; b.pos.z+=dz*push;
+    addPush(a, -dx*push, -dz*push);
+    addPush(b,  dx*push,  dz*push);
     const [ax,az]=carWorldVel(a), [bx,bz]=carWorldVel(b);
     const rel=(bx-ax)*dx+(bz-az)*dz;
     if(rel<0){                                    // bewegen sich aufeinander zu
-      const imp=-rel*0.45;
+      let imp=-rel*0.45;
+      // Impuls-Budget pro Auto für diesen Tick begrenzen (verhindert, dass ein
+      // Auto mit vielen gleichzeitigen Nachbarn Tick für Tick immer stärker
+      // beschleunigt wird)
+      const usedA = impUsed.get(a)||0, usedB = impUsed.get(b)||0;
+      const budget = MAX_IMPULSE_PER_TICK - Math.max(usedA, usedB);
+      if(budget <= 0) imp = 0; else imp = Math.min(imp, budget);
+      impUsed.set(a, usedA+imp); impUsed.set(b, usedB+imp);
       setCarWorldVel(a, ax-dx*imp, az-dz*imp);
       setCarWorldVel(b, bx+dx*imp, bz+dz*imp);
       a.yawRate*=0.92; b.yawRate*=0.92;
@@ -8096,6 +8152,18 @@ function collideCars(cars){
         b.applyDamageFromImpact(bHitX, bHitZ, impMag*0.5);
         delete b._noTirePop;
       }
+    }
+  }
+
+  // Gesammelte Verschiebung pro Auto anwenden, aber hart pro Tick gekappt
+  for(const [car, x] of pushX){
+    const z = pushZ.get(car) || 0;
+    const mag = Math.hypot(x, z);
+    if(mag > MAX_PUSH_PER_TICK){
+      const s = MAX_PUSH_PER_TICK / mag;
+      car.pos.x += x*s; car.pos.z += z*s;
+    } else {
+      car.pos.x += x; car.pos.z += z;
     }
   }
 }
