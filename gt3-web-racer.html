@@ -7635,6 +7635,55 @@ class AIDriver {
     return null;
   }
 
+  /* Erkennt wiederholten Kontakt mit einem Nachbarn in kurzer Folge (Rad-an-Rad-
+     Verklemmung) und erzwingt dann für ein paar Sekunden eine feste Ausweichseite,
+     statt sie jeden Frame neu zu bestimmen (siehe Kommentar am Aufrufer). */
+  _handleContactLock(car, q, dt, others, track){
+    const ccNow = car.carContacts || 0;
+    const ccDelta = ccNow - (this._lastCc || 0);
+    this._lastCc = ccNow;
+    if(ccDelta > 0) this._contactHeat = Math.min(6, (this._contactHeat||0) + ccDelta);
+    else this._contactHeat = Math.max(0, (this._contactHeat||0) - dt*1.2);
+
+    if(this._contactHeat > 2.5 && !(this._escapeT > 0)){
+      // Wand hat Vorrang (sie bewegt sich nicht) — sonst Richtung wählen, die vom
+      // tatsächlich nächsten Nachbarn wegführt statt blind von der Streckenmitte
+      // wegzurechnen (das konnte genau in den Nachbarn oder eine Wand hineinlenken,
+      // z.B. beobachtet: ein 3-Wagen-Cluster, der rückwärts rollte statt loszukommen).
+      const hw = (track && track.def && track.def.halfWidth) || 8;
+      const nearWall = q && Math.abs(q.lat) > hw - 2.5;
+      if(nearWall){
+        this._escapeSide = q.lat > 0 ? -1 : 1; // weg von der Wand, Richtung Mitte
+      } else {
+        let neighborLat = 0, best = Infinity;
+        if(others){
+          const sin_h = Math.sin(car.heading), cos_h = Math.cos(car.heading);
+          for(const o of others){
+            if(o === car) continue;
+            const dx = o.pos.x-car.pos.x, dz = o.pos.z-car.pos.z;
+            const d2 = dx*dx+dz*dz;
+            if(d2 > 100 || d2 >= best) continue;
+            best = d2; neighborLat = cos_h*dx - sin_h*dz;
+          }
+        }
+        this._escapeSide = (best < Infinity)
+          ? (neighborLat > 0 ? -1 : 1)              // weg vom nächsten Nachbarn
+          : ((q && q.lat > 0) ? -1 : 1);             // Fallback: Richtung Mitte
+      }
+      this._escapeT = 2.2;
+    }
+    if(this._escapeT > 0){
+      this._escapeT -= dt;
+      const inp = this.input;
+      inp.steer += clamp(this._escapeSide*0.7 - inp.steer, -6*dt, 6*dt);
+      inp.throttle = 0.35;
+      inp.brake = 0;
+      if(this._escapeT <= 0) this._contactHeat = 0;
+      return inp;
+    }
+    return null;
+  }
+
   offRoadRecover(car, track, q, v){
     const inp = this.input;
     const tgtV = 9;
@@ -7826,6 +7875,18 @@ class AIDriver {
     // Recovery nach Pit-Check
     const rec = this.handleRecovery(car, q, v, dt, track);
     if(rec) return rec;
+
+    // Kontakt-Verklemmung lösen (z.B. Rad-an-Rad mit einem Nachbarn, fwd≈0):
+    // Das reguläre Ausweichsystem in scanTraffic() betrachtet nur Autos "voraus"
+    // (fwd>0.5) und wählt die Ausweichseite jeden Frame neu — bei echtem
+    // Seite-an-Seite-Kontakt kippt fwd frameweise das Vorzeichen, wodurch die
+    // Ausweichrichtung ständig hin- und herspringt und sich effektiv aufhebt
+    // (im Test: zwei Autos 13s lang aneinander verkeilt, 247 Kollisionen, beide
+    // gemeinsam bis zum Stillstand abgebremst). Bei wiederholtem Kontakt in
+    // kurzer Folge wird stattdessen EINMAL eine Seite fest gewählt und für ein
+    // paar Sekunden konsequent durchgezogen statt neu zu würfeln.
+    const esc = this._handleContactLock(car, q, dt, others, track);
+    if(esc) return esc;
 
     const pitInfo   = track.pitLaneInfo || null;
     const pitMidOff = pitInfo
@@ -13930,6 +13991,7 @@ const Game = {
         d._ov = {phase:null, targetId:null, timer:0, side:0};
         d._def = {active:false, side:0, timer:0};
         d._dodgeSmooth = 0; d._ovDecisionCd = 0; d._defDecisionCd = 0;
+        d._lastCc = 0; d._contactHeat = 0; d._escapeT = 0; d._escapeSide = 0;
         d.setupForRace(this.totalLaps, this.mandatoryPitStop);
       });
       this.car.rd=this.freshRD();
