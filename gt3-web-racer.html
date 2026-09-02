@@ -6832,7 +6832,13 @@ class SkidMarks {
    ═══════════════════════════════════════════════════ */
 class ReplayRecorder {
   constructor(){
+    /* Startkapazität nach Qualitätsstufe — wächst während der Aufnahme
+       automatisch mit (siehe _grow), damit das Replay die volle Renndauer
+       abdeckt statt nach ~40-120s alte Frames zu überschreiben. HARD_CAP
+       ist nur ein Sicherheitsnetz für den unwahrscheinlichen Fall, dass die
+       Aufnahme nie gestoppt wird (~3h bei 20 Frames/s). */
     this.CAP = window._REPLAY_CAP || 2400;
+    this.HARD_CAP = 216000;
     this._buf = new Array(this.CAP);
     this._head = 0; // oldest frame index (when full)
     this._len  = 0; // number of valid frames
@@ -6844,9 +6850,24 @@ class ReplayRecorder {
 
   markLap(t){ this.lapTimes.push(t); }
 
+  // Kapazität verdoppeln statt älteste Frames zu überschreiben. Wird nur
+  // aufgerufen solange der Puffer noch nicht einmal umgelaufen ist
+  // (_head===0), daher genügt ein simples Kopieren an dieselbe Stelle.
+  _grow(){
+    const newCap = Math.min(this.CAP * 2, this.HARD_CAP);
+    if(newCap <= this.CAP) return false;
+    const newBuf = new Array(newCap);
+    for(let i=0;i<this._len;i++) newBuf[i] = this._buf[(this._head+i)%this.CAP];
+    this._buf = newBuf;
+    this.CAP = newCap;
+    this._head = 0;
+    return true;
+  }
+
   record(allCars, t, playerInput){
     if(!this.recording) return;
     if(++this._fc % 3 !== 0) return;
+    if(this._len >= this.CAP) this._grow();
     const wi = (this._len < this.CAP) ? this._len : this._head;
     // Reuse existing slot object to avoid GC pressure
     let slot = this._buf[wi];
@@ -13805,17 +13826,6 @@ const Game = {
       return true;
     }
 
-    if(immediate){
-      this.restartRace(true);
-      return true;
-    }
-
-    if((ctrl.armUntil || 0) < now){
-      ctrl.armUntil = now + ctrl.confirmWindowMs;
-      this._showFlash('R ERNEUT DRÜCKEN FÜR NEUSTART', '#ffd400', 1400);
-      return false;
-    }
-
     this.restartRace(true);
     return true;
   },
@@ -15637,10 +15647,7 @@ const Game = {
     this._replayFromPause = !!fromPause;
     if(!fromPause){
       this.replay.stop();
-      // Trim to last 3 laps
-      const lts = this.replay.lapTimes;
-      const trimT = lts.length >= 3 ? lts[lts.length - 3] : this.replay.minT;
-      this.replay.trim(trimT);
+      // Volle Renndauer beibehalten (kein Trim mehr auf die letzten 3 Runden)
     }
     this._replayMode = true;
     this._replayT = this.replay.minT;
