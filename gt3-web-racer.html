@@ -13717,6 +13717,18 @@ const Game = {
     }
   },
   runCountdown(){
+    // Generation-Token: jeder Reset (der wieder in 'countdown' geht, während der
+    // vorherige Zyklus noch lief) muss alle Timer/Intervalle des VORHERIGEN
+    // Zyklus stilllegen können. Der bisherige Exit-Check der Timer prüfte nur
+    // "state hat countdown/race verlassen" — beim Reset bleibt state aber immer
+    // innerhalb {countdown, race}, verlässt es nie, wodurch z.B. der 50ms-
+    // jumpCheck-Interval nie geclearter wurde: JEDER Reset hat einen weiteren
+    // dauerhaft laufenden Interval hinzugefügt, ohne den alten zu stoppen.
+    // Nach etlichen Resets in einer Session summierten sich die überflüssig
+    // weiterlaufenden Intervalle spürbar auf — das war das "Game friert nach
+    // einer Weile nach dem Reset ein".
+    this._countdownGen = (this._countdownGen||0) + 1;
+    const myGen = this._countdownGen;
     const lights=[...document.querySelectorAll('#lights i')];
     const box=document.getElementById('lights');
 
@@ -13741,6 +13753,7 @@ const Game = {
       for(const c of this.allCars){ c.vx = 60/3.6; c._frozen = false; }
       lights.forEach(l=>l.classList.add('on'));
       setTimeout(()=>{
+        if(this._countdownGen !== myGen) return;
         this._formationPhase = false;
         this._greenBoostUntil = performance.now() + 3000;
         lights.forEach(l=>l.classList.add('green'));
@@ -13755,6 +13768,7 @@ const Game = {
       // Frühstart-Erkennung: Gas gedrückt während Ampelphase (ab 2. Licht)
       const kb = this.keybinds || defaultKeybinds;
       const jumpCheck = setInterval(() => {
+        if(this._countdownGen !== myGen){ clearInterval(jumpCheck); return; }
         if(this.state !== 'countdown' && this.state !== 'race'){ clearInterval(jumpCheck); return; }
         if(!this.input.locked){ clearInterval(jumpCheck); return; }
         if(i >= 2 && this.input.keys && (this.input.keys[kb.throttle] || this.input.keys['KeyW'] || this.input.keys['ArrowUp'])){
@@ -13762,6 +13776,7 @@ const Game = {
         }
       }, 50);
       const go = () => {
+        if(this._countdownGen !== myGen) return;
         lights.forEach(l=>l.classList.add('green'));
         this.state = 'race';
         this.race.lapStart = performance.now();
@@ -13769,12 +13784,13 @@ const Game = {
         if(this._jumpStart){
           // Frühstart: Input bleibt 2.5s gesperrt als Strafe
           this._showFlash('FRÜHSTART! 2.5s STRAFE', '#ff2e3d', 2600);
-          setTimeout(() => { this.input.locked = false; }, 2500);
+          setTimeout(() => { if(this._countdownGen === myGen) this.input.locked = false; }, 2500);
         } else {
           this.input.locked = false;
         }
       };
       const tick = () => {
+        if(this._countdownGen !== myGen) return;
         if(this.state!=='countdown' && this.state!=='race') return;
         if(i < 5){ lights[i].classList.add('on'); i++; setTimeout(tick, 380); }
         else {
