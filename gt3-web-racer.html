@@ -7454,8 +7454,15 @@ class AIDriver {
     this._ovDecisionCd  = Math.max(0, (this._ovDecisionCd||0)  - dt);
     this._defDecisionCd = Math.max(0, (this._defDecisionCd||0) - dt);
 
-    const raceT = (typeof Game !== 'undefined' && Game._raceTimeS != null) ? Game._raceTimeS : 99;
-    const startCaution = raceT < 5; // erste 5s: kein neuer Überholversuch, engeres Feld = größerer Puffer
+    // Zeit seit der ECHTEN Startfreigabe (Ampel aus / Ende der Formationsrunde bei
+    // fliegendem Start) — NICHT Game._raceTimeS, das beim fliegenden Start schon
+    // 5s vor der eigentlichen Freigabe zu laufen beginnt (Formationsphase läuft
+    // bereits mit state==='race'). Mit _raceTimeS würde das Vorsichtsfenster genau
+    // dann enden, wenn die Ampel erlischt und der Green-Boost einsetzt — also exakt
+    // im gefährlichsten Moment für ein eng gepacktes Feld.
+    const msSinceGreen = (typeof Game !== 'undefined' && Game._greenFlagAt)
+      ? performance.now() - Game._greenFlagAt : 99000;
+    const startCaution = msSinceGreen < 6000; // erste 6s nach Freigabe: kein neuer Überholversuch, größerer Puffer
 
     if(!ov.phase && bestOTTarget && !startCaution && this._ovDecisionCd <= 0){
       this._ovDecisionCd = 0.5 + Math.random()*0.5;
@@ -7879,8 +7886,14 @@ class AIDriver {
       // Kein Überholen in Formation — ov zurücksetzen
       if(this._ov.phase) { this._ov.phase=null; this._ov.targetId=null; this._ov.side=0; }
     }
-    if(typeof Game!=='undefined' && Game._greenBoostUntil && performance.now()<Game._greenBoostUntil)
+    if(typeof Game!=='undefined' && Game._greenBoostUntil && performance.now()<Game._greenBoostUntil){
       tgtV *= 1.40;
+      // Der Boost darf NIE den Sicherheitsabstand zum Vordermann aushebeln — sonst
+      // beschleunigt beim Start-Freigabe das ganze (eng gepackte) Feld gleichzeitig
+      // um 40%, ungeachtet dessen wie nah das Auto voraus ist → Massenkarambolage
+      // bei großen Feldern direkt nach der Ampel.
+      if(traffic.vCap < tgtV) tgtV = traffic.vCap;
+    }
     if(typeof Game!=='undefined' && Game.vsc && Game.vsc.active)
       tgtV = Math.min(tgtV, 115/3.6);
     if(typeof Game!=='undefined' && Game.safetyCar && Game.safetyCar.state!=='idle'){
@@ -13735,6 +13748,7 @@ const Game = {
       setTimeout(()=>{
         this._formationPhase = false;
         this._greenBoostUntil = performance.now() + 3000;
+        this._greenFlagAt = performance.now();
         lights.forEach(l=>l.classList.add('green'));
         this.race.lapStart = performance.now();
         setTimeout(()=>box.classList.add('hidden'), 900);
@@ -13756,6 +13770,7 @@ const Game = {
       const go = () => {
         lights.forEach(l=>l.classList.add('green'));
         this.state = 'race';
+        this._greenFlagAt = performance.now();
         this.race.lapStart = performance.now();
         setTimeout(()=>box.classList.add('hidden'), 800);
         if(this._jumpStart){
