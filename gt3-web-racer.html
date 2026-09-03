@@ -3967,9 +3967,12 @@ class Track {
     this.buildSpline();
     if(def.meshUrl && def.mesh && def.mesh.rawSurface){
       /* rawSurface: die GLB liefert die komplette sichtbare Strecke selbst —
-         Fahrbahn, Kerbs, Linien, Boxengasse, Auslaufzonen, Terrain. Es wird
-         NICHTS prozedural darübergelegt. Gefahren wird über die Centerline
-         (buildSpline liefert samples für Physik, Rundenzeit, Minimap, KI). */
+         Fahrbahn, Kerbs, Linien, Auslaufzonen, Terrain. Es wird NICHTS
+         prozedural darübergelegt. Einzige Ausnahme: wenn die Strecke eine
+         pitLane-Spezifikation hat, wird die Boxengassen-Fahrfläche + Ein-/
+         Ausfahrt-Logik gebaut (die GLB zeigt die Optik, das Spiel braucht die
+         begehbare Fläche fürs Boxenstopp-System). */
+      if(def.pitLane){ try { this.buildPitLane(); } catch(e){ console.warn('[Track] buildPitLane (raw):', e); } }
       this.buildMeshTrack();
     } else if(def.meshUrl){
       /* Ältere GLB-Strecken (Kartbahn): die FBX-Konvertierung hat Fahrbahn und
