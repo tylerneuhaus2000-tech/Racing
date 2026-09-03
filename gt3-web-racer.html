@@ -6657,8 +6657,11 @@ class Car {
 
     /* --- Pit-Trennwand-Kollision ---
        Bauliche Mauer zwischen Streckenrand und Pit-Lane. Nur an Einfahrt/Ausfahrt offen.
-       Einfache Lösung: Auto wird sanft weggeschoben, NUR die Quer-Komponente gebremst. */
-    const pl = track.def.pitLane;
+       Einfache Lösung: Auto wird sanft weggeschoben, NUR die Quer-Komponente gebremst.
+       Bei rawSurface deaktiviert: die GLB zeigt die echte Boxenmauer, eine zusätzliche
+       unsichtbare Mauer an geschätzter Position sperrt sonst die Einfahrt komplett zu
+       bzw. legt sich als unsichtbare Wand über die Start-/Ziel-Gerade. */
+    const pl = (track.def.mesh && track.def.mesh.rawSurface) ? null : track.def.pitLane;
     if(pl){
       let idxLen = pl.idxEnd - pl.idxStart;
       if(idxLen < 0) idxLen += track.N;
