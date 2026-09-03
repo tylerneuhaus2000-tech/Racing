@@ -3965,18 +3965,20 @@ class Track {
     this.group = new THREE.Group();
     scene.add(this.group);
     this.buildSpline();
-    if(def.meshUrl){
-      /* Strecke als GLB-Szene: das Modell liefert die Kulisse (Gebäude, Boxen,
-         Zäune, Reifenstapel, Kerbs, Bäume). Die eigentliche Fahrfläche kommt
-         NICHT aus dem Modell — die FBX-Konvertierung hat Fahrbahn und Terrain
-         so verzogen, dass sie aus flachem Blickwinkel nur den Hintergrund
-         durchschreiben. Stattdessen: eine flache prozedurale Wiese als Grund
-         und die prozedurale Asphalt-Fahrbahn entlang der Centerline — beide
-         perfekt eben und unter voller Kontrolle. buildMeshTrack() blendet die
-         kaputten Boden-Meshes der GLB aus. */
+    if(def.meshUrl && def.mesh && def.mesh.rawSurface){
+      /* rawSurface: die GLB liefert die komplette sichtbare Strecke selbst —
+         Fahrbahn, Kerbs, Linien, Boxengasse, Auslaufzonen, Terrain. Es wird
+         NICHTS prozedural darübergelegt. Gefahren wird über die Centerline
+         (buildSpline liefert samples für Physik, Rundenzeit, Minimap, KI). */
+      this.buildMeshTrack();
+    } else if(def.meshUrl){
+      /* Ältere GLB-Strecken (Kartbahn): die FBX-Konvertierung hat Fahrbahn und
+         Terrain so verzogen, dass sie nur den Hintergrund durchschreiben.
+         Deshalb prozedurale Wiese + prozedurales Asphaltband entlang der
+         Centerline; buildMeshTrack() blendet die kaputten Boden-Meshes aus. */
       this.buildRoad();
       this.buildKerbs();
-      this.buildStartFinish();          // Ziellinie + Startbrücke an Sample 0
+      this.buildStartFinish();
       try { this.buildPitLane(); } catch(e){ console.warn('[Track] buildPitLane (GLB):', e); }
       this.buildMeshTrack();
     } else {
@@ -4060,7 +4062,8 @@ class Track {
         ? (cfg.hideMaterials instanceof RegExp ? cfg.hideMaterials : new RegExp(cfg.hideMaterials, 'i'))
         : null;
       let hiddenGround = 0;
-      if(cfg.hideGround !== false){
+      /* rawSurface: nichts ausblenden — die GLB IST die Strecke. */
+      if(!cfg.rawSurface && cfg.hideGround !== false){
         root.updateMatrixWorld(true);
         root.traverse(o => {
           if(!o.isMesh || !o.geometry) return;
@@ -4127,7 +4130,7 @@ class Track {
          Streckenfläche. Die Asphalt-Fahrbahn liegt als prozedurales Band
          (buildRoad) darauf, die GLB-Kulisse (Gebäude, Kerbs, Reifen, Zäune)
          darüber. */
-      const gp = cfg.groundPlane;
+      const gp = cfg.rawSurface ? null : cfg.groundPlane;
       if(gp){
         root.updateMatrixWorld(true);
         const bb = new THREE.Box3().setFromObject(root);
