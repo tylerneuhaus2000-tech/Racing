@@ -434,7 +434,7 @@ const TRACKS = [
     wallDist: 28,
     vergeW: 12,
     startFinishPct: 0,
-    startGridPct: 95,
+    startGridPct: 98,
     env: "forest",
     /* GLB hat eine echte Boxengasse (asph_pitlane) rechts der Start-/Ziel-
        Geraden. Diese Daten geben dem Spiel die Ein-/Ausfahrt + Boxenstopp-
