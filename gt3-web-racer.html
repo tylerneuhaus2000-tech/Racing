@@ -4006,14 +4006,30 @@ class Track {
          Über den Namen zu gehen ist unzuverlässig (Exporter benennen Nodes oft
          "Object_123"), deshalb über die Größe: die eigentliche Anlage misst
          gut 100 m, alles ab skyRadius ist Kuppel oder Hüllgeometrie. */
-      const skyR = Number.isFinite(cfg.skyRadius) ? cfg.skyRadius : 800;
+      /* Feste Radien gehen nicht: eine 100-m-Kartbahn batcht kleine Meshes,
+         Silverstone batcht die ganze 2-km-Anlage in wenige Riesen-Meshes.
+         Deshalb wird der Schwellwert an die Gesamtausdehnung der Szene
+         gekoppelt — nur was DEUTLICH grösser ist als die Anlage selbst (Faktor
+         skyFactor, Default 2,5) fliegt als Kuppel/Hüllgeometrie raus. */
+      root.updateMatrixWorld(true);
+      const sceneBB = new THREE.Box3().setFromObject(root);
+      const sceneSpan = sceneBB.isEmpty() ? 2000
+        : Math.max(sceneBB.max.x - sceneBB.min.x, sceneBB.max.z - sceneBB.min.z);
+      const skyR = Number.isFinite(cfg.skyRadius) ? cfg.skyRadius
+        : sceneSpan * (Number.isFinite(cfg.skyFactor) ? cfg.skyFactor : 2.5);
+      /* Größe IMMER in Weltkoordinaten messen. Bei meshopt-/quantisierten GLBs
+         steht die lokale Geometrie in riesigen Integer-Koordinaten und die
+         Rück-Skalierung im Node — o.geometry.boundingSphere.radius wäre dann
+         nutzlos groß. Box3.setFromObject wendet matrixWorld an. */
+      const _wb = new THREE.Box3(), _ws = new THREE.Vector3();
       const drop = [];
       root.traverse(o => {
         if(!o.isMesh || !o.geometry) return;
-        if(!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
-        const r = o.geometry.boundingSphere ? o.geometry.boundingSphere.radius : 0;
-        const s = Math.max(o.scale.x, o.scale.y, o.scale.z) || 1;
-        if(r * s > skyR || /sky/i.test(o.name || '')) drop.push(o);
+        _wb.setFromObject(o);
+        if(_wb.isEmpty()) return;
+        _wb.getSize(_ws);
+        const worldR = 0.5 * Math.hypot(_ws.x, _ws.y, _ws.z);
+        if(worldR > skyR || /\bsky|dome|firmament|skybox/i.test(o.name || '')) drop.push(o);
       });
       drop.forEach(o => o.parent && o.parent.remove(o));
 
