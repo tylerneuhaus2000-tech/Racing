@@ -1963,6 +1963,7 @@ const Tutorial = (() => {
     document.getElementById('tut-welcome')?.classList.add('hidden');
     document.getElementById('tut-final')?.classList.add('hidden');
     markDone();
+    if(typeof Achievements !== 'undefined') Achievements.unlock('tutorial_done');
   }
 
   function patchNavigation(){

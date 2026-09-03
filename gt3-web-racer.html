@@ -130,6 +130,22 @@ button:focus-visible{outline:2px solid var(--red);outline-offset:2px}
 @keyframes tut-pulse{0%,100%{opacity:1}50%{opacity:.55}}
 #tut-final{position:fixed;inset:0;z-index:301;display:flex;align-items:center;justify-content:center;background:rgba(6,8,12,0.72)}
 #tut-final .modal-panel{max-width:400px;padding:32px 36px;text-align:center}
+
+/* ===== Achievement-Toast ===== */
+#achv-popup{
+  position:fixed;left:20px;bottom:28px;z-index:300;
+  max-width:340px;padding:14px 18px;display:flex;align-items:center;gap:14px;
+  transform:translateY(12px);opacity:0;pointer-events:none;
+  transition:transform .25s ease,opacity .25s ease;
+}
+#achv-popup.show{transform:translateY(0);opacity:1;pointer-events:auto}
+#achv-popup .achv-icon{font-size:30px;flex:0 0 auto}
+#achv-popup .achv-text{flex:1;min-width:0}
+#achv-popup .achv-eyebrow{font:700 9px var(--mono);letter-spacing:.2em;color:var(--green);margin-bottom:2px}
+#achv-popup .achv-name{font-size:14px;font-weight:700;color:var(--txt)}
+#achv-popup .achv-desc{font-size:11px;color:var(--dim);margin-top:2px}
+#achv-popup-close{background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;flex:0 0 auto;padding:2px 4px}
+#achv-popup-close:hover{color:var(--txt)}
 .card b{display:block;font-size:18px;letter-spacing:.05em;margin-bottom:4px}
 .card span{color:var(--dim);font-size:12.5px;line-height:1.5}
 .swatch{width:54px;height:54px;border-radius:6px;border:3px solid;flex:0 0 auto}
@@ -1491,6 +1507,17 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
     <button class="btn primary" id="tut-final-close">Zum Hauptmenü</button>
   </div>
 </div>
+
+<!-- ===== Achievement-Toast ===== -->
+<div id="achv-popup" class="modal-panel hidden">
+  <div class="achv-icon"></div>
+  <div class="achv-text">
+    <div class="achv-eyebrow">ERFOLG FREIGESCHALTET</div>
+    <div class="achv-name"></div>
+    <div class="achv-desc"></div>
+  </div>
+  <button id="achv-popup-close">✕</button>
+</div>
 <div id="flag-border"></div>
 <div id="pit-car-select" class="modal-panel"><div class="pcs-title">FAHRZEUG WECHSELN — WIRD BEI STOPP-ENDE ANGEWENDET</div><div class="pcs-grid" id="pit-car-grid"></div></div>
 <div id="fl-notif"><div class="fl-label">SCHNELLSTE RUNDE</div><div class="fl-time" id="fl-time">--:--.---</div><div class="fl-driver" id="fl-driver"></div></div>
@@ -1772,6 +1799,12 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
         <div class="ms-card-desc">Skins, Autos, Strecken &amp; Credits.</div>
         <span class="ms-card-arrow">›</span>
       </button>
+      <button class="ms-card" id="btn-achievements" onclick="if(typeof Achievements!=='undefined')Achievements.renderScreen();Game&&Game.showScreen('screen-achievements')">
+        <div class="ms-card-icon">🏆</div>
+        <div class="ms-card-title">Erfolge</div>
+        <div class="ms-card-desc">Deine Meilensteine im Spiel.</div>
+        <span class="ms-card-arrow">›</span>
+      </button>
     </div>
 
     <!-- BOTTOM: Daily + News -->
@@ -1966,7 +1999,11 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
   <section class="screen hidden" id="screen-car">
     <div class="eyebrow">SCHRITT 3 / 3</div>
     <h2>FAHRZEUG WÄHLEN</h2>
-    <p class="sub">Jedes Auto hat eine eigene Physik-Charakteristik — spürbar in Traktion, Lastwechsel und Stabilität.</p>
+    <p class="sub" id="carlist-sub">Jedes Auto hat eine eigene Physik-Charakteristik — spürbar in Traktion, Lastwechsel und Stabilität.</p>
+    <div class="lob-tabs" id="garage-cat-tabs" style="max-width:340px;margin:0 0 18px">
+      <button class="lob-tab active" data-garage-cat="race">RENNWAGEN</button>
+      <button class="lob-tab" data-garage-cat="kart">GO-KARTS</button>
+    </div>
     <div class="cards" id="carlist"></div>
     <div class="btnrow"><button class="btn" id="btn-back-car">Zurück</button></div>
   </section>
@@ -2186,6 +2223,14 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
       <div class="btnrow" style="margin-top:10px"><button class="btn secondary" id="btn-shop-checkout-close">Abbrechen</button></div>
     </div>
     <div class="btnrow"><button class="btn primary" id="btn-back-shop">Fertig</button></div>
+  </section>
+
+  <section class="screen hidden" id="screen-achievements">
+    <div class="eyebrow">FORTSCHRITT</div>
+    <h2>ERFOLGE</h2>
+    <p class="sub">Freigeschaltet: <span id="achv-count">0 / 0</span></p>
+    <div id="achv-grid" class="cards" style="margin-top:14px"></div>
+    <div class="btnrow"><button class="btn primary" id="btn-back-achievements">Fertig</button></div>
   </section>
 </div>
 
@@ -2654,7 +2699,7 @@ const Store = {
 /* Versions-Guard: wenn sich die CARS-Liste ändert (Autos hinzugefügt/entfernt),
    wird der LocalStorage einmalig geleert um veraltete Indizes zu verhindern.
    Einfach GAME_DATA_VERSION erhöhen nach Änderungen an CARS oder TRACKS. */
-const GAME_DATA_VERSION = '12';
+const GAME_DATA_VERSION = '13';
 (()=>{
   try {
     if(Store.get('game_data_version') !== GAME_DATA_VERSION){
@@ -3034,6 +3079,41 @@ const CARS = [
     desc:'Hypercar · Penske-Werksteam, neue Livery, neue Konfiguration.',
     stats:{speed:0.99, grip:0.96, stab:0.91}
   },
+  /* === Go-Karts (eigene Kategorie — nicht im Rennen-Grid, nur Kartbahnen) ===
+     Werte sind echte Leihkart-Groessen: ~175 kg mit Fahrer, einstellige kW,
+     kein Differential, Bremse nur hinten. Die stats-Balken sind bewusst
+     innerhalb der Kart-Kategorie skaliert, nicht gegen die Rennwagen —
+     sonst waeren alle drei Balken optisch leer. */
+  {
+    id:'kart-rental-bumper', name:'Leihkart (mit Ramschutz)', classType:'kart',
+    color:0x1c69d4, accent:0xf5a800, rim:0x1a1a1a,
+    model:{
+      url:'assets/models/kart_rental_bumper.glb',
+      scale:1,
+      targetLength:1.9,
+      yOffset:0,
+      rotY:0   /* Modelle schauen nativ nach +Z = im Spiel vorne */
+    },
+    mass:182, power:6500, maxForce:690, topSpeed:60/3.6, brakeForce:1820,
+    gripF:1.33, gripR:1.38, yawDamp:0.38, tractionBoost:0.10, liftOversteer:0.15,
+    desc:'Go-Kart · Leihkart mit Rammschutz. Gutmuetig, verzeiht Kontakt.',
+    stats:{speed:0.42, grip:0.86, stab:0.58}
+  },
+  {
+    id:'kart-rental', name:'Leihkart (ohne Ramschutz)', classType:'kart',
+    color:0xe8373c, accent:0x15171a, rim:0xc0c0c0,
+    model:{
+      url:'assets/models/kart_rental.glb',
+      scale:1,
+      targetLength:1.9,
+      yOffset:0,
+      rotY:0   /* Modelle schauen nativ nach +Z = im Spiel vorne */
+    },
+    mass:170, power:9000, maxForce:780, topSpeed:70/3.6, brakeForce:1960,
+    gripF:1.36, gripR:1.43, yawDamp:0.31, tractionBoost:0.12, liftOversteer:0.19,
+    desc:'Go-Kart · Ohne Rammschutz, leichter und direkter. Sehr nervoes.',
+    stats:{speed:0.62, grip:0.94, stab:0.36}
+  },
 ];
 
 /* ============================ STRECKENDATEN ============================ */
@@ -3170,7 +3250,27 @@ const ENGINE_MAPS = {
       powerMul:1.13, torqueMul:1.10, throttleResp:1.38, fuelMul:1.50, tempMul:1.58, rpmLimit:1.08,
       desc:'Voller Angriff — max. Power + ERS, hohe Motortemperatur' },
   ],
+
+  /* Leihkarts haben keine ECU zum Umschalten — der Vergaser laeuft wie er
+     laeuft. Zwei Eintraege nur, damit die Boxen-UI nicht leer ist: gedrosselt
+     (Bahn-Standard) und offen. */
+  kart: [
+    { id:'RESTRICTED', name:'GEDROSSELT', short:'RES', col:'#60c8f0',
+      powerMul:0.82, torqueMul:0.85, throttleResp:0.80, fuelMul:0.80, tempMul:0.75, rpmLimit:0.88,
+      desc:'Bahn-Drossel — Standard im Leihbetrieb, gutmuetigere Gasannahme' },
+    { id:'RACE',       name:'OFFEN',     short:'OPN', col:'#e8ecef',
+      powerMul:1.00, torqueMul:1.00, throttleResp:1.00, fuelMul:1.00, tempMul:1.00, rpmLimit:1.00,
+      desc:'Drossel raus — volle Leistung' },
+  ],
 };
+
+/* ── Go-Kart-Kategorie ───────────────────────────────────────────────────────
+   Karts sind keine vierte Rennklasse, sondern eine eigene Kategorie: sie
+   tauchen weder im Rennen-Grid noch in den GT3/LMP2/HYPER-Filtern auf und
+   fahren ausschliesslich auf Kartbahnen (track.kartOnly). Beide Richtungen
+   gelten — auf einer Kartbahn faehrt auch kein Rennwagen. */
+const isKartCar   = car   => (car   && car.classType)  === 'kart';
+const isKartTrack = track => !!(track && track.kartOnly);
 
 /* Hilfsfunktionen für Engine-Map-Zugriff */
 const getCarMaps  = classType => ENGINE_MAPS[classType] || ENGINE_MAPS.gt3;
@@ -3858,16 +3958,175 @@ class Track {
     this.group = new THREE.Group();
     scene.add(this.group);
     this.buildSpline();
-    this.buildRoad();
-    this.buildKerbs();
-    this.buildVerge();
-    this.buildWalls();
-    this.buildPitLane();
-    this.buildStartFinish();
-    this.buildEnvironment();
-    try { this.buildBrakingMarkers(); } catch(e){ console.warn('[BrakingMarkers]',e); }
+    if(def.meshUrl){
+      /* Strecke als GLB-Szene: das Modell liefert die Kulisse (Gebäude, Boxen,
+         Zäune, Reifenstapel, Kerbs, Bäume). Die eigentliche Fahrfläche kommt
+         NICHT aus dem Modell — die FBX-Konvertierung hat Fahrbahn und Terrain
+         so verzogen, dass sie aus flachem Blickwinkel nur den Hintergrund
+         durchschreiben. Stattdessen: eine flache prozedurale Wiese als Grund
+         und die prozedurale Asphalt-Fahrbahn entlang der Centerline — beide
+         perfekt eben und unter voller Kontrolle. buildMeshTrack() blendet die
+         kaputten Boden-Meshes der GLB aus. */
+      this.buildRoad();
+      this.buildKerbs();
+      this.buildMeshTrack();
+    } else {
+      this.buildRoad();
+      this.buildKerbs();
+      this.buildVerge();
+      this.buildWalls();
+      this.buildPitLane();
+      this.buildStartFinish();
+      this.buildEnvironment();
+      try { this.buildBrakingMarkers(); } catch(e){ console.warn('[BrakingMarkers]',e); }
+    }
     this.buildIdealLine();
     this.buildTvCams();
+  }
+
+  /** Lädt die Strecken-GLB und legt sie deckungsgleich über die Centerline.
+      def.mesh.offset verschiebt das Modell von seinen Original-Weltkoordinaten
+      in den Spielraum — die Centerline wurde beim Extrahieren auf ihren
+      Schwerpunkt zentriert, das macht der Versatz rückgängig. */
+  buildMeshTrack(){
+    const cfg = this.def.mesh || {};
+    this.meshReady = false;
+    if(!THREE.GLTFLoader){
+      console.warn('[Track] GLTFLoader fehlt — Strecken-GLB wird nicht geladen.');
+      return;
+    }
+    const loader = _makeGLTFLoader();
+    loader.load(this.def.meshUrl, gltf => {
+      const root = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+      if(!root){ console.warn('[Track] GLB ohne Szene:', this.def.meshUrl); return; }
+
+      /* Die Himmelskuppel aus dem Modell muss raus: das Spiel setzt Hintergrund
+         und Nebel selbst, und eine Kuppel mit 2,7 km Radius liegt ohnehin
+         hinter der Sichtweite und würde nur durch den Nebel stanzen.
+         Über den Namen zu gehen ist unzuverlässig (Exporter benennen Nodes oft
+         "Object_123"), deshalb über die Größe: die eigentliche Anlage misst
+         gut 100 m, alles ab skyRadius ist Kuppel oder Hüllgeometrie. */
+      const skyR = Number.isFinite(cfg.skyRadius) ? cfg.skyRadius : 800;
+      const drop = [];
+      root.traverse(o => {
+        if(!o.isMesh || !o.geometry) return;
+        if(!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+        const r = o.geometry.boundingSphere ? o.geometry.boundingSphere.radius : 0;
+        const s = Math.max(o.scale.x, o.scale.y, o.scale.z) || 1;
+        if(r * s > skyR || /sky/i.test(o.name || '')) drop.push(o);
+      });
+      drop.forEach(o => o.parent && o.parent.remove(o));
+
+      /* Kaputte Bodenflächen ausblenden. Die FBX-Konvertierung hat die
+         Fahrbahn-, Beton- und Asphalt-Meshes so verzogen, dass sie aus flachem
+         Blickwinkel praktisch nur den Himmel-Hintergrund durchschreiben. Statt
+         jedes Mesh einzeln zu retten werden alle grossen, flachen, bodennahen
+         Flächen unsichtbar geschaltet — ihre Fahrfläche liefert die
+         prozedurale Asphalt-Ebene weiter unten. Wiese, Kerbs, Reifenstapel,
+         Zäune und Leitplanken bleiben sichtbar. Die Physik läuft ohnehin über
+         die Centerline (def.pts), nicht über Mesh-Kollision. */
+      const keepRe = (cfg.groundKeepRe)
+        || /kerb|curb|rumble|marking_lined|tyre|tire|fence|\bwall\b|armco|barrier|net|pitwall|kart|wheel|tree|building|roof|hangar|container|trailer|truck|tank|lamp|pole|billboard|banner|logo/i;
+      let hiddenGround = 0;
+      if(cfg.hideGround !== false){
+        root.updateMatrixWorld(true);
+        root.traverse(o => {
+          if(!o.isMesh || !o.geometry) return;
+          const nm = (Array.isArray(o.material) ? o.material[0] : o.material);
+          const label = ((nm && nm.name) || '') + ' ' + (o.name || '');
+          if(keepRe.test(label)) return;
+          const bb = new THREE.Box3().setFromObject(o);
+          if(bb.isEmpty()) return;
+          const w = bb.max.x - bb.min.x, d = bb.max.z - bb.min.z, hgt = bb.max.y - bb.min.y;
+          if(w * d < 200) return;      // nur grosse Flächen (Fahrbahn, Terrain, Beton)
+          if(hgt > 8) return;          // aufrechte Bauten raus (Terrain darf gewellt sein)
+          if(bb.min.y > 3) return;     // nur bodennah
+          o.visible = false;
+          hiddenGround++;
+        });
+      }
+
+      /* 826k Dreiecke dürfen keine Schatten werfen — das kostet mehr als es
+         bringt. Empfangen dagegen schon, sonst schwebt das Kart ohne Schatten. */
+      root.traverse(o => { if(o.isMesh){ o.castShadow = false; o.receiveShadow = true; } });
+
+      const maxAniso = (Game.renderer && Game.renderer.capabilities)
+        ? Game.renderer.capabilities.getMaxAnisotropy() : 1;
+      const aniso = Math.min(maxAniso, Number.isFinite(cfg.anisotropy) ? cfg.anisotropy : 8);
+
+      /* Farbraum an den Linear-Renderer angleichen (der GLTFLoader markiert
+         Farbtexturen als sRGB, die dann beim Ausgeben nie zurückgewandelt
+         werden und ausbleichen) und anisotrop filtern. */
+      const toLinear = (cfg.textureEncoding || 'linear') === 'linear';
+      const seen = new Set();
+      root.traverse(o => {
+        if(!o.isMesh) return;
+        (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
+          if(!m || seen.has(m.uuid)) return;
+          seen.add(m.uuid);
+          ['map','emissiveMap','normalMap','roughnessMap','metalnessMap','aoMap'].forEach(slot => {
+            const t = m[slot];
+            if(!t) return;
+            if(toLinear && (slot === 'map' || slot === 'emissiveMap')
+               && t.encoding !== THREE.LinearEncoding){
+              t.encoding = THREE.LinearEncoding;
+            }
+            if(t.anisotropy !== aniso){ t.anisotropy = aniso; }
+            t.needsUpdate = true;
+          });
+          m.needsUpdate = true;
+        });
+      });
+      console.log('[Track] Texturen angepasst:', seen.size, 'Materialien · Anisotropie', aniso);
+
+      const off = cfg.offset || [0,0,0];
+      root.position.set(off[0] || 0, off[1] || 0, off[2] || 0);
+      if(Number.isFinite(cfg.rotY))  root.rotation.y = cfg.rotY;
+      if(Number.isFinite(cfg.scale)) root.scale.setScalar(cfg.scale);
+
+      this.group.add(root);
+      this.meshRoot = root;
+
+      /* ── Wiesen-Grund ─────────────────────────────────────────────────────
+         Die kaputten Terrain-Meshes der GLB sind ausgeblendet; als Ersatz-
+         Untergrund kommt eine flache prozedurale Wiese über die gesamte
+         Streckenfläche. Die Asphalt-Fahrbahn liegt als prozedurales Band
+         (buildRoad) darauf, die GLB-Kulisse (Gebäude, Kerbs, Reifen, Zäune)
+         darüber. */
+      const gp = cfg.groundPlane;
+      if(gp){
+        root.updateMatrixWorld(true);
+        const bb = new THREE.Box3().setFromObject(root);
+        if(!bb.isEmpty()){
+          const cx = (bb.min.x + bb.max.x) / 2, cz = (bb.min.z + bb.max.z) / 2;
+          const w = Math.min(bb.max.x - bb.min.x, (gp.maxSize || 900));
+          const d = Math.min(bb.max.z - bb.min.z, (gp.maxSize || 900));
+          const tile = gp.tile || 12;
+          const g = (this.def.grass || [0x4e8b3a, 0x407531])
+            .map(c => '#' + c.toString(16).padStart(6, '0'));
+          const tex = Tex.grass(g[0], g[1]);
+          tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+          tex.repeat.set(w / tile, d / tile);
+          tex.anisotropy = aniso;
+          const plane = new THREE.Mesh(
+            new THREE.PlaneGeometry(w, d),
+            new THREE.MeshLambertMaterial({ map: tex })
+          );
+          plane.rotation.x = -Math.PI / 2;
+          plane.position.set(cx, Number.isFinite(gp.y) ? gp.y : -0.06, cz);
+          plane.receiveShadow = true;
+          this.group.add(plane);
+          this.groundPlane = plane;
+        }
+      }
+
+      this.meshReady = true;
+      console.log('[Track] GLB-Strecke geladen:', this.def.meshUrl,
+        '· Sky entfernt:', drop.length, '· Boden ausgeblendet:', hiddenGround,
+        '· Asphalt-Ebene:', !!this.groundPlane);
+    }, undefined, err => {
+      console.error('[Track] Strecken-GLB fehlgeschlagen:', this.def.meshUrl, err);
+    });
   }
 
   /** Farbcodierte Ideallinie: Rot=Bremsen, Orange=Lupfen, Gelb=Einlenken, Grün=Vollgas */
@@ -5421,8 +5680,8 @@ class Car {
     const cockpit = new THREE.Group();
     cockpit.visible = false;     // wird von CameraRig gesteuert
     const ct = this.def.classType || 'gt3';
-    const cockY = ct === 'hypercar' ? 0.68 : ct === 'lmp2' ? 0.62 : 0.92;
-    const cockFwd = ct === 'hypercar' ? -0.15 : ct === 'lmp2' ? -0.20 : -0.05;
+    const cockY = ct === 'kart' ? 0.42 : ct === 'hypercar' ? 0.68 : ct === 'lmp2' ? 0.62 : 0.92;
+    const cockFwd = ct === 'kart' ? -0.10 : ct === 'hypercar' ? -0.15 : ct === 'lmp2' ? -0.20 : -0.05;
     const dashMat = new THREE.MeshPhongMaterial({color:0x1a1d22, shininess:20});
     const wheelMat = new THREE.MeshPhongMaterial({color:0x222222, shininess:40});
     const carbonMat = new THREE.MeshPhongMaterial({color:0x2a2a2a, shininess:60});
@@ -5650,7 +5909,9 @@ class Car {
       this._usingExternalModel = true;
       this.setProceduralShellVisible(false);
 
-      /* Audi: Lenkrad im GLB-Modell suchen und animieren */
+      /* Audi: Lenkrad im GLB-Modell suchen und animieren (Cockpit-Cam). Beim
+         Kart ist das Lenkrad Teil des Modells und dreht nicht mit — die
+         Cockpit-Cam zeigt es trotzdem, nur eben statisch. */
       if(this.def?.id === 'audi'){
         let found = null;
         const steerNames = ['steer','wheel','lenkrad','volant','steering','cockpit_wheel','handwheel'];
@@ -5661,9 +5922,6 @@ class Car {
         });
         this._glbSteeringWheel = found;
         if(found) console.log('[GT3] Audi Lenkrad gefunden:', found.name);
-        else console.warn('[GT3] Audi: kein Lenkrad-Mesh gefunden. Mesh-Namen:', 
-          (()=>{ const ns=[]; model.traverse(o=>{ if(o.isMesh && o.name) ns.push(o.name); }); return ns.slice(0,20).join(', '); })()
-        );
       }
       if(Array.isArray(this.wheels)){
         for(const w of this.wheels){
@@ -5960,6 +6218,15 @@ class Car {
     /* --- Fahrwerkschaden: Grip pro Achse reduzieren --- */
     muF *= (dmgMods.gripFL + dmgMods.gripFR) / 2;
     muR *= (dmgMods.gripRL + dmgMods.gripRR) / 2;
+
+    /* --- Reibwerte für die KI bereitstellen ---
+       Die KI schätzte ihr Kurvenlimit früher selbst (nur aus def.gripF) und lag
+       damit systematisch daneben: kalte oder verschlissene Reifen, Mischung,
+       Untergrund und Wetter fehlten in ihrer Rechnung. Indem sie hier die
+       tatsächlich verwendeten Werte abliest, können Schätzung und Physik nicht
+       mehr auseinanderlaufen — und jedes neue Fahrzeug passt automatisch. */
+    this._muF = muF;
+    this._muR = muR;
 
     /* --- Schlupfwinkel (Bicycle-Modell) --- */
     const vxs = Math.max(speed, 1.5) * Math.sign(this.vx || 1);
@@ -6956,6 +7223,24 @@ class ReplayRecorder {
    ROOKIE      – Langsam in der Entwicklung, macht viele Fehler
    PRO         – Fast perfekte Linie, kluges Rennmanagement
 */
+/* Wie viel der rechnerischen Reifenhaftung die KI beim Kurvenplanen ansetzt.
+   Das Reibwertmodell ergibt rund 1.35 g. Die real fahrbare Querbeschleunigung
+   liegt (über Lenkwinkel optimiert gemessen) bei 1.19 g bei 54 km/h und steigt
+   mit Abtrieb auf 1.39 g bei 216 km/h.
+
+   Der Wert ist trotzdem deutlich niedriger als dieses Verhältnis, und zwar
+   absichtlich: Plant die KI nahe am Haftmaximum, überschreitet sie in engen
+   Kurven den Scheitel der Reifenkennlinie (Schräglauf > 0.223 rad), schiebt
+   unter Untersteuern geradeaus und verliert dabei mehr Zeit, als die höhere
+   Zielgeschwindigkeit einbringt. Konservativer geplant ist hier schneller UND
+   sauberer.
+
+   Empirisch über den Prüfstand bestimmt — nicht aus der Physik hergeleitet.
+   Zum Nachjustieren: ai-bench.js laden, dann
+       AI_GRIP_CALIBRATION = 0.5; AIBench.tabelle(AIBench.alleStrecken())
+   und den Wert mit dem geringsten Gras-Anteil bei guter Rundenzeit wählen. */
+let AI_GRIP_CALIBRATION = 0.42;
+
 const AI_PERSONALITY_PRESETS = [
   { type:'AGGRESSIVE', aggression:0.88, consistency:0.52, wetSkill:0.55, raceCraft:0.80, aLatMul:1.06, aBrkMul:1.05 },
   { type:'DEFENSIVE',  aggression:0.20, consistency:0.84, wetSkill:0.74, raceCraft:0.78, aLatMul:0.98, aBrkMul:1.02 },
@@ -7051,14 +7336,28 @@ class AIDriver {
     const ct = car.def?.classType || 'gt3';
     if(ct === 'hypercar') return 1.15;
     if(ct === 'lmp2')     return 1.08;
+    /* Karts haben viel mechanischen Grip pro Kilo, aber keinen Abtrieb —
+       das Limit liegt frueh und faellt danach schlagartig. */
+    if(ct === 'kart')     return 0.95;
     return 1.0;
   }
 
   effectiveALat(car, speed){
     let aLat = this.aLatBase * (this._cgs || 1);
-    const muF = (car.def?.gripF || 1.30) / 1.30 * 1.30;
+    /* Reibwerte aus der Physik übernehmen (car._muF/_muR werden dort pro Schritt
+       gesetzt und enthalten Reifentemperatur, Verschleiß, Mischung, Untergrund,
+       Wetter und Schaden). Vorher stand hier nur def.gripF — die KI rechnete
+       deshalb auf kalten Reifen mit rund 10 % zu viel Haftung und fuhr zu weit
+       raus. Beide Achsen fließen last-gewichtet ein (Statik ~45/55). */
+    const muF = (car._muF != null) ? car._muF : (car.def?.gripF || 1.30);
+    const muR = (car._muR != null) ? car._muR : (car.def?.gripR || 1.30);
+    const muMix = muF * 0.45 + muR * 0.55;
     const cc = 1 + this.skill*0.10 + clamp(speed/150, 0, 0.05);
-    return Math.min(aLat * cc, muF * 9.81 * 1.03);
+    /* Auch die Obergrenze hängt am Können. Vorher war sie fix (Faktor 1.03),
+       wodurch ab Stärke ~55 jede KI exakt dasselbe Kurvenlimit hatte und die
+       Stärke-Einstellung praktisch wirkungslos wurde. */
+    const gripUse = 0.80 + this.skill * 0.14;       // 0.80 … 0.94
+    return Math.min(aLat * cc, muMix * 9.81 * gripUse * AI_GRIP_CALIBRATION);
   }
 
   /* ───────────────── WETTER ───────────────── */
@@ -7263,11 +7562,23 @@ class AIDriver {
     let tgtV = 95;
     const seg       = track.segLen;
     const effBrk    = this.aBrk * (this._cgs || 1);
-    const effBrkCap = Math.min(effBrk, (car?.def?.gripF||1.30)/1.30*1.30*9.81*0.95);
+    /* Bremslimit aus den echten Reibwerten beider Achsen inklusive Abtrieb.
+       Vorher stand hier nur def.gripF ohne Aero: die KI rechnete mit ~1.2g und
+       zog davon nochmals 26% ab — effektiv 0.89g, also etwa die Hälfte dessen,
+       was ein GT3 mit Flügel kann. Sie bremste dadurch viel zu früh. */
+    const muFb  = (car?._muF != null) ? car._muF : (car?.def?.gripF || 1.30);
+    const muRb  = (car?._muR != null) ? car._muR : (car?.def?.gripR || 1.30);
+    const muMixB = muFb*0.45 + muRb*0.55;
+    const vTop   = car?.def?.topSpeed || 80;
+    const aeroMul = 1 + 0.55 * clamp((speed*speed)/(vTop*vTop), 0, 1);
+    const effBrkCap = Math.min(effBrk, muMixB * 9.81 * aeroMul);
     // Regen verlängert Bremsweg
     const brakeMul  = this._weatherBrakeMul(weather);
-    // 26% Sicherheitspuffer — früh genug ohne zu schleichen
-    const effBrkWet = (effBrkCap * 0.74) / brakeMul;
+    /* Sicherheitspuffer skaliert jetzt mit dem Können (vorher fix 26% für alle):
+       schwache KI bremst deutlich früher, starke fährt fast ans Limit. Erst
+       dadurch trennt die Stärke-Einstellung die Fahrer hörbar voneinander. */
+    const brakeSafety = 0.72 + this.skill * 0.22;   // 0.72 … 0.94
+    const effBrkWet = (effBrkCap * brakeSafety) / brakeMul;
 
     const lookaheadBrake = 40 + this.skill * 30;
     const hor = Math.min(150, Math.ceil((lookaheadBrake + speed*speed/(2*effBrkWet))/seg));
@@ -7287,7 +7598,10 @@ class AIDriver {
 
     // Sicherheitspuffer: KI fährt nicht am theoretischen Limit — verhindert Off-Track
     // Hohe Skill = 5% Puffer, niedrige Skill = 15% Puffer
-    tgtV *= 0.86 + this.skill * 0.08; // 14% Puffer bei 0, 6% bei Max-Skill
+    /* Auch die stärkste KI behält Reserve. Mit nur 1% Puffer fuhr sie auf engen
+       Kursen (Bahrain, Bergring) permanent über den Rand und wurde dadurch
+       LANGSAMER als eine schwächere — Stärke 100 war 20 s hinter Stärke 40. */
+    tgtV *= 0.78 + this.skill * 0.15; // 22% Puffer bei 0, 7% bei Max-Skill
 
     // Wettergrip anwenden
     tgtV *= this._weatherGrip(weather);
@@ -7604,12 +7918,26 @@ class AIDriver {
       this.input.brake = clamp(Math.abs(car.vy||0)*0.15, 0, 0.4);
     }
     if(Math.abs(v)<1.2 && this.revT<=0) this.stuckT += dt; else if(this.revT<=0) this.stuckT = 0;
+    /* Eskalationszähler erst nach anhaltender Fahrt zurücksetzen. Ein kurzes
+       Zucken auf 12 km/h reicht nicht — sonst setzt ein im Auslauf pendelndes
+       Auto den Zähler dauernd zurück und erreicht die Rückwärts-Stufe nie. */
+    if(Math.abs(v) > 15) this._okT = (this._okT || 0) + dt; else this._okT = 0;
+    if(this._okT > 3) this._rescueFails = 0;
     if(this.stuckT > 1.5){
       this.stuckT = 0;
       const ns = Math.sin(car.heading)*q.side.x + Math.cos(car.heading)*q.side.z;
       const intoWall = Math.sign(q.lat)*ns > 0.25;
-      this.revT = intoWall ? 1.8 : 0;
-      this.fwdRescueT = intoWall ? 0 : 2.5;
+      /* Eskalation: Erster Versuch nutzt die Heuristik. Hat sie nicht geholfen,
+         IMMER rückwärts. Ein an einer Mauer klemmendes Auto kommt vorwärts nie
+         frei: die Wandauflösung löscht jeden Frame die Geschwindigkeit in die
+         Wand, und ohne Geschwindigkeit wirkt die Lenkung nicht (yawRate ist
+         proportional zu vx). Betrifft vor allem die Boxenmauer — dort schlägt
+         die intoWall-Prüfung fehl, weil sie das Vorzeichen relativ zur
+         Streckenmitte verwendet, nicht relativ zur Boxenmauer. */
+      this._rescueFails = (this._rescueFails || 0) + 1;
+      const forceReverse = this._rescueFails >= 2;
+      this.revT       = (intoWall || forceReverse) ? 1.8 : 0;
+      this.fwdRescueT = (intoWall || forceReverse) ? 0   : 2.5;
     }
     const inp = this.input;
     if(this.revT > 0){
@@ -7786,14 +8114,22 @@ class AIDriver {
     const v     = car.vx;
     const speed = Math.abs(v);
     this.lastCurv = Math.abs(track.samples[q.idx].curv);
-    const kAero   = 0.55 * 9.81 * 1.3 / (car.def.topSpeed * car.def.topSpeed);
+    /* Abtriebsterm ebenfalls kalibrieren — sonst addiert die KI auf das bereits
+       korrigierte Haftungslimit wieder unerreichbare Aero-Haftung obendrauf. */
+    const kAero   = 0.55 * 9.81 * 1.3 / (car.def.topSpeed * car.def.topSpeed) * AI_GRIP_CALIBRATION;
     const weather = (typeof Game!=='undefined' && Game.weather) ? Game.weather : null;
 
     // Klassen-Skalierung
     this._cgs = this.classGripScale(car);
     const hw          = track.def.halfWidth || 8;
     const skillMargin = 1 + this.skill*0.08;
-    if(hw < 6.5)      this._cgs *= clamp(0.82/skillMargin, 0.72, 0.88);
+    /* Der Schmalstrecken-Abschlag simuliert Rennwagen, die auf einem engen
+       Kurs nicht ans Limit gehen koennen. Ein Kart auf einer Kartbahn ist
+       dagegen genau richtig dimensioniert — sonst wuerde es doppelt bestraft. */
+    if(car.def?.classType === 'kart'){
+      /* kein Breitenabschlag */
+    }
+    else if(hw < 6.5) this._cgs *= clamp(0.82/skillMargin, 0.72, 0.88);
     else if(hw < 7.5) this._cgs *= clamp(0.92/skillMargin, 0.85, 0.95);
 
     this._effALat = this.effectiveALat(car, speed);
@@ -8280,7 +8616,7 @@ class CameraRig {
     this._up=new THREE.Vector3(0,1,0);
   }
   cycle(car){
-    const hasCockpit = car?.def?.id === 'audi';
+    const hasCockpit = car?.def?.id === 'audi' || car?.def?.classType === 'kart';
     this.modes = hasCockpit ? ['chase','hood','cockpit','tv'] : ['chase','hood','tv'];
     this.mode = (this.mode+1) % this.modes.length;
     this.first = true;
@@ -8291,25 +8627,41 @@ class CameraRig {
     this._fwd.set(sin,0,cos);
     this._right.set(cos,0,-sin);
     const fwd=this._fwd, right=this._right;
-    if(this.modes[this.mode]==='cockpit' && car.def?.id!=='audi') this.mode=0;
+    const cockpitOk = car.def?.id === 'audi' || car.def?.classType === 'kart';
+    if(this.modes[this.mode]==='cockpit' && !cockpitOk) this.mode=0;
     const mode=this.modes[this.mode];
     let fov=64;
     if(car._cockpitGrp) car._cockpitGrp.visible = false;
     if(mode==='cockpit'){
-      this._target.copy(car.pos).addScaledVector(fwd,0.15).addScaledVector(right,0.38);
-      this._target.y += 0.90;
-      this._look.copy(car.pos).addScaledVector(fwd,100);
-      this._look.y += 0.88;
-      fov = 72;
+      if(car.def?.classType === 'kart'){
+        /* Kart-Cockpit: Kopfhöhe des Fahrers, knapp hinter dem Lenkrad, Blick
+           leicht nach unten die Strecke entlang — so sitzt das (im GLB-Modell
+           enthaltene) Lenkrad im unteren Bilddrittel. */
+        this._target.copy(car.pos).addScaledVector(fwd,-0.18).addScaledVector(right,0.02);
+        this._target.y += 0.60;
+        this._look.copy(car.pos).addScaledVector(fwd,7);
+        this._look.y += 0.10;
+        fov = 82;
+      } else {
+        this._target.copy(car.pos).addScaledVector(fwd,0.15).addScaledVector(right,0.38);
+        this._target.y += 0.90;
+        this._look.copy(car.pos).addScaledVector(fwd,100);
+        this._look.y += 0.88;
+        fov = 72;
+      }
     } else if(mode==='chase'){
-      const chaseBack = car.def?.id==='lamborghini' ? -6.0 : -7.4;
-      this._target.copy(car.pos).addScaledVector(fwd,chaseBack); this._target.y+=2.5;
-      this._look.copy(car.pos).addScaledVector(fwd,7); this._look.y+=1.0;
+      /* Karts sind nur rund 1,9 m lang — die Rennwagen-Distanz laesst sie in
+         der Verfolgerkamera zu einem Punkt schrumpfen. Deshalb naeher ran
+         und flacher drueber. */
+      const isKart = car.def?.classType === 'kart';
+      const chaseBack = isKart ? -3.8 : car.def?.id==='lamborghini' ? -6.0 : -7.4;
+      this._target.copy(car.pos).addScaledVector(fwd,chaseBack); this._target.y += isKart ? 1.25 : 2.5;
+      this._look.copy(car.pos).addScaledVector(fwd, isKart ? 4 : 7); this._look.y += isKart ? 0.5 : 1.0;
       fov=64;
     } else if(mode==='hood'){
       const ct = car.def?.classType || 'gt3';
-      const hoodY   = ct === 'hypercar' ? 1.05 : ct === 'lmp2' ? 1.10 : 1.32;
-      const hoodFwd = ct === 'hypercar' ?  0.90 : ct === 'lmp2' ?  0.50 : 0.40;
+      const hoodY   = ct === 'kart' ? 0.55 : ct === 'hypercar' ? 1.05 : ct === 'lmp2' ? 1.10 : 1.32;
+      const hoodFwd = ct === 'kart' ? 0.35 : ct === 'hypercar' ?  0.90 : ct === 'lmp2' ?  0.50 : 0.40;
       this._target.copy(car.pos).addScaledVector(fwd,hoodFwd); this._target.y+=hoodY;
       this._look.copy(car.pos).addScaledVector(fwd,60); this._look.y+=hoodY*0.3;
       fov = 72;
@@ -10427,6 +10779,7 @@ const Game = {
   hudEditMode:false,
   gridClassCounts:{hypercar:2, lmp2:2, gt3:1},
   selTrack:0, selCar:0, mode:'tt',
+  garageCat:'race',            // 'race' | 'kart' — Umschalter in der Garage
   replay:null, _replayMode:false, _replayT:0, _replayCam:0, _replayPlaying:false, _seekDragging:false, _replayBroadcastT:0,   // tt = Zeitfahren | race3 = Rennen über 3 Runden
   setupProfile: setupDefaults(),
   weather: weatherDefaults(),
@@ -11170,19 +11523,26 @@ const Game = {
       this.scene.fog.near = 260;
       this.scene.fog.far = fogFar;
     }
+    /* GLB-Strecken bringen eigene, bereits helle Texturen mit und vertragen
+       das Licht der prozeduralen Strecken nicht — ohne Daempfung waschen
+       Asphalt und Gebaeude zu einem blassen Blaugrau aus. */
+    const lit = (this.track && this.track.def && this.track.def.mesh && this.track.def.mesh.light) || null;
+    const sunK  = lit && Number.isFinite(lit.sun)  ? lit.sun  : 1;
+    const hemiK = lit && Number.isFinite(lit.hemi) ? lit.hemi : 1;
+    const expK  = lit && Number.isFinite(lit.exposure) ? lit.exposure : 1;
     if(this.sun){
-      this.sun.intensity = lerp(1.2, 0.28, duskMix) * (1 - (w.rain || 0) * 0.18);
+      this.sun.intensity = lerp(1.2, 0.28, duskMix) * (1 - (w.rain || 0) * 0.18) * sunK;
       this.sun.color.setHex(duskMix > 0.6 ? 0xc3d5ff : 0xfff2dd);
     }
     if(this.hemi){
-      this.hemi.intensity = lerp(0.9, 0.48, duskMix);
+      this.hemi.intensity = lerp(0.9, 0.48, duskMix) * hemiK;
     }
     if(this.sunGlow){
       // Sonnen-Glow bei Dämmerung/Nacht/Regen ausblenden
       this.sunGlow.material.opacity = clamp(1 - duskMix*1.4 - (w.rain||0)*0.8, 0, 1);
     }
     if(this.renderer){
-      this.renderer.toneMappingExposure = lerp(1.25, 0.72, duskMix) * (1 - (w.rain || 0) * 0.08);
+      this.renderer.toneMappingExposure = lerp(1.25, 0.72, duskMix) * (1 - (w.rain || 0) * 0.08) * expK;
     }
   },
   /* ── REGEN-VISUALEFFEKTE ─────────────────────────────────────────
@@ -11761,6 +12121,9 @@ const Game = {
     return TRACKS.concat(this.customTracks || []);
   },
   getCarsByClass(classType){
+    /* Karts sind nie KI-Gegner — sie haben keine Rennklasse und wuerden im
+       Grid zwischen Hypercars stehen. */
+    if(classType === 'kart') return [];
     return CARS.filter(c => c.classType === classType);
   },
   buildAIClassPool(nAI){
@@ -11807,6 +12170,32 @@ const Game = {
       this.showLiveryModal(this._liveryModalCarIdx);
     }
   },
+  /** Zwischen Rennwagen und Go-Karts umschalten.
+      Karts und Rennwagen teilen sich keine Strecken, deshalb muessen bei
+      jedem Wechsel BEIDE Auswahlen mitgezogen werden: selCar und selTrack
+      zeigen sonst auf eine Kombination, die es in der gefilterten Liste gar
+      nicht mehr gibt (z.B. GT3 auf der Kartbahn). */
+  setGarageCat(cat){
+    cat = cat === 'kart' ? 'kart' : 'race';
+    this.garageCat = cat;
+    Store.set('garage_cat', cat);
+
+    const wantKart = cat === 'kart';
+    // Auto: nur wechseln wenn das aktuelle nicht mehr zur Kategorie passt
+    if(isKartCar(CARS[this.selCar]) !== wantKart){
+      const idx = CARS.findIndex(c => isKartCar(c) === wantKart);
+      if(idx >= 0){ this.selCar = idx; this.selLivery = 0; }
+    }
+    // Strecke: dito
+    const pool = this.getTrackPool();
+    if(isKartTrack(pool[this.selTrack]) !== wantKart){
+      const idx = pool.findIndex(t => isKartTrack(t) === wantKart);
+      if(idx >= 0) this.selTrack = idx;
+    }
+
+    this.renderCarList();
+    if(document.getElementById('tracklist')) this.renderTrackList();
+  },
   /** Fahrzeugwahl rendern. Nicht freigeschaltete Käufe (Shop) bekommen ein
       🔒-Overlay statt der normalen Auswahl-Aktion — Kernauswahllogik bleibt
       für freigeschaltete Autos unangetastet. */
@@ -11814,7 +12203,15 @@ const Game = {
     const cl = document.getElementById('carlist');
     if(!cl) return;
     cl.innerHTML = '';
+    const cat = this.garageCat || 'race';
+    const sub = document.getElementById('carlist-sub');
+    if(sub) sub.textContent = cat === 'kart'
+      ? 'Leihkarts von der Kartbahn — kein Abtrieb, kein Differential, Bremse nur hinten. Alles passiert ueber Gewichtsverlagerung.'
+      : 'Jedes Auto hat eine eigene Physik-Charakteristik — spürbar in Traktion, Lastwechsel und Stabilität.';
+    document.querySelectorAll('[data-garage-cat]').forEach(b =>
+      b.classList.toggle('active', b.dataset.garageCat === cat));
     CARS.forEach((c,i)=>{
+      if(isKartCar(c) !== (cat === 'kart')) return;
       const b=document.createElement('button');
       const locked = typeof Shop !== 'undefined' && !Shop.isUnlocked('car', c.id);
       b.className='card carcard' + (locked ? ' locked' : '');
@@ -11837,7 +12234,9 @@ const Game = {
     const tl = document.getElementById('tracklist');
     if(!tl) return;
     tl.innerHTML = '';
+    const kartCat = (this.garageCat || 'race') === 'kart';
     this.getTrackPool().forEach((t,i)=>{
+      if(isKartTrack(t) !== kartCat) return;
       const wrap = document.createElement('div');
       wrap.style.cssText = 'position:relative;display:inline-block;';
       const b=document.createElement('button');
@@ -13461,7 +13860,8 @@ const Game = {
       for(let i=0;i<nAI;i++){
         const wantedClass = classPool[i] || 'gt3';
         const options = this.getCarsByClass(wantedClass);
-        const base = options.length ? options[i % options.length] : CARS[(this.selCar+1+i)%CARS.length];
+        const fallback = CARS.filter(c=>!isKartCar(c));
+        const base = options.length ? options[i % options.length] : fallback[(this.selCar+1+i)%fallback.length];
         const def=Object.assign({}, base, this.AI_LIVERIES[i % this.AI_LIVERIES.length]);
         const car=new Car(def, this.scene, this.envMap);
         car.rd=this.freshRD();
@@ -14813,6 +15213,7 @@ const Game = {
     const isPremium = typeof Shop !== 'undefined' && Shop.wallet.premium;
     (window.adsbygoogle = window.adsbygoogle || []).pauseAdRequests = (id === 'screen-start' && !isPremium) ? 0 : 1;
     if(id === 'screen-track') this.renderTrackList();
+    if(id === 'screen-car') this.renderCarList();
     if(id === 'screen-editor') this.renderEditor();
     if(id === 'screen-settings'){
       this.renderControllerBindings();
@@ -15022,7 +15423,8 @@ const Game = {
     if(!grid || grid._built) return;
     grid._built = true;
     const classFilter = Lobby?.settings?.carClass;
-    const cars = (classFilter && classFilter !== 'any') ? CARS.filter(c=>c.classType===classFilter) : CARS;
+    const cars = (classFilter && classFilter !== 'any') ? CARS.filter(c=>c.classType===classFilter)
+                                                    : CARS.filter(c=>!isKartCar(c));  // MULTI heisst alle RENNWAGEN, keine Karts
     grid.innerHTML = '';
     cars.forEach(c => {
       const idx = CARS.indexOf(c);
@@ -15246,7 +15648,8 @@ const Game = {
     const grid = document.getElementById('lobby-car-grid');
     if(!grid) return;
     const classFilter = Lobby.settings.carClass;
-    const cars = (classFilter && classFilter !== 'any') ? CARS.filter(c=>c.classType===classFilter) : CARS;
+    const cars = (classFilter && classFilter !== 'any') ? CARS.filter(c=>c.classType===classFilter)
+                                                    : CARS.filter(c=>!isKartCar(c));  // MULTI heisst alle RENNWAGEN, keine Karts
     grid.innerHTML = '';
     cars.forEach(c => {
       const idx = CARS.indexOf(c);
@@ -15281,17 +15684,17 @@ const Game = {
     // Track selector (race + training)
     const trackSel = $('lob-track-sel');
     if(trackSel){
-      TRACKS.forEach((t,i) => { const opt=document.createElement('option'); opt.value=i; opt.textContent=t.name; trackSel.appendChild(opt); });
+      TRACKS.forEach((t,i) => { if(isKartTrack(t)) return; const opt=document.createElement('option'); opt.value=i; opt.textContent=t.name; trackSel.appendChild(opt); });
       trackSel.onchange = () => { Lobby.settings.trackIdx = parseInt(trackSel.value); MP.sendSettings(); };
     }
     const practiceTrackSel = $('lob-practice-track-sel');
     if(practiceTrackSel){
-      TRACKS.forEach((t,i) => { const opt=document.createElement('option'); opt.value=i; opt.textContent=t.name; practiceTrackSel.appendChild(opt); });
+      TRACKS.forEach((t,i) => { if(isKartTrack(t)) return; const opt=document.createElement('option'); opt.value=i; opt.textContent=t.name; practiceTrackSel.appendChild(opt); });
       practiceTrackSel.onchange = () => { Lobby.settings.trackIdx = parseInt(practiceTrackSel.value); MP.sendSettings(); };
     }
     const wkndTrack = $('lob-wknd-track');
     if(wkndTrack){
-      TRACKS.forEach((t,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=t.name; wkndTrack.appendChild(o); });
+      TRACKS.forEach((t,i)=>{ if(isKartTrack(t)) return; const o=document.createElement('option'); o.value=i; o.textContent=t.name; wkndTrack.appendChild(o); });
       wkndTrack.onchange = () => { Lobby.settings.trackIdx = parseInt(wkndTrack.value); MP.sendSettings(); };
     }
     // Car class tabs
@@ -15449,6 +15852,14 @@ const Game = {
     };
     if($('lob-browse-refresh')) $('lob-browse-refresh').onclick = () => this._loadServerBrowser();
 
+    /* Garage-Kategorie (Rennwagen / Go-Karts) — vor den Listen setzen,
+       damit gleich die richtige Auswahl gerendert wird */
+    this.garageCat = Store.get('garage_cat') === 'kart' ? 'kart' : 'race';
+    document.querySelectorAll('[data-garage-cat]').forEach(btn => {
+      btn.onclick = () => this.setGarageCat(btn.dataset.garageCat);
+    });
+    /* Auto und Strecke auf die gespeicherte Kategorie einnorden */
+    this.setGarageCat(this.garageCat);
     /* Streckenwahl */
     this.renderTrackList();
     /* Fahrzeugwahl */
@@ -15843,7 +16254,6 @@ addEventListener('DOMContentLoaded',()=>Game.boot());
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js" defer></script>
 <script src="assets/gt3-firebase.js?v=3" defer></script>
-
 
   <section class="screen hidden" id="screen-impressum">
     <button class="btn" onclick="Game.showScreen('screen-start')" style="margin-bottom:24px">&larr; ZUR&Uuml;CK</button>
