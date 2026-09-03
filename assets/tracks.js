@@ -428,11 +428,11 @@ const TRACKS = [
     mesh: {
       offset: [-46.24, 7.21, 89.7],
       light: { sun: 0.95, hemi: 0.82, exposure: 1.00 },
-      groundPlane: { y: -0.06, tile: 14 },
+      groundPlane: { y: -0.20, tile: 18, maxSize: 4000 },
       /* Fahrbahn/Terrain-Layer der GLB direkt am Materialnamen ausblenden —
          sie sind ueber die ganze Anlage gebatcht und von der Groessen-
          heuristik nicht erfasst. */
-      hideMaterials: 'asphalt|top2|^grass|curb|Curb_new|sand|groove|bordini|asph_pitlane'
+      hideMaterials: 'asphalt\\.001|groove'
     },
     halfWidth: 7,
     sky: 0x9fc3eb,
