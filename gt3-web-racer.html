@@ -2706,7 +2706,7 @@ const Store = {
 /* Versions-Guard: wenn sich die CARS-Liste ändert (Autos hinzugefügt/entfernt),
    wird der LocalStorage einmalig geleert um veraltete Indizes zu verhindern.
    Einfach GAME_DATA_VERSION erhöhen nach Änderungen an CARS oder TRACKS. */
-const GAME_DATA_VERSION = '13';
+const GAME_DATA_VERSION = '14';
 (()=>{
   try {
     if(Store.get('game_data_version') !== GAME_DATA_VERSION){
@@ -3976,6 +3976,8 @@ class Track {
          kaputten Boden-Meshes der GLB aus. */
       this.buildRoad();
       this.buildKerbs();
+      this.buildStartFinish();          // Ziellinie + Startbrücke an Sample 0
+      try { this.buildPitLane(); } catch(e){ console.warn('[Track] buildPitLane (GLB):', e); }
       this.buildMeshTrack();
     } else {
       this.buildRoad();
@@ -4050,13 +4052,22 @@ class Track {
          die Centerline (def.pts), nicht über Mesh-Kollision. */
       const keepRe = (cfg.groundKeepRe)
         || /kerb|curb|rumble|marking_lined|tyre|tire|fence|\bwall\b|armco|barrier|net|pitwall|kart|wheel|tree|building|roof|hangar|container|trailer|truck|tank|lamp|pole|billboard|banner|logo/i;
+      /* Manche GLBs (Silverstone) haben ihre Fahrbahn-/Terrain-Meshes über die
+         ganze Anlage gebatcht — mit Höhenprofil, dadurch hgt > 8, also von der
+         Grössenheuristik nicht erfasst. cfg.hideMaterials nennt diese Layer
+         direkt beim Materialnamen und blendet sie unabhängig von der Grösse aus. */
+      const hideMatRe = cfg.hideMaterials
+        ? (cfg.hideMaterials instanceof RegExp ? cfg.hideMaterials : new RegExp(cfg.hideMaterials, 'i'))
+        : null;
       let hiddenGround = 0;
       if(cfg.hideGround !== false){
         root.updateMatrixWorld(true);
         root.traverse(o => {
           if(!o.isMesh || !o.geometry) return;
           const nm = (Array.isArray(o.material) ? o.material[0] : o.material);
-          const label = ((nm && nm.name) || '') + ' ' + (o.name || '');
+          const matName = (nm && nm.name) || '';
+          const label = matName + ' ' + (o.name || '');
+          if(hideMatRe && hideMatRe.test(matName)){ o.visible = false; hiddenGround++; return; }
           if(keepRe.test(label)) return;
           const bb = new THREE.Box3().setFromObject(o);
           if(bb.isEmpty()) return;
