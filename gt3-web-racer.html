@@ -2675,7 +2675,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
 <script src="assets/GLTFLoader.js" defer></script>
 <script src="assets/meshopt_decoder.js" defer></script>
-<script src="assets/tracks.js?v=20260903-silverstone4" defer></script>
+<script src="assets/tracks.js?v=20260903-silverstone5" defer></script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
 <script>
 /* Alle Fahrzeugmodelle sind mit EXT_meshopt_compression gepackt (ca. 8x kleiner
@@ -13917,7 +13917,9 @@ const Game = {
       const pct = this.track?.def?.startGridPct;
       if(Number.isFinite(pct)){
         const idx = Math.round((clamp(pct, 0, 100)/100) * (N-1));
-        return Math.max(8, Math.min(N-8, idx));
+        // erlaubt startGridPct bis direkt an die Start-/Ziel-Linie (Zeitfahren:
+        // Spawn quasi auf dem Zeitmesspunkt); weitere Startreihen wrappen dahinter
+        return Math.max(1, Math.min(N-1, idx));
       }
       return N - 6;
     })();
@@ -14374,7 +14376,9 @@ const Game = {
       const pct = this.track?.def?.startGridPct;
       if(Number.isFinite(pct)){
         const idx = Math.round((clamp(pct, 0, 100)/100) * (N-1));
-        return Math.max(8, Math.min(N-8, idx));
+        // erlaubt startGridPct bis direkt an die Start-/Ziel-Linie (Zeitfahren:
+        // Spawn quasi auf dem Zeitmesspunkt); weitere Startreihen wrappen dahinter
+        return Math.max(1, Math.min(N-1, idx));
       }
       return N - 6;
     })();
