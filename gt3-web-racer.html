@@ -5478,9 +5478,18 @@ class Car {
     this.wheelSpin=0;
     this.brakeLight=false;
     /* Geometrie-Parameter */
-    this.a=1.32; this.b=1.38; this.L=this.a+this.b;  // Achsabstände zum Schwerpunkt
-    this.h=0.42;                                      // Schwerpunkthöhe
-    this.Iz=def.mass*2.05;
+    if(def.classType === 'kart'){
+      /* Leihkart: ~1,05 m Radstand, flacher Schwerpunkt, sehr kompaktes
+         Trägheitsmoment. Ohne das dreht ein Kart wie ein GT3 und fühlt sich
+         bei Schrittgeschwindigkeit träge an. */
+      this.a=0.52; this.b=0.53; this.L=this.a+this.b;
+      this.h=0.24;
+      this.Iz=def.mass*0.95;
+    } else {
+      this.a=1.32; this.b=1.38; this.L=this.a+this.b;  // Achsabstände zum Schwerpunkt
+      this.h=0.42;                                      // Schwerpunkthöhe
+      this.Iz=def.mass*2.05;
+    }
     this.gearTops=[0.16,0.27,0.40,0.55,0.74,1.0].map(f=>f*def.topSpeed);
     this.cDrag = def.power/Math.pow(def.topSpeed,3);  // Topspeed ergibt sich aus Leistung/Drag
     /* --- Schadensmodell --- */
@@ -6221,9 +6230,10 @@ class Car {
     /* --- Lenkung mit Rate-Limit, geschwindigkeitsabhängig ---
        Wirkliche GT3: bei hoher Geschwindigkeit weniger Lenkwinkel, aber die echte Begrenzung
        gegen Spinnerei bei kleinem Lenken auf der Geraden macht der yawLim weiter unten */
-    const maxSteer = 0.38 / (1 + speed*0.035) * (dmgMods.steerMul || 1);
+    const isKart = d.classType === 'kart';
+    const maxSteer = (isKart ? 0.54 : 0.38) / (1 + speed*(isKart ? 0.022 : 0.035)) * (dmgMods.steerMul || 1);
     const tgtSteer = input.steer * maxSteer;
-    const maxRate = 3.6;
+    const maxRate = isKart ? 5.2 : 3.6;   // Karts lenken schneller ein
     this.steer += clamp(tgtSteer - this.steer, -maxRate*dt, maxRate*dt);
 
     /* --- Achslasten mit Längs-Lastverlagerung --- */
@@ -6567,7 +6577,10 @@ class Car {
     const assistFactor = 1 - overLimit*0.28;
     /* Physikalisches Limit für stationäre Querbeschleunigung */
     const ayMaxAvail = G * baseMu * (1 + 0.55*(speed*speed)/(d.topSpeed*d.topSpeed));
-    const yawLim = ayMaxAvail / Math.max(speed, 5);
+    /* Karts dürfen bei Schrittgeschwindigkeit viel schneller rotieren — der
+       5-m/s-Boden hier ist für Rennwagen gedacht und macht ein langsames Kart
+       lenkfaul. */
+    const yawLim = ayMaxAvail / Math.max(speed, isKart ? 2.2 : 5);
     const yawKinRaw = this.vx/this.L*Math.tan(this.steer);
     const yawKin = clamp(yawKinRaw, -yawLim, yawLim);
     /* Korrektur stärker im Grip-Bereich, deutlich weniger im Drift */
@@ -6576,11 +6589,14 @@ class Car {
     const vyCap = 0.46*Math.abs(this.vx) + 1.4;
     this.vy = clamp(this.vy, -vyCap, vyCap);
 
-    /* --- Numerische Stabilisierung bei Niedrigtempo --- */
-    if(speed < 4){
-      const k = speed/4;
-      this.vy *= lerp(0.55, 1, k);
-      this.yawRate = lerp(this.vx/this.L*Math.tan(this.steer), this.yawRate, k);
+    /* --- Numerische Stabilisierung bei Niedrigtempo ---
+       Für Karts schwächer: der harte Lerp Richtung kinematischer Gierrate hat
+       das agile Einlenken bei <15 km/h abgewürgt. */
+    const lowV = isKart ? 2.2 : 4;
+    if(speed < lowV){
+      const k = speed/lowV;
+      this.vy *= lerp(isKart ? 0.8 : 0.55, 1, k);
+      this.yawRate = lerp(this.vx/this.L*Math.tan(this.steer), this.yawRate, isKart ? Math.max(k, 0.6) : k);
     }
 
     /* --- Weltkoordinaten --- */
