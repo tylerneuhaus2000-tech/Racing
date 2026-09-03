@@ -4495,7 +4495,10 @@ class Track {
       gateInIdx: (pl.idxStart + openStart) % N,
       gateOutIdx: (pl.idxEnd - openEnd + N) % N
     };
-    /* Pit-Asphalt als Ribbon */
+    /* Pit-Asphalt als Ribbon. Bei rawSurface folgt es der echten Streckenhöhe
+       (sonst schwebt/versinkt es bei Höhenprofil) und liegt minimal höher als
+       der GLB-Asphalt, damit es nicht z-fightet. */
+    const raw = !!(this.def.mesh && this.def.mesh.rawSurface);
     const pitMat = new THREE.MeshLambertMaterial({color:0x3a3e44});
     const inner = pl.side * pl.innerOff;
     const outer = pl.side * pl.outerOff;
@@ -4505,8 +4508,8 @@ class Track {
     for(let k=0; k<=idxLen; k++){
       const i = (pl.idxStart + k) % N;
       const s = S[i];
-      const a = s.pos.clone().addScaledVector(s.side, inner); a.y = 0.005;
-      const b = s.pos.clone().addScaledVector(s.side, outer); b.y = 0.005;
+      const a = s.pos.clone().addScaledVector(s.side, inner); a.y = raw ? s.pos.y + 0.03 : 0.005;
+      const b = s.pos.clone().addScaledVector(s.side, outer); b.y = raw ? s.pos.y + 0.03 : 0.005;
       positions.push(a.x, a.y, a.z, b.x, b.y, b.z);
       uvs.push(0, k*0.5, 1, k*0.5);
       if(k>0){
@@ -4522,6 +4525,12 @@ class Track {
     const pitMesh = new THREE.Mesh(pitGeo, pitMat);
     pitMesh.receiveShadow = true;
     this.group.add(pitMesh);
+
+    /* rawSurface: nur die Fahrfläche + Boxenstopp-Logik. Keine prozeduralen
+       Gates/Garagen — die GLB hat ihre eigene Boxengasse samt Gebäuden, und
+       die prozeduralen Bauten würden bei Höhenprofil durch den Boden stossen
+       oder die Strecke blockieren. */
+    if(raw) return;
 
 
     const buildGate = (idx, label, color) => {
