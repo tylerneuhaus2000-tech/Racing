@@ -5416,6 +5416,25 @@ class Track {
       const d=dx*dx+dz*dz;
       if(d<bd){bd=d;best=i;}
     }
+    // Absicherung: wenn selbst der beste Treffer im ±150m-Fenster unplausibel
+    // weit weg liegt, wurde das Auto seit dem letzten query() weiter bewegt als
+    // das Fenster abdeckt (z.B. durch einen harten Kollisions-Ruck) — lastIdx
+    // ist dann kein brauchbarer Suchmittelpunkt mehr. Die Fenster-Suche rastet
+    // in diesem Fall auf irgendeinem zufällig nahen, aber lap-mäßig völlig
+    // falschen Segment ein, wodurch lat/side/tan Fantasiewerte liefern und die
+    // KI (und die Wandkollision) auf ein Phantom-Ziel reagiert — im Test
+    // beobachtet: Autos "off track" um 30-60m bei nur ~8m halber Streckenbreite.
+    // Volle Neusuche über alle Samples als Recovery (teurer, aber selten nötig).
+    const maxPlausible = (this.halfW + this.kerbW + 60);
+    if(bd > maxPlausible*maxPlausible){
+      let full=0, fd=Infinity;
+      for(let i=0;i<N;i++){
+        const dx=pos.x-S[i].pos.x, dz=pos.z-S[i].pos.z;
+        const d=dx*dx+dz*dz;
+        if(d<fd){fd=d;full=i;}
+      }
+      best=full; bd=fd;
+    }
     const s=S[best];
     const dx=pos.x-s.pos.x, dz=pos.z-s.pos.z;
     const lat = dx*s.side.x + dz*s.side.z;
@@ -6742,7 +6761,14 @@ class Car {
     const minTire = this.tireWear ? Math.min(this.tireWear.FL||1, this.tireWear.FR||1, this.tireWear.RL||1, this.tireWear.RR||1) : 1;
     const engineFailed = (this.damage.engine || 0) >= 100;
     if(!this.retired && (this.totalDamage > 92 || minTire < 0.06 || engineFailed)){
-      this.retired = true;
+      // WICHTIG: this.retired NICHT hier setzen — Game.retireCar() prüft
+      // "if(car.retired) return;" ganz am Anfang und würde dann sofort
+      // abbrechen, OHNE das Auto tatsächlich einzufrieren/wegzuteleportieren.
+      // Ergebnis (verifiziert): das Auto bleibt für immer als "retired"
+      // markiert, fährt aber normal weiter mit und crasht munter weiter —
+      // in einem 50-Wagen-Vollgrid-Test endeten so 45 von 50 Autos als
+      // Geister-Ausfälle statt sauber aus dem Rennen genommen zu werden.
+      // Game.retireCar() setzt car.retired selbst, als Teil der echten Arbeit.
       if(typeof Game !== 'undefined' && Game.retireCar) Game.retireCar(this, engineFailed ? 'damage' : (this.totalDamage > 92 ? 'damage' : 'tyre'));
     }
 
@@ -7300,20 +7326,30 @@ class AIDriver {
     this.personalityType = preset ? preset.type : 'PRO';
 
     if(preset){
-      // Preset-Traits mit skill-basiertem Bonus kombinieren (Skill = Baseline-Anhebung)
-      this.aggression  = clamp(preset.aggression  + s*0.08 + (Math.random()-0.5)*0.12, 0, 1);
-      this.consistency = clamp(preset.consistency + s*0.06 + (Math.random()-0.5)*0.08, 0, 1);
-      this.wetSkill    = clamp(preset.wetSkill    + s*0.10 + (Math.random()-0.5)*0.10, 0, 1);
-      this.raceCraft   = clamp(preset.raceCraft   + s*0.05 + (Math.random()-0.5)*0.10, 0, 1);
-      this._aLatMul    = preset.aLatMul;
-      this._aBrkMul    = preset.aBrkMul;
+      /* Preset-Traits per Skill Richtung Elite-Niveau ziehen statt nur einen kleinen
+         additiven Bonus draufzurechnen. Vorher blieb z.B. ROOKIE (consistency 0.26,
+         raceCraft 0.30) auch bei KI-Schwierigkeit 100 quasi unverändert schlecht
+         (max. +0.06/+0.05), weshalb der Regler kaum spürbar war. Jetzt wird bei
+         niedriger Schwierigkeit die Persönlichkeit dominant beibehalten (schwache
+         Rookies bleiben schwach), bei hoher Schwierigkeit konvergiert das ganze Feld
+         Richtung eines starken, konkurrenzfähigen Niveaus. */
+      // Ziel = das jeweils Höhere aus Preset-Baseline und Elite-Wert, damit ohnehin
+      // starke Archetyp-Eigenschaften (z.B. AGGRESSIVE.aggression, PRO.raceCraft)
+      // durch die Skill-Anhebung nie abgeschwächt werden.
+      const eliteAggr = 0.74, eliteCons = 0.95, eliteWet = 0.90, eliteRC = 0.92;
+      this.aggression  = clamp(lerp(preset.aggression,  Math.max(preset.aggression,  eliteAggr), s*0.90) + (Math.random()-0.5)*0.08, 0, 1);
+      this.consistency = clamp(lerp(preset.consistency, Math.max(preset.consistency, eliteCons),  s*0.90) + (Math.random()-0.5)*0.05, 0, 1);
+      this.wetSkill    = clamp(lerp(preset.wetSkill,    Math.max(preset.wetSkill,    eliteWet),   s*0.85) + (Math.random()-0.5)*0.06, 0, 1);
+      this.raceCraft   = clamp(lerp(preset.raceCraft,   Math.max(preset.raceCraft,   eliteRC),    s*0.85) + (Math.random()-0.5)*0.06, 0, 1);
+      this._aLatMul    = lerp(preset.aLatMul, 1.06, s);
+      this._aBrkMul    = lerp(preset.aBrkMul, 1.05, s);
     } else {
-      this.aggression  = clamp(0.25 + Math.random()*0.55 + s*0.15, 0, 1);
-      this.consistency = clamp(0.30 + Math.random()*0.40 + s*0.35, 0, 1);
-      this.wetSkill    = clamp(0.25 + Math.random()*0.55 + s*0.20, 0, 1);
-      this.raceCraft   = clamp(0.25 + Math.random()*0.50 + s*0.25, 0, 1);
-      this._aLatMul    = 1.0;
-      this._aBrkMul    = 1.0;
+      this.aggression  = clamp(0.25 + Math.random()*0.35 + s*0.45, 0, 1);
+      this.consistency = clamp(0.30 + Math.random()*0.25 + s*0.55, 0, 1);
+      this.wetSkill    = clamp(0.25 + Math.random()*0.35 + s*0.50, 0, 1);
+      this.raceCraft   = clamp(0.25 + Math.random()*0.30 + s*0.55, 0, 1);
+      this._aLatMul    = lerp(0.92, 1.06, s);
+      this._aBrkMul    = lerp(0.92, 1.05, s);
     }
 
     // Physics parameters
@@ -7670,8 +7706,10 @@ class AIDriver {
     let chance = (1 - this.consistency) * 0.50;
     if(inCorner) chance *= 1.5;
     if(this.aggression > 0.65) chance *= 1.2;
-    // ROOKIE: deutlich mehr Fehler, besonders in Kurven
-    if(this.personalityType === 'ROOKIE') chance *= (inCorner ? 2.2 : 1.5);
+    // ROOKIE: mehr Fehler, besonders in Kurven — aber der Malus fadet bei hoher
+    // KI-Schwierigkeit aus (sonst bleibt ROOKIE auch bei Schwierigkeit 100 unfahrbar
+    // schlecht, obwohl consistency dort schon Elite-Niveau erreicht hat)
+    if(this.personalityType === 'ROOKIE') chance *= lerp(inCorner ? 2.2 : 1.5, 1.0, this.skill);
     // PRO: sehr selten Fehler
     if(this.personalityType === 'PRO') chance *= 0.35;
 
@@ -7711,19 +7749,34 @@ class AIDriver {
     }
   }
 
-  /* ───────────────── VERKEHR + ÜBERHOLEN ───────────────── */
+  /* ───────────────── VERKEHR + ÜBERHOLEN ─────────────────
+     Komplett neu geschrieben (v2). Der alte Code hat Überhol-/Verteidigungs-
+     entscheidungen bei JEDEM Frame per Math.random() neu gewürfelt (scanTraffic
+     läuft ~40x/s) — bei zusammengepacktem Feld (Rennstart!) bedeutet das
+     effektiv 40 Würfe pro Sekunde für jedes Auto, wodurch praktisch alle KIs
+     binnen Bruchteilen einer Sekunde gleichzeitig einen Überholversuch starten.
+     Zusammen mit vielen einzeln aufaddierten "dodge"-Signalen aus unabhängigen
+     Quellen (Ausweichen + Windschatten + Verteidigung + Pack-Zufallslenken
+     gleichzeitig) ergab das beim Start ein Kollisions-Chaos — im Test: 11-14
+     Kontakte in den ersten 4 Renn-Sekunden bei nur 4 KI-Autos, plus wild
+     schwankende Ideallinie.
+     Neu: Entscheidungen laufen auf einem Cooldown (~alle 0.5-1s neu bewertet,
+     nicht 40x/s), die ersten Sekunden nach dem Start sind ein Vorsichtsfenster
+     ohne neue Überholversuche, und pro Frame wird genau EIN Ausweichziel mit
+     klarer Priorität verfolgt statt mehrerer sich aufschaukelnder Signale. */
 
-  scanTraffic(car, others, v, track, q){
-    let dodge = 0, vCap = 95;
-    if(!others) return {dodge, vCap};
-    const SCAN_DT = 1/40; // scanTraffic läuft ~40x/s effektiv
+  scanTraffic(car, others, v, track, q, dt){
+    let vCap = 95;
+    if(!others) return {dodge:0, vCap};
+    dt = dt || 1/60;
 
-    const sin_h     = Math.sin(car.heading), cos_h = Math.cos(car.heading);
-    const curvLoad  = clamp((this.lastCurv||0) / 0.008, 0, 1);
+    const sin_h    = Math.sin(car.heading), cos_h = Math.cos(car.heading);
+    const curvLoad = clamp((this.lastCurv||0) / 0.008, 0, 1);
 
-    let bestOTDist = Infinity, bestOTTarget = null;
-    let carsClose = 0;
-    let fastAttackerLat = null;
+    let nearestFwd = Infinity, nearestLat = 0, nearestCar = null;
+    let carsCloseAhead = 0;
+    let bestOTDist = Infinity, bestOTTarget = null, bestOTLat = 0;
+    let attackerLat = null, attackerClosing = -Infinity;
 
     for(const o of others){
       if(o === car) continue;
@@ -7735,123 +7788,90 @@ class AIDriver {
       const lat    = cos_h*dx - sin_h*dz;
       const absLat = Math.abs(lat);
 
-      // === Auto VORAUS ===
-      if(fwd > 0.5 && fwd < 50){
-        if(absLat < 3.5){
-          if(fwd < 20) carsClose++;
-
-          // Ausweichen
-          if(absLat < 2.5 && fwd < 35){
-            dodge = (lat >= 0 ? -1 : 1) * 2.0;
-          }
-          // Anti-Bunching: wenn sehr nah und kein aktives Überholen → etwas Gas raus
-          if(fwd < 6 && absLat < 2.0 && !this._ov.phase){
-            vCap = Math.min(vCap, Math.max(o.vx||0, 0) * 0.96);
-          }
-          if(curvLoad > 0.25 && fwd < 28){
-            dodge += (lat >= 0 ? -1 : 1) * (0.16 + this.aggression*0.10);
-          }
-
-          // Speed-Cap für sicheres Folgen
-          const closing = v - Math.max(o.vx, 0);
-          if(closing > 0){
-            const safeGap = 4 + closing*0.8;
-            if(fwd < safeGap + closing*1.5){
-              vCap = Math.min(vCap, Math.max(o.vx,0) + Math.max(0,(fwd-safeGap))*0.3);
-            }
-          }
-
-          // Überholkandidat: auf Gerade, guter Abstand, raceCraft vorhanden
-          if(fwd > 5 && fwd < 55 && curvLoad < 0.35 && this.raceCraft > 0.28){
-            if(fwd < bestOTDist){ bestOTDist = fwd; bestOTTarget = o; }
-          }
-        }
-        // Seitlicher Puffer
-        if(absLat >= 2.0 && absLat < 5.5 && fwd < 10 && fwd > -3){
-          dodge += (lat > 0 ? -0.5 : 0.5);
+      if(fwd > 0.5 && fwd < 60 && absLat < 4.0){
+        if(fwd < 22 && absLat < 3.2) carsCloseAhead++;
+        if(fwd < nearestFwd){ nearestFwd = fwd; nearestLat = lat; nearestCar = o; }
+        if(fwd > 6 && fwd < 55 && curvLoad < 0.35 && this.raceCraft > 0.28 && fwd < bestOTDist){
+          bestOTDist = fwd; bestOTTarget = o; bestOTLat = lat;
         }
       }
-
-      // === Auto HINTEN (Verteidigung) ===
       if(fwd < -0.5 && fwd > -22 && absLat < 4.0){
-        const approaching = (o.vx||0) - v;
-        if(approaching > 1.8 && this.raceCraft > 0.35) fastAttackerLat = lat;
-        if(fwd > -10 && absLat < 3.2){
-          dodge += (lat > 0 ? -1 : 1) * 0.28 * this.aggression;
-        }
+        const closing = (o.vx||0) - v;
+        if(closing > attackerClosing){ attackerClosing = closing; attackerLat = lat; }
       }
     }
+    if(attackerClosing <= 1.8) attackerLat = null;
 
-    // === WINDSCHATTEN-JAGD: Auf Geraden hinter dem Vordermann positionieren ===
-    // AGGRESSIVE + PRO KIs suchen aktiv den Windschatten (direkt hinter dem Vordermann)
-    if((this.personalityType === 'AGGRESSIVE' || this.personalityType === 'PRO') && !this._ov.phase){
-      const curvForSlip = Math.abs(track.samples[q.idx].curv);
-      if(curvForSlip < 0.003 && bestOTTarget){
-        const dx2 = bestOTTarget.pos.x - car.pos.x, dz2 = bestOTTarget.pos.z - car.pos.z;
-        const fwdT = Math.sin(car.heading)*dx2 + Math.cos(car.heading)*dz2;
-        const latT = Math.cos(car.heading)*dx2 - Math.sin(car.heading)*dz2;
-        // 12-35m dahinter auf Gerade: lateralen Offset minimieren (in Windschatten fahren)
-        if(fwdT > 12 && fwdT < 35 && Math.abs(latT) < 3.5){
-          dodge += -latT * 0.18; // leicht in Richtung des Vordermanns korrigieren
-        }
+    // Sicherer Folgeabstand — deutlich großzügiger als zuvor: ein Vollgrid-Test
+    // zeigte, dass selbst mitten im Rennen (u.a. unter Safety Car, alle auf
+    // ähnlichem Tempo) massenhaft Auto-gegen-Auto-Kontakte auftraten (~100x so
+    // viele wie Wandkontakte) — der alte Puffer war für dichten Verkehr zu knapp
+    // bemessen, nicht nur beim Start.
+    if(nearestCar){
+      const closing = v - Math.max(nearestCar.vx||0, 0);
+      if(closing > 0){
+        const safeGap = 8 + closing*1.3;
+        if(nearestFwd < safeGap + closing*1.8)
+          vCap = Math.min(vCap, Math.max(nearestCar.vx||0,0) + Math.max(0,(nearestFwd-safeGap))*0.25);
       }
     }
+    // Pack-Bremsung wenn mehrere Autos eng voraus
+    if(carsCloseAhead >= 3)      vCap = Math.min(vCap, v * (curvLoad > 0.3 ? 0.82 : 0.68));
+    else if(carsCloseAhead >= 2) vCap = Math.min(vCap, v * (curvLoad > 0.3 ? 0.90 : 0.82));
 
-    // Pack-Bremsung
-    if(carsClose >= 3){
-      vCap = Math.min(vCap, v * (curvLoad > 0.3 ? 0.92 : 0.82));
-      dodge += (Math.random()<0.5 ? -1 : 1) * (0.20 + this.aggression*0.12);
-    } else if(carsClose >= 2){
-      vCap = Math.min(vCap, v * (curvLoad > 0.3 ? 0.97 : 0.90));
+    // Windschatten: nur ein leichter Top-Speed-Bonus auf der Geraden, kein Lenkeingriff
+    if(nearestCar && curvLoad < 0.1 && nearestFwd > 8 && nearestFwd < 30 && Math.abs(nearestLat) < 2.5){
+      const closing2 = Math.max(nearestCar.vx||0,0) - v;
+      if(closing2 < 3) vCap = Math.min(95, vCap * 1.03);
     }
 
-    // === ÜBERHOLENTSCHEIDUNG ===
-    const ov = this._ov;
-    if(bestOTTarget && !ov.phase){
-      // AGGRESSIVE: schnellere Entscheidung + niedrigere Schwelle
-      // DEFENSIVE/ROOKIE: deutlich seltener überholen
-      let otChance = this.aggression*0.16 + this.raceCraft*0.12;
-      if(this.personalityType === 'AGGRESSIVE') otChance *= 1.6;
-      if(this.personalityType === 'DEFENSIVE')  otChance *= 0.4;
+    // ── Überhol-/Verteidigungsentscheidung: max. ~1-2x/s neu bewertet ──
+    const ov = this._ov, def = this._def;
+    ov.timer  = Math.max(0, (ov.timer||0)  - dt);
+    def.timer = Math.max(0, (def.timer||0) - dt);
+    this._ovDecisionCd  = Math.max(0, (this._ovDecisionCd||0)  - dt);
+    this._defDecisionCd = Math.max(0, (this._defDecisionCd||0) - dt);
+
+    // Zeit seit der ECHTEN Startfreigabe (Ampel aus / Ende der Formationsrunde bei
+    // fliegendem Start) — NICHT Game._raceTimeS, das beim fliegenden Start schon
+    // 5s vor der eigentlichen Freigabe zu laufen beginnt (Formationsphase läuft
+    // bereits mit state==='race'). Mit _raceTimeS würde das Vorsichtsfenster genau
+    // dann enden, wenn die Ampel erlischt und der Green-Boost einsetzt — also exakt
+    // im gefährlichsten Moment für ein eng gepacktes Feld.
+    const msSinceGreen = (typeof Game !== 'undefined' && Game._greenFlagAt)
+      ? performance.now() - Game._greenFlagAt : 99000;
+    const startCaution = msSinceGreen < 6000; // erste 6s nach Freigabe: kein neuer Überholversuch, größerer Puffer
+
+    if(!ov.phase && bestOTTarget && !startCaution && this._ovDecisionCd <= 0){
+      this._ovDecisionCd = 0.5 + Math.random()*0.5;
+      let otChance = this.aggression*0.28 + this.raceCraft*0.18;
+      if(this.personalityType === 'AGGRESSIVE') otChance *= 1.5;
+      if(this.personalityType === 'DEFENSIVE')  otChance *= 0.45;
       if(this.personalityType === 'ROOKIE')     otChance *= 0.6;
-      const readyToOvertake = (this.raceCraft + this.aggression) > 0.55
-        && Math.random() < otChance;
+      const readyToOvertake = (this.raceCraft + this.aggression) > 0.55 && Math.random() < otChance;
       if(readyToOvertake){
-        // Welche Seite hat mehr Platz? Verfolger-Position + Racingline-Bias berücksichtigen
         const qLat = q ? q.lat : 0;
         const hw = track.def.halfWidth || 8;
-        // Raum links vs rechts: positives lat = rechts der Mitte
-        // Seite mit mehr Abstand zur Wand bevorzugen
-        const roomLeft  = hw + qLat;   // Abstand zur linken Wand
-        const roomRight = hw - qLat;   // Abstand zur rechten Wand
-        // Auch schauen ob Gegner links oder rechts ist (ihn überholen auf seiner Außenseite)
-        const targetDx = bestOTTarget ? bestOTTarget.pos.x - car.pos.x : 0;
-        const targetDz = bestOTTarget ? bestOTTarget.pos.z - car.pos.z : 0;
-        const targetLat = Math.cos(car.heading)*targetDx - Math.sin(car.heading)*targetDz;
-        // Gegner links → wir gehen rechts (und umgekehrt), aber nur wenn da Platz ist
-        let preferredSide = targetLat > 0 ? -1 : 1; // außen überholen
-        if(preferredSide === 1 && roomRight < 2.5) preferredSide = -1; // zu wenig Platz rechts
-        if(preferredSide === -1 && roomLeft < 2.5) preferredSide = 1;  // zu wenig Platz links
+        const roomLeft  = hw + qLat, roomRight = hw - qLat;
+        let preferredSide = bestOTLat > 0 ? -1 : 1; // außen überholen
+        if(preferredSide === 1 && roomRight < 2.5) preferredSide = -1;
+        if(preferredSide === -1 && roomLeft < 2.5) preferredSide = 1;
         ov.side = preferredSide;
-        ov.phase   = 'setup';
+        ov.phase = 'setup';
         ov.targetId = bestOTTarget._uid;
-        // AGGRESSIVE: kürzer warten (2.5s), PRO: normal (5s), ROOKIE/DEFENSIVE: länger
         const baseSetupT = this.personalityType === 'AGGRESSIVE' ? 2.5 :
                            this.personalityType === 'PRO'        ? 4.5 :
                            this.personalityType === 'ROOKIE'     ? 7.0 : 5.0;
-        ov.timer   = baseSetupT + this.raceCraft * 2.5;
+        ov.timer = baseSetupT + this.raceCraft * 2.5;
       }
     }
-    // Close-range side-hold overtake: wenn < 15m auf Gerade und aggressiv genug
-    if(!ov.phase && bestOTDist < 15 && this.aggression > 0.4){
+    if(!ov.phase && bestOTDist < 15 && this.aggression > 0.4 && !startCaution){
       const qLat = q ? q.lat : 0;
-      ov.side    = qLat > 0 ? -1 : 1;
-      ov.phase   = 'attack';
+      ov.side = qLat > 0 ? -1 : 1;
+      ov.phase = 'attack';
       ov.targetId = bestOTTarget ? bestOTTarget._uid : null;
-      ov.timer   = 3 + Math.random() * 2; // 3-5 seconds
+      ov.timer = 3 + Math.random() * 2;
     }
-
-    // Überholautomatik ticken (timer wird in control() mit echtem dt dekrementiert)
     if(ov.phase){
       if(ov.phase === 'setup' && ov.timer < 2.8) ov.phase = 'attack';
       if(ov.phase === 'attack'){
@@ -7865,43 +7885,52 @@ class AIDriver {
         }
       }
       if(ov.phase === 'attack' && curvLoad < 0.25) vCap = Math.min(vCap * 1.08, 95);
-      // Dodge nur auf Geraden — in Kurven kein Ausscheren (sonst Kontrollverlust)
-      if(ov.phase === 'attack') dodge = ov.side * 2.2 * clamp(1.0 - curvLoad*3, 0, 1);
     }
 
-    // === VERTEIDIGUNG ===
-    const def = this._def;
-    if(fastAttackerLat !== null && !def.active){
-      // DEFENSIVE personality reagiert viel öfter und hält länger
-      const defThresh = this.personalityType === 'DEFENSIVE' ? 0.22 : 0.42;
-      const defChance = this.personalityType === 'DEFENSIVE' ? this.raceCraft * 0.70 : this.raceCraft * 0.38;
+    if(attackerLat !== null && !def.active && this._defDecisionCd <= 0){
+      this._defDecisionCd = 0.6 + Math.random()*0.5;
+      const race = (typeof Game !== 'undefined' && Game.race) ? Game.race : null;
+      const isLeader = !!(race && race.pos === 1);
+      const defThresh = this.personalityType === 'DEFENSIVE' ? 0.22 : (isLeader ? 0.30 : 0.42);
+      const defChance = (this.personalityType === 'DEFENSIVE' ? this.raceCraft * 0.55 : this.raceCraft * 0.30)
+                         * (isLeader ? 1.35 : 1.0);
       if(this.raceCraft > defThresh && Math.random() < defChance){
         def.active = true;
-        def.side   = fastAttackerLat > 0 ? 1 : -1;
-        const defBase = this.personalityType === 'DEFENSIVE' ? 2.8 : 1.8;
-        def.timer  = defBase + this.raceCraft * 2.0;
+        def.side   = attackerLat > 0 ? 1 : -1;
+        def.timer  = (this.personalityType === 'DEFENSIVE' ? 2.8 : 1.8) + this.raceCraft * 2.0;
       }
     }
-    if(def.active && def.timer <= 0) { def.active = false; def.side = 0; }
-    // P1 blocking: wenn führend und Verfolger < 20m hinten
-    if(this.raceCraft > 0.6 && fastAttackerLat !== null){
-      const race = (typeof Game !== 'undefined' && Game.race) ? Game.race : null;
-      if(race && race.pos === 1){
-        dodge += (fastAttackerLat > 0 ? 0.6 : -0.6);
-      }
+    if(def.active && def.timer <= 0){ def.active = false; def.side = 0; }
+
+    // ── Genau EIN Ausweich-/Linienziel pro Frame, klare Priorität statt
+    //    mehrerer sich addierender Signale ──
+    let dodge = 0;
+    if(ov.phase === 'attack'){
+      dodge = ov.side * 2.2 * clamp(1.0 - curvLoad*3, 0, 1);
+    } else if(def.active){
+      dodge = def.side * (curvLoad < 0.1 ? 0.35 : 1.1);
+    } else if(nearestCar && nearestFwd < 16 && Math.abs(nearestLat) < 2.3){
+      const urgency = clamp((16 - nearestFwd)/16, 0, 1);
+      dodge = (nearestLat >= 0 ? -1 : 1) * (0.5 + urgency*1.2);
     }
 
-    // Auf Geraden dodge stark dämpfen — sonst Schlangenlinie beim Überholen
+    // Auf Geraden außerhalb eines aktiven Überholmanövers dämpfen (keine Schlangenlinie)
     const curvForDodge = Math.abs(track.samples[q.idx].curv);
-    if(curvForDodge < 0.003) dodge *= 0.15;
+    if(curvForDodge < 0.003 && ov.phase !== 'attack') dodge *= 0.25;
 
-    // Dodge über Zeit glätten (Low-Pass-Filter) — verhindert Frame-zu-Frame-Springen
+    // Zeitlich glätten (Low-Pass) — verhindert Frame-zu-Frame-Sprünge
     if(this._dodgeSmooth === undefined) this._dodgeSmooth = 0;
-    const dodgeRate = curvForDodge < 0.003 ? SCAN_DT*2.5 : SCAN_DT*8;
+    const dodgeRate = (curvForDodge < 0.003 ? 2.5 : 8) * dt;
     this._dodgeSmooth += clamp(dodge - this._dodgeSmooth, -dodgeRate, dodgeRate);
-    dodge = this._dodgeSmooth;
 
-    return {dodge, vCap};
+    // Beim Rennstart (Feld noch eng zusammen) zusätzlichen Sicherheitsabstand erzwingen
+    if(startCaution && nearestCar){
+      const closing = v - Math.max(nearestCar.vx||0, 0);
+      if(closing > 0 && nearestFwd < 10 + closing*1.5)
+        vCap = Math.min(vCap, Math.max(nearestCar.vx||0,0) * 0.9);
+    }
+
+    return {dodge: this._dodgeSmooth, vCap};
   }
 
   /* ───────────────── REIFEN-STRATEGIE ───────────────── */
@@ -7994,6 +8023,74 @@ class AIDriver {
       this.turnT -= dt;
       if(Math.abs(errNow)<0.9) this.turnT = 0;
       else { inp.throttle=1; inp.brake=0; inp.steer=Math.sign(errNow); return inp; }
+    }
+    return null;
+  }
+
+  /* Erkennt wiederholten Kontakt mit einem Nachbarn in kurzer Folge (Rad-an-Rad-
+     Verklemmung) und erzwingt dann für ein paar Sekunden eine feste Ausweichseite,
+     statt sie jeden Frame neu zu bestimmen (siehe Kommentar am Aufrufer). */
+  _handleContactLock(car, q, dt, others, track){
+    // WICHTIG: auch Wandkontakte zählen, nicht nur Auto-gegen-Auto. Ein Auto, das
+    // allein an einer Leitplanke hängt (kein Nachbar in der Nähe), erhöht nur
+    // wallContacts — carContacts bleibt bei 0, wodurch die Loslöse-Logik nie
+    // ausgelöst hätte (beobachtet auf Spa: Autos blieben nach einem Wandcrash
+    // dauerhaft bei 0 km/h stehen, cc/wc stiegen unbegrenzt weiter).
+    const ccNow = (car.carContacts||0) + (car.wallContacts||0);
+    const ccDelta = ccNow - (this._lastCc || 0);
+    this._lastCc = ccNow;
+    if(ccDelta > 0) this._contactHeat = Math.min(6, (this._contactHeat||0) + ccDelta);
+    else this._contactHeat = Math.max(0, (this._contactHeat||0) - dt*1.2);
+
+    // NUR auslösen wenn das Auto auch wirklich langsam/steckt (echtes Deadlock-
+    // Symptom) — nicht bei normalem Renn-Rempeln in voller Fahrt. Vorher löste
+    // schon ein paar harmlose Streifkontakte im dichten Feld (z.B. 4 Kontakte
+    // ohne jeden Schaden bei 69 km/h) die Flucht-Manöver aus und hat dadurch
+    // Autos, die gar nicht feststeckten, aktiv 20+ m von der Strecke gelenkt
+    // (im Test beobachtet und reproduziert).
+    const isSlow = Math.abs(car.vx||0) < 8;
+    if(this._contactHeat > 2.5 && isSlow && !(this._escapeT > 0)){
+      // Wand hat Vorrang (sie bewegt sich nicht) — sonst Richtung wählen, die vom
+      // tatsächlich nächsten Nachbarn wegführt statt blind von der Streckenmitte
+      // wegzurechnen (das konnte genau in den Nachbarn oder eine Wand hineinlenken,
+      // z.B. beobachtet: ein 3-Wagen-Cluster, der rückwärts rollte statt loszukommen).
+      const hw = (track && track.def && track.def.halfWidth) || 8;
+      const nearWall = q && Math.abs(q.lat) > hw - 2.5;
+      if(nearWall){
+        this._escapeSide = q.lat > 0 ? -1 : 1; // weg von der Wand, Richtung Mitte
+      } else {
+        let neighborLat = 0, best = Infinity;
+        if(others){
+          const sin_h = Math.sin(car.heading), cos_h = Math.cos(car.heading);
+          for(const o of others){
+            if(o === car) continue;
+            const dx = o.pos.x-car.pos.x, dz = o.pos.z-car.pos.z;
+            const d2 = dx*dx+dz*dz;
+            if(d2 > 100 || d2 >= best) continue;
+            best = d2; neighborLat = cos_h*dx - sin_h*dz;
+          }
+        }
+        this._escapeSide = (best < Infinity)
+          ? (neighborLat > 0 ? -1 : 1)              // weg vom nächsten Nachbarn
+          : ((q && q.lat > 0) ? -1 : 1);             // Fallback: Richtung Mitte
+      }
+      this._escapeT = 1.5;
+    }
+    if(this._escapeT > 0){
+      // Vorzeitig abbrechen sobald das Auto sich wieder aus eigener Kraft löst
+      // (deutlich beschleunigt) — nicht blind die volle Dauer festhalten, egal
+      // wohin die Strecke inzwischen verläuft.
+      if(Math.abs(car.vx||0) > 11){
+        this._escapeT = 0; this._contactHeat = 0;
+        return null;
+      }
+      this._escapeT -= dt;
+      const inp = this.input;
+      inp.steer += clamp(this._escapeSide*0.7 - inp.steer, -6*dt, 6*dt);
+      inp.throttle = 0.35;
+      inp.brake = 0;
+      if(this._escapeT <= 0) this._contactHeat = 0;
+      return inp;
     }
     return null;
   }
@@ -8198,6 +8295,18 @@ class AIDriver {
     const rec = this.handleRecovery(car, q, v, dt, track);
     if(rec) return rec;
 
+    // Kontakt-Verklemmung lösen (z.B. Rad-an-Rad mit einem Nachbarn, fwd≈0):
+    // Das reguläre Ausweichsystem in scanTraffic() betrachtet nur Autos "voraus"
+    // (fwd>0.5) und wählt die Ausweichseite jeden Frame neu — bei echtem
+    // Seite-an-Seite-Kontakt kippt fwd frameweise das Vorzeichen, wodurch die
+    // Ausweichrichtung ständig hin- und herspringt und sich effektiv aufhebt
+    // (im Test: zwei Autos 13s lang aneinander verkeilt, 247 Kollisionen, beide
+    // gemeinsam bis zum Stillstand abgebremst). Bei wiederholtem Kontakt in
+    // kurzer Folge wird stattdessen EINMAL eine Seite fest gewählt und für ein
+    // paar Sekunden konsequent durchgezogen statt neu zu würfeln.
+    const esc = this._handleContactLock(car, q, dt, others, track);
+    if(esc) return esc;
+
     const pitInfo   = track.pitLaneInfo || null;
     const pitMidOff = pitInfo
       ? pitInfo.midOff
@@ -8235,7 +8344,7 @@ class AIDriver {
     this._def.timer -= dt;
 
     // Verkehr + Überholscan
-    const traffic = this.scanTraffic(car, others, v, track, q);
+    const traffic = this.scanTraffic(car, others, v, track, q, dt);
     if(traffic.vCap < tgtV) tgtV = traffic.vCap;
 
     // Windschatten
@@ -8257,8 +8366,14 @@ class AIDriver {
       // Kein Überholen in Formation — ov zurücksetzen
       if(this._ov.phase) { this._ov.phase=null; this._ov.targetId=null; this._ov.side=0; }
     }
-    if(typeof Game!=='undefined' && Game._greenBoostUntil && performance.now()<Game._greenBoostUntil)
+    if(typeof Game!=='undefined' && Game._greenBoostUntil && performance.now()<Game._greenBoostUntil){
       tgtV *= 1.40;
+      // Der Boost darf NIE den Sicherheitsabstand zum Vordermann aushebeln — sonst
+      // beschleunigt beim Start-Freigabe das ganze (eng gepackte) Feld gleichzeitig
+      // um 40%, ungeachtet dessen wie nah das Auto voraus ist → Massenkarambolage
+      // bei großen Feldern direkt nach der Ampel.
+      if(traffic.vCap < tgtV) tgtV = traffic.vCap;
+    }
     if(typeof Game!=='undefined' && Game.vsc && Game.vsc.active)
       tgtV = Math.min(tgtV, 115/3.6);
     if(typeof Game!=='undefined' && Game.safetyCar && Game.safetyCar.state!=='idle'){
@@ -8352,6 +8467,22 @@ function setCarWorldVel(c,wx,wz){
 }
 function collideCars(cars){
   const R=1.8;                                   // Wirkungsradius pro Auto
+  /* Positions-Korrektur pro Auto sammeln statt sofort anzuwenden, und am Ende
+     pro Auto hart kappen. Grund: bei einem dichten Feld (z.B. Startgedränge mit
+     20+ Autos in 2 Reihen) kann ein Auto gleichzeitig mit mehreren Nachbarn
+     überlappen — die alte Version hat den vollen Push JEDES Paars sofort UND
+     ungekappt angewendet, Tick für Tick, solange die Überlappung anhielt. Bei
+     mehreren gleichzeitigen Kontakten summierte sich das über wenige Physik-
+     Ticks zu einer regelrechten Explosion auf (im Test gemessen: Autos landeten
+     30-55m neben der Strecke, obwohl die Streckenhälfte nur ~8m breit ist).
+     Jetzt: Verschiebung pro Auto sammeln, danach auf einen Maximalwert pro
+     Tick kappen, bevor sie tatsächlich angewendet wird. */
+  const pushX = new Map(), pushZ = new Map();
+  const impUsed = new Map();
+  const MAX_PUSH_PER_TICK = 0.4;      // m, hart pro Auto pro Physik-Tick
+  const MAX_IMPULSE_PER_TICK = 12;    // m/s, hart pro Auto pro Physik-Tick
+  const addPush = (c,x,z) => { pushX.set(c,(pushX.get(c)||0)+x); pushZ.set(c,(pushZ.get(c)||0)+z); };
+
   for(let i=0;i<cars.length;i++) for(let j=i+1;j<cars.length;j++){
     const a=cars[i], b=cars[j];
     if(a._frozen||b._frozen) continue;
@@ -8360,12 +8491,19 @@ function collideCars(cars){
     if(d>=R*2||d<0.001) continue;
     dx/=d; dz/=d;
     const push=(R*2-d)/2;
-    a.pos.x-=dx*push; a.pos.z-=dz*push;
-    b.pos.x+=dx*push; b.pos.z+=dz*push;
+    addPush(a, -dx*push, -dz*push);
+    addPush(b,  dx*push,  dz*push);
     const [ax,az]=carWorldVel(a), [bx,bz]=carWorldVel(b);
     const rel=(bx-ax)*dx+(bz-az)*dz;
     if(rel<0){                                    // bewegen sich aufeinander zu
-      const imp=-rel*0.45;
+      let imp=-rel*0.45;
+      // Impuls-Budget pro Auto für diesen Tick begrenzen (verhindert, dass ein
+      // Auto mit vielen gleichzeitigen Nachbarn Tick für Tick immer stärker
+      // beschleunigt wird)
+      const usedA = impUsed.get(a)||0, usedB = impUsed.get(b)||0;
+      const budget = MAX_IMPULSE_PER_TICK - Math.max(usedA, usedB);
+      if(budget <= 0) imp = 0; else imp = Math.min(imp, budget);
+      impUsed.set(a, usedA+imp); impUsed.set(b, usedB+imp);
       setCarWorldVel(a, ax-dx*imp, az-dz*imp);
       setCarWorldVel(b, bx+dx*imp, bz+dz*imp);
       a.yawRate*=0.92; b.yawRate*=0.92;
@@ -8395,6 +8533,18 @@ function collideCars(cars){
         b.applyDamageFromImpact(bHitX, bHitZ, impMag*0.5);
         delete b._noTirePop;
       }
+    }
+  }
+
+  // Gesammelte Verschiebung pro Auto anwenden, aber hart pro Tick gekappt
+  for(const [car, x] of pushX){
+    const z = pushZ.get(car) || 0;
+    const mag = Math.hypot(x, z);
+    if(mag > MAX_PUSH_PER_TICK){
+      const s = MAX_PUSH_PER_TICK / mag;
+      car.pos.x += x*s; car.pos.z += z*s;
+    } else {
+      car.pos.x += x; car.pos.z += z;
     }
   }
 }
@@ -13934,6 +14084,15 @@ const Game = {
       });
 
       /* Auf Grid platzieren */
+      // Reihenabstand mit Feldgröße skalieren: bei großen Feldern (25+ Reihen bei
+      // vollem 50er-Grid) reicht der alte fixe Abstand (5 Samples ≈ 15m) nicht,
+      // um kleine Tempo-Unterschiede beim Start abzufedern — jede Ungenauigkeit
+      // pflanzt sich durch die ganze Kolonne fort ("Ziehharmonika-Effekt"), was
+      // im Test zu massenhaften Kollisionen führte (Verhältnis Auto-Auto- zu
+      // Wandkontakten ~100:1 bei vollem Grid). Mehr Reihenabstand gibt jedem
+      // Auto mehr Puffer, um kleine Schwankungen auszugleichen statt aufzulaufen.
+      const nGridCars = sorted.length;
+      const gridRowGap = nGridCars > 30 ? 9 : nGridCars > 16 ? 7 : 5;
       if(this.rollingStart){
         /* FLIEGENDER START: alle gleichzeitig, aber RIESIGE Lücken zwischen Klassen */
         let offset = 0;
@@ -13941,14 +14100,14 @@ const Game = {
           const classCars = sorted.filter(s => getClassRank(s) === c);
           for(let j=0; j<classCars.length; j++){
             const row = Math.floor(j/2), col = j%2;
-            classCars[j].placeAtGrid(this.track, gridBaseIdx-(offset+row)*5, (col?1:-1)*2.9);
+            classCars[j].placeAtGrid(this.track, gridBaseIdx-(offset+row)*gridRowGap, (col?1:-1)*2.9);
           }
           offset += Math.ceil(classCars.length/2) + 16;  // 16 Reihen = ~80m zwischen Klassen
         }
       } else {
         for(let i=0; i<sorted.length; i++){
           const row = Math.floor(i/2), col = i%2;
-          sorted[i].placeAtGrid(this.track, gridBaseIdx-row*5, (col?1:-1)*2.9);
+          sorted[i].placeAtGrid(this.track, gridBaseIdx-row*gridRowGap, (col?1:-1)*2.9);
         }
       }
 
@@ -14177,6 +14336,7 @@ const Game = {
       setTimeout(()=>{
         this._formationPhase = false;
         this._greenBoostUntil = performance.now() + 3000;
+        this._greenFlagAt = performance.now();
         lights.forEach(l=>l.classList.add('green'));
         this.race.lapStart = performance.now();
         setTimeout(()=>box.classList.add('hidden'), 900);
@@ -14198,6 +14358,7 @@ const Game = {
       const go = () => {
         lights.forEach(l=>l.classList.add('green'));
         this.state = 'race';
+        this._greenFlagAt = performance.now();
         this.race.lapStart = performance.now();
         setTimeout(()=>box.classList.add('hidden'), 800);
         if(this._jumpStart){
@@ -14354,6 +14515,10 @@ const Game = {
         d.stuckT=0; d.revT=0; d.turnT=0; d.fwdRescueT=0;
         d.pitState='racing'; d.loS=0; d._cgs=1; d._effALat=0;
         d._damagePit=false; d._lastPitLap=0;
+        d._ov = {phase:null, targetId:null, timer:0, side:0};
+        d._def = {active:false, side:0, timer:0};
+        d._dodgeSmooth = 0; d._ovDecisionCd = 0; d._defDecisionCd = 0;
+        d._lastCc = 0; d._contactHeat = 0; d._escapeT = 0; d._escapeSide = 0;
         d.setupForRace(this.totalLaps, this.mandatoryPitStop);
       });
       this.car.rd=this.freshRD();
@@ -14367,20 +14532,22 @@ const Game = {
         if(b === this.car) return -1;
         return 0;
       });
+      const nGridCars2 = sorted.length;
+      const gridRowGap2 = nGridCars2 > 30 ? 9 : nGridCars2 > 16 ? 7 : 5;
       if(this.rollingStart){
         let offset = 0;
         for(let c = 0; c <= 2; c++){
           const classCars = sorted.filter(s => getClassRank(s) === c);
           for(let j=0; j<classCars.length; j++){
             const row = Math.floor(j/2), col = j%2;
-            classCars[j].placeAtGrid(this.track, gridBaseIdx-(offset+row)*5, (col?1:-1)*2.9);
+            classCars[j].placeAtGrid(this.track, gridBaseIdx-(offset+row)*gridRowGap2, (col?1:-1)*2.9);
           }
           offset += Math.ceil(classCars.length/2) + 16;
         }
       } else {
         for(let i=0; i<sorted.length; i++){
           const row = Math.floor(i/2), col = i%2;
-          sorted[i].placeAtGrid(this.track, gridBaseIdx-row*5, (col?1:-1)*2.9);
+          sorted[i].placeAtGrid(this.track, gridBaseIdx-row*gridRowGap2, (col?1:-1)*2.9);
         }
       }
     } else {
