@@ -1870,6 +1870,13 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
     <div class="eyebrow">SCHRITT 2 / 3</div>
     <h2>STRECKE WÄHLEN</h2>
     <p class="sub">Alle Layouts mit realen Höhenprofilen, Kerbs, Auslaufzonen, Leitplanken und Tribünen.</p>
+    <!-- Kategorie-Umschalter: Rennwagen und Go-Karts teilen sich keine Strecken.
+         Muss auch hier stehen (nicht nur auf der Fahrzeugseite), sonst kommt man
+         nie an die Kartbahnen — die sind bei Kategorie "Rennwagen" ausgefiltert. -->
+    <div class="lob-tabs" id="garage-cat-tabs-track" style="max-width:340px;margin:0 auto 18px">
+      <button class="lob-tab active" data-garage-cat="race">RENNWAGEN</button>
+      <button class="lob-tab" data-garage-cat="kart">GO-KARTS</button>
+    </div>
     <div class="cards" id="tracklist"></div>
     <div class="btnrow"><button class="btn" id="btn-back-track">Zurück</button></div>
   </section>
