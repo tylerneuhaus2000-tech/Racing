@@ -5997,8 +5997,8 @@ class Car {
       const tuneMaterial = (mat)=>{
         if(!mat) return mat;
         // Materialien pro Fahrzeug klonen: clone(true) teilt Materialien zwischen
-        // Instanzen — sonst stapeln sich color×1.15 / emissive+0.03 bei jedem Spawn
-        // (Auto brennt kumulativ zu Weiß aus) und Schadens-Tinting färbt fremde Autos.
+        // Instanzen — sonst würde Schadens-Tinting (Abdunkeln) fremde Autos mit
+        // demselben Modell mitfärben.
         mat = mat.clone();
         mat.side = THREE.FrontSide;
         if(mat.map) mat.map.encoding = THREE.sRGBEncoding;
@@ -6012,14 +6012,17 @@ class Car {
           mat.transparent=false;
           mat.depthWrite=true;
         }
-        if(mat.color && typeof mat.color.multiplyScalar === 'function'){
-          mat.color.multiplyScalar(1.15);
-        }
-        if(mat.isMeshStandardMaterial || mat.isMeshPhysicalMaterial){
-          mat.metalness = clamp(mat.metalness * 0.65, 0.05, 0.7);
-          mat.roughness = clamp(mat.roughness * 0.85, 0.18, 0.9);
-          mat.envMapIntensity = Math.max(1.1, mat.envMapIntensity || 0);
-          if(mat.emissive && typeof mat.emissive.addScalar === 'function') mat.emissive.addScalar(0.03);
+        /* KEIN Farb-/Roughness-/Metalness-Tuning mehr — Lackierungen sollen
+           exakt so aussehen wie im Modell (original). Einziger Eingriff:
+           importierte PBR-Materialien bekommen von Haus aus KEINE envMap, dann
+           rendert Metallic/Klarlack schwarz. Deshalb die Spiel-Cubemap
+           zuweisen (nur Reflexion, ändert die Grundfarbe nicht). */
+        if((mat.isMeshStandardMaterial || mat.isMeshPhysicalMaterial) && !mat.envMap){
+          const _em = (typeof Game !== 'undefined' && Game.envMap) ? Game.envMap : null;
+          if(_em){
+            mat.envMap = _em;
+            if(mat.envMapIntensity == null) mat.envMapIntensity = 1;
+          }
         }
         mat.needsUpdate = true;
         return mat;
