@@ -872,11 +872,17 @@ function _encodeReplay(replayFrames){
   return { base, color: replayFrames[0].cars[0]?.color || 0xff2e3d, flat, v:2 };
 }
 
+const LAPS_MAX_VALID  = 50;  // so viele gültige Runden bleiben nachrückbar
+const LAPS_MAX_STRUCK = 50;  // Audit-Historie gestrichener Runden
+
 /* ── Parent times/{docId} = schnellste NICHT gestrichene Runde aus laps/.
    Bleibt keine gültige Runde übrig -> Parent löschen (Fahrer fällt aus der
-   Bestenliste). Anschließend prunen: 6 schnellste gültige + bis 10 gestrichene
-   (Audit) behalten. `meta` liefert name/uid/carName/... — fehlt es, wird der
-   bestehende Parent gelesen. Gibt die neue Bestzeit (oder null) zurück. ── */
+   Bestenliste). Anschließend prunen: LAPS_MAX_VALID schnellste gültige +
+   bis LAPS_MAX_STRUCK gestrichene (Audit) behalten — bei nur einer PB pro
+   Session reicht das für sehr viele Streichungen in Folge, bevor eine
+   Strecke wirklich leerläuft. `meta` liefert name/uid/carName/... — fehlt
+   es, wird der bestehende Parent gelesen. Gibt die neue Bestzeit (oder
+   null) zurück. ── */
 async function _recomputeParentTime(docId, meta){
   const parentRef = db.collection('times').doc(docId);
   const lapsRef   = parentRef.collection('laps');
@@ -903,8 +909,8 @@ async function _recomputeParentTime(docId, meta){
     await parentRef.set(doc);
   }
   // Prune
-  const keep = new Set(valid.slice(0, 6).map(l => l._id));
-  laps.filter(l => l.struck).slice(0, 10).forEach(l => keep.add(l._id));
+  const keep = new Set(valid.slice(0, LAPS_MAX_VALID).map(l => l._id));
+  laps.filter(l => l.struck).slice(0, LAPS_MAX_STRUCK).forEach(l => keep.add(l._id));
   await Promise.all(laps.filter(l => !keep.has(l._id)).map(l => lapsRef.doc(l._id).delete().catch(()=>{})));
 
   return valid.length ? valid[0] : null;
