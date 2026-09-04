@@ -6596,6 +6596,20 @@ class Car {
        WET (0.55): Gas kommt träge → ca. 0.8s bis 100%.
        ATTACK (1.30): Gas reagiert sofort, überschwingt leicht.
        Maximale Leistung ist IMMER bei Vollgas erreichbar — nur der Weg dorthin ist anders. */
+    /* ── Traktionskontrolle: Gas-Deckel in der Kurve (Formel) ──────────────
+       F1-Style TC-Cut: je mehr die Hinterachse schon quer arbeitet (Schräglauf
+       + Querbeschleunigung), desto weniger Gas ist nutzbar. Verhindert, dass
+       man mitten in der Kurve die volle Leistung reindrückt und das Heck
+       wegkommt / Leistung verschenkt. Stärke skaliert mit setup.tcLevel
+       (1 = Grunddeckel, 6 = sehr aggressiv). Deaktiviert bei DRS-Defekt. */
+    if(d.classType === 'formula' && !this.drsJammed){
+      const latSlip = clamp(this.slipRear / 0.12, 0, 1);
+      const latAcc  = clamp(Math.abs(this.lastAy || 0) / (G * 1.9), 0, 1);
+      const corner  = Math.max(latSlip, latAcc * 0.92);
+      const tcStr   = 0.42 + clamp(((setup.tcLevel || 1) - 1) / 5, 0, 1) * 0.40;  // 0.42..0.82
+      const tcCap   = clamp(1 - corner * tcStr, 0.30, 1);
+      if(input.throttle > tcCap) input.throttle = tcCap;
+    }
     const rawThrottle = input.throttle;
     /* Zielwert = immer das rohe Pedal (nie gedeckelt) */
     const tgtThrottle = rawThrottle;
