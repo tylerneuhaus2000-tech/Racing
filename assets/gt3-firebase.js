@@ -608,6 +608,9 @@ function _initAdminPanel(){
   const timesList    = document.getElementById('adm-times-list');
   const _isAdmin = () => !!(fbUser && ADMIN_UIDS.includes(fbUser.uid));
 
+  const _btn = (a, title, txt, col, bg, bd) =>
+    `<button data-a="${a}" title="${title}" style="padding:5px 9px;background:${bg};border:1px solid ${bd};border-radius:4px;color:${col};font:700 11px var(--mono);cursor:pointer">${txt}</button>`;
+
   if(loadTimesBtn && timesList) loadTimesBtn.onclick = async () => {
     if(!_isAdmin()){ status.style.color='#ff6b6b'; status.textContent='❌ Keine Berechtigung'; return; }
     const username = sel ? sel.value.trim().toLowerCase() : '';
@@ -623,83 +626,132 @@ function _initAdminPanel(){
       snap.forEach(d => rows.push(Object.assign({ _id: d.id }, d.data())));
       rows.sort((a,b) => (a.trackId||'').localeCompare(b.trackId||'') || (a.timeMs||0) - (b.timeMs||0));
       timesList.innerHTML = '';
+
+      const _playReplay = (obj) => {
+        if(!(obj && obj.replay && obj.replay.flat && obj.replay.flat.length > 5)) return;
+        const p = document.getElementById('admin-panel'); if(p) p.style.display = 'none';
+        try { _watchLbReplay(obj); } catch(e){ console.error('[Admin] replay:', e); }
+      };
+
       rows.forEach(r => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'border-bottom:1px solid #1c2733;padding:7px 0';
+
+        const head = document.createElement('div');
+        head.style.cssText = 'display:flex;align-items:center;gap:8px';
         const hasRep = !!(r.replay && r.replay.flat && r.replay.flat.length > 5);
-        const el = document.createElement('div');
-        el.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #1c2733';
-        el.innerHTML =
+        head.innerHTML =
           `<span style="flex:1;color:#e8ecef;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(r.trackId||'?')} · ${_esc(r.carName||r.carId||'?')}</span>`+
           `<span style="color:#8bd3ff;font-variant-numeric:tabular-nums;min-width:74px;text-align:right">${fmtLap(r.timeMs)}</span>`+
-          `<button data-a="rep" title="Replay" ${hasRep?'':'disabled'} style="padding:5px 9px;background:#1a2533;border:1px solid #2a3a4a;border-radius:4px;color:${hasRep?'#8bd3ff':'#445'};font:700 11px var(--mono);cursor:${hasRep?'pointer':'default'}">▶</button>`+
-          `<button data-a="del" title="Zeit streichen" style="padding:5px 9px;background:#3a0d12;border:1px solid #ff2e3d;border-radius:4px;color:#ff8a94;font:700 11px var(--mono);cursor:pointer">✕</button>`;
-        el.querySelector('[data-a="rep"]').onclick = () => {
-          if(!hasRep) return;
-          const p = document.getElementById('admin-panel'); if(p) p.style.display = 'none';
-          try { _watchLbReplay(r); } catch(e){ console.error('[Admin] replay:', e); }
-        };
-        el.querySelector('[data-a="del"]').onclick = async () => {
-          if(!_isAdmin()) return;
-          const reason = prompt(`Grund für die Streichung dieser Zeit?\n\n${r.trackId} · ${fmtLap(r.timeMs)}\n\nz.B. "Corner Cut Kurve 3" oder "Streckenlimits Ausgang T7"`);
-          if(reason == null || !reason.trim()) return;
-          const rsn = reason.trim();
-          el.style.opacity = '0.5';
+          _btn('rep', 'Replay der Bestzeit', '▶', hasRep?'#8bd3ff':'#445', '#1a2533', '#2a3a4a')+
+          _btn('hist', 'Runden-Historie', '▾', '#8b95a1', '#1a2533', '#2a3a4a');
+        head.querySelector('[data-a="rep"]').onclick = () => _playReplay(r);
 
-          // Die drei Schritte laufen UNABHÄNGIG — schlägt einer fehl, laufen die
-          // anderen trotzdem. Das Löschen ist der wichtigste, deshalb zuerst.
-          const errs = [];
-          let okDel = false, okLog = false, okMsg = false;
+        const histBox = document.createElement('div');
+        histBox.style.cssText = 'display:none;margin:6px 0 2px 10px;padding-left:10px;border-left:2px solid #2a3a4a';
+        let histLoaded = false;
 
-          try { await db.collection('times').doc(r._id).delete(); okDel = true; }
-          catch(e){ errs.push('Löschen: ' + e.message); console.error('[Admin] time delete:', e); }
-
-          try {
-            await db.collection('steward_actions').add({
-              type: 'lap_deleted',
-              targetUid, username, docId: r._id,
-              trackId: r.trackId || null, carId: r.carId || null, carName: r.carName || null,
-              timeMs: r.timeMs || null,
-              reason: rsn,
-              by: fbUser ? fbUser.uid : null,
-              at: Date.now()
-            });
-            okLog = true;
-          } catch(e){ errs.push('Protokoll: ' + e.message); console.error('[Admin] steward_actions:', e); }
-
-          try {
-            await db.collection('steward_msgs').doc(targetUid).set({
-              type: 'penalty',
-              reason: `Rundenzeit gestrichen · ${r.trackId}: ${rsn}`,
-              penalty: 'Zeit annulliert', lpDelta: 0, ts: Date.now()
-            });
-            okMsg = true;
-          } catch(e){ errs.push('Benachrichtigung: ' + e.message); console.error('[Admin] steward_msgs:', e); }
-
-          if(okDel){
-            el.remove();
-            // Falls die Bestenliste offen ist und dieselbe Strecke zeigt -> neu laden
-            try {
-              const lbSel = document.getElementById('lb-track-sel');
-              const lbScreen = document.getElementById('screen-leaderboard');
-              if(lbSel && lbScreen && !lbScreen.classList.contains('hidden') && lbSel.value === r.trackId){
-                _loadLbForTrack(r.trackId);
-              }
-            } catch(e){}
-            status.style.color = errs.length ? '#ffb020' : '#4eff8a';
-            status.textContent = `✓ Zeit gestrichen`
-              + (okLog ? ' · protokolliert' : '')
-              + (okMsg ? ' · Fahrer benachrichtigt' : '')
-              + (errs.length ? `  ⚠ ${errs.join(' | ')}` : '');
-          } else {
-            el.style.opacity = '1';
-            status.style.color = '#ff6b6b';
-            status.textContent = '❌ Löschen fehlgeschlagen: ' + errs.join(' | ')
-              + '  (Firestore-Regel für times delete deployed? firebase deploy --only firestore:rules)';
+        async function renderHist(){
+          histBox.innerHTML = '<div style="color:#8b95a1;padding:4px 0;font-size:10px">⏳ Runden laden…</div>';
+          const lapsRef = db.collection('times').doc(r._id).collection('laps');
+          let lapsSnap = await lapsRef.orderBy('timeMs').get();
+          // Migration: alte Bestzeit hat noch keine Historie -> aus dem Parent seeden
+          if(lapsSnap.empty && r.timeMs){
+            const seed = { timeMs: r.timeMs, at: r.updatedAt || firebase.firestore.FieldValue.serverTimestamp(), struck:false };
+            if(r.replay) seed.replay = r.replay;
+            try { await lapsRef.add(seed); lapsSnap = await lapsRef.orderBy('timeMs').get(); }
+            catch(e){ histBox.innerHTML = '<div style="color:#ff6b6b;font-size:10px">Historie anlegen fehlgeschlagen: '+_esc(e.message)+'</div>'; return; }
           }
+          const laps = [];
+          lapsSnap.forEach(d => laps.push(Object.assign({ _id:d.id }, d.data())));
+          if(!laps.length){ histBox.innerHTML = '<div style="color:#8b95a1;font-size:10px;padding:4px 0">Keine Runden gespeichert.</div>'; return; }
+          histBox.innerHTML = '';
+          let rank = 0;
+          laps.forEach(l => {
+            const struck = !!l.struck;
+            if(!struck) rank++;
+            const lr = document.createElement('div');
+            lr.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px'+(struck?';opacity:.55':'');
+            const lhasRep = !!(l.replay && l.replay.flat && l.replay.flat.length > 5);
+            lr.innerHTML =
+              `<span style="width:26px;color:#8b95a1">${struck ? '—' : '#'+rank}</span>`+
+              `<span style="flex:1;color:${struck?'#ff8a94':'#e8ecef'};font-variant-numeric:tabular-nums">${fmtLap(l.timeMs)}${struck?` · <span style="font-size:10px">GESTRICHEN: ${_esc(l.struckReason||'—')}</span>`:''}</span>`+
+              (lhasRep ? _btn('lrep','Replay dieser Runde','▶','#8bd3ff','#1a2533','#2a3a4a') : '')+
+              (struck ? '' : _btn('lstr','Diese Runde streichen','✕','#ff8a94','#3a0d12','#ff2e3d'));
+            if(lhasRep) lr.querySelector('[data-a="lrep"]').onclick = () => _playReplay(l);
+            const strBtn = lr.querySelector('[data-a="lstr"]');
+            if(strBtn) strBtn.onclick = async () => {
+              if(!_isAdmin()) return;
+              const reason = prompt(`Grund für die Streichung dieser Runde?\n\n${r.trackId} · ${fmtLap(l.timeMs)}\n\nz.B. "Corner Cut Kurve 3"`);
+              if(reason == null || !reason.trim()) return;
+              const rsn = reason.trim();
+              lr.style.opacity = '0.4';
+              const errs = [];
+              let okStrike = false;
+              try {
+                await lapsRef.doc(l._id).update({ struck:true, struckReason:rsn, struckBy:(fbUser?fbUser.uid:null), struckAt:Date.now() });
+                okStrike = true;
+              } catch(e){ errs.push('Streichen: '+e.message); console.error('[Admin] lap strike:', e); }
+
+              let newBest = null;
+              if(okStrike){
+                try { newBest = await _recomputeParentTime(r._id, {
+                  name:r.name, uid:targetUid, carName:r.carName||r.carId, classType:r.classType, trackId:r.trackId, carId:r.carId
+                }); }
+                catch(e){ errs.push('Neuberechnung: '+e.message); console.error('[Admin] recompute:', e); }
+              }
+              try {
+                await db.collection('steward_actions').add({
+                  type:'lap_struck', targetUid, username, docId:r._id, lapId:l._id,
+                  trackId:r.trackId||null, carId:r.carId||null, timeMs:l.timeMs||null,
+                  reason:rsn, by:(fbUser?fbUser.uid:null), at:Date.now()
+                });
+              } catch(e){ errs.push('Protokoll: '+e.message); }
+              try {
+                await db.collection('steward_msgs').doc(targetUid).set({
+                  type:'penalty',
+                  reason: `Rundenzeit gestrichen · ${r.trackId}: ${rsn}. ` + (newBest ? `Neue Bestzeit: ${fmtLap(newBest.timeMs)}` : 'Keine gültige Zeit mehr auf dieser Strecke.'),
+                  penalty:'Zeit annulliert', lpDelta:0, ts:Date.now()
+                });
+              } catch(e){ errs.push('Benachrichtigung: '+e.message); }
+
+              if(okStrike){
+                if(newBest){ r.timeMs = newBest.timeMs; r.replay = newBest.replay || null; }
+                else { r.timeMs = null; }
+                // Kopf-Zeile aktualisieren
+                head.children[1].textContent = newBest ? fmtLap(newBest.timeMs) : '—';
+                await renderHist();
+                try {
+                  const lbSel = document.getElementById('lb-track-sel');
+                  const lbScreen = document.getElementById('screen-leaderboard');
+                  if(lbSel && lbScreen && !lbScreen.classList.contains('hidden') && lbSel.value === r.trackId) _loadLbForTrack(r.trackId);
+                } catch(e){}
+                status.style.color = errs.length ? '#ffb020' : '#4eff8a';
+                status.textContent = (newBest ? `✓ Gestrichen · neue Bestzeit ${fmtLap(newBest.timeMs)}` : '✓ Gestrichen · keine gültige Zeit mehr')
+                  + (errs.length ? `  ⚠ ${errs.join(' | ')}` : '');
+              } else {
+                lr.style.opacity = '1';
+                status.style.color = '#ff6b6b';
+                status.textContent = '❌ ' + errs.join(' | ') + '  (Regeln deployed? firebase deploy --only firestore:rules)';
+              }
+            };
+            histBox.appendChild(lr);
+          });
+        }
+
+        head.querySelector('[data-a="hist"]').onclick = async () => {
+          const open = histBox.style.display !== 'none';
+          histBox.style.display = open ? 'none' : 'block';
+          head.querySelector('[data-a="hist"]').textContent = open ? '▾' : '▴';
+          if(!open && !histLoaded){ histLoaded = true; try { await renderHist(); } catch(e){ histBox.innerHTML = '<div style="color:#ff6b6b;font-size:10px">'+_esc(e.message)+'</div>'; } }
         };
-        timesList.appendChild(el);
+
+        wrap.appendChild(head);
+        wrap.appendChild(histBox);
+        timesList.appendChild(wrap);
       });
       status.style.color = '#8b95a1';
-      status.textContent = `${rows.length} Zeit(en) geladen für ${username}`;
+      status.textContent = `${rows.length} Eintrag/Einträge · "▾" öffnet die Runden-Historie`;
     } catch(e){
       timesList.innerHTML = '<div style="color:#ff6b6b;padding:8px 0">Fehler: ' + _esc(e.message) + '</div>';
       console.error('[Admin] load times:', e);
@@ -797,76 +849,126 @@ auth.onAuthStateChanged(user => {
   });
 });
 
-/* ── Save best lap to Firestore ── */
-window.FB_saveBestLap = function(trackId, carId, timeMs, carName, classType, replayFrames){
+/* ── Replay-Frames -> kompaktes flaches Array (nur Spieler-Car) ── */
+function _encodeReplay(replayFrames){
+  if(!replayFrames || replayFrames.length <= 5) return null;
+  const base = replayFrames[0].t;
+  const flat = [];
+  replayFrames.forEach(f => {
+    const c = f.cars[0];
+    if(!c) return;
+    flat.push(
+      Math.round((f.t - base) * 10) / 10,
+      Math.round(c.x * 10) / 10,
+      Math.round(c.z * 10) / 10,
+      Math.round(c.y * 100) / 100,
+      Math.round(c.h * 1000) / 1000,
+      Math.round((c.vx || 0) * 10) / 10,
+      Math.round((c.thr || 0) * 100) / 100,
+      Math.round((c.brk || 0) * 100) / 100,
+      Math.round((c.str || 0) * 100) / 100
+    );
+  });
+  return { base, color: replayFrames[0].cars[0]?.color || 0xff2e3d, flat, v:2 };
+}
+
+/* ── Parent times/{docId} = schnellste NICHT gestrichene Runde aus laps/.
+   Bleibt keine gültige Runde übrig -> Parent löschen (Fahrer fällt aus der
+   Bestenliste). Anschließend prunen: 6 schnellste gültige + bis 10 gestrichene
+   (Audit) behalten. `meta` liefert name/uid/carName/... — fehlt es, wird der
+   bestehende Parent gelesen. Gibt die neue Bestzeit (oder null) zurück. ── */
+async function _recomputeParentTime(docId, meta){
+  const parentRef = db.collection('times').doc(docId);
+  const lapsRef   = parentRef.collection('laps');
+  if(!meta){
+    const p = await parentRef.get();
+    meta = p.exists ? p.data() : null;
+  }
+  const snap = await lapsRef.orderBy('timeMs').get();
+  const laps = [];
+  snap.forEach(d => laps.push(Object.assign({ _id: d.id }, d.data())));
+  const valid = laps.filter(l => !l.struck);
+
+  if(valid.length === 0){
+    await parentRef.delete().catch(()=>{});
+  } else if(meta){
+    const best = valid[0];
+    const doc = {
+      name: meta.name, uid: meta.uid, timeMs: best.timeMs,
+      carName: meta.carName || meta.carId, classType: meta.classType || 'unknown',
+      trackId: meta.trackId, carId: meta.carId,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+    if(best.replay) doc.replay = best.replay;
+    await parentRef.set(doc);
+  }
+  // Prune
+  const keep = new Set(valid.slice(0, 6).map(l => l._id));
+  laps.filter(l => l.struck).slice(0, 10).forEach(l => keep.add(l._id));
+  await Promise.all(laps.filter(l => !keep.has(l._id)).map(l => lapsRef.doc(l._id).delete().catch(()=>{})));
+
+  return valid.length ? valid[0] : null;
+}
+
+/* ── Save best lap to Firestore (mit Runden-Historie) ── */
+window.FB_saveBestLap = async function(trackId, carId, timeMs, carName, classType, replayFrames){
   if(!fbUser){ console.log('[FB] saveBestLap skip: nicht eingeloggt'); return; }
   if(!timeMs || timeMs <= 0){ console.log('[FB] saveBestLap skip: ungültige Zeit', timeMs); return; }
 
   const docId = `${fbUser.uid}_${trackId}_${carId}`;
   const name  = fbUsername || fbUser.displayName || fbUser.email?.split('@')[0] || 'Fahrer';
+  const meta  = { name, uid: fbUser.uid, carName: carName || carId, classType: classType || 'unknown', trackId, carId };
+  const replayData = _encodeReplay(replayFrames);
 
-  // Replay komprimieren: nur Spieler-Car, 2 Dezimalstellen, als flaches Array
-  let replayData = null;
-  if(replayFrames && replayFrames.length > 5){
-    const base = replayFrames[0].t;
-    // Format: [dt, x, z, h, ...] — delta-Zeit für weniger Bytes
-    const flat = [];
-    replayFrames.forEach(f => {
-      const c = f.cars[0]; // nur Spieler
-      if(!c) return;
-      flat.push(
-        Math.round((f.t - base) * 10) / 10,
-        Math.round(c.x * 10) / 10,
-        Math.round(c.z * 10) / 10,
-        Math.round(c.y * 100) / 100,
-        Math.round(c.h * 1000) / 1000,
-        Math.round((c.vx || 0) * 10) / 10,
-        Math.round((c.thr || 0) * 100) / 100,
-        Math.round((c.brk || 0) * 100) / 100,
-        Math.round((c.str || 0) * 100) / 100
-      );
-    });
-    replayData = { base, color: replayFrames[0].cars[0]?.color || 0xff2e3d, flat, v:2 };
+  const parentRef = db.collection('times').doc(docId);
+  const lapsRef   = parentRef.collection('laps');
+
+  try {
+    const [parentSnap, lapsSnap] = await Promise.all([parentRef.get(), lapsRef.limit(1).get()]);
+
+    // Migration: alte Bestzeit ohne Historie -> als erste Runde sichern
+    if(parentSnap.exists && lapsSnap.empty){
+      const p = parentSnap.data();
+      if(p && p.timeMs){
+        const seed = { timeMs: p.timeMs, at: p.updatedAt || firebase.firestore.FieldValue.serverTimestamp(), struck: false };
+        if(p.replay) seed.replay = p.replay;
+        await lapsRef.add(seed);
+      }
+    }
+
+    // Neue Runde ablegen
+    const lap = { timeMs, at: firebase.firestore.FieldValue.serverTimestamp(), struck: false };
+    if(replayData) lap.replay = replayData;
+    await lapsRef.add(lap);
+
+    // Parent neu berechnen (schnellste gültige = i.d.R. die neue) + prunen
+    await _recomputeParentTime(docId, meta);
+
+    // World-Record-Flash wie bisher
+    try {
+      const wrSnap = await db.collection('times')
+        .where('trackId','==',trackId).where('classType','==',classType||'unknown')
+        .orderBy('timeMs').limit(1).get();
+      const currentWR = wrSnap.empty ? null : wrSnap.docs[0].data();
+      const isWR = !currentWR || timeMs <= currentWR.timeMs;
+      const el = document.getElementById('fl-driver');
+      if(isWR && (!currentWR || currentWR.uid !== fbUser.uid)){
+        if(typeof Game !== 'undefined' && Game._showFlash) Game._showFlash('🏆 WORLD RECORD!', '#7c3aed', 4000);
+        setTimeout(() => {
+          const wr = document.createElement('div');
+          wr.innerHTML = `🏆 <b>WORLD RECORD!</b> ${name} — ${fmtLap(timeMs)}`;
+          wr.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#2d0057;color:#d8b4fe;border:1px solid #7c3aed;padding:12px 24px;border-radius:8px;font:700 14px var(--mono);z-index:9999;letter-spacing:.05em;text-align:center;white-space:nowrap';
+          document.body.appendChild(wr);
+          setTimeout(() => wr.remove(), 5000);
+        }, 500);
+      } else if(isWR && typeof Game !== 'undefined' && Game._showFlash){
+        Game._showFlash('🏆 NEUER WORLD RECORD!', '#7c3aed', 4000);
+      }
+      if(el){ const prev = el.textContent; el.textContent = isWR ? '🏆 World Record!' : '☁ Zeit gespeichert'; setTimeout(()=>{ el.textContent = prev; }, 3000); }
+    } catch(e){ console.warn('[FB] WR-Check:', e.message); }
+  } catch(e){
+    console.error('[FB] saveBestLap Fehler:', e);
   }
-
-  const doc = {
-    name, uid: fbUser.uid, timeMs,
-    carName: carName || carId, classType: classType || 'unknown',
-    trackId, carId,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-  };
-  if(replayData) doc.replay = replayData;
-
-  // Vor dem Speichern prüfen ob es ein World Record ist
-  db.collection('times').where('trackId','==',trackId).where('classType','==',classType||'unknown')
-    .orderBy('timeMs').limit(1).get().then(snap => {
-      const currentWR = snap.empty ? null : snap.docs[0].data();
-      const isWR = !currentWR || timeMs < currentWR.timeMs;
-      return db.collection('times').doc(docId).set(doc).then(() => {
-        const el = document.getElementById('fl-driver');
-        if(isWR && (!currentWR || currentWR.uid !== fbUser.uid)){
-          // Neuer World Record von jemandem anderen (oder erster Eintrag)
-          if(typeof Game !== 'undefined' && Game._showFlash)
-            Game._showFlash('🏆 WORLD RECORD!', '#7c3aed', 4000);
-          setTimeout(() => {
-            const wr = document.createElement('div');
-            wr.innerHTML = `🏆 <b>WORLD RECORD!</b> ${name} — ${fmtLap(timeMs)}`;
-            wr.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#2d0057;color:#d8b4fe;border:1px solid #7c3aed;padding:12px 24px;border-radius:8px;font:700 14px var(--mono);z-index:9999;letter-spacing:.05em;text-align:center;white-space:nowrap';
-            document.body.appendChild(wr);
-            setTimeout(() => wr.remove(), 5000);
-          }, 500);
-        } else if(isWR) {
-          // Eigenen WR verbessert
-          if(typeof Game !== 'undefined' && Game._showFlash)
-            Game._showFlash('🏆 NEUER WORLD RECORD!', '#7c3aed', 4000);
-        }
-        if(el){ const prev = el.textContent; el.textContent = isWR ? '🏆 World Record!' : '☁ Zeit gespeichert'; setTimeout(()=>{ el.textContent=prev; }, 3000); }
-      });
-    }).catch(err => {
-      // Fallback ohne WR-Check
-      db.collection('times').doc(docId).set(doc).catch(e => console.error('[FB] Fehler:', e));
-      console.error('[FB] WR-Check Fehler:', err.message);
-    });
 };
 
 /* ── Auth Modal ── */
