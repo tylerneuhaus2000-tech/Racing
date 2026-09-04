@@ -858,7 +858,11 @@ function _encodeReplay(replayFrames){
     const c = f.cars[0];
     if(!c) return;
     flat.push(
-      Math.round((f.t - base) * 10) / 10,
+      /* Zeit auf 10 statt 100 ms runden: Aufnahme läuft mit ~40 Hz (~25 ms
+         Frameabstand). Mit 100-ms-Rundung landeten ~4 aufeinanderfolgende
+         Frames auf demselben Zeitstempel -> beim Abspielen fielen effektiv
+         3 von 4 Frames weg (~10 fps statt ~40 fps) = das Ruckeln. */
+      Math.round((f.t - base) * 100) / 100,
       Math.round(c.x * 10) / 10,
       Math.round(c.z * 10) / 10,
       Math.round(c.y * 100) / 100,
