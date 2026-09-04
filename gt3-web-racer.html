@@ -1632,7 +1632,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 
 <!-- ADMIN PANEL -->
 <div id="admin-panel" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);backdrop-filter:blur(12px);align-items:center;justify-content:center">
-  <div style="background:#0d1a2a;border:1px solid #ff2e3d;border-radius:8px;padding:32px;width:440px;font:400 13px var(--mono)">
+  <div style="background:#0d1a2a;border:1px solid #ff2e3d;border-radius:8px;padding:32px;width:540px;max-height:88vh;overflow-y:auto;font:400 13px var(--mono)">
     <div style="font:700 10px var(--mono);letter-spacing:.2em;color:#ff2e3d;margin-bottom:6px">FIA STEWARDS PANEL</div>
     <h3 style="margin:0 0 24px;color:#fff;font-size:18px">NACHRICHT SENDEN</h3>
     <label style="color:#8b95a1;font-size:10px;letter-spacing:.12em">SPIELER AUSWÄHLEN</label>
@@ -1659,6 +1659,12 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
       <button id="adm-send" style="flex:2;padding:12px;background:#ff2e3d;border:none;border-radius:4px;color:#fff;font:700 11px var(--mono);letter-spacing:.1em;cursor:pointer">SENDEN</button>
       <button id="adm-close" style="flex:1;padding:12px;background:transparent;border:1px solid #2a3a4a;border-radius:4px;color:#8b95a1;font:700 11px var(--mono);cursor:pointer">SCHLIESSEN</button>
     </div>
+
+    <hr style="border:none;border-top:1px solid #2a3a4a;margin:22px 0 16px">
+    <div style="font:700 10px var(--mono);letter-spacing:.2em;color:#ff2e3d;margin-bottom:4px">RUNDENZEITEN-KONTROLLE</div>
+    <div style="color:#8b95a1;font-size:10px;margin-bottom:10px">Alle Bestzeiten des oben gewählten Spielers — Replay ansehen, mit Grund streichen.</div>
+    <button id="adm-load-times" style="width:100%;padding:10px;background:#1a2533;border:1px solid #2a3a4a;border-radius:4px;color:#8b95a1;font:700 10px var(--mono);letter-spacing:.1em;cursor:pointer">↻ ZEITEN DES SPIELERS LADEN</button>
+    <div id="adm-times-list" style="margin-top:10px;max-height:240px;overflow-y:auto;font-size:11px"></div>
   </div>
 </div>
 
@@ -16666,7 +16672,7 @@ addEventListener('DOMContentLoaded',()=>Game.boot());
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js" defer></script>
-<script src="assets/gt3-firebase.js?v=3" defer></script>
+<script src="assets/gt3-firebase.js?v=4" defer></script>
 
   <section class="screen hidden" id="screen-impressum">
     <button class="btn" onclick="Game.showScreen('screen-start')" style="margin-bottom:24px">&larr; ZUR&Uuml;CK</button>

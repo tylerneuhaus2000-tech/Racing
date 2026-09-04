@@ -601,6 +601,83 @@ function _initAdminPanel(){
       console.error('[Admin] send error:', e);
     }
   };
+
+  /* ── Rundenzeiten-Kontrolle: alle Bestzeiten eines Spielers laden,
+     Replay ansehen, mit protokolliertem Grund streichen ── */
+  const loadTimesBtn = document.getElementById('adm-load-times');
+  const timesList    = document.getElementById('adm-times-list');
+  const _isAdmin = () => !!(fbUser && ADMIN_UIDS.includes(fbUser.uid));
+
+  if(loadTimesBtn && timesList) loadTimesBtn.onclick = async () => {
+    if(!_isAdmin()){ status.style.color='#ff6b6b'; status.textContent='❌ Keine Berechtigung'; return; }
+    const username = sel ? sel.value.trim().toLowerCase() : '';
+    if(!username){ status.style.color='#ff6b6b'; status.textContent='❌ Erst oben einen Spieler wählen'; return; }
+    timesList.innerHTML = '<div style="color:#8b95a1;padding:8px 0">⏳ Laden…</div>';
+    try {
+      const uSnap = await db.collection('usernames').doc(username).get();
+      if(!uSnap.exists){ timesList.innerHTML = '<div style="color:#ff6b6b;padding:8px 0">Spieler nicht gefunden</div>'; return; }
+      const targetUid = uSnap.data().uid;
+      const snap = await db.collection('times').where('uid','==',targetUid).get();
+      if(snap.empty){ timesList.innerHTML = '<div style="color:#8b95a1;padding:8px 0">Keine Rundenzeiten für diesen Spieler.</div>'; return; }
+      const rows = [];
+      snap.forEach(d => rows.push(Object.assign({ _id: d.id }, d.data())));
+      rows.sort((a,b) => (a.trackId||'').localeCompare(b.trackId||'') || (a.timeMs||0) - (b.timeMs||0));
+      timesList.innerHTML = '';
+      rows.forEach(r => {
+        const hasRep = !!(r.replay && r.replay.flat && r.replay.flat.length > 5);
+        const el = document.createElement('div');
+        el.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #1c2733';
+        el.innerHTML =
+          `<span style="flex:1;color:#e8ecef;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(r.trackId||'?')} · ${_esc(r.carName||r.carId||'?')}</span>`+
+          `<span style="color:#8bd3ff;font-variant-numeric:tabular-nums;min-width:74px;text-align:right">${fmtLap(r.timeMs)}</span>`+
+          `<button data-a="rep" title="Replay" ${hasRep?'':'disabled'} style="padding:5px 9px;background:#1a2533;border:1px solid #2a3a4a;border-radius:4px;color:${hasRep?'#8bd3ff':'#445'};font:700 11px var(--mono);cursor:${hasRep?'pointer':'default'}">▶</button>`+
+          `<button data-a="del" title="Zeit streichen" style="padding:5px 9px;background:#3a0d12;border:1px solid #ff2e3d;border-radius:4px;color:#ff8a94;font:700 11px var(--mono);cursor:pointer">✕</button>`;
+        el.querySelector('[data-a="rep"]').onclick = () => {
+          if(!hasRep) return;
+          const p = document.getElementById('admin-panel'); if(p) p.style.display = 'none';
+          try { _watchLbReplay(r); } catch(e){ console.error('[Admin] replay:', e); }
+        };
+        el.querySelector('[data-a="del"]').onclick = async () => {
+          if(!_isAdmin()) return;
+          const reason = prompt(`Grund für die Streichung dieser Zeit?\n\n${r.trackId} · ${fmtLap(r.timeMs)}\n\nz.B. "Corner Cut Kurve 3" oder "Streckenlimits Ausgang T7"`);
+          if(reason == null || !reason.trim()) return;
+          el.style.opacity = '0.5';
+          try {
+            await db.collection('steward_actions').add({
+              type: 'lap_deleted',
+              targetUid, username, docId: r._id,
+              trackId: r.trackId || null, carId: r.carId || null, carName: r.carName || null,
+              timeMs: r.timeMs || null,
+              reason: reason.trim(),
+              by: fbUser ? fbUser.uid : null,
+              at: Date.now()
+            });
+            await db.collection('times').doc(r._id).delete();
+            // Fahrer im Spiel benachrichtigen
+            await db.collection('steward_msgs').doc(targetUid).set({
+              type: 'penalty',
+              reason: `Rundenzeit gestrichen (${r.trackId}): ${reason.trim()}`,
+              penalty: 'Zeit annulliert', lpDelta: 0, ts: Date.now()
+            });
+            el.remove();
+            status.style.color = '#4eff8a';
+            status.textContent = `✓ Zeit gestrichen · ${r.trackId} · Grund protokolliert (steward_actions)`;
+          } catch(e){
+            el.style.opacity = '1';
+            status.style.color = '#ff6b6b';
+            status.textContent = '❌ Streichen fehlgeschlagen: ' + e.message + ' (evtl. Firestore-Regel für times/steward_actions fehlt)';
+            console.error('[Admin] delete time:', e);
+          }
+        };
+        timesList.appendChild(el);
+      });
+      status.style.color = '#8b95a1';
+      status.textContent = `${rows.length} Zeit(en) geladen für ${username}`;
+    } catch(e){
+      timesList.innerHTML = '<div style="color:#ff6b6b;padding:8px 0">Fehler: ' + _esc(e.message) + '</div>';
+      console.error('[Admin] load times:', e);
+    }
+  };
 }
 
 // Tastenkombination: Ctrl+Shift+A
