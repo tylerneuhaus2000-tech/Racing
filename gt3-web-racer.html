@@ -1185,6 +1185,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
     <span id="stat-ghost" style="color:#cda6ff">Ghost: aus</span>
     <span id="stat-wall" style="color:#ffd400">Wand: 0</span>
     <span id="stat-car" style="color:#ff8844">Auto: 0</span>
+    <span id="stat-drs" style="color:#7a828c;font-weight:700;display:none">DRS</span>
   </div>
   <div id="tower">
     <div id="pos" class="hidden">P6 / 6</div>
@@ -1317,7 +1318,8 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
     <kbd>W</kbd> Gas &nbsp; <kbd>S</kbd> Bremse &nbsp; <kbd>A</kbd> <kbd>D</kbd> Lenken<br>
     <kbd>+/-</kbd> ERS-Modus &nbsp; <kbd>Tab</kbd> MFD &nbsp; <kbd>P</kbd> Pit-Limiter<br>
     <kbd>E</kbd> Respawn &nbsp; <kbd>V</kbd> VSC &nbsp; <kbd>Y</kbd> Safety Car<br>
-    <kbd>C</kbd> Kamera &nbsp; <kbd>R</kbd> Neustart &nbsp; <kbd>ESC</kbd> Pause &nbsp; <kbd>H</kbd> Hilfe aus
+    <kbd>C</kbd> Kamera &nbsp; <kbd>R</kbd> Neustart &nbsp; <kbd>ESC</kbd> Pause &nbsp; <kbd>H</kbd> Hilfe aus<br>
+    <kbd>F</kbd> DRS öffnen (Formel — halten, nur auf der Geraden)
   </div>
 </div>
 
@@ -2848,7 +2850,8 @@ const defaultKeybinds = {
   ersDown:'Minus',
   hudEdit:'KeyU',
   racingLine:'KeyL',
-  flashLights:'KeyT'
+  flashLights:'KeyT',
+  drs:'KeyF'
 };
 const keybindLabels = {
   throttle:'Gas',
@@ -2867,7 +2870,8 @@ const keybindLabels = {
   ersDown:'ERS -',
   hudEdit:'HUD Edit',
   racingLine:'Ideallinie',
-  flashLights:'Lichthupe'
+  flashLights:'Lichthupe',
+  drs:'DRS öffnen (Formel)'
 };
 
 /* ============================ FAHRZEUGDATEN ============================ */
@@ -3114,7 +3118,7 @@ const CARS = [
     id:'ferrari-sf25', name:'Ferrari SF-25', classType:'formula', classBadge:'F1', ers:true, aeroMul:1.8,
     color:0xd8102a, accent:0x0a0a0a, rim:0xd0a83c,
     model:{ url:'assets/models/ferrari_sf25.glb', scale:1, targetLength:5.6, yOffset:0, rotY:0 },
-    mass:840, power:505000, maxForce:12700, topSpeed:300/3.6, brakeForce:20400,
+    mass:840, power:505000, maxForce:12700, topSpeed:290/3.6, brakeForce:20400,
     gripF:1.72, gripR:1.68, yawDamp:0.88, tractionBoost:0.08, liftOversteer:0.03,
     desc:'F1 2025 · Hybrid-V6, gewaltiger Abtrieb. Bremst aus dem Nichts, lenkt telepathisch ein.',
     stats:{speed:1.00, grip:1.00, stab:0.74}
@@ -3123,7 +3127,7 @@ const CARS = [
     id:'redbull-rb22', name:'Red Bull RB22', classType:'formula', classBadge:'F1', ers:true, aeroMul:1.9,
     color:0x0a1a3c, accent:0xd6132b, rim:0xf2c20a,
     model:{ url:'assets/models/redbull_rb22.glb', scale:1, targetLength:5.6, yOffset:0, rotY:0 },
-    mass:838, power:508000, maxForce:12800, topSpeed:302/3.6, brakeForce:20600,
+    mass:838, power:508000, maxForce:12800, topSpeed:292/3.6, brakeForce:20600,
     gripF:1.75, gripR:1.71, yawDamp:0.90, tractionBoost:0.08, liftOversteer:0.03,
     desc:'F1 2026 · Bestes Gesamtpaket. Traktion am Kurvenausgang, stabil bei Highspeed.',
     stats:{speed:1.00, grip:1.00, stab:0.78}
@@ -3132,7 +3136,7 @@ const CARS = [
     id:'aston-amr26', name:'Aston Martin AMR26', classType:'formula', classBadge:'F1', ers:true, aeroMul:1.8,
     color:0x00584a, accent:0xcedc00, rim:0x1a1a1a,
     model:{ url:'assets/models/aston_amr26.glb', scale:1, targetLength:5.6, yOffset:0, rotY:0 },
-    mass:842, power:500000, maxForce:12600, topSpeed:300/3.6, brakeForce:20200,
+    mass:842, power:500000, maxForce:12600, topSpeed:290/3.6, brakeForce:20200,
     gripF:1.70, gripR:1.68, yawDamp:0.92, tractionBoost:0.08, liftOversteer:0.03,
     desc:'F1 2026 · Sehr stabil, höchster Topspeed. Verzeiht mehr als die anderen.',
     stats:{speed:1.00, grip:0.97, stab:0.84}
@@ -3141,7 +3145,7 @@ const CARS = [
     id:'williams-fw48', name:'Williams FW48', classType:'formula', classBadge:'F1', ers:true, aeroMul:1.7,
     color:0x0a1e4c, accent:0x37bedd, rim:0xffffff,
     model:{ url:'assets/models/williams_fw48.glb', scale:1, targetLength:5.6, yOffset:0, rotY:0 },
-    mass:836, power:498000, maxForce:12500, topSpeed:299/3.6, brakeForce:20300,
+    mass:836, power:498000, maxForce:12500, topSpeed:289/3.6, brakeForce:20300,
     gripF:1.70, gripR:1.65, yawDamp:0.84, tractionBoost:0.08, liftOversteer:0.03,
     desc:'F1 2026 · Nervöses Heck, extrem agil. Belohnt saubere Hände, bestraft Gewalt.',
     stats:{speed:0.99, grip:0.96, stab:0.70}
@@ -3150,7 +3154,7 @@ const CARS = [
     id:'f2-2024', name:'Formel 2 (2024)', classType:'formula', classBadge:'F2', ers:false, aeroMul:1.5,
     color:0x1c2733, accent:0xe8322d, rim:0xc0c0c0,
     model:{ url:'assets/models/f2_2024.glb', scale:1, targetLength:5.2, yOffset:0, rotY:0 },
-    mass:892, power:380000, maxForce:10300, topSpeed:280/3.6, brakeForce:15600,
+    mass:892, power:380000, maxForce:10300, topSpeed:262/3.6, brakeForce:15600,
     gripF:1.56, gripR:1.53, yawDamp:0.88, tractionBoost:0.08, liftOversteer:0.03,
     desc:'F2 · Spec-Dallara, 3,4-l-V6-Turbo. Weniger Abtrieb als F1 — mehr Fahrarbeit.',
     stats:{speed:0.90, grip:0.86, stab:0.76}
@@ -3159,7 +3163,7 @@ const CARS = [
     id:'tatuus-ft60', name:'Tatuus FT-60 (FR)', classType:'formula', classBadge:'FR', ers:false, aeroMul:1.35,
     color:0xdadfe4, accent:0xd8102a, rim:0x1a1a1a,
     model:{ url:'assets/models/tatuus_ft60.glb', scale:1, targetLength:4.7, yOffset:0, rotY:0 },
-    mass:670, power:203000, maxForce:7950, topSpeed:255/3.6, brakeForce:11800,
+    mass:670, power:203000, maxForce:7950, topSpeed:250/3.6, brakeForce:11800,
     gripF:1.46, gripR:1.43, yawDamp:0.88, tractionBoost:0.07, liftOversteer:0.03,
     desc:'Formula Regional · Alfa-Romeo-Vierzylinder-Turbo. Leicht, direkt, ehrlich.',
     stats:{speed:0.72, grip:0.80, stab:0.82}
@@ -3168,7 +3172,7 @@ const CARS = [
     id:'dallara-f312', name:'Dallara F312 (F3)', classType:'formula', classBadge:'F3', ers:false, aeroMul:1.3,
     color:0xf2f2f2, accent:0xd8102a, rim:0x1a1a1a,
     model:{ url:'assets/models/dallara_f312.glb', scale:1, targetLength:4.9, yOffset:0, rotY:0 },
-    mass:648, power:179000, maxForce:7350, topSpeed:262/3.6, brakeForce:11200,
+    mass:648, power:179000, maxForce:7350, topSpeed:254/3.6, brakeForce:11200,
     gripF:1.44, gripR:1.41, yawDamp:0.90, tractionBoost:0.06, liftOversteer:0.03,
     desc:'F3 · 2,0-l-Sauger, ~240 PS. Einsteiger-Formel — flink, wenig Leistung, viel Gefühl.',
     stats:{speed:0.66, grip:0.78, stab:0.84}
@@ -3598,6 +3602,7 @@ class Input {
     this.keys = {};
     this.steer = 0;        // -1..1, weiches Einlenken + Rückstellung
     this.throttle = 0;     // 0..1, progressiv
+    this.drs = false;      // DRS-Taste gehalten (Formel)
     this.brake = 0;        // 0..1, progressiv
     this.locked = true;    // bis Startampel grün
     this._lastButtonState = {};
@@ -3693,7 +3698,7 @@ class Input {
     return Math.max(btnVal, axisVal);
   }
   update(dt){
-    if(this.locked){ this.steer=lerp(this.steer,0,dt*6); this.throttle=0; this.brake=0; return; }
+    if(this.locked){ this.steer=lerp(this.steer,0,dt*6); this.throttle=0; this.brake=0; this.drs=false; return; }
     const pad = this.pollGamepad();
     const bind = Game.controllerBindings || defaultControllerBindings;
     if(pad && Game.bindingAction) Game.captureControllerBinding(pad);
@@ -3772,6 +3777,7 @@ class Input {
       this.throttle = Math.max(this.throttle, gpThrottle);
       this.brake = Math.max(this.brake, gpBrake);
     }
+    this.drs = !!(kb.drs && this.keys[kb.drs]) || !!this.touch.drs;
   }
 }
 
@@ -6148,6 +6154,36 @@ class Car {
         if(this._glbWheels.length) console.log('[GT3] GLB-Räder:', this._glbWheels.length, 'davon vorn', this._glbFrontWheels.length);
       } catch(e){ console.warn('[GT3] Rad-Pivots:', e); this._glbWheels = []; this._glbFrontWheels = []; }
 
+      /* --- DRS-Klappe im Modell suchen (Formel): hinterstes oberes Flügel-Mesh
+         mit "flap"/"drs" im Namen, ersatzweise das am weitesten hinten liegende
+         Mesh mit "wing"/"flügel" hoch über dem Boden. Wird beim DRS-Öffnen
+         nach oben geklappt. */
+      this._glbDrsFlap = null;
+      if(this.def?.classType === 'formula'){
+        try {
+          const flapRe = /flap|drs/i, wingRe = /wing|fl(ue|ü)gel|aileron/i;
+          let best = null, bestZ = -1e9;
+          model.traverse(o => {
+            if(!o.isMesh || !o.name) return;
+            const n = o.name;
+            if(flapRe.test(n)){ if(!best || flapRe.test(best.name)===false) best = o; }
+          });
+          if(!best){
+            model.traverse(o => {
+              if(!o.isMesh || !o.name || !wingRe.test(o.name)) return;
+              const p = model.worldToLocal(o.getWorldPosition(new THREE.Vector3()).clone());
+              if(p.z < -0.4 && p.y > 0.35 && p.z < bestZ*0+1e9 && -p.z > -bestZ){ bestZ = -p.z; best = o; }
+            });
+          }
+          if(best){
+            const p = model.worldToLocal(best.getWorldPosition(new THREE.Vector3()).clone());
+            const pivot = new THREE.Group(); pivot.position.copy(p); model.add(pivot); pivot.attach(best);
+            this._glbDrsFlap = pivot;
+            console.log('[GT3] DRS-Klappe:', best.name);
+          }
+        } catch(e){ console.warn('[GT3] DRS-Klappe:', e); }
+      }
+
       if(this._cockpitGrp) this._cockpitGrp.visible = false;
     }catch(err){
       console.warn('[GT3] Porsche-Model konnte nicht geladen werden:', err);
@@ -6430,8 +6466,10 @@ class Car {
           }
         }
       } else {
-        const straight = speed > 50 && Math.abs(input.steer) < 0.05 && input.throttle > 0.90;
-        this.drsOpen += clamp((straight ? 1 : 0) - this.drsOpen, -dt*8, dt*3.5);
+        /* Manuell: DRS öffnet nur solange die Taste (F) gehalten wird und
+           man schnell genug ist, nicht bremst und fast geradeaus fährt. */
+        const canOpen = !!input.drs && speed > 44 && Math.abs(input.steer) < 0.08 && input.brake < 0.02;
+        this.drsOpen += clamp((canOpen ? 1 : 0) - this.drsOpen, -dt*7, dt*3.2);
       }
       if(this._drsJamCD > 0) this._drsJamCD -= dt;
       FzAeroR *= (1 - this.drsOpen * 0.30);
@@ -7142,6 +7180,10 @@ class Car {
         w.roll = (w.roll + rollStep) % (Math.PI * 2);
         w.pivot.rotation.set(w.roll, w.front ? steerVis : 0, 0);
       }
+    }
+    /* DRS-Klappe hochklappen wenn DRS offen */
+    if(this._glbDrsFlap){
+      this._glbDrsFlap.rotation.x = -(this.drsOpen || 0) * 0.6;
     }
     if(this.tail && this.tail.material) this.tail.material.color.setHex(this.brakeLight?0xff2020:0x550000);
   }
@@ -9035,7 +9077,7 @@ class CameraRig {
 const HUD = {
   els:{},
   init(){
-    for(const id of ['speed','gear','lap','laptime','lastlap','bestlap','delta','carname','prog','camlabel','pos','stat-weather','stat-ghost','modeldbg'])
+    for(const id of ['speed','gear','lap','laptime','lastlap','bestlap','delta','carname','prog','camlabel','pos','stat-weather','stat-ghost','modeldbg','stat-drs'])
       this.els[id]=document.getElementById(id);
     this.leds=[...document.querySelectorAll('#rpmbar i')];
     this.mapC=document.getElementById('minimap');
@@ -9139,6 +9181,16 @@ const HUD = {
   update(car, race, totalLaps, aiCars){
     this.els.speed.textContent=Math.round(car.speedKmh);
     this.els.gear.textContent=car.vx<-0.3?'R':(car.gear+1);
+    if(this.els['stat-drs']){
+      const isF = car?.def?.classType === 'formula';
+      const el = this.els['stat-drs'];
+      el.style.display = isF ? '' : 'none';
+      if(isF){
+        if(car.drsJammed){ el.textContent='DRS KLEMMT'; el.style.color='#ff2e3d'; el.style.textShadow='0 0 8px #ff2e3daa'; }
+        else if(car.drsOpen > 0.6){ el.textContent='DRS OFFEN'; el.style.color='#22e87a'; el.style.textShadow='0 0 8px #22e87aaa'; }
+        else { el.textContent='DRS'; el.style.color='#7a828c'; el.style.textShadow='none'; }
+      }
+    }
     this.els.lap.textContent='RUNDE '+(totalLaps?Math.min(race.lap,totalLaps)+' / '+totalLaps:race.lap);
     this.els.pos.classList.toggle('hidden', !totalLaps);
     if(totalLaps) this.els.pos.textContent='P'+race.pos+' / '+race.total;
@@ -15795,7 +15847,7 @@ const Game = {
       car.body.remove(car._externalModelRoot);
       car._externalModelRoot = null;
       car._usingExternalModel = false;
-      car._glbWheels = null; car._glbFrontWheels = null; car._glbSteeringWheel = null;
+      car._glbWheels = null; car._glbFrontWheels = null; car._glbSteeringWheel = null; car._glbDrsFlap = null;
       car.setProceduralShellVisible(true);
     }
     // Update physics constants derived from def
