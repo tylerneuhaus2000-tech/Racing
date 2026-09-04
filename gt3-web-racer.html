@@ -3111,65 +3111,65 @@ const CARS = [
      ers:true nur bei den F1-Autos (MGU-K). rotY:0 als Startannahme —
      falls ein Modell rückwärts steht, auf Math.PI drehen. */
   {
-    id:'ferrari-sf25', name:'Ferrari SF-25', classType:'formula', classBadge:'F1', ers:true,
+    id:'ferrari-sf25', name:'Ferrari SF-25', classType:'formula', classBadge:'F1', ers:true, aeroMul:3.2,
     color:0xd8102a, accent:0x0a0a0a, rim:0xd0a83c,
     model:{ url:'assets/models/ferrari_sf25.glb', scale:1, targetLength:5.6, yOffset:0, rotY:0 },
-    mass:840, power:560000, maxForce:13400, topSpeed:344/3.6, brakeForce:20400,
-    gripF:1.58, gripR:1.62, yawDamp:0.82, tractionBoost:0.08, liftOversteer:0.03,
+    mass:840, power:500000, maxForce:12600, topSpeed:342/3.6, brakeForce:20400,
+    gripF:1.50, gripR:1.60, yawDamp:0.90, tractionBoost:0.08, liftOversteer:0.03,
     desc:'F1 2025 · Hybrid-V6, gewaltiger Abtrieb. Bremst aus dem Nichts, lenkt telepathisch ein.',
     stats:{speed:1.00, grip:1.00, stab:0.74}
   },
   {
-    id:'redbull-rb22', name:'Red Bull RB22', classType:'formula', classBadge:'F1', ers:true,
+    id:'redbull-rb22', name:'Red Bull RB22', classType:'formula', classBadge:'F1', ers:true, aeroMul:3.3,
     color:0x0a1a3c, accent:0xd6132b, rim:0xf2c20a,
     model:{ url:'assets/models/redbull_rb22.glb', scale:1, targetLength:5.6, yOffset:0, rotY:0 },
-    mass:838, power:566000, maxForce:13550, topSpeed:346/3.6, brakeForce:20600,
-    gripF:1.60, gripR:1.64, yawDamp:0.84, tractionBoost:0.08, liftOversteer:0.03,
+    mass:838, power:505000, maxForce:12700, topSpeed:344/3.6, brakeForce:20600,
+    gripF:1.52, gripR:1.62, yawDamp:0.90, tractionBoost:0.08, liftOversteer:0.03,
     desc:'F1 2026 · Bestes Gesamtpaket. Traktion am Kurvenausgang, stabil bei Highspeed.',
     stats:{speed:1.00, grip:1.00, stab:0.78}
   },
   {
-    id:'aston-amr26', name:'Aston Martin AMR26', classType:'formula', classBadge:'F1', ers:true,
+    id:'aston-amr26', name:'Aston Martin AMR26', classType:'formula', classBadge:'F1', ers:true, aeroMul:3.2,
     color:0x00584a, accent:0xcedc00, rim:0x1a1a1a,
     model:{ url:'assets/models/aston_amr26.glb', scale:1, targetLength:5.6, yOffset:0, rotY:0 },
-    mass:842, power:558000, maxForce:13350, topSpeed:348/3.6, brakeForce:20200,
-    gripF:1.58, gripR:1.66, yawDamp:0.88, tractionBoost:0.08, liftOversteer:0.03,
+    mass:842, power:498000, maxForce:12500, topSpeed:346/3.6, brakeForce:20200,
+    gripF:1.50, gripR:1.62, yawDamp:0.92, tractionBoost:0.08, liftOversteer:0.03,
     desc:'F1 2026 · Sehr stabil, höchster Topspeed. Verzeiht mehr als die anderen.',
     stats:{speed:1.00, grip:0.97, stab:0.84}
   },
   {
-    id:'williams-fw48', name:'Williams FW48', classType:'formula', classBadge:'F1', ers:true,
+    id:'williams-fw48', name:'Williams FW48', classType:'formula', classBadge:'F1', ers:true, aeroMul:3.1,
     color:0x0a1e4c, accent:0x37bedd, rim:0xffffff,
     model:{ url:'assets/models/williams_fw48.glb', scale:1, targetLength:5.6, yOffset:0, rotY:0 },
-    mass:836, power:554000, maxForce:13250, topSpeed:345/3.6, brakeForce:20300,
-    gripF:1.56, gripR:1.58, yawDamp:0.74, tractionBoost:0.08, liftOversteer:0.04,
+    mass:836, power:496000, maxForce:12450, topSpeed:343/3.6, brakeForce:20300,
+    gripF:1.48, gripR:1.56, yawDamp:0.82, tractionBoost:0.08, liftOversteer:0.04,
     desc:'F1 2026 · Nervöses Heck, extrem agil. Belohnt saubere Hände, bestraft Gewalt.',
     stats:{speed:0.99, grip:0.96, stab:0.70}
   },
   {
-    id:'f2-2024', name:'Formel 2 (2024)', classType:'formula', classBadge:'F2', ers:false,
+    id:'f2-2024', name:'Formel 2 (2024)', classType:'formula', classBadge:'F2', ers:false, aeroMul:2.2,
     color:0x1c2733, accent:0xe8322d, rim:0xc0c0c0,
     model:{ url:'assets/models/f2_2024.glb', scale:1, targetLength:5.2, yOffset:0, rotY:0 },
-    mass:892, power:402000, maxForce:10600, topSpeed:326/3.6, brakeForce:15600,
-    gripF:1.44, gripR:1.46, yawDamp:0.80, tractionBoost:0.08, liftOversteer:0.03,
+    mass:892, power:378000, maxForce:10200, topSpeed:324/3.6, brakeForce:15600,
+    gripF:1.40, gripR:1.48, yawDamp:0.86, tractionBoost:0.08, liftOversteer:0.03,
     desc:'F2 · Spec-Dallara, 3,4-l-V6-Turbo. Weniger Abtrieb als F1 — mehr Fahrarbeit.',
     stats:{speed:0.90, grip:0.86, stab:0.76}
   },
   {
-    id:'tatuus-ft60', name:'Tatuus FT-60 (FR)', classType:'formula', classBadge:'FR', ers:false,
+    id:'tatuus-ft60', name:'Tatuus FT-60 (FR)', classType:'formula', classBadge:'FR', ers:false, aeroMul:1.8,
     color:0xdadfe4, accent:0xd8102a, rim:0x1a1a1a,
     model:{ url:'assets/models/tatuus_ft60.glb', scale:1, targetLength:4.7, yOffset:0, rotY:0 },
     mass:670, power:202000, maxForce:7900, topSpeed:262/3.6, brakeForce:11800,
-    gripF:1.36, gripR:1.38, yawDamp:0.82, tractionBoost:0.07, liftOversteer:0.03,
+    gripF:1.34, gripR:1.40, yawDamp:0.86, tractionBoost:0.07, liftOversteer:0.03,
     desc:'Formula Regional · Alfa-Romeo-Vierzylinder-Turbo. Leicht, direkt, ehrlich.',
     stats:{speed:0.72, grip:0.80, stab:0.82}
   },
   {
-    id:'dallara-f312', name:'Dallara F312 (F3)', classType:'formula', classBadge:'F3', ers:false,
+    id:'dallara-f312', name:'Dallara F312 (F3)', classType:'formula', classBadge:'F3', ers:false, aeroMul:1.7,
     color:0xf2f2f2, accent:0xd8102a, rim:0x1a1a1a,
     model:{ url:'assets/models/dallara_f312.glb', scale:1, targetLength:4.9, yOffset:0, rotY:0 },
     mass:648, power:178000, maxForce:7300, topSpeed:270/3.6, brakeForce:11200,
-    gripF:1.34, gripR:1.36, yawDamp:0.84, tractionBoost:0.06, liftOversteer:0.03,
+    gripF:1.32, gripR:1.38, yawDamp:0.88, tractionBoost:0.06, liftOversteer:0.03,
     desc:'F3 · 2,0-l-Sauger, ~240 PS. Einsteiger-Formel — flink, wenig Leistung, viel Gefühl.',
     stats:{speed:0.66, grip:0.78, stab:0.84}
   },
@@ -6013,13 +6013,19 @@ class Car {
           mat.depthWrite=true;
         }
         if(mat.color && typeof mat.color.multiplyScalar === 'function'){
-          mat.color.multiplyScalar(1.15);
+          mat.color.multiplyScalar(1.28);
         }
         if(mat.isMeshStandardMaterial || mat.isMeshPhysicalMaterial){
-          mat.metalness = clamp(mat.metalness * 0.65, 0.05, 0.7);
-          mat.roughness = clamp(mat.roughness * 0.85, 0.18, 0.9);
-          mat.envMapIntensity = Math.max(1.1, mat.envMapIntensity || 0);
-          if(mat.emissive && typeof mat.emissive.addScalar === 'function') mat.emissive.addScalar(0.03);
+          mat.metalness = clamp(mat.metalness * 0.55, 0.03, 0.6);
+          mat.roughness = clamp(mat.roughness * 0.78, 0.16, 0.85);
+          mat.envMapIntensity = Math.max(1.6, mat.envMapIntensity || 0);
+          /* Dunkle Lackierungen (Aston-Grün, RB-Navy) saufen im Schatten ab.
+             Farbproportionales Eigenleuchten hebt sie an, ohne helle Flächen
+             auszubrennen. */
+          if(mat.emissive && mat.color && typeof mat.emissive.copy === 'function'){
+            mat.emissive.copy(mat.color).multiplyScalar(0.10);
+            if(mat.emissiveIntensity !== undefined) mat.emissiveIntensity = 1;
+          }
         }
         mat.needsUpdate = true;
         return mat;
@@ -6352,7 +6358,12 @@ class Car {
         return lerp(0.90, 0.82, over);
       }
     };
-    const FzAeroBase = 0.55 * setupMass * G * (v2/(d.topSpeed*d.topSpeed)) * wingMul * rhAeroMul;
+    /* aeroMul: Klassen-Abtriebsfaktor. Serienautos ~1 (Aero = max ~55% des
+       Gewichts bei Vmax). Formel-Autos deutlich mehr — F1 erzeugt real ein
+       Vielfaches seines Gewichts an Abtrieb; hier ~1.8x Gewicht bei Vmax,
+       damit die Karre bei Tempo klebt statt wegzuschmieren. */
+    const aeroMul = d.aeroMul || 1;
+    const FzAeroBase = 0.55 * aeroMul * setupMass * G * (v2/(d.topSpeed*d.topSpeed)) * wingMul * rhAeroMul;
     const FzAeroF = FzAeroBase * 0.45 * wingFrontMul * dmgMods.downforceFront;
     const FzAeroR = FzAeroBase * 0.55 * wingRearMul  * dmgMods.downforceRear;
     const cDrag = d.power / Math.pow(d.topSpeed, 3) * (1 + (wingMul - 1) * 0.5);
@@ -6361,9 +6372,13 @@ class Car {
        Wirkliche GT3: bei hoher Geschwindigkeit weniger Lenkwinkel, aber die echte Begrenzung
        gegen Spinnerei bei kleinem Lenken auf der Geraden macht der yawLim weiter unten */
     const isKart = d.classType === 'kart';
-    const maxSteer = (isKart ? 0.54 : 0.38) / (1 + speed*(isKart ? 0.022 : 0.035)) * (dmgMods.steerMul || 1);
+    const isFormula = d.classType === 'formula';
+    /* Formel: wenig Lenkeinschlag, faellt schnell mit Tempo ab -> ruhige,
+       praezise Lenkung statt zappelig. Kart: viel Einschlag. */
+    const maxSteer = (isKart ? 0.54 : isFormula ? 0.30 : 0.38)
+      / (1 + speed*(isKart ? 0.022 : isFormula ? 0.050 : 0.035)) * (dmgMods.steerMul || 1);
     const tgtSteer = input.steer * maxSteer;
-    const maxRate = isKart ? 5.2 : 3.6;   // Karts lenken schneller ein
+    const maxRate = isKart ? 5.2 : isFormula ? 3.0 : 3.6;
     this.steer += clamp(tgtSteer - this.steer, -maxRate*dt, maxRate*dt);
 
     /* --- Achslasten mit Längs-Lastverlagerung --- */
@@ -8850,14 +8865,13 @@ class CameraRig {
         this._look.y += 0.10;
         fov = 82;
       } else if(isFormula){
-        /* Formel-Cockpit: Helm-Position, mittig hinterm Lenkrad, Blick flach
-           über die Nase. Kein prozeduraler Dash — das GLB liefert Cockpit +
-           Lenkrad. Etwas tiefer/weiter vorne als GT3, hoher FOV = Speedgefühl. */
-        this._target.copy(car.pos).addScaledVector(fwd,-0.30).addScaledVector(right,0.0);
-        this._target.y += 0.62;
-        this._look.copy(car.pos).addScaledVector(fwd,60);
-        this._look.y += 0.30;
-        fov = 78;
+        /* Formel-Cockpit: Helm-Position leicht vor Fahrzeugmitte, deutlich über
+           dem Chassis (Blick über Halo + Nase), flacher Blick weit nach vorn. */
+        this._target.copy(car.pos).addScaledVector(fwd,0.15).addScaledVector(right,0.0);
+        this._target.y += 0.98;
+        this._look.copy(car.pos).addScaledVector(fwd,70);
+        this._look.y += 0.62;
+        fov = 74;
       } else {
         this._target.copy(car.pos).addScaledVector(fwd,0.15).addScaledVector(right,0.38);
         this._target.y += 0.90;
@@ -8869,11 +8883,11 @@ class CameraRig {
       /* "On-the-halo" TV-Kamera (F1 T-Cam): auf dem Airbox/Halo montiert,
          knapp hinter dem Fahrerkopf, Blick nach vorn und leicht nach unten
          über das Auto — die ikonische Broadcast-Onboard-Perspektive. */
-      this._target.copy(car.pos).addScaledVector(fwd,-0.62).addScaledVector(right,0.0);
-      this._target.y += 1.05;
-      this._look.copy(car.pos).addScaledVector(fwd,26);
-      this._look.y += 0.35;
-      fov = 66;
+      this._target.copy(car.pos).addScaledVector(fwd,-0.35).addScaledVector(right,0.0);
+      this._target.y += 1.18;
+      this._look.copy(car.pos).addScaledVector(fwd,70);
+      this._look.y += 0.50;
+      fov = 58;
     } else if(mode==='chase'){
       /* Karts sind nur rund 1,9 m lang — die Rennwagen-Distanz laesst sie in
          der Verfolgerkamera zu einem Punkt schrumpfen. Deshalb naeher ran
