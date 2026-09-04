@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Gridline — FIA Stewards</title>
+<style>
+  :root{
+    --bg:#0a0d12; --panel:#0d1520; --panel2:#111a26; --line:#1e2a38; --line2:#2a3a4a;
+    --red:#ff2e3d; --red-dim:#8b0000; --green:#22e87a; --amber:#ffb020; --blue:#8bd3ff;
+    --text:#e8ecef; --dim:#8b95a1; --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font:13px/1.5 var(--mono);min-height:100vh}
+  a{color:var(--blue)}
+  #app{display:none}
+  .hidden{display:none !important}
+
+  header{display:flex;align-items:center;justify-content:space-between;padding:16px 26px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(10,13,18,.92);backdrop-filter:blur(10px);z-index:10}
+  header .brand{display:flex;align-items:center;gap:10px}
+  header .brand b{font-size:15px;letter-spacing:.04em}
+  header .brand small{display:block;color:var(--red);font-size:9px;letter-spacing:.22em;font-weight:700}
+  #user-chip{display:flex;align-items:center;gap:10px;color:var(--dim);font-size:11px}
+  #user-chip b{color:var(--text)}
+  .btn{padding:8px 16px;background:var(--panel2);border:1px solid var(--line2);border-radius:6px;color:var(--text);font:700 10px var(--mono);letter-spacing:.08em;cursor:pointer}
+  .btn:hover{border-color:#3a4a5c}
+  .btn.primary{background:var(--red);border-color:var(--red);color:#fff}
+  .btn.danger{background:#3a0d12;border-color:var(--red);color:#ff8a94}
+  .btn:disabled{opacity:.5;cursor:default}
+
+  #gate{min-height:80vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  #gate .card{width:380px;max-width:100%;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:32px}
+  #gate .card h1{margin:0 0 4px;font-size:18px}
+  #gate .card p{color:var(--dim);font-size:11px;margin:0 0 22px}
+  #gate input{width:100%;padding:10px 12px;margin-bottom:10px;background:var(--panel2);border:1px solid var(--line2);border-radius:6px;color:var(--text);font:13px var(--mono)}
+  #gate .err{color:var(--red);font-size:11px;min-height:16px;margin:6px 0}
+  #gate .or{text-align:center;color:#445;font-size:10px;margin:14px 0;letter-spacing:.1em}
+  #denied{color:var(--red);font-size:12px;text-align:center;margin-top:10px;display:none}
+
+  main{max-width:1280px;margin:0 auto;padding:22px 26px 60px;display:none}
+  .grid{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+  @media (max-width:860px){.grid{grid-template-columns:1fr}}
+
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+  .box + .box{margin-top:16px}
+  .box h2{margin:0 0 4px;font-size:12px;letter-spacing:.14em;color:var(--red)}
+  .box .sub{color:var(--dim);font-size:10.5px;margin:0 0 14px}
+  label{display:block;color:var(--dim);font-size:10px;letter-spacing:.1em;margin:12px 0 5px}
+  label:first-of-type{margin-top:0}
+  input[type=text],input[type=search],select{width:100%;padding:9px 11px;background:var(--panel2);border:1px solid var(--line2);border-radius:6px;color:var(--text);font:12.5px var(--mono)}
+  .row{display:flex;gap:8px}
+  .row > *{flex:1}
+  #status{min-height:16px;font-size:11px;margin-top:10px}
+
+  table.times{width:100%;border-collapse:collapse}
+  table.times th{text-align:left;font-size:9.5px;letter-spacing:.12em;color:#556;text-transform:uppercase;padding:0 8px 8px;border-bottom:1px solid var(--line)}
+  table.times td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+  table.times tr:last-child td{border-bottom:none}
+  .pos{color:var(--dim);font-weight:700;width:34px}
+  .pos.p1{color:var(--amber)}
+  .time{color:var(--blue);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  .carname{color:var(--text)}
+  .rowbtns{display:flex;gap:6px;justify-content:flex-end}
+  .iconbtn{padding:5px 9px;background:var(--panel2);border:1px solid var(--line2);border-radius:4px;color:var(--blue);font:700 11px var(--mono);cursor:pointer}
+  .iconbtn.off{color:#445;cursor:default}
+  .iconbtn.del{background:#3a0d12;border-color:var(--red);color:#ff8a94}
+
+  .laprow{display:flex;align-items:center;gap:8px;padding:7px 10px;font-size:11px;border-top:1px solid var(--line)}
+  .laprow.struck{opacity:.55}
+  .laphist{background:var(--panel2);border-radius:0 0 8px 8px;margin:0 8px 8px}
+  .empty{color:var(--dim);font-size:11px;padding:16px 4px;text-align:center}
+
+  #playerHint{color:#556;font-size:10px;margin-top:4px}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="card">
+    <h1>🏁 FIA Stewards</h1>
+    <p>Nur für autorisierte Steward-Konten. Anmeldung mit demselben Konto wie im Spiel.</p>
+    <button class="btn primary" id="btn-google" style="width:100%;padding:11px">MIT GOOGLE ANMELDEN</button>
+    <div class="or">— oder —</div>
+    <input type="text" id="in-email" placeholder="E-Mail" autocomplete="username">
+    <input type="password" id="in-pw" placeholder="Passwort" autocomplete="current-password">
+    <button class="btn" id="btn-email" style="width:100%;padding:11px">ANMELDEN</button>
+    <div class="err" id="err"></div>
+    <div id="denied">⛔ Dieses Konto ist kein Steward-Konto.</div>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <div class="brand">
+      <span style="font-size:20px">⚖</span>
+      <div><b>FIA STEWARDS</b><small>GRIDLINE RACE CONTROL</small></div>
+    </div>
+    <div id="user-chip">
+      <span>Angemeldet als <b id="who">—</b></span>
+      <button class="btn" id="btn-logout">ABMELDEN</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="grid">
+      <!-- Links: Spieler + Nachricht -->
+      <div>
+        <div class="box">
+          <h2>SPIELER</h2>
+          <p class="sub">Username eingeben (Groß/Kleinschreibung egal) und laden.</p>
+          <input type="text" id="in-username" list="usernames-list" placeholder="username" autocomplete="off">
+          <datalist id="usernames-list"></datalist>
+          <div id="playerHint"></div>
+          <div class="row" style="margin-top:10px">
+            <button class="btn" id="btn-load-usernames">↻ SPIELER LISTE</button>
+            <button class="btn primary" id="btn-load-times">ZEITEN LADEN</button>
+          </div>
+        </div>
+
+        <div class="box">
+          <h2>NACHRICHT SENDEN</h2>
+          <p class="sub">An den oben eingetragenen Spieler.</p>
+          <label>TYP</label>
+          <select id="msg-type">
+            <option value="investigation">🟡 UNDER INVESTIGATION</option>
+            <option value="no_action">🟢 NO FURTHER ACTION</option>
+            <option value="penalty">🔴 PENALTY</option>
+          </select>
+          <label>GRUND / DETAIL</label>
+          <input type="text" id="msg-reason" placeholder="z.B. Kollision Kurve 3 · Car #5">
+          <label>STRAFE ANZEIGE</label>
+          <input type="text" id="msg-penalty" placeholder="10s oder Drive Through">
+          <label>LP ÄNDERUNG</label>
+          <input type="text" id="msg-lp" placeholder="-5 oder +3, leer = keine">
+          <button class="btn primary" id="btn-send-msg" style="width:100%;margin-top:14px;padding:11px">SENDEN</button>
+          <div id="status"></div>
+        </div>
+      </div>
+
+      <!-- Rechts: Rundenzeiten -->
+      <div class="box">
+        <h2>RUNDENZEITEN</h2>
+        <p class="sub">Strecke wählen — schnellste zuerst. „▾" öffnet die Runden-Historie; einzelne Runde mit Grund streichen, die nächst-schnellste gültige rückt automatisch nach.</p>
+        <select id="track-sel"><option value="">— zuerst Zeiten laden —</option></select>
+        <div id="times-wrap" style="margin-top:14px">
+          <div class="empty">Noch keine Zeiten geladen.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="assets/tracks.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
+<script defer>
+(function(){
+'use strict';
+
+/* MUSS mit ADMIN_UIDS in assets/gt3-firebase.js und isAdmin() in
+   firestore.rules übereinstimmen — sonst darf diese Seite zwar anzeigen,
+   aber jeder Schreibzugriff (Streichen, Nachricht) wird von Firestore
+   trotzdem abgelehnt. */
+const ADMIN_UIDS = ['qg9FDw4TZWhxX7en6JHuOI6GqZt2', '25Mc4Wuwp4YxFFwNz8gtMkNI2n93'];
+
+const FB_CONFIG = {
+  apiKey: "AIzaSyDDDE9UVtMn40kGTm4R3-1uSoPQKoOPofk",
+  authDomain: "gridline-bf8c9.firebaseapp.com",
+  projectId: "gridline-bf8c9",
+  storageBucket: "gridline-bf8c9.firebasestorage.app",
+  messagingSenderId: "907704359886",
+  appId: "1:907704359886:web:5f123aa225fa78293f699f"
+};
+
+function boot(){
+  if(typeof firebase === 'undefined' || !firebase.initializeApp){
+    document.getElementById('err').textContent = 'Firebase konnte nicht geladen werden (Adblocker?).';
+    return;
+  }
+  firebase.initializeApp(FB_CONFIG);
+  const auth = firebase.auth();
+  const db   = firebase.firestore();
+
+  const $ = id => document.getElementById(id);
+  const esc = s => { const d = document.createElement('div'); d.textContent = s==null?'':String(s); return d.innerHTML; };
+  function fmtLap(ms){
+    if(!ms || ms<=0) return '--:--.---';
+    const m=Math.floor(ms/60000), s=Math.floor((ms%60000)/1000), ms3=Math.round(ms%1000);
+    return `${m}:${String(s).padStart(2,'0')}.${String(ms3).padStart(3,'0')}`;
+  }
+  function trackName(id){
+    try { const t = (typeof TRACKS !== 'undefined') ? TRACKS.find(x => x.id === id) : null; return t ? t.name : (id||'?'); }
+    catch(e){ return id||'?'; }
+  }
+
+  let isAdmin = false;
+
+  /* ── Auth ── */
+  $('btn-google').onclick = () => {
+    $('err').textContent = '';
+    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => { $('err').textContent = e.message; });
+  };
+  $('btn-email').onclick = () => {
+    $('err').textContent = '';
+    const email = $('in-email').value.trim(), pw = $('in-pw').value;
+    if(!email || !pw){ $('err').textContent = 'E-Mail und Passwort eingeben.'; return; }
+    auth.signInWithEmailAndPassword(email, pw).catch(e => { $('err').textContent = e.message; });
+  };
+  $('btn-logout').onclick = () => auth.signOut();
+
+  auth.onAuthStateChanged(user => {
+    if(!user){
+      isAdmin = false;
+      $('gate').style.display = 'flex';
+      $('app').style.display = 'none';
+      $('denied').style.display = 'none';
+      return;
+    }
+    isAdmin = ADMIN_UIDS.includes(user.uid);
+    if(!isAdmin){
+      $('denied').style.display = 'block';
+      $('gate').style.display = 'flex';
+      $('app').style.display = 'none';
+      setTimeout(() => auth.signOut(), 2500);
+      return;
+    }
+    $('gate').style.display = 'none';
+    $('app').style.display = 'block';
+    $('main').style.display = 'block';
+    $('who').textContent = user.displayName || user.email || user.uid;
+  });
+
+  /* ── Spieler-Liste (Datalist) ── */
+  $('btn-load-usernames').onclick = async () => {
+    const btn = $('btn-load-usernames'); btn.disabled = true; btn.textContent = '⏳';
+    try {
+      const snap = await db.collection('usernames').get();
+      const dl = $('usernames-list'); dl.innerHTML = '';
+      snap.forEach(d => { const o = document.createElement('option'); o.value = d.id; dl.appendChild(o); });
+      $('playerHint').textContent = `${snap.size} Spieler geladen — tippen zum Filtern`;
+    } catch(e){ $('playerHint').textContent = 'Fehler: ' + e.message; }
+    finally { btn.disabled = false; btn.textContent = '↻ SPIELER LISTE'; }
+  };
+
+  /* ── Nachricht senden ── */
+  $('btn-send-msg').onclick = async () => {
+    if(!isAdmin) return;
+    const username = $('in-username').value.trim().toLowerCase();
+    const status = $('status');
+    if(!username){ status.style.color = '#ff6b6b'; status.textContent = '❌ Spieler eingeben'; return; }
+    status.style.color = '#8b95a1'; status.textContent = '⏳ Sende…';
+    try {
+      const uSnap = await db.collection('usernames').doc(username).get();
+      if(!uSnap.exists){ status.style.color = '#ff6b6b'; status.textContent = '❌ Spieler nicht gefunden'; return; }
+      const targetUid = uSnap.data().uid;
+      const type = $('msg-type').value;
+      const reason = $('msg-reason').value.trim();
+      const penalty = $('msg-penalty').value.trim();
+      const lpStr = $('msg-lp').value.trim();
+      const lpDelta = lpStr !== '' ? parseFloat(lpStr) : 0;
+      if(lpStr !== '' && isNaN(lpDelta)){ status.style.color = '#ff6b6b'; status.textContent = '❌ LP muss eine Zahl sein'; return; }
+      await db.collection('steward_msgs').doc(targetUid).set({ type, reason, penalty, lpDelta, ts: Date.now() });
+      status.style.color = '#4eff8a';
+      status.textContent = `✓ Gesendet an ${username}` + (lpDelta ? ` · LP ${lpDelta>0?'+':''}${lpDelta}` : '');
+    } catch(e){
+      status.style.color = '#ff6b6b'; status.textContent = '❌ ' + e.message;
+    }
+  };
+
+  /* ── Rundenzeiten laden ── */
+  const LAPS_MAX_VALID = 50, LAPS_MAX_STRUCK = 50;
+
+  async function recomputeParentTime(docId, meta){
+    const parentRef = db.collection('times').doc(docId);
+    const lapsRef = parentRef.collection('laps');
+    if(!meta){ const p = await parentRef.get(); meta = p.exists ? p.data() : null; }
+    const snap = await lapsRef.orderBy('timeMs').get();
+    const laps = []; snap.forEach(d => laps.push(Object.assign({ _id:d.id }, d.data())));
+    const valid = laps.filter(l => !l.struck);
+    if(valid.length === 0){
+      await parentRef.delete().catch(()=>{});
+    } else if(meta){
+      const best = valid[0];
+      const doc = {
+        name: meta.name, uid: meta.uid, timeMs: best.timeMs,
+        carName: meta.carName || meta.carId, classType: meta.classType || 'unknown',
+        trackId: meta.trackId, carId: meta.carId,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      if(best.replay) doc.replay = best.replay;
+      await parentRef.set(doc);
+    }
+    const keep = new Set(valid.slice(0, LAPS_MAX_VALID).map(l => l._id));
+    laps.filter(l => l.struck).slice(0, LAPS_MAX_STRUCK).forEach(l => keep.add(l._id));
+    await Promise.all(laps.filter(l => !keep.has(l._id)).map(l => lapsRef.doc(l._id).delete().catch(()=>{})));
+    return valid.length ? valid[0] : null;
+  }
+
+  function replayLink(docId, lapId){
+    const p = new URLSearchParams({ stewardReplayDoc: docId });
+    if(lapId) p.set('stewardReplayLap', lapId);
+    return 'gt3-web-racer.html?' + p.toString();
+  }
+
+  let timesRows = [], timesUsername = '', timesTargetUid = '';
+
+  $('btn-load-times').onclick = async () => {
+    if(!isAdmin) return;
+    const username = $('in-username').value.trim().toLowerCase();
+    const status = $('status');
+    const wrap = $('times-wrap');
+    if(!username){ status.style.color = '#ff6b6b'; status.textContent = '❌ Spieler eingeben'; return; }
+    wrap.innerHTML = '<div class="empty">⏳ Laden…</div>';
+    $('track-sel').innerHTML = '<option value="">— lädt —</option>';
+    try {
+      const uSnap = await db.collection('usernames').doc(username).get();
+      if(!uSnap.exists){ wrap.innerHTML = '<div class="empty">Spieler nicht gefunden.</div>'; return; }
+      const targetUid = uSnap.data().uid;
+      const snap = await db.collection('times').where('uid','==',targetUid).get();
+      const rows = []; snap.forEach(d => rows.push(Object.assign({ _id:d.id }, d.data())));
+      timesRows = rows; timesUsername = username; timesTargetUid = targetUid;
+
+      if(!rows.length){
+        $('track-sel').innerHTML = '<option value="">— keine Zeiten —</option>';
+        wrap.innerHTML = '<div class="empty">Keine Rundenzeiten für diesen Spieler.</div>';
+        return;
+      }
+      const counts = {};
+      rows.forEach(r => { counts[r.trackId] = (counts[r.trackId]||0) + 1; });
+      const trackIds = Object.keys(counts).sort((a,b) => trackName(a).localeCompare(trackName(b)));
+      const sel = $('track-sel');
+      sel.innerHTML = '';
+      trackIds.forEach(id => {
+        const o = document.createElement('option');
+        o.value = id; o.textContent = `${trackName(id)} (${counts[id]})`;
+        sel.appendChild(o);
+      });
+      sel.value = trackIds[0];
+      renderTrack(trackIds[0]);
+      status.style.color = '#8b95a1';
+      status.textContent = `${rows.length} Zeit(en) über ${trackIds.length} Strecke(n) für ${username}`;
+    } catch(e){
+      wrap.innerHTML = '<div class="empty">Fehler: ' + esc(e.message) + '</div>';
+    }
+  };
+
+  $('track-sel').onchange = () => renderTrack($('track-sel').value);
+
+  function renderTrack(trackId){
+    const wrap = $('times-wrap');
+    wrap.innerHTML = '';
+    if(!trackId){ wrap.innerHTML = '<div class="empty">Strecke wählen.</div>'; return; }
+    const rows = timesRows.filter(r => r.trackId === trackId).sort((a,b) => (a.timeMs||0) - (b.timeMs||0));
+    if(!rows.length){ wrap.innerHTML = '<div class="empty">Keine gültige Zeit mehr auf dieser Strecke.</div>'; return; }
+
+    const table = document.createElement('table');
+    table.className = 'times';
+    table.innerHTML = '<thead><tr><th>Pos</th><th>Fahrzeug</th><th style="text-align:right">Zeit</th><th></th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+
+    rows.forEach((r, i) => renderRow(tbody, r, i + 1, trackId));
+  }
+
+  function renderRow(tbody, r, rank, trackId){
+    const hasRep = !!(r.replay && r.replay.flat && r.replay.flat.length > 5);
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      `<td class="pos${rank===1?' p1':''}">P${rank}</td>`+
+      `<td class="carname">${esc(r.carName||r.carId||'?')}</td>`+
+      `<td class="time">${fmtLap(r.timeMs)}</td>`+
+      `<td><div class="rowbtns">`+
+        `<a class="iconbtn${hasRep?'':' off'}" ${hasRep?`href="${replayLink(r._id)}" target="_blank" rel="noopener"`:''} title="Replay der Bestzeit (im Spiel, neuer Tab)">▶</a>`+
+        `<button class="iconbtn" data-a="hist" title="Runden-Historie">▾</button>`+
+      `</div></td>`;
+    tbody.appendChild(tr);
+
+    const histTr = document.createElement('tr');
+    const histTd = document.createElement('td');
+    histTd.colSpan = 4; histTd.style.padding = '0';
+    const histBox = document.createElement('div');
+    histBox.className = 'laphist'; histBox.style.display = 'none';
+    histTd.appendChild(histBox); histTr.appendChild(histTd);
+    tbody.appendChild(histTr);
+
+    let histLoaded = false;
+    async function renderHist(){
+      histBox.innerHTML = '<div class="empty" style="padding:10px">⏳ Runden laden…</div>';
+      const lapsRef = db.collection('times').doc(r._id).collection('laps');
+      let lapsSnap = await lapsRef.orderBy('timeMs').get();
+      if(lapsSnap.empty && r.timeMs){
+        const seed = { timeMs: r.timeMs, at: r.updatedAt || firebase.firestore.FieldValue.serverTimestamp(), struck:false };
+        if(r.replay) seed.replay = r.replay;
+        try { await lapsRef.add(seed); lapsSnap = await lapsRef.orderBy('timeMs').get(); }
+        catch(e){ histBox.innerHTML = `<div class="empty">Historie anlegen fehlgeschlagen: ${esc(e.message)}</div>`; return; }
+      }
+      const laps = []; lapsSnap.forEach(d => laps.push(Object.assign({ _id:d.id }, d.data())));
+      if(!laps.length){ histBox.innerHTML = '<div class="empty">Keine Runden gespeichert.</div>'; return; }
+      histBox.innerHTML = '';
+      let hrank = 0;
+      laps.forEach(l => {
+        const struck = !!l.struck;
+        if(!struck) hrank++;
+        const lhasRep = !!(l.replay && l.replay.flat && l.replay.flat.length > 5);
+        const lr = document.createElement('div');
+        lr.className = 'laprow' + (struck ? ' struck' : '');
+        lr.innerHTML =
+          `<span style="width:28px;color:#8b95a1">${struck?'—':'#'+hrank}</span>`+
+          `<span style="flex:1;color:${struck?'#ff8a94':'#e8ecef'}">${fmtLap(l.timeMs)}${struck?` · <span style="font-size:10px">GESTRICHEN: ${esc(l.struckReason||'—')}</span>`:''}</span>`+
+          (lhasRep ? `<a class="iconbtn" href="${replayLink(r._id, l._id)}" target="_blank" rel="noopener" title="Replay dieser Runde">▶</a>` : '')+
+          (struck ? '' : `<button class="iconbtn del" data-a="strike" title="Runde streichen">✕</button>`);
+        const strikeBtn = lr.querySelector('[data-a="strike"]');
+        if(strikeBtn) strikeBtn.onclick = async () => {
+          if(!isAdmin) return;
+          const reason = prompt(`Grund für die Streichung dieser Runde?\n\n${trackName(r.trackId)} · ${fmtLap(l.timeMs)}\n\nz.B. "Corner Cut Kurve 3"`);
+          if(reason == null || !reason.trim()) return;
+          const rsn = reason.trim();
+          lr.style.opacity = '0.4';
+          const errs = []; let okStrike = false;
+          try {
+            await lapsRef.doc(l._id).update({ struck:true, struckReason:rsn, struckBy:auth.currentUser.uid, struckAt:Date.now() });
+            okStrike = true;
+          } catch(e){ errs.push('Streichen: '+e.message); }
+
+          let newBest = null;
+          if(okStrike){
+            try { newBest = await recomputeParentTime(r._id, {
+              name:r.name, uid:timesTargetUid, carName:r.carName||r.carId, classType:r.classType, trackId:r.trackId, carId:r.carId
+            }); } catch(e){ errs.push('Neuberechnung: '+e.message); }
+          }
+          try {
+            await db.collection('steward_actions').add({
+              type:'lap_struck', targetUid:timesTargetUid, username:timesUsername, docId:r._id, lapId:l._id,
+              trackId:r.trackId||null, carId:r.carId||null, timeMs:l.timeMs||null,
+              reason:rsn, by:auth.currentUser.uid, at:Date.now()
+            });
+          } catch(e){ errs.push('Protokoll: '+e.message); }
+          try {
+            await db.collection('steward_msgs').doc(timesTargetUid).set({
+              type:'penalty',
+              reason: `Rundenzeit gestrichen · ${trackName(r.trackId)}: ${rsn}. ` + (newBest ? `Neue Bestzeit: ${fmtLap(newBest.timeMs)}` : 'Keine gültige Zeit mehr auf dieser Strecke.'),
+              penalty:'Zeit annulliert', lpDelta:0, ts:Date.now()
+            });
+          } catch(e){ errs.push('Benachrichtigung: '+e.message); }
+
+          const status = $('status');
+          if(okStrike){
+            if(newBest){ r.timeMs = newBest.timeMs; r.replay = newBest.replay || null; }
+            else { const i = timesRows.indexOf(r); if(i>=0) timesRows.splice(i,1); }
+            renderTrack(trackId);
+            status.style.color = errs.length ? '#ffb020' : '#4eff8a';
+            status.textContent = (newBest ? `✓ Gestrichen · neue Bestzeit ${fmtLap(newBest.timeMs)}` : '✓ Gestrichen · keine gültige Zeit mehr') + (errs.length ? `  ⚠ ${errs.join(' | ')}` : '');
+          } else {
+            lr.style.opacity = '1';
+            status.style.color = '#ff6b6b';
+            status.textContent = '❌ ' + errs.join(' | ');
+          }
+        };
+        histBox.appendChild(lr);
+      });
+    }
+
+    tr.querySelector('[data-a="hist"]').onclick = async () => {
+      const open = histBox.style.display !== 'none';
+      histBox.style.display = open ? 'none' : 'block';
+      tr.querySelector('[data-a="hist"]').textContent = open ? '▾' : '▴';
+      if(!open && !histLoaded){ histLoaded = true; try { await renderHist(); } catch(e){ histBox.innerHTML = `<div class="empty">${esc(e.message)}</div>`; } }
+    };
+  }
+}
+
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();
+})();
+</script>
+</body>
+</html>

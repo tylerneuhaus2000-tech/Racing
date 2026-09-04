@@ -45,7 +45,42 @@ document.addEventListener('DOMContentLoaded', () => {
     if(btn) btn.classList.add('btn-login-required');
   });
   Shop.init();
+  _handleStewardReplayDeepLink();
 });
+
+/* ── Deep-Link: Replay direkt aus dem Stewards-Panel (stewards.html) öffnen ──
+   URL: gt3-web-racer.html?stewardReplayDoc=<times-docId>&stewardReplayLap=<lapId>
+   stewardReplayLap ist optional -> dann die aktuelle Bestzeit des Docs.
+   Lesezugriff auf times/laps ist öffentlich (siehe firestore.rules), es ist
+   also KEIN Login in diesem Tab nötig. */
+function _handleStewardReplayDeepLink(){
+  const qs = new URLSearchParams(location.search);
+  const docId = qs.get('stewardReplayDoc');
+  if(!docId) return;
+  const lapId = qs.get('stewardReplayLap');
+  if(typeof Game !== 'undefined') Game._replayFromDeepLink = true;
+
+  const parentRef = db.collection('times').doc(docId);
+  Promise.all([parentRef.get(), lapId ? parentRef.collection('laps').doc(lapId).get() : Promise.resolve(null)])
+    .then(([parentSnap, lapSnap]) => {
+      if(!parentSnap.exists){ alert('Dieser Eintrag existiert nicht mehr.'); return; }
+      const entry = Object.assign({}, parentSnap.data());
+      if(lapSnap){
+        if(!lapSnap.exists){ alert('Diese Runde existiert nicht mehr (evtl. schon aufgeräumt).'); return; }
+        const l = lapSnap.data();
+        entry.replay = l.replay || null;
+        entry.timeMs = l.timeMs;
+      }
+      if(!entry.replay || !entry.replay.flat){ alert('Für diese Runde ist kein Replay gespeichert.'); return; }
+      const t0 = Date.now();
+      const iv = setInterval(() => {
+        const ready = typeof Game !== 'undefined' && typeof _watchLbReplay === 'function' && typeof Game.getTrackPool === 'function';
+        if(ready){ clearInterval(iv); _watchLbReplay(entry); }
+        else if(Date.now() - t0 > 20000){ clearInterval(iv); console.warn('[FB] Steward-Replay-Deep-Link: Spiel wurde nicht rechtzeitig bereit.'); }
+      }, 150);
+    })
+    .catch(e => { console.error('[FB] Steward-Replay-Deep-Link:', e); alert('Replay konnte nicht geladen werden: ' + e.message); });
+}
 
 /* ── Helpers ── */
 function fmtLap(ms){
