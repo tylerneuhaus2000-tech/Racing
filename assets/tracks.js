@@ -432,6 +432,7 @@ const TRACKS = [
     hill: 0x5e8a42,
     grass: [0x4e8b3a,0x407531],
     wallDist: 28,
+    kerbW: 4,
     vergeW: 12,
     startFinishPct: 0,
     startGridPct: 100,

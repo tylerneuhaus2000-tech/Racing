@@ -2675,7 +2675,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
 <script src="assets/GLTFLoader.js" defer></script>
 <script src="assets/meshopt_decoder.js" defer></script>
-<script src="assets/tracks.js?v=20260903-silverstone6" defer></script>
+<script src="assets/tracks.js?v=20260904-silverstone7" defer></script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
 <script>
 /* Alle Fahrzeugmodelle sind mit EXT_meshopt_compression gepackt (ca. 8x kleiner
@@ -3960,7 +3960,7 @@ class Track {
   constructor(def, scene){
     this.def = def;
     this.halfW = def.halfWidth;
-    this.kerbW = 1.4;
+    this.kerbW = def.kerbW || 1.4;   // pro Strecke ueberschreibbar (breite F1-Kerbs)
     this.vergeW = def.vergeW || 14;             // Auslaufzone (Gras)
     this.wallDist = def.wallDist || (this.halfW + 13);
     this.group = new THREE.Group();
@@ -14619,6 +14619,9 @@ const Game = {
 
   updateTrackLimits(dt){
     if(this.mode !== 'tt' || !this.race || !this.car || !this.car.query || !this.track) return;
+    // Go-Karts auf echten Rennstrecken: kein Track-Limit-Policing (ist Spass-Modus,
+    // keine gewertete Kart-Session). Auf der Kartbahn selbst gelten die Limits weiter.
+    if(this.car.def?.classType === 'kart' && !this.track.def?.kartOnly) return;
     const q = this.car.query;
     const race = this.race;
     const edge = this.track.halfW + this.track.kerbW + 0.6;
