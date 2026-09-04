@@ -3621,6 +3621,13 @@ class Input {
     this._touchRepeat = {};
     this._isAction = (name, code) => !!(Game && Game.keybinds && Game.keybinds[name] === code);
     addEventListener('keydown', e=>{
+      /* Tippt man gerade in ein Textfeld (Steward-Panel, Chat, Username, ...),
+         soll das Spiel die Taste in Ruhe lassen — sonst frisst z.B. Space
+         (Fahrpedal-Bind) das Leerzeichen beim Tippen weg. Escape bleibt aktiv,
+         damit man ein Feld/Overlay weiterhin schließen kann. */
+      const ae = document.activeElement;
+      const typing = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable);
+      if(typing && e.code !== 'Escape') return;
       if(Game && Game.keybindCaptureAction){
         e.preventDefault();
         Game.captureKeyboardBinding(e.code);
