@@ -16540,6 +16540,17 @@ const Game = {
     if(this._replayFromPause){
       this._replayFromPause = false;
       document.getElementById('pause').classList.remove('hidden');
+    } else if(this._replayFromSteward){
+      // Replay kam aus dem FIA-Stewards-Panel (Rundenzeiten-Kontrolle) —
+      // dorthin zurück statt ins Hauptmenü zu fallen.
+      this._replayFromSteward = false;
+      this._replayFromLb = false;
+      (this._lbReplayHiddenCars||[]).forEach(c => { if(c.group) c.group.visible = true; });
+      this._lbReplayHiddenCars = null;
+      document.getElementById('hud').classList.add('hidden');
+      document.getElementById('menus').classList.remove('hidden');
+      const p = document.getElementById('admin-panel');
+      if(p){ p.style.display = 'flex'; p.style.alignItems = 'center'; p.style.justifyContent = 'center'; }
     } else if(this._replayFromLb){
       this._replayFromLb = false;
       // AI-Autos wieder einblenden
@@ -16691,7 +16702,7 @@ addEventListener('DOMContentLoaded',()=>Game.boot());
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js" defer></script>
-<script src="assets/gt3-firebase.js?v=9" defer></script>
+<script src="assets/gt3-firebase.js?v=10" defer></script>
 
   <section class="screen hidden" id="screen-impressum">
     <button class="btn" onclick="Game.showScreen('screen-start')" style="margin-bottom:24px">&larr; ZUR&Uuml;CK</button>

@@ -621,6 +621,9 @@ function _initAdminPanel(){
   const _playReplay = (obj) => {
     if(!(obj && obj.replay && obj.replay.flat && obj.replay.flat.length > 5)) return;
     const p = document.getElementById('admin-panel'); if(p) p.style.display = 'none';
+    // Merken, dass die Runde aus dem Stewards-Panel kam -> beim Verlassen des
+    // Replays soll das Panel wieder aufgehen statt im Hauptmenü zu landen.
+    if(typeof Game !== 'undefined') Game._replayFromSteward = true;
     try { _watchLbReplay(obj); } catch(e){ console.error('[Admin] replay:', e); }
   };
 
