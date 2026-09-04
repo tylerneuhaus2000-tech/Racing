@@ -641,32 +641,59 @@ function _initAdminPanel(){
           if(!_isAdmin()) return;
           const reason = prompt(`Grund für die Streichung dieser Zeit?\n\n${r.trackId} · ${fmtLap(r.timeMs)}\n\nz.B. "Corner Cut Kurve 3" oder "Streckenlimits Ausgang T7"`);
           if(reason == null || !reason.trim()) return;
+          const rsn = reason.trim();
           el.style.opacity = '0.5';
+
+          // Die drei Schritte laufen UNABHÄNGIG — schlägt einer fehl, laufen die
+          // anderen trotzdem. Das Löschen ist der wichtigste, deshalb zuerst.
+          const errs = [];
+          let okDel = false, okLog = false, okMsg = false;
+
+          try { await db.collection('times').doc(r._id).delete(); okDel = true; }
+          catch(e){ errs.push('Löschen: ' + e.message); console.error('[Admin] time delete:', e); }
+
           try {
             await db.collection('steward_actions').add({
               type: 'lap_deleted',
               targetUid, username, docId: r._id,
               trackId: r.trackId || null, carId: r.carId || null, carName: r.carName || null,
               timeMs: r.timeMs || null,
-              reason: reason.trim(),
+              reason: rsn,
               by: fbUser ? fbUser.uid : null,
               at: Date.now()
             });
-            await db.collection('times').doc(r._id).delete();
-            // Fahrer im Spiel benachrichtigen
+            okLog = true;
+          } catch(e){ errs.push('Protokoll: ' + e.message); console.error('[Admin] steward_actions:', e); }
+
+          try {
             await db.collection('steward_msgs').doc(targetUid).set({
               type: 'penalty',
-              reason: `Rundenzeit gestrichen (${r.trackId}): ${reason.trim()}`,
+              reason: `Rundenzeit gestrichen · ${r.trackId}: ${rsn}`,
               penalty: 'Zeit annulliert', lpDelta: 0, ts: Date.now()
             });
+            okMsg = true;
+          } catch(e){ errs.push('Benachrichtigung: ' + e.message); console.error('[Admin] steward_msgs:', e); }
+
+          if(okDel){
             el.remove();
-            status.style.color = '#4eff8a';
-            status.textContent = `✓ Zeit gestrichen · ${r.trackId} · Grund protokolliert (steward_actions)`;
-          } catch(e){
+            // Falls die Bestenliste offen ist und dieselbe Strecke zeigt -> neu laden
+            try {
+              const lbSel = document.getElementById('lb-track-sel');
+              const lbScreen = document.getElementById('screen-leaderboard');
+              if(lbSel && lbScreen && !lbScreen.classList.contains('hidden') && lbSel.value === r.trackId){
+                _loadLbForTrack(r.trackId);
+              }
+            } catch(e){}
+            status.style.color = errs.length ? '#ffb020' : '#4eff8a';
+            status.textContent = `✓ Zeit gestrichen`
+              + (okLog ? ' · protokolliert' : '')
+              + (okMsg ? ' · Fahrer benachrichtigt' : '')
+              + (errs.length ? `  ⚠ ${errs.join(' | ')}` : '');
+          } else {
             el.style.opacity = '1';
             status.style.color = '#ff6b6b';
-            status.textContent = '❌ Streichen fehlgeschlagen: ' + e.message + ' (evtl. Firestore-Regel für times/steward_actions fehlt)';
-            console.error('[Admin] delete time:', e);
+            status.textContent = '❌ Löschen fehlgeschlagen: ' + errs.join(' | ')
+              + '  (Firestore-Regel für times delete deployed? firebase deploy --only firestore:rules)';
           }
         };
         timesList.appendChild(el);
