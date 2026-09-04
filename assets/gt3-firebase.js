@@ -602,156 +602,200 @@ function _initAdminPanel(){
     }
   };
 
-  /* ── Rundenzeiten-Kontrolle: alle Bestzeiten eines Spielers laden,
-     Replay ansehen, mit protokolliertem Grund streichen ── */
-  const loadTimesBtn = document.getElementById('adm-load-times');
-  const timesList    = document.getElementById('adm-times-list');
+  /* ── Rundenzeiten-Kontrolle: alle Bestzeiten eines Spielers laden, nach
+     Strecke filtern (schnellste zuerst), Replay ansehen, mit protokolliertem
+     Grund streichen ── */
+  const loadTimesBtn  = document.getElementById('adm-load-times');
+  const timesList     = document.getElementById('adm-times-list');
+  const timesTrackSel = document.getElementById('adm-times-track-sel');
   const _isAdmin = () => !!(fbUser && ADMIN_UIDS.includes(fbUser.uid));
 
   const _btn = (a, title, txt, col, bg, bd) =>
     `<button data-a="${a}" title="${title}" style="padding:5px 9px;background:${bg};border:1px solid ${bd};border-radius:4px;color:${col};font:700 11px var(--mono);cursor:pointer">${txt}</button>`;
+
+  const _trackName = (id) => {
+    try { const t = (typeof TRACKS !== 'undefined') ? TRACKS.find(x => x.id === id) : null; return t ? t.name : (id || '?'); }
+    catch(e){ return id || '?'; }
+  };
+
+  const _playReplay = (obj) => {
+    if(!(obj && obj.replay && obj.replay.flat && obj.replay.flat.length > 5)) return;
+    const p = document.getElementById('admin-panel'); if(p) p.style.display = 'none';
+    try { _watchLbReplay(obj); } catch(e){ console.error('[Admin] replay:', e); }
+  };
+
+  // Zustand des zuletzt geladenen Spielers — von loadTimesBtn befüllt,
+  // von timesTrackSel.onchange und den Zeilen-Handlern gelesen.
+  let _timesRows = [], _timesUsername = '', _timesTargetUid = '';
+
+  function _renderTimeRow(r, rank, trackIdForRerender){
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'border-bottom:1px solid #1c2733;padding:7px 0';
+
+    const head = document.createElement('div');
+    head.style.cssText = 'display:flex;align-items:center;gap:8px';
+    const hasRep = !!(r.replay && r.replay.flat && r.replay.flat.length > 5);
+    head.innerHTML =
+      `<span style="width:26px;color:${rank===1?'#ffd400':'#8b95a1'};font-weight:700">P${rank}</span>`+
+      `<span style="flex:1;color:#e8ecef;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(r.name||_timesUsername||'?')} · ${_esc(r.carName||r.carId||'?')}</span>`+
+      `<span style="color:#8bd3ff;font-variant-numeric:tabular-nums;min-width:74px;text-align:right">${fmtLap(r.timeMs)}</span>`+
+      _btn('rep', 'Replay der Bestzeit', '▶', hasRep?'#8bd3ff':'#445', '#1a2533', '#2a3a4a')+
+      _btn('hist', 'Runden-Historie', '▾', '#8b95a1', '#1a2533', '#2a3a4a');
+    head.querySelector('[data-a="rep"]').onclick = () => _playReplay(r);
+
+    const histBox = document.createElement('div');
+    histBox.style.cssText = 'display:none;margin:6px 0 2px 10px;padding-left:10px;border-left:2px solid #2a3a4a';
+    let histLoaded = false;
+
+    async function renderHist(){
+      histBox.innerHTML = '<div style="color:#8b95a1;padding:4px 0;font-size:10px">⏳ Runden laden…</div>';
+      const lapsRef = db.collection('times').doc(r._id).collection('laps');
+      let lapsSnap = await lapsRef.orderBy('timeMs').get();
+      // Migration: alte Bestzeit hat noch keine Historie -> aus dem Parent seeden
+      if(lapsSnap.empty && r.timeMs){
+        const seed = { timeMs: r.timeMs, at: r.updatedAt || firebase.firestore.FieldValue.serverTimestamp(), struck:false };
+        if(r.replay) seed.replay = r.replay;
+        try { await lapsRef.add(seed); lapsSnap = await lapsRef.orderBy('timeMs').get(); }
+        catch(e){ histBox.innerHTML = '<div style="color:#ff6b6b;font-size:10px">Historie anlegen fehlgeschlagen: '+_esc(e.message)+'</div>'; return; }
+      }
+      const laps = [];
+      lapsSnap.forEach(d => laps.push(Object.assign({ _id:d.id }, d.data())));
+      if(!laps.length){ histBox.innerHTML = '<div style="color:#8b95a1;font-size:10px;padding:4px 0">Keine Runden gespeichert.</div>'; return; }
+      histBox.innerHTML = '';
+      let hrank = 0;
+      laps.forEach(l => {
+        const struck = !!l.struck;
+        if(!struck) hrank++;
+        const lr = document.createElement('div');
+        lr.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px'+(struck?';opacity:.55':'');
+        const lhasRep = !!(l.replay && l.replay.flat && l.replay.flat.length > 5);
+        lr.innerHTML =
+          `<span style="width:26px;color:#8b95a1">${struck ? '—' : '#'+hrank}</span>`+
+          `<span style="flex:1;color:${struck?'#ff8a94':'#e8ecef'};font-variant-numeric:tabular-nums">${fmtLap(l.timeMs)}${struck?` · <span style="font-size:10px">GESTRICHEN: ${_esc(l.struckReason||'—')}</span>`:''}</span>`+
+          (lhasRep ? _btn('lrep','Replay dieser Runde','▶','#8bd3ff','#1a2533','#2a3a4a') : '')+
+          (struck ? '' : _btn('lstr','Diese Runde streichen','✕','#ff8a94','#3a0d12','#ff2e3d'));
+        if(lhasRep) lr.querySelector('[data-a="lrep"]').onclick = () => _playReplay(l);
+        const strBtn = lr.querySelector('[data-a="lstr"]');
+        if(strBtn) strBtn.onclick = async () => {
+          if(!_isAdmin()) return;
+          const reason = prompt(`Grund für die Streichung dieser Runde?\n\n${_trackName(r.trackId)} · ${fmtLap(l.timeMs)}\n\nz.B. "Corner Cut Kurve 3"`);
+          if(reason == null || !reason.trim()) return;
+          const rsn = reason.trim();
+          lr.style.opacity = '0.4';
+          const errs = [];
+          let okStrike = false;
+          try {
+            await lapsRef.doc(l._id).update({ struck:true, struckReason:rsn, struckBy:(fbUser?fbUser.uid:null), struckAt:Date.now() });
+            okStrike = true;
+          } catch(e){ errs.push('Streichen: '+e.message); console.error('[Admin] lap strike:', e); }
+
+          let newBest = null;
+          if(okStrike){
+            try { newBest = await _recomputeParentTime(r._id, {
+              name:r.name, uid:_timesTargetUid, carName:r.carName||r.carId, classType:r.classType, trackId:r.trackId, carId:r.carId
+            }); }
+            catch(e){ errs.push('Neuberechnung: '+e.message); console.error('[Admin] recompute:', e); }
+          }
+          try {
+            await db.collection('steward_actions').add({
+              type:'lap_struck', targetUid:_timesTargetUid, username:_timesUsername, docId:r._id, lapId:l._id,
+              trackId:r.trackId||null, carId:r.carId||null, timeMs:l.timeMs||null,
+              reason:rsn, by:(fbUser?fbUser.uid:null), at:Date.now()
+            });
+          } catch(e){ errs.push('Protokoll: '+e.message); }
+          try {
+            await db.collection('steward_msgs').doc(_timesTargetUid).set({
+              type:'penalty',
+              reason: `Rundenzeit gestrichen · ${_trackName(r.trackId)}: ${rsn}. ` + (newBest ? `Neue Bestzeit: ${fmtLap(newBest.timeMs)}` : 'Keine gültige Zeit mehr auf dieser Strecke.'),
+              penalty:'Zeit annulliert', lpDelta:0, ts:Date.now()
+            });
+          } catch(e){ errs.push('Benachrichtigung: '+e.message); }
+
+          if(okStrike){
+            if(newBest){ r.timeMs = newBest.timeMs; r.replay = newBest.replay || null; }
+            else {
+              r.timeMs = null;
+              const i = _timesRows.indexOf(r); if(i >= 0) _timesRows.splice(i, 1);
+            }
+            _renderTimesForTrack(trackIdForRerender);   // Ränge + Bestzeiten neu ordnen
+            try {
+              const lbSel = document.getElementById('lb-track-sel');
+              const lbScreen = document.getElementById('screen-leaderboard');
+              if(lbSel && lbScreen && !lbScreen.classList.contains('hidden') && lbSel.value === r.trackId) _loadLbForTrack(r.trackId);
+            } catch(e){}
+            status.style.color = errs.length ? '#ffb020' : '#4eff8a';
+            status.textContent = (newBest ? `✓ Gestrichen · neue Bestzeit ${fmtLap(newBest.timeMs)}` : '✓ Gestrichen · keine gültige Zeit mehr')
+              + (errs.length ? `  ⚠ ${errs.join(' | ')}` : '');
+          } else {
+            lr.style.opacity = '1';
+            status.style.color = '#ff6b6b';
+            status.textContent = '❌ ' + errs.join(' | ') + '  (Regeln deployed? firebase deploy --only firestore:rules)';
+          }
+        };
+        histBox.appendChild(lr);
+      });
+    }
+
+    head.querySelector('[data-a="hist"]').onclick = async () => {
+      const open = histBox.style.display !== 'none';
+      histBox.style.display = open ? 'none' : 'block';
+      head.querySelector('[data-a="hist"]').textContent = open ? '▾' : '▴';
+      if(!open && !histLoaded){ histLoaded = true; try { await renderHist(); } catch(e){ histBox.innerHTML = '<div style="color:#ff6b6b;font-size:10px">'+_esc(e.message)+'</div>'; } }
+    };
+
+    wrap.appendChild(head);
+    wrap.appendChild(histBox);
+    timesList.appendChild(wrap);
+  }
+
+  // Rendert die Zeiten des geladenen Spielers auf EINER Strecke, schnellste zuerst.
+  function _renderTimesForTrack(trackId){
+    timesList.innerHTML = '';
+    if(!trackId){ timesList.innerHTML = '<div style="color:#8b95a1;padding:8px 0">Strecke wählen.</div>'; return; }
+    const rows = _timesRows.filter(r => r.trackId === trackId).sort((a,b) => (a.timeMs||0) - (b.timeMs||0));
+    if(!rows.length){ timesList.innerHTML = '<div style="color:#8b95a1;padding:8px 0">Keine gültige Zeit mehr auf dieser Strecke.</div>'; return; }
+    rows.forEach((r, i) => _renderTimeRow(r, i + 1, trackId));
+  }
+
+  if(timesTrackSel) timesTrackSel.onchange = () => _renderTimesForTrack(timesTrackSel.value);
 
   if(loadTimesBtn && timesList) loadTimesBtn.onclick = async () => {
     if(!_isAdmin()){ status.style.color='#ff6b6b'; status.textContent='❌ Keine Berechtigung'; return; }
     const username = sel ? sel.value.trim().toLowerCase() : '';
     if(!username){ status.style.color='#ff6b6b'; status.textContent='❌ Erst oben einen Spieler wählen'; return; }
     timesList.innerHTML = '<div style="color:#8b95a1;padding:8px 0">⏳ Laden…</div>';
+    if(timesTrackSel) timesTrackSel.innerHTML = '<option value="">— lädt —</option>';
     try {
       const uSnap = await db.collection('usernames').doc(username).get();
       if(!uSnap.exists){ timesList.innerHTML = '<div style="color:#ff6b6b;padding:8px 0">Spieler nicht gefunden</div>'; return; }
       const targetUid = uSnap.data().uid;
       const snap = await db.collection('times').where('uid','==',targetUid).get();
-      if(snap.empty){ timesList.innerHTML = '<div style="color:#8b95a1;padding:8px 0">Keine Rundenzeiten für diesen Spieler.</div>'; return; }
       const rows = [];
       snap.forEach(d => rows.push(Object.assign({ _id: d.id }, d.data())));
-      rows.sort((a,b) => (a.trackId||'').localeCompare(b.trackId||'') || (a.timeMs||0) - (b.timeMs||0));
-      timesList.innerHTML = '';
+      _timesRows = rows; _timesUsername = username; _timesTargetUid = targetUid;
 
-      const _playReplay = (obj) => {
-        if(!(obj && obj.replay && obj.replay.flat && obj.replay.flat.length > 5)) return;
-        const p = document.getElementById('admin-panel'); if(p) p.style.display = 'none';
-        try { _watchLbReplay(obj); } catch(e){ console.error('[Admin] replay:', e); }
-      };
+      if(!rows.length){
+        if(timesTrackSel) timesTrackSel.innerHTML = '<option value="">— keine Zeiten —</option>';
+        timesList.innerHTML = '<div style="color:#8b95a1;padding:8px 0">Keine Rundenzeiten für diesen Spieler.</div>';
+        return;
+      }
 
-      rows.forEach(r => {
-        const wrap = document.createElement('div');
-        wrap.style.cssText = 'border-bottom:1px solid #1c2733;padding:7px 0';
-
-        const head = document.createElement('div');
-        head.style.cssText = 'display:flex;align-items:center;gap:8px';
-        const hasRep = !!(r.replay && r.replay.flat && r.replay.flat.length > 5);
-        head.innerHTML =
-          `<span style="flex:1;color:#e8ecef;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(r.trackId||'?')} · ${_esc(r.carName||r.carId||'?')}</span>`+
-          `<span style="color:#8bd3ff;font-variant-numeric:tabular-nums;min-width:74px;text-align:right">${fmtLap(r.timeMs)}</span>`+
-          _btn('rep', 'Replay der Bestzeit', '▶', hasRep?'#8bd3ff':'#445', '#1a2533', '#2a3a4a')+
-          _btn('hist', 'Runden-Historie', '▾', '#8b95a1', '#1a2533', '#2a3a4a');
-        head.querySelector('[data-a="rep"]').onclick = () => _playReplay(r);
-
-        const histBox = document.createElement('div');
-        histBox.style.cssText = 'display:none;margin:6px 0 2px 10px;padding-left:10px;border-left:2px solid #2a3a4a';
-        let histLoaded = false;
-
-        async function renderHist(){
-          histBox.innerHTML = '<div style="color:#8b95a1;padding:4px 0;font-size:10px">⏳ Runden laden…</div>';
-          const lapsRef = db.collection('times').doc(r._id).collection('laps');
-          let lapsSnap = await lapsRef.orderBy('timeMs').get();
-          // Migration: alte Bestzeit hat noch keine Historie -> aus dem Parent seeden
-          if(lapsSnap.empty && r.timeMs){
-            const seed = { timeMs: r.timeMs, at: r.updatedAt || firebase.firestore.FieldValue.serverTimestamp(), struck:false };
-            if(r.replay) seed.replay = r.replay;
-            try { await lapsRef.add(seed); lapsSnap = await lapsRef.orderBy('timeMs').get(); }
-            catch(e){ histBox.innerHTML = '<div style="color:#ff6b6b;font-size:10px">Historie anlegen fehlgeschlagen: '+_esc(e.message)+'</div>'; return; }
-          }
-          const laps = [];
-          lapsSnap.forEach(d => laps.push(Object.assign({ _id:d.id }, d.data())));
-          if(!laps.length){ histBox.innerHTML = '<div style="color:#8b95a1;font-size:10px;padding:4px 0">Keine Runden gespeichert.</div>'; return; }
-          histBox.innerHTML = '';
-          let rank = 0;
-          laps.forEach(l => {
-            const struck = !!l.struck;
-            if(!struck) rank++;
-            const lr = document.createElement('div');
-            lr.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px'+(struck?';opacity:.55':'');
-            const lhasRep = !!(l.replay && l.replay.flat && l.replay.flat.length > 5);
-            lr.innerHTML =
-              `<span style="width:26px;color:#8b95a1">${struck ? '—' : '#'+rank}</span>`+
-              `<span style="flex:1;color:${struck?'#ff8a94':'#e8ecef'};font-variant-numeric:tabular-nums">${fmtLap(l.timeMs)}${struck?` · <span style="font-size:10px">GESTRICHEN: ${_esc(l.struckReason||'—')}</span>`:''}</span>`+
-              (lhasRep ? _btn('lrep','Replay dieser Runde','▶','#8bd3ff','#1a2533','#2a3a4a') : '')+
-              (struck ? '' : _btn('lstr','Diese Runde streichen','✕','#ff8a94','#3a0d12','#ff2e3d'));
-            if(lhasRep) lr.querySelector('[data-a="lrep"]').onclick = () => _playReplay(l);
-            const strBtn = lr.querySelector('[data-a="lstr"]');
-            if(strBtn) strBtn.onclick = async () => {
-              if(!_isAdmin()) return;
-              const reason = prompt(`Grund für die Streichung dieser Runde?\n\n${r.trackId} · ${fmtLap(l.timeMs)}\n\nz.B. "Corner Cut Kurve 3"`);
-              if(reason == null || !reason.trim()) return;
-              const rsn = reason.trim();
-              lr.style.opacity = '0.4';
-              const errs = [];
-              let okStrike = false;
-              try {
-                await lapsRef.doc(l._id).update({ struck:true, struckReason:rsn, struckBy:(fbUser?fbUser.uid:null), struckAt:Date.now() });
-                okStrike = true;
-              } catch(e){ errs.push('Streichen: '+e.message); console.error('[Admin] lap strike:', e); }
-
-              let newBest = null;
-              if(okStrike){
-                try { newBest = await _recomputeParentTime(r._id, {
-                  name:r.name, uid:targetUid, carName:r.carName||r.carId, classType:r.classType, trackId:r.trackId, carId:r.carId
-                }); }
-                catch(e){ errs.push('Neuberechnung: '+e.message); console.error('[Admin] recompute:', e); }
-              }
-              try {
-                await db.collection('steward_actions').add({
-                  type:'lap_struck', targetUid, username, docId:r._id, lapId:l._id,
-                  trackId:r.trackId||null, carId:r.carId||null, timeMs:l.timeMs||null,
-                  reason:rsn, by:(fbUser?fbUser.uid:null), at:Date.now()
-                });
-              } catch(e){ errs.push('Protokoll: '+e.message); }
-              try {
-                await db.collection('steward_msgs').doc(targetUid).set({
-                  type:'penalty',
-                  reason: `Rundenzeit gestrichen · ${r.trackId}: ${rsn}. ` + (newBest ? `Neue Bestzeit: ${fmtLap(newBest.timeMs)}` : 'Keine gültige Zeit mehr auf dieser Strecke.'),
-                  penalty:'Zeit annulliert', lpDelta:0, ts:Date.now()
-                });
-              } catch(e){ errs.push('Benachrichtigung: '+e.message); }
-
-              if(okStrike){
-                if(newBest){ r.timeMs = newBest.timeMs; r.replay = newBest.replay || null; }
-                else { r.timeMs = null; }
-                // Kopf-Zeile aktualisieren
-                head.children[1].textContent = newBest ? fmtLap(newBest.timeMs) : '—';
-                await renderHist();
-                try {
-                  const lbSel = document.getElementById('lb-track-sel');
-                  const lbScreen = document.getElementById('screen-leaderboard');
-                  if(lbSel && lbScreen && !lbScreen.classList.contains('hidden') && lbSel.value === r.trackId) _loadLbForTrack(r.trackId);
-                } catch(e){}
-                status.style.color = errs.length ? '#ffb020' : '#4eff8a';
-                status.textContent = (newBest ? `✓ Gestrichen · neue Bestzeit ${fmtLap(newBest.timeMs)}` : '✓ Gestrichen · keine gültige Zeit mehr')
-                  + (errs.length ? `  ⚠ ${errs.join(' | ')}` : '');
-              } else {
-                lr.style.opacity = '1';
-                status.style.color = '#ff6b6b';
-                status.textContent = '❌ ' + errs.join(' | ') + '  (Regeln deployed? firebase deploy --only firestore:rules)';
-              }
-            };
-            histBox.appendChild(lr);
-          });
-        }
-
-        head.querySelector('[data-a="hist"]').onclick = async () => {
-          const open = histBox.style.display !== 'none';
-          histBox.style.display = open ? 'none' : 'block';
-          head.querySelector('[data-a="hist"]').textContent = open ? '▾' : '▴';
-          if(!open && !histLoaded){ histLoaded = true; try { await renderHist(); } catch(e){ histBox.innerHTML = '<div style="color:#ff6b6b;font-size:10px">'+_esc(e.message)+'</div>'; } }
-        };
-
-        wrap.appendChild(head);
-        wrap.appendChild(histBox);
-        timesList.appendChild(wrap);
-      });
+      // Strecken-Dropdown: eine Strecke wählen -> nur deren Zeiten sehen (schnellste zuerst)
+      const counts = {};
+      rows.forEach(r => { counts[r.trackId] = (counts[r.trackId]||0) + 1; });
+      const trackIds = Object.keys(counts).sort((a,b) => _trackName(a).localeCompare(_trackName(b)));
+      if(timesTrackSel){
+        timesTrackSel.innerHTML = '';
+        trackIds.forEach(id => {
+          const o = document.createElement('option');
+          o.value = id; o.textContent = `${_trackName(id)} (${counts[id]})`;
+          timesTrackSel.appendChild(o);
+        });
+        timesTrackSel.value = trackIds[0];
+      }
+      _renderTimesForTrack(trackIds[0]);
       status.style.color = '#8b95a1';
-      status.textContent = `${rows.length} Eintrag/Einträge · "▾" öffnet die Runden-Historie`;
+      status.textContent = `${rows.length} Zeit(en) über ${trackIds.length} Strecke(n) für ${username} — Strecke oben wählen`;
     } catch(e){
       timesList.innerHTML = '<div style="color:#ff6b6b;padding:8px 0">Fehler: ' + _esc(e.message) + '</div>';
       console.error('[Admin] load times:', e);

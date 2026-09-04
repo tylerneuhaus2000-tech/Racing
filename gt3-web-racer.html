@@ -1662,9 +1662,14 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 
     <hr style="border:none;border-top:1px solid #2a3a4a;margin:22px 0 16px">
     <div style="font:700 10px var(--mono);letter-spacing:.2em;color:#ff2e3d;margin-bottom:4px">RUNDENZEITEN-KONTROLLE</div>
-    <div style="color:#8b95a1;font-size:10px;margin-bottom:10px">Einträge des oben gewählten Spielers. „▾" öffnet die Runden-Historie — einzelne Runden mit Grund streichen; die nächst-schnellste gültige rückt automatisch nach.</div>
-    <button id="adm-load-times" style="width:100%;padding:10px;background:#1a2533;border:1px solid #2a3a4a;border-radius:4px;color:#8b95a1;font:700 10px var(--mono);letter-spacing:.1em;cursor:pointer">↻ ZEITEN DES SPIELERS LADEN</button>
-    <div id="adm-times-list" style="margin-top:10px;max-height:240px;overflow-y:auto;font-size:11px"></div>
+    <div style="color:#8b95a1;font-size:10px;margin-bottom:10px">Erst Strecke wählen, dann die Zeiten des Spielers auf dieser Strecke — schnellste zuerst. „▾" öffnet die Runden-Historie — einzelne Runden mit Grund streichen; die nächst-schnellste gültige rückt automatisch nach.</div>
+    <div style="display:flex;gap:8px">
+      <select id="adm-times-track-sel" style="flex:1;padding:9px 12px;background:#1a2533;border:1px solid #2a3a4a;border-radius:4px;color:#e8ecef;font:400 12px var(--mono)">
+        <option value="">— zuerst Zeiten laden —</option>
+      </select>
+      <button id="adm-load-times" style="padding:9px 14px;background:#1a2533;border:1px solid #2a3a4a;border-radius:4px;color:#8b95a1;font:700 10px var(--mono);letter-spacing:.1em;cursor:pointer;white-space:nowrap">↻ ZEITEN LADEN</button>
+    </div>
+    <div id="adm-times-list" style="margin-top:10px;max-height:280px;overflow-y:auto;font-size:11px"></div>
   </div>
 </div>
 
@@ -16679,7 +16684,7 @@ addEventListener('DOMContentLoaded',()=>Game.boot());
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js" defer></script>
-<script src="assets/gt3-firebase.js?v=8" defer></script>
+<script src="assets/gt3-firebase.js?v=9" defer></script>
 
   <section class="screen hidden" id="screen-impressum">
     <button class="btn" onclick="Game.showScreen('screen-start')" style="margin-bottom:24px">&larr; ZUR&Uuml;CK</button>
