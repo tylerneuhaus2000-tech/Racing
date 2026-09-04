@@ -5596,6 +5596,8 @@ class Car {
     this.accLong=0;            // für Gewichtsverlagerung
     this.shiftCut=0;
     this.drsOpen=0;            // 0..1 — Formel: Heckflügel-Klappe (Auto-DRS auf Geraden)
+    this.drsJammed=false;      // seltener Defekt: Klappe klemmt beim Einlenken offen
+    this._drsJamCD=0;
     this.sampleIdx=0;
     this.surf=SURF.TRACK;
     this.slipFront=0; this.slipRear=0;
@@ -6407,15 +6409,34 @@ class Car {
        (Topspeed +~15 km/h) gegen ~30% weniger Hinterachs-Abtrieb. Schließt
        sofort beim Anlenken/Bremsen. */
     if(d.classType === 'formula'){
-      if(input.brake > 0.04 || Math.abs(input.steer) > 0.10){
-        this.drsOpen = 0;                                  // Bremse ODER deutliches Lenken -> SOFORT zu
+      const drsWasOpen = this.drsOpen;
+      if(this.drsJammed){
+        /* Klappe klemmt offen — lässt sich nicht mehr schließen, bis das Auto
+           fast steht (Fahrer bekommt es zurück / Klappe rastet ein). */
+        this.drsOpen = 1;
+        if(speed < 10 && Math.abs(this.yawRate) < 0.35) this.drsJammed = false;
+      } else if(input.brake > 0.04 || Math.abs(input.steer) > 0.10){
+        this.drsOpen = 0;                                  // Bremse ODER Lenken -> SOFORT zu
+        /* Ausfall-Wurf: NUR beim Einlenken (nicht beim Bremsen), wenn die
+           Klappe eben noch offen war und man mit Tempo reindreht. Selten,
+           mit Cooldown, damit es nicht kettet. */
+        if(input.brake <= 0.04 && drsWasOpen > 0.6 && Math.abs(input.steer) > 0.15
+           && speed > 55 && (this._drsJamCD || 0) <= 0){
+          this._drsJamCD = 12;
+          if(Math.random() < 0.02){
+            this.drsJammed = true;
+            if(typeof Game !== 'undefined' && typeof Game._showFlash === 'function')
+              Game._showFlash('DRS KLEMMT — HECK WEG!', '#ff2e3d', 2600);
+          }
+        }
       } else {
         const straight = speed > 50 && Math.abs(input.steer) < 0.05 && input.throttle > 0.90;
         this.drsOpen += clamp((straight ? 1 : 0) - this.drsOpen, -dt*8, dt*3.5);
       }
+      if(this._drsJamCD > 0) this._drsJamCD -= dt;
       FzAeroR *= (1 - this.drsOpen * 0.30);
     } else {
-      this.drsOpen = 0;
+      this.drsOpen = 0; this.drsJammed = false;
     }
 
     /* --- Lenkung mit Rate-Limit, geschwindigkeitsabhängig ---
@@ -6464,6 +6485,20 @@ class Car {
     /* --- Fahrwerkschaden: Grip pro Achse reduzieren --- */
     muF *= (dmgMods.gripFL + dmgMods.gripFR) / 2;
     muR *= (dmgMods.gripRL + dmgMods.gripRR) / 2;
+
+    /* --- DRS-Defekt: Klappe klemmt offen -> Heckflügel stallt.
+       Sobald man lenkt bricht das Heck weg (muR ~1/5), das löst den Dreher
+       aus; während sich das Auto dreht bleibt praktisch kein Grip, bis es
+       fast steht. --- */
+    if(this.drsJammed){
+      if(Math.abs(this.yawRate) > 1.4){        // im Dreher: quasi null Grip
+        muR *= 0.03;
+        muF *= 0.14;
+      } else if(Math.abs(this.steer) > 0.03){  // Einlenken -> Heck weg
+        muR *= 0.20;
+        muF *= 0.62;
+      }
+    }
 
     /* --- Reibwerte für die KI bereitstellen ---
        Die KI schätzte ihr Kurvenlimit früher selbst (nur aus def.gripF) und lag
@@ -6785,12 +6820,15 @@ class Car {
     /* Karts dürfen bei Schrittgeschwindigkeit viel schneller rotieren — der
        5-m/s-Boden hier ist für Rennwagen gedacht und macht ein langsames Kart
        lenkfaul. */
-    const yawLim = ayMaxAvail / Math.max(speed, isKart ? 2.2 : 5);
+    /* DRS-Defekt: die Sim-Cade-Fangnetze (Gier-Stabilisierung, vy-Dämpfung)
+       weitgehend abschalten, damit der Dreher wirklich durchgeht. */
+    const drsFailMul = this.drsJammed ? 0.10 : 1;
+    const yawLim = ayMaxAvail / Math.max(speed, isKart ? 2.2 : 5) * (this.drsJammed ? 5 : 1);
     const yawKinRaw = this.vx/this.L*Math.tan(this.steer);
     const yawKin = clamp(yawKinRaw, -yawLim, yawLim);
     /* Korrektur stärker im Grip-Bereich, deutlich weniger im Drift */
-    this.yawRate += (yawKin - this.yawRate) * Math.min(1, dt*5.4*sideDampGrip*assistFactor);
-    this.vy *= Math.max(0, 1 - dt*3.2*sideDampGrip*assistFactor);
+    this.yawRate += (yawKin - this.yawRate) * Math.min(1, dt*5.4*sideDampGrip*assistFactor*drsFailMul);
+    this.vy *= Math.max(0, 1 - dt*3.2*sideDampGrip*assistFactor*drsFailMul);
     const vyCap = 0.46*Math.abs(this.vx) + 1.4;
     this.vy = clamp(this.vy, -vyCap, vyCap);
 
