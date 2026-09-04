@@ -455,6 +455,7 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #dmg-panel .dp-badge.gt3{background:rgba(85,168,255,0.15);color:var(--blue);border:1px solid rgba(85,168,255,0.35)}
 #dmg-panel .dp-badge.hyp{background:rgba(255,46,61,0.15);color:#ff5060;border:1px solid rgba(255,46,61,0.35)}
 #dmg-panel .dp-badge.lmp2{background:rgba(255,160,30,0.15);color:#ffa01e;border:1px solid rgba(255,160,30,0.35)}
+#dmg-panel .dp-badge.frm{background:rgba(180,90,255,0.16);color:#c98bff;border:1px solid rgba(180,90,255,0.4)}
 #dmg-panel .dp-svg-wrap{padding:8px 6px 2px;display:flex;justify-content:center}
 #dmg-panel #dp-svg{display:block}
 #dmg-panel .dp-zone{transition:fill .3s,filter .3s}
@@ -1873,8 +1874,9 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
     <!-- Kategorie-Umschalter: Rennwagen und Go-Karts teilen sich keine Strecken.
          Muss auch hier stehen (nicht nur auf der Fahrzeugseite), sonst kommt man
          nie an die Kartbahnen — die sind bei Kategorie "Rennwagen" ausgefiltert. -->
-    <div class="lob-tabs" id="garage-cat-tabs-track" style="max-width:340px;margin:0 auto 18px">
+    <div class="lob-tabs" id="garage-cat-tabs-track" style="max-width:460px;margin:0 auto 18px">
       <button class="lob-tab active" data-garage-cat="race">RENNWAGEN</button>
+      <button class="lob-tab" data-garage-cat="formula">FORMEL</button>
       <button class="lob-tab" data-garage-cat="kart">GO-KARTS</button>
     </div>
     <div class="cards" id="tracklist"></div>
@@ -2007,8 +2009,9 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
     <div class="eyebrow">SCHRITT 3 / 3</div>
     <h2>FAHRZEUG WÄHLEN</h2>
     <p class="sub" id="carlist-sub">Jedes Auto hat eine eigene Physik-Charakteristik — spürbar in Traktion, Lastwechsel und Stabilität.</p>
-    <div class="lob-tabs" id="garage-cat-tabs" style="max-width:340px;margin:0 0 18px">
+    <div class="lob-tabs" id="garage-cat-tabs" style="max-width:460px;margin:0 0 18px">
       <button class="lob-tab active" data-garage-cat="race">RENNWAGEN</button>
+      <button class="lob-tab" data-garage-cat="formula">FORMEL</button>
       <button class="lob-tab" data-garage-cat="kart">GO-KARTS</button>
     </div>
     <div class="cards" id="carlist"></div>
@@ -2706,7 +2709,7 @@ const Store = {
 /* Versions-Guard: wenn sich die CARS-Liste ändert (Autos hinzugefügt/entfernt),
    wird der LocalStorage einmalig geleert um veraltete Indizes zu verhindern.
    Einfach GAME_DATA_VERSION erhöhen nach Änderungen an CARS oder TRACKS. */
-const GAME_DATA_VERSION = '15';
+const GAME_DATA_VERSION = '16';
 (()=>{
   try {
     if(Store.get('game_data_version') !== GAME_DATA_VERSION){
@@ -2949,6 +2952,21 @@ const CARS = [
     desc:'GT3 · Frontmotor. Stabil, gutmütig, satter Geradeauslauf.',
     stats:{speed:0.88, grip:0.89, stab:0.87}
   },
+  {
+    id:'ferrari296gt3', name:'Ferrari 296 GT3', classType:'gt3',
+    color:0xd8102a, accent:0x1a1a1a, rim:0xe0c357,
+    model:{
+      url:'assets/models/ferrari_296_gt3.glb',
+      scale:1,
+      targetLength:4.7,
+      yOffset:0,
+      rotY:0
+    },
+    mass:1305, power:426000, maxForce:9150, topSpeed:293/3.6, brakeForce:13940,
+    gripF:1.32, gripR:1.39, yawDamp:0.58, tractionBoost:0.08, liftOversteer:0.09,
+    desc:'GT3 · V6-Biturbo, Mittelmotor. Sehr spitzes Einlenken, Traktion satt.',
+    stats:{speed:0.91, grip:0.92, stab:0.80}
+  },
   /* === LMP2 Klasse (grün im Leaderboard) === */
   {
     id:'oreca07', name:'Oreca 07 LMP2', classType:'lmp2',
@@ -3086,6 +3104,76 @@ const CARS = [
     desc:'Hypercar · Penske-Werksteam, neue Livery, neue Konfiguration.',
     stats:{speed:0.99, grip:0.96, stab:0.91}
   },
+
+  /* === Formel-Klasse (lila im Damage-Badge) — eigene Garage-Kategorie ===
+     F1 (2025/2026) > F2 > Formula Regional / F3. Sehr hoher Abtrieb (gripF/R),
+     winziges Trägheitsmoment, brutale Bremse. Nicht im gemischten KI-Grid.
+     ers:true nur bei den F1-Autos (MGU-K). rotY:0 als Startannahme —
+     falls ein Modell rückwärts steht, auf Math.PI drehen. */
+  {
+    id:'ferrari-sf25', name:'Ferrari SF-25', classType:'formula', classBadge:'F1', ers:true,
+    color:0xd8102a, accent:0x0a0a0a, rim:0xd0a83c,
+    model:{ url:'assets/models/ferrari_sf25.glb', scale:1, targetLength:5.6, yOffset:0, rotY:0 },
+    mass:840, power:560000, maxForce:13400, topSpeed:344/3.6, brakeForce:20400,
+    gripF:1.86, gripR:1.80, yawDamp:0.52, tractionBoost:0.11, liftOversteer:0.07,
+    desc:'F1 2025 · Hybrid-V6, gewaltiger Abtrieb. Bremst aus dem Nichts, lenkt telepathisch ein.',
+    stats:{speed:1.00, grip:1.00, stab:0.74}
+  },
+  {
+    id:'redbull-rb22', name:'Red Bull RB22', classType:'formula', classBadge:'F1', ers:true,
+    color:0x0a1a3c, accent:0xd6132b, rim:0xf2c20a,
+    model:{ url:'assets/models/redbull_rb22.glb', scale:1, targetLength:5.6, yOffset:0, rotY:0 },
+    mass:838, power:566000, maxForce:13550, topSpeed:346/3.6, brakeForce:20600,
+    gripF:1.88, gripR:1.82, yawDamp:0.50, tractionBoost:0.12, liftOversteer:0.06,
+    desc:'F1 2026 · Bestes Gesamtpaket. Traktion am Kurvenausgang, stabil bei Highspeed.',
+    stats:{speed:1.00, grip:1.00, stab:0.78}
+  },
+  {
+    id:'aston-amr26', name:'Aston Martin AMR26', classType:'formula', classBadge:'F1', ers:true,
+    color:0x00584a, accent:0xcedc00, rim:0x1a1a1a,
+    model:{ url:'assets/models/aston_amr26.glb', scale:1, targetLength:5.6, yOffset:0, rotY:0 },
+    mass:842, power:558000, maxForce:13350, topSpeed:348/3.6, brakeForce:20200,
+    gripF:1.84, gripR:1.80, yawDamp:0.58, tractionBoost:0.10, liftOversteer:0.05,
+    desc:'F1 2026 · Sehr stabil, höchster Topspeed. Verzeiht mehr als die anderen.',
+    stats:{speed:1.00, grip:0.97, stab:0.84}
+  },
+  {
+    id:'williams-fw48', name:'Williams FW48', classType:'formula', classBadge:'F1', ers:true,
+    color:0x0a1e4c, accent:0x37bedd, rim:0xffffff,
+    model:{ url:'assets/models/williams_fw48.glb', scale:1, targetLength:5.6, yOffset:0, rotY:0 },
+    mass:836, power:554000, maxForce:13250, topSpeed:345/3.6, brakeForce:20300,
+    gripF:1.82, gripR:1.76, yawDamp:0.46, tractionBoost:0.10, liftOversteer:0.08,
+    desc:'F1 2026 · Nervöses Heck, extrem agil. Belohnt saubere Hände, bestraft Gewalt.',
+    stats:{speed:0.99, grip:0.96, stab:0.70}
+  },
+  {
+    id:'f2-2024', name:'Formel 2 (2024)', classType:'formula', classBadge:'F2', ers:false,
+    color:0x1c2733, accent:0xe8322d, rim:0xc0c0c0,
+    model:{ url:'assets/models/f2_2024.glb', scale:1, targetLength:5.2, yOffset:0, rotY:0 },
+    mass:892, power:402000, maxForce:10600, topSpeed:326/3.6, brakeForce:15600,
+    gripF:1.62, gripR:1.57, yawDamp:0.60, tractionBoost:0.09, liftOversteer:0.07,
+    desc:'F2 · Spec-Dallara, 3,4-l-V6-Turbo. Weniger Abtrieb als F1 — mehr Fahrarbeit.',
+    stats:{speed:0.90, grip:0.86, stab:0.76}
+  },
+  {
+    id:'tatuus-ft60', name:'Tatuus FT-60 (FR)', classType:'formula', classBadge:'FR', ers:false,
+    color:0xdadfe4, accent:0xd8102a, rim:0x1a1a1a,
+    model:{ url:'assets/models/tatuus_ft60.glb', scale:1, targetLength:4.7, yOffset:0, rotY:0 },
+    mass:670, power:202000, maxForce:7900, topSpeed:262/3.6, brakeForce:11800,
+    gripF:1.52, gripR:1.47, yawDamp:0.64, tractionBoost:0.07, liftOversteer:0.06,
+    desc:'Formula Regional · Alfa-Romeo-Vierzylinder-Turbo. Leicht, direkt, ehrlich.',
+    stats:{speed:0.72, grip:0.80, stab:0.82}
+  },
+  {
+    id:'dallara-f312', name:'Dallara F312 (F3)', classType:'formula', classBadge:'F3', ers:false,
+    color:0xf2f2f2, accent:0xd8102a, rim:0x1a1a1a,
+    model:{ url:'assets/models/dallara_f312.glb', scale:1, targetLength:4.9, yOffset:0, rotY:0 },
+    mass:648, power:178000, maxForce:7300, topSpeed:270/3.6, brakeForce:11200,
+    gripF:1.49, gripR:1.44, yawDamp:0.66, tractionBoost:0.06, liftOversteer:0.06,
+    desc:'F3 · 2,0-l-Sauger, ~240 PS. Einsteiger-Formel — flink, wenig Leistung, viel Gefühl.',
+    stats:{speed:0.66, grip:0.78, stab:0.84}
+  },
+
   /* === Go-Karts (eigene Kategorie — nicht im Rennen-Grid, nur Kartbahnen) ===
      Werte sind echte Leihkart-Groessen: ~175 kg mit Fahrer, einstellige kW,
      kein Differential, Bremse nur hinten. Die stats-Balken sind bewusst
@@ -3258,6 +3346,23 @@ const ENGINE_MAPS = {
       desc:'Voller Angriff — max. Power + ERS, hohe Motortemperatur' },
   ],
 
+  /* Formel-Autos (F1/F2/F3): Hybrid-ERS bei den grossen, ansonsten reine
+     Verbrenner-Maps. Vier Stufen von Sprit-/Motorschonung bis Quali-Modus. */
+  formula: [
+    { id:'LEAN',    name:'LEAN',     short:'LEN', col:'#22c4ff',
+      powerMul:0.84, torqueMul:0.86, throttleResp:0.74, fuelMul:0.60, tempMul:0.66, rpmLimit:0.88,
+      desc:'Sprit sparen — sanfte Gasannahme, ERS deckt den Rest ab' },
+    { id:'ENGINE_SAVE', name:'ENG SAVE', short:'ENG', col:'#22e87a',
+      powerMul:0.93, torqueMul:0.94, throttleResp:0.88, fuelMul:0.82, tempMul:0.78, rpmLimit:0.95,
+      desc:'Motorschutz — Hitze runter, langer Stint' },
+    { id:'RACE',    name:'RACE',     short:'RAC', col:'#e8ecef',
+      powerMul:1.00, torqueMul:1.00, throttleResp:1.00, fuelMul:1.00, tempMul:1.00, rpmLimit:1.00,
+      desc:'Standard-Rennmodus — volle Leistung, normaler Verbrauch' },
+    { id:'HOTLAP',  name:'HOTLAP',   short:'HOT', col:'#ff2e3d',
+      powerMul:1.16, torqueMul:1.12, throttleResp:1.45, fuelMul:1.55, tempMul:1.62, rpmLimit:1.10,
+      desc:'Quali / Overtake — Maximum aus Motor und ERS, sehr heiss' },
+  ],
+
   /* Leihkarts haben keine ECU zum Umschalten — der Vergaser laeuft wie er
      laeuft. Zwei Eintraege nur, damit die Boxen-UI nicht leer ist: gedrosselt
      (Bahn-Standard) und offen. */
@@ -3279,6 +3384,14 @@ const ENGINE_MAPS = {
    (track.kartOnly) faehrt kein Rennwagen. */
 const isKartCar   = car   => (car   && car.classType)  === 'kart';
 const isKartTrack = track => !!(track && track.kartOnly);
+/* Formel-Autos (F1/F2/F3): eigene Garage-Kategorie wie Karts, aber fahrbar auf
+   allen echten Rennstrecken. Tauchen nicht im gemischten KI-Grid auf. */
+const isFormulaCar = car => (car && car.classType) === 'formula';
+/* garageCat -> classType-Zugehoerigkeit einer Fahrzeugkarte */
+const carMatchesGarageCat = (car, cat) =>
+  cat === 'kart'    ? isKartCar(car) :
+  cat === 'formula' ? isFormulaCar(car) :
+  (!isKartCar(car) && !isFormulaCar(car));
 
 /* Hilfsfunktionen für Engine-Map-Zugriff */
 const getCarMaps  = classType => ENGINE_MAPS[classType] || ENGINE_MAPS.gt3;
@@ -5495,6 +5608,12 @@ class Car {
       this.a=0.52; this.b=0.53; this.L=this.a+this.b;
       this.h=0.24;
       this.Iz=def.mass*0.95;
+    } else if(def.classType === 'formula'){
+      /* Formel: langer Radstand (~3,5 m), extrem tiefer Schwerpunkt, leichtes
+         Chassis -> sehr agiles Einlenken, wenig Massenträgheit ums Gieren. */
+      this.a=1.70; this.b=1.80; this.L=this.a+this.b;
+      this.h=0.28;
+      this.Iz=def.mass*1.55;
     } else {
       this.a=1.32; this.b=1.38; this.L=this.a+this.b;  // Achsabstände zum Schwerpunkt
       this.h=0.42;                                      // Schwerpunkthöhe
@@ -5538,7 +5657,7 @@ class Car {
     /* --- ERS / Hybrid-System (LMH-Style) ---
        Ladezustand 0..1. Rekuperation beim Bremsen/Lupfen.
        Auto-Deploy je nach Modus wenn Throttle > throttleMin. */
-    this.hasERS = this.def.classType === 'hypercar';
+    this.hasERS = this.def.classType === 'hypercar' || (this.def.classType === 'formula' && this.def.ers !== false);
     this.ers = {
       enabled:         this.hasERS,
       charge:          this.hasERS ? 0.42 : 0,  // SoC 0..1
@@ -9243,8 +9362,8 @@ const HUD = {
       const badgeEl = document.getElementById('dp-badge');
       if(nameEl) nameEl.textContent = car.def?.name || '—';
       if(badgeEl){
-        const cls = ct === 'hypercar' ? 'hyp' : ct === 'lmp2' ? 'lmp2' : 'gt3';
-        const lbl = ct === 'hypercar' ? 'HYP' : ct === 'lmp2' ? 'LM2' : 'GT3';
+        const cls = ct === 'hypercar' ? 'hyp' : ct === 'lmp2' ? 'lmp2' : ct === 'formula' ? 'frm' : 'gt3';
+        const lbl = ct === 'hypercar' ? 'HYP' : ct === 'lmp2' ? 'LM2' : ct === 'formula' ? (car.def?.classBadge || 'FRM') : 'GT3';
         badgeEl.className = 'dp-badge ' + cls;
         badgeEl.textContent = lbl;
       }
@@ -12190,9 +12309,9 @@ const Game = {
     return TRACKS.concat(this.customTracks || []);
   },
   getCarsByClass(classType){
-    /* Karts sind nie KI-Gegner — sie haben keine Rennklasse und wuerden im
-       Grid zwischen Hypercars stehen. */
-    if(classType === 'kart') return [];
+    /* Karts und Formel-Autos sind nie KI-Gegner im gemischten Grid — sie haben
+       keine Endurance-Rennklasse und wuerden zwischen den Hypercars stehen. */
+    if(classType === 'kart' || classType === 'formula') return [];
     return CARS.filter(c => c.classType === classType);
   },
   buildAIClassPool(nAI){
@@ -12245,20 +12364,19 @@ const Game = {
       zeigen sonst auf eine Kombination, die es in der gefilterten Liste gar
       nicht mehr gibt (z.B. GT3 auf der Kartbahn). */
   setGarageCat(cat){
-    cat = cat === 'kart' ? 'kart' : 'race';
+    cat = (cat === 'kart' || cat === 'formula') ? cat : 'race';
     this.garageCat = cat;
     Store.set('garage_cat', cat);
 
-    const wantKart = cat === 'kart';
     // Auto: nur wechseln wenn das aktuelle nicht mehr zur Kategorie passt
-    if(isKartCar(CARS[this.selCar]) !== wantKart){
-      const idx = CARS.findIndex(c => isKartCar(c) === wantKart);
+    if(!carMatchesGarageCat(CARS[this.selCar], cat)){
+      const idx = CARS.findIndex(c => carMatchesGarageCat(c, cat));
       if(idx >= 0){ this.selCar = idx; this.selLivery = 0; }
     }
-    // Strecke: nur zwingend wechseln, wenn ein Rennwagen auf einer Kartbahn
-    // landen wuerde. Ein Kart darf auf jeder Strecke bleiben.
+    // Strecke: nur zwingend wechseln, wenn ein Rennwagen/Formel-Auto auf einer
+    // Kartbahn landen wuerde. Karts duerfen auf jeder Strecke bleiben.
     const pool = this.getTrackPool();
-    if(!wantKart && isKartTrack(pool[this.selTrack])){
+    if(cat !== 'kart' && isKartTrack(pool[this.selTrack])){
       const idx = pool.findIndex(t => !isKartTrack(t));
       if(idx >= 0) this.selTrack = idx;
     }
@@ -12275,13 +12393,14 @@ const Game = {
     cl.innerHTML = '';
     const cat = this.garageCat || 'race';
     const sub = document.getElementById('carlist-sub');
-    if(sub) sub.textContent = cat === 'kart'
-      ? 'Leihkarts von der Kartbahn — kein Abtrieb, kein Differential, Bremse nur hinten. Alles passiert ueber Gewichtsverlagerung.'
-      : 'Jedes Auto hat eine eigene Physik-Charakteristik — spürbar in Traktion, Lastwechsel und Stabilität.';
+    if(sub) sub.textContent =
+      cat === 'kart'    ? 'Leihkarts von der Kartbahn — kein Abtrieb, kein Differential, Bremse nur hinten. Alles passiert ueber Gewichtsverlagerung.' :
+      cat === 'formula' ? 'Formel-Autos: extremer Abtrieb, winziges Trägheitsmoment, brutale Verzögerung. Fahrbar auf allen Rennstrecken.' :
+      'Jedes Auto hat eine eigene Physik-Charakteristik — spürbar in Traktion, Lastwechsel und Stabilität.';
     document.querySelectorAll('[data-garage-cat]').forEach(b =>
       b.classList.toggle('active', b.dataset.garageCat === cat));
     CARS.forEach((c,i)=>{
-      if(isKartCar(c) !== (cat === 'kart')) return;
+      if(!carMatchesGarageCat(c, cat)) return;
       const b=document.createElement('button');
       const locked = typeof Shop !== 'undefined' && !Shop.isUnlocked('car', c.id);
       b.className='card carcard' + (locked ? ' locked' : '');
@@ -13958,7 +14077,7 @@ const Game = {
       /* === GRID-SORTIERUNG: HYP vorne → LMP2 Mitte → GT3 hinten ===
          Innerhalb jeder Klasse: zufällige Reihenfolge.
          Spieler startet am Ende seiner Klasse (hinterstes Auto der eigenen Klasse). */
-      const classOrder = {hypercar:0, lmp2:1, gt3:2};
+      const classOrder = {hypercar:0, lmp2:1, gt3:2, formula:3};
       const getClassRank = (c) => classOrder[c.def?.classType || 'gt3'] ?? 2;
 
       /* Alle Autos nach Klasse sortieren, innerhalb der Klasse leicht mischen */
@@ -14399,7 +14518,7 @@ const Game = {
       });
       this.car.rd=this.freshRD();
       /* Grid nach Klasse sortieren */
-      const classOrder = {hypercar:0, lmp2:1, gt3:2};
+      const classOrder = {hypercar:0, lmp2:1, gt3:2, formula:3};
       const getClassRank = (c) => classOrder[c.def?.classType || 'gt3'] ?? 2;
       const sorted = [...this.allCars].sort((a,b) => {
         const ca = getClassRank(a), cb = getClassRank(b);
@@ -15930,9 +16049,9 @@ const Game = {
     };
     if($('lob-browse-refresh')) $('lob-browse-refresh').onclick = () => this._loadServerBrowser();
 
-    /* Garage-Kategorie (Rennwagen / Go-Karts) — vor den Listen setzen,
+    /* Garage-Kategorie (Rennwagen / Formel / Go-Karts) — vor den Listen setzen,
        damit gleich die richtige Auswahl gerendert wird */
-    this.garageCat = Store.get('garage_cat') === 'kart' ? 'kart' : 'race';
+    this.garageCat = ['kart','formula'].includes(Store.get('garage_cat')) ? Store.get('garage_cat') : 'race';
     document.querySelectorAll('[data-garage-cat]').forEach(btn => {
       btn.onclick = () => this.setGarageCat(btn.dataset.garageCat);
     });
