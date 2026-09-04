@@ -7559,7 +7559,14 @@ class ReplayRecorder {
   }
   set frames(arr){
     this._head = 0;
-    this._len  = Math.min(arr.length, this.CAP);
+    /* Kapazität an die übergebene Runde anpassen — sonst wurde ein langes
+       Replay (z.B. 2-Minuten-Runde @ ~40 fps = >4000 Frames) stillschweigend
+       auf CAP (2400) abgeschnitten und man sah nur den ANFANG der Runde. */
+    if(arr.length > this.CAP){
+      this.CAP  = arr.length;
+      this._buf = new Array(this.CAP);
+    }
+    this._len = arr.length;
     for(let i=0;i<this._len;i++) this._buf[i] = arr[i];
   }
 
