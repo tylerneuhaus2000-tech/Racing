@@ -6112,6 +6112,40 @@ class Car {
           if(w?.outer) w.outer.visible = false;
         }
       }
+
+      /* --- Räder im GLB finden und in Dreh-Pivots hängen ---
+         Damit sich beim Lenken die VORDERRÄDER drehen (nicht das Chassis kippt)
+         und alle vier beim Fahren rollen. Jedes Rad-Mesh wird in eine Group am
+         Radmittelpunkt umgehängt; die Group wird rotiert (funktioniert auch,
+         wenn das Rad-Mesh seinen Ursprung woanders hat). */
+      try {
+        model.updateWorldMatrix(true, true);
+        const wheelRe = /wheel|tyre|tire|reifen|\brim\b|felge/i;
+        const skipRe  = /steer|lenkrad|volant|brake|caliper|disc|disk|rotor|arm|susp|upright|hub_carrier/i;
+        const cands = [];
+        model.traverse(o => {
+          if(!o.isMesh || !o.name) return;
+          if(wheelRe.test(o.name) && !skipRe.test(o.name)) cands.push(o);
+        });
+        const _wp = new THREE.Vector3();
+        const seen = [];
+        this._glbWheels = [];   // {pivot, front, roll}
+        for(const o of cands){
+          const local = model.worldToLocal(o.getWorldPosition(_wp).clone());
+          // Duplikate/geteilte Meshes am selben Ort überspringen
+          if(seen.some(s => s.distanceToSquared(local) < 0.04)) continue;
+          seen.push(local.clone());
+          const pivot = new THREE.Group();
+          pivot.rotation.order = 'YXZ';         // erst lenken (Y), dann rollen (X)
+          pivot.position.copy(local);
+          model.add(pivot);
+          pivot.attach(o);                     // Rad ins Pivot, Welt-Transform bleibt
+          this._glbWheels.push({ pivot, front: local.z > 0.05, roll: 0 });
+        }
+        this._glbFrontWheels = this._glbWheels.filter(w => w.front).map(w => w.pivot);
+        if(this._glbWheels.length) console.log('[GT3] GLB-Räder:', this._glbWheels.length, 'davon vorn', this._glbFrontWheels.length);
+      } catch(e){ console.warn('[GT3] Rad-Pivots:', e); this._glbWheels = []; this._glbFrontWheels = []; }
+
       if(this._cockpitGrp) this._cockpitGrp.visible = false;
     }catch(err){
       console.warn('[GT3] Porsche-Model konnte nicht geladen werden:', err);
@@ -6373,8 +6407,12 @@ class Car {
        (Topspeed +~15 km/h) gegen ~30% weniger Hinterachs-Abtrieb. Schließt
        sofort beim Anlenken/Bremsen. */
     if(d.classType === 'formula'){
-      const drsWant = (speed > 52 && Math.abs(input.steer) < 0.06 && input.throttle > 0.92 && input.brake < 0.03) ? 1 : 0;
-      this.drsOpen += clamp(drsWant - this.drsOpen, -dt*6, dt*3.5);
+      if(input.brake > 0.04 || Math.abs(input.steer) > 0.10){
+        this.drsOpen = 0;                                  // Bremse ODER deutliches Lenken -> SOFORT zu
+      } else {
+        const straight = speed > 50 && Math.abs(input.steer) < 0.05 && input.throttle > 0.90;
+        this.drsOpen += clamp((straight ? 1 : 0) - this.drsOpen, -dt*8, dt*3.5);
+      }
       FzAeroR *= (1 - this.drsOpen * 0.30);
     } else {
       this.drsOpen = 0;
@@ -7057,6 +7095,15 @@ class Car {
     }
     if(this._glbSteeringWheel){
       this._glbSteeringWheel.rotation.z = -this.steer * 2.5;
+    }
+    /* GLB-Räder: Vorderräder nach Lenkeinschlag drehen, alle vier rollen lassen */
+    if(this._glbWheels && this._glbWheels.length){
+      const steerVis = this.steer * 1.7;                 // leicht verstärkt fürs Auge
+      const rollStep = (this.vx || 0) * (dt || 0) / 0.34; // ~34 cm Radradius
+      for(const w of this._glbWheels){
+        w.roll = (w.roll + rollStep) % (Math.PI * 2);
+        w.pivot.rotation.set(w.roll, w.front ? steerVis : 0, 0);
+      }
     }
     if(this.tail && this.tail.material) this.tail.material.color.setHex(this.brakeLight?0xff2020:0x550000);
   }
@@ -8893,14 +8940,14 @@ class CameraRig {
         fov = 72;
       }
     } else if(mode==='halo'){
-      /* "On-the-halo" TV-Kamera (F1 T-Cam): auf dem Airbox/Halo montiert,
-         knapp hinter dem Fahrerkopf, Blick nach vorn und leicht nach unten
-         über das Auto — die ikonische Broadcast-Onboard-Perspektive. */
-      this._target.copy(car.pos).addScaledVector(fwd,-0.55).addScaledVector(right,0.0);
-      this._target.y += 1.30;
-      this._look.copy(car.pos).addScaledVector(fwd,70);
-      this._look.y += 0.45;
-      fov = 56;
+      /* F1 T-Cam: über der Airbox, hinter dem Fahrerkopf, Blick flach nach
+         vorn. Fest am Auto (kein Smoothing) — deshalb weit genug über der
+         Karosserie, damit die Kamera nicht in Airbox/Motorhaube clippt. */
+      this._target.copy(car.pos).addScaledVector(fwd,-0.62).addScaledVector(right,0.0);
+      this._target.y += 1.50;
+      this._look.copy(car.pos).addScaledVector(fwd,55);
+      this._look.y += 0.85;
+      fov = 60;
     } else if(mode==='chase'){
       /* Karts sind nur rund 1,9 m lang — die Rennwagen-Distanz laesst sie in
          der Verfolgerkamera zu einem Punkt schrumpfen. Deshalb naeher ran
@@ -15710,6 +15757,7 @@ const Game = {
       car.body.remove(car._externalModelRoot);
       car._externalModelRoot = null;
       car._usingExternalModel = false;
+      car._glbWheels = null; car._glbFrontWheels = null; car._glbSteeringWheel = null;
       car.setProceduralShellVisible(true);
     }
     // Update physics constants derived from def
