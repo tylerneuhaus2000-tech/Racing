@@ -6013,19 +6013,13 @@ class Car {
           mat.depthWrite=true;
         }
         if(mat.color && typeof mat.color.multiplyScalar === 'function'){
-          mat.color.multiplyScalar(1.28);
+          mat.color.multiplyScalar(1.15);
         }
         if(mat.isMeshStandardMaterial || mat.isMeshPhysicalMaterial){
-          mat.metalness = clamp(mat.metalness * 0.55, 0.03, 0.6);
-          mat.roughness = clamp(mat.roughness * 0.78, 0.16, 0.85);
-          mat.envMapIntensity = Math.max(1.6, mat.envMapIntensity || 0);
-          /* Dunkle Lackierungen (Aston-Grün, RB-Navy) saufen im Schatten ab.
-             Farbproportionales Eigenleuchten hebt sie an, ohne helle Flächen
-             auszubrennen. */
-          if(mat.emissive && mat.color && typeof mat.emissive.copy === 'function'){
-            mat.emissive.copy(mat.color).multiplyScalar(0.10);
-            if(mat.emissiveIntensity !== undefined) mat.emissiveIntensity = 1;
-          }
+          mat.metalness = clamp(mat.metalness * 0.65, 0.05, 0.7);
+          mat.roughness = clamp(mat.roughness * 0.85, 0.18, 0.9);
+          mat.envMapIntensity = Math.max(1.1, mat.envMapIntensity || 0);
+          if(mat.emissive && typeof mat.emissive.addScalar === 'function') mat.emissive.addScalar(0.03);
         }
         mat.needsUpdate = true;
         return mat;
@@ -8865,12 +8859,12 @@ class CameraRig {
         this._look.y += 0.10;
         fov = 82;
       } else if(isFormula){
-        /* Formel-Cockpit: Helm-Position leicht vor Fahrzeugmitte, deutlich über
-           dem Chassis (Blick über Halo + Nase), flacher Blick weit nach vorn. */
-        this._target.copy(car.pos).addScaledVector(fwd,0.15).addScaledVector(right,0.0);
-        this._target.y += 0.98;
+        /* Formel-Cockpit: Helm-Position, etwas hinter der Fahrzeugmitte und
+           höher übers Chassis — Blick über Halo + Airbox die Strecke entlang. */
+        this._target.copy(car.pos).addScaledVector(fwd,-0.10).addScaledVector(right,0.0);
+        this._target.y += 1.06;
         this._look.copy(car.pos).addScaledVector(fwd,70);
-        this._look.y += 0.62;
+        this._look.y += 0.55;
         fov = 74;
       } else {
         this._target.copy(car.pos).addScaledVector(fwd,0.15).addScaledVector(right,0.38);
@@ -8883,11 +8877,11 @@ class CameraRig {
       /* "On-the-halo" TV-Kamera (F1 T-Cam): auf dem Airbox/Halo montiert,
          knapp hinter dem Fahrerkopf, Blick nach vorn und leicht nach unten
          über das Auto — die ikonische Broadcast-Onboard-Perspektive. */
-      this._target.copy(car.pos).addScaledVector(fwd,-0.35).addScaledVector(right,0.0);
-      this._target.y += 1.18;
+      this._target.copy(car.pos).addScaledVector(fwd,-0.55).addScaledVector(right,0.0);
+      this._target.y += 1.30;
       this._look.copy(car.pos).addScaledVector(fwd,70);
-      this._look.y += 0.50;
-      fov = 58;
+      this._look.y += 0.45;
+      fov = 56;
     } else if(mode==='chase'){
       /* Karts sind nur rund 1,9 m lang — die Rennwagen-Distanz laesst sie in
          der Verfolgerkamera zu einem Punkt schrumpfen. Deshalb naeher ran
