@@ -3273,9 +3273,10 @@ const ENGINE_MAPS = {
 
 /* ── Go-Kart-Kategorie ───────────────────────────────────────────────────────
    Karts sind keine vierte Rennklasse, sondern eine eigene Kategorie: sie
-   tauchen weder im Rennen-Grid noch in den GT3/LMP2/HYPER-Filtern auf und
-   fahren ausschliesslich auf Kartbahnen (track.kartOnly). Beide Richtungen
-   gelten — auf einer Kartbahn faehrt auch kein Rennwagen. */
+   tauchen weder im Rennen-Grid noch in den GT3/LMP2/HYPER-Filtern auf.
+   Streckenwahl: mit einem Kart darf man ueberall fahren (Kartbahnen UND die
+   echten Rennstrecken). Nur andersrum bleibt gesperrt — auf einer Kartbahn
+   (track.kartOnly) faehrt kein Rennwagen. */
 const isKartCar   = car   => (car   && car.classType)  === 'kart';
 const isKartTrack = track => !!(track && track.kartOnly);
 
@@ -12254,10 +12255,11 @@ const Game = {
       const idx = CARS.findIndex(c => isKartCar(c) === wantKart);
       if(idx >= 0){ this.selCar = idx; this.selLivery = 0; }
     }
-    // Strecke: dito
+    // Strecke: nur zwingend wechseln, wenn ein Rennwagen auf einer Kartbahn
+    // landen wuerde. Ein Kart darf auf jeder Strecke bleiben.
     const pool = this.getTrackPool();
-    if(isKartTrack(pool[this.selTrack]) !== wantKart){
-      const idx = pool.findIndex(t => isKartTrack(t) === wantKart);
+    if(!wantKart && isKartTrack(pool[this.selTrack])){
+      const idx = pool.findIndex(t => !isKartTrack(t));
       if(idx >= 0) this.selTrack = idx;
     }
 
@@ -12304,7 +12306,8 @@ const Game = {
     tl.innerHTML = '';
     const kartCat = (this.garageCat || 'race') === 'kart';
     this.getTrackPool().forEach((t,i)=>{
-      if(isKartTrack(t) !== kartCat) return;
+      // Kart-Kategorie: alle Strecken zeigen. Rennwagen-Kategorie: keine Kartbahnen.
+      if(!kartCat && isKartTrack(t)) return;
       const wrap = document.createElement('div');
       wrap.style.cssText = 'position:relative;display:inline-block;';
       const b=document.createElement('button');
