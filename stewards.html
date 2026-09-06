@@ -108,6 +108,7 @@
       <button class="btn tab-btn tab-on" data-tab="times">RUNDENZEITEN</button>
       <button class="btn tab-btn" data-tab="drivers">ALLE FAHRER</button>
       <button class="btn tab-btn" data-tab="appeals">EINSPRÜCHE <span id="appeals-badge" style="display:none;background:#ffcc00;color:#111;border-radius:999px;padding:1px 7px;font-size:11px;margin-left:4px">0</span></button>
+      <button class="btn tab-btn" data-tab="log">PROTOKOLL</button>
     </nav>
 
     <div id="view-times">
@@ -124,11 +125,14 @@
             <button class="btn" id="btn-load-usernames">↻ SPIELER LISTE</button>
             <button class="btn primary" id="btn-load-times">ZEITEN LADEN</button>
           </div>
+          <div id="driver-record"></div>
         </div>
 
         <div class="box">
           <h2>NACHRICHT SENDEN</h2>
           <p class="sub">An den oben eingetragenen Spieler.</p>
+          <label>SCHNELLVORLAGE</label>
+          <div id="pen-presets" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px"></div>
           <label>TYP</label>
           <select id="msg-type">
             <option value="investigation">🟡 UNDER INVESTIGATION</option>
@@ -179,6 +183,18 @@
           <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="appeals-show-all"> auch erledigte zeigen</label>
         </div>
         <div id="appeals-wrap" style="margin-top:14px"><div class="empty">Noch nicht geladen.</div></div>
+      </div>
+    </div>
+
+    <div id="view-log" style="display:none">
+      <div class="box">
+        <h2>PROTOKOLL</h2>
+        <p class="sub">Alle Steward-Aktionen (Streichungen, Nachrichten, Einspruchs-Entscheidungen) in zeitlicher Reihenfolge — neueste zuerst.</p>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" id="btn-load-log">↻ PROTOKOLL LADEN</button>
+          <span id="log-hint" class="sub" style="margin:0"></span>
+        </div>
+        <div id="log-wrap" style="margin-top:14px"><div class="empty">Noch nicht geladen.</div></div>
       </div>
     </div>
   </main>
@@ -294,9 +310,21 @@ function boot(){
       const lpStr = $('msg-lp').value.trim();
       const lpDelta = lpStr !== '' ? parseFloat(lpStr) : 0;
       if(lpStr !== '' && isNaN(lpDelta)){ status.style.color = '#ff6b6b'; status.textContent = '❌ LP muss eine Zahl sein'; return; }
-      await db.collection('steward_msgs').doc(targetUid).set({ type, reason, penalty, lpDelta, ts: Date.now() });
+      const now = Date.now();
+      await db.collection('steward_msgs').doc(targetUid).set({ type, reason, penalty, lpDelta, ts: now });
+      // Append-only Protokoll (steward_msgs/{uid} wird bei jeder Nachricht überschrieben)
+      try {
+        await db.collection('steward_actions').add({
+          type: 'message', msgType: type, targetUid, username,
+          reason, penalty, lpDelta,
+          by: auth.currentUser.uid, byName: auth.currentUser.displayName || auth.currentUser.email || '',
+          at: now
+        });
+      } catch(e){ console.warn('[Steward] Protokoll:', e.message); }
       status.style.color = '#4eff8a';
       status.textContent = `✓ Gesendet an ${username}` + (lpDelta ? ` · LP ${lpDelta>0?'+':''}${lpDelta}` : '');
+      _logLoaded = false;
+      if($('in-username').value.trim().toLowerCase() === username) loadDriverRecord(targetUid, username);
     } catch(e){
       status.style.color = '#ff6b6b'; status.textContent = '❌ ' + e.message;
     }
@@ -351,6 +379,7 @@ function boot(){
       const uSnap = await db.collection('usernames').doc(username).get();
       if(!uSnap.exists){ wrap.innerHTML = '<div class="empty">Spieler nicht gefunden.</div>'; return; }
       const targetUid = uSnap.data().uid;
+      loadDriverRecord(targetUid, username);
       const snap = await db.collection('times').where('uid','==',targetUid).get();
       const rows = []; snap.forEach(d => rows.push(Object.assign({ _id:d.id }, d.data())));
       timesRows = rows; timesUsername = username; timesTargetUid = targetUid;
@@ -552,7 +581,7 @@ function boot(){
   }
 
   /* ══════════════ REITER-UMSCHALTUNG ══════════════ */
-  const _views = { times:'view-times', drivers:'view-drivers', appeals:'view-appeals' };
+  const _views = { times:'view-times', drivers:'view-drivers', appeals:'view-appeals', log:'view-log' };
   document.querySelectorAll('.tab-btn').forEach(b => {
     b.onclick = () => {
       const t = b.getAttribute('data-tab');
@@ -560,8 +589,141 @@ function boot(){
       Object.entries(_views).forEach(([k, id]) => { $(id).style.display = (k === t) ? 'block' : 'none'; });
       if(t === 'drivers' && !_driversLoaded) loadDrivers();
       if(t === 'appeals' && !_appealsLoaded) loadAppeals();
+      if(t === 'log' && !_logLoaded) loadLog();
     };
   });
+
+  /* ══════════════ STRAFEN-SCHNELLVORLAGEN ══════════════ */
+  const PENALTY_PRESETS = [
+    { label:'Track Limits',    type:'penalty',       reason:'Wiederholte Track-Limit-Verstöße', penalty:'Verwarnung', lp:'-2' },
+    { label:'Corner Cutting',  type:'penalty',       reason:'Abkürzen / Streckenvorteil durch Verlassen der Strecke', penalty:'Zeitstrafe 5s', lp:'-3' },
+    { label:'Kollision',       type:'penalty',       reason:'Verursachte Kollision — vermeidbarer Kontakt', penalty:'Zeitstrafe 10s', lp:'-5' },
+    { label:'Unsafe Rejoin',   type:'penalty',       reason:'Unsicheres Zurückkehren auf die Strecke', penalty:'Verwarnung', lp:'-3' },
+    { label:'Blockieren',      type:'penalty',       reason:'Mehrfacher Richtungswechsel in der Verteidigung / Blockieren', penalty:'Verwarnung', lp:'-2' },
+    { label:'Frühstart',       type:'penalty',       reason:'Frühstart (Jump Start)', penalty:'Durchfahrtsstrafe', lp:'-3' },
+    { label:'Ignorierte Flagge', type:'penalty',     reason:'Blaue/gelbe Flagge missachtet', penalty:'Zeitstrafe 5s', lp:'-4' },
+    { label:'Technisch',       type:'penalty',       reason:'Technischer Verstoß am Fahrzeug / Setup', penalty:'Ausschluss aus dem Ergebnis', lp:'0' },
+    { label:'In Prüfung',      type:'investigation', reason:'Vorfall wird nach dem Rennen untersucht', penalty:'', lp:'' },
+    { label:'Keine Aktion',    type:'no_action',     reason:'Vorfall geprüft — kein Regelverstoß, keine weitere Aktion', penalty:'', lp:'' },
+  ];
+  (function renderPresets(){
+    const box = $('pen-presets');
+    if(!box) return;
+    PENALTY_PRESETS.forEach(p => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'btn';
+      chip.style.cssText = 'padding:4px 10px;font-size:9px;letter-spacing:.04em';
+      chip.textContent = p.label;
+      chip.onclick = () => {
+        $('msg-type').value = p.type;
+        $('msg-reason').value = p.reason;
+        $('msg-penalty').value = p.penalty;
+        $('msg-lp').value = p.lp;
+        $('msg-reason').focus();
+      };
+      box.appendChild(chip);
+    });
+  })();
+
+  /* ══════════════ FAHRERAKTE (Kopf über der Zeitenliste) ══════════════ */
+  const _LIC_EMOJI = { bronze:'🟤', silver:'⚪', gold:'🟡', platinum:'🔵' };
+  const _MSG_LABEL = { investigation:'🟡 In Prüfung', no_action:'🟢 Keine Aktion', penalty:'🔴 Strafe' };
+
+  async function loadDriverRecord(uid, username){
+    const box = $('driver-record');
+    if(!box) return;
+    box.innerHTML = '<div class="sub" style="margin:10px 0 0">⏳ Fahrerakte…</div>';
+    try {
+      const [uSnap, sSnap, aSnap, mSnap] = await Promise.all([
+        db.collection('users').doc(uid).get(),
+        db.collection('strikes').where('uid','==',uid).get(),
+        db.collection('appeals').where('uid','==',uid).get(),
+        db.collection('steward_msgs').doc(uid).get()
+      ]);
+      const u = uSnap.exists ? uSnap.data() : {};
+      let strikesActive = 0, strikesRestored = 0;
+      sSnap.forEach(d => { const x = d.data(); if(x.restored) strikesRestored++; else strikesActive++; });
+      let appealsOpen = 0;
+      aSnap.forEach(d => { if(d.data().status === 'open') appealsOpen++; });
+      const lic = (u.license || 'bronze');
+      const lp = (parseFloat(u.licensePoints) || 0).toFixed(1);
+      const km = Math.round(parseFloat(u.kmDriven) || 0).toLocaleString();
+      const races = parseInt(u.racesCompleted) || 0;
+      const m = mSnap.exists ? mSnap.data() : null;
+
+      box.innerHTML =
+        `<div style="margin-top:12px;border:1px solid #2a3a4a;border-radius:8px;padding:10px 12px;background:#0a1420">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <b style="color:#e8edf2">${esc(username)}</b>
+            <span class="sub" style="margin:0">${_LIC_EMOJI[lic]||''} ${esc(lic)}</span>
+          </div>
+          <div class="sub" style="margin:6px 0 0;color:#c9d1d9">${lp} LP · ${km} km · ${races} Rennen</div>
+          <div style="display:flex;gap:14px;margin-top:8px;font:700 11px var(--mono)">
+            <span style="color:${strikesActive?'#ff8a94':'#8b95a1'}">${strikesActive} Streichung${strikesActive===1?'':'en'}${strikesRestored?` <span style="color:#39d98a;font-weight:400">(+${strikesRestored} wiederherg.)</span>`:''}</span>
+            <span style="color:${appealsOpen?'#ffcc00':'#8b95a1'}">${appealsOpen} Einspruch${appealsOpen===1?'':'e'} offen</span>
+          </div>
+          ${m ? `<div class="sub" style="margin:8px 0 0;padding-top:6px;border-top:1px solid #1c2733">Letzte Nachricht: <b>${_MSG_LABEL[m.type]||esc(m.type||'')}</b>${m.reason?' — '+esc(m.reason):''}${m.penalty?` · <i>${esc(m.penalty)}</i>`:''}${m.lpDelta?` · LP ${m.lpDelta>0?'+':''}${m.lpDelta}`:''}<br><span style="opacity:.6">${m.ts?new Date(m.ts).toLocaleString('de-DE'):''}</span></div>` : ''}
+        </div>`;
+    } catch(e){
+      box.innerHTML = `<div class="sub" style="margin:10px 0 0;color:#ff8a94">Fahrerakte-Fehler: ${esc(e.message)}</div>`;
+    }
+  }
+
+  /* ══════════════ PROTOKOLL ══════════════ */
+  let _logLoaded = false;
+  $('btn-load-log').onclick = loadLog;
+
+  const _ACT_ICON = { lap_struck:'✕', message:'✉', appeal_decided:'⚖' };
+  async function loadLog(){
+    const wrap = $('log-wrap');
+    wrap.innerHTML = '<div class="empty">⏳ Laden…</div>';
+    try {
+      const [actSnap, apSnap] = await Promise.all([
+        db.collection('steward_actions').orderBy('at','desc').limit(60).get(),
+        db.collection('appeals').get()
+      ]);
+      const items = [];
+      actSnap.forEach(d => { const x = d.data(); items.push({ t: x.at || 0, kind: x.type || 'action', data: x }); });
+      apSnap.forEach(d => {
+        const x = d.data();
+        if(x.decidedAt) items.push({ t: x.decidedAt, kind: 'appeal_decided', data: x });
+      });
+      items.sort((a, b) => b.t - a.t);
+      if(!items.length){ wrap.innerHTML = '<div class="empty">Noch keine Aktionen protokolliert.</div>'; return; }
+
+      wrap.innerHTML = '';
+      items.slice(0, 80).forEach(it => {
+        const x = it.data;
+        const when = new Date(it.t).toLocaleString('de-DE');
+        let icon = _ACT_ICON[it.kind] || '•', color = '#8b95a1', text = '';
+        if(it.kind === 'lap_struck'){
+          icon = '✕'; color = '#ff8a94';
+          text = `<b>Runde gestrichen</b> — ${esc(x.username||x.targetUid||'?')} · ${esc(trackName(x.trackId))} · ${x.timeMs?fmtLap(x.timeMs):'—'}<br><span class="sub" style="margin:0">${esc(x.reason||'')}</span>`;
+        } else if(it.kind === 'message'){
+          icon = '✉'; color = x.msgType === 'penalty' ? '#ff8a94' : x.msgType === 'no_action' ? '#39d98a' : '#ffcc00';
+          text = `<b>Nachricht</b> (${_MSG_LABEL[x.msgType]||esc(x.msgType||'')}) — ${esc(x.username||x.targetUid||'?')}<br><span class="sub" style="margin:0">${esc(x.reason||'')}${x.penalty?' · '+esc(x.penalty):''}${x.lpDelta?` · LP ${x.lpDelta>0?'+':''}${x.lpDelta}`:''}</span>`;
+        } else if(it.kind === 'appeal_decided'){
+          const up = x.status === 'upheld';
+          icon = '⚖'; color = up ? '#39d98a' : '#ff8a94';
+          text = `<b>Einspruch ${up?'stattgegeben':'abgelehnt'}</b> — ${esc(x.username||x.uid||'?')} · ${esc(trackName(x.trackId))}<br><span class="sub" style="margin:0">${esc(x.decisionNote||'')}</span>`;
+        } else {
+          text = `<b>${esc(it.kind)}</b> — ${esc(x.username||x.targetUid||'')}`;
+        }
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #1c2733';
+        row.innerHTML =
+          `<span style="color:${color};font-weight:700;width:18px;text-align:center;flex-shrink:0">${icon}</span>`+
+          `<div style="flex:1;min-width:0;font-size:12px;color:#c9d1d9">${text}</div>`+
+          `<span class="sub" style="margin:0;white-space:nowrap;flex-shrink:0">${when}</span>`;
+        wrap.appendChild(row);
+      });
+      $('log-hint').textContent = `${items.length} Einträge`;
+      _logLoaded = true;
+    } catch(e){
+      wrap.innerHTML = `<div class="empty">Fehler: ${esc(e.message)}${/index/i.test(e.message)?' — evtl. fehlt ein Firestore-Index (Konsole öffnen).':''}</div>`;
+    }
+  }
 
   /* ══════════════ ALLE FAHRER ══════════════ */
   let _driversLoaded = false;
@@ -777,6 +939,7 @@ function boot(){
         : '✓ Endgültig gelöscht') + (errs.length ? `  ⚠ ${errs.join(' | ')}` : '');
       _appealsLoaded = false;
       _driversLoaded = false;
+      _logLoaded = false;
       setTimeout(loadAppeals, 1200);
     } catch(e){
       statusEl.style.color = '#ff6b6b';
