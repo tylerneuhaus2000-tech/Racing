@@ -381,8 +381,21 @@ function boot(){
       if(!uSnap.exists){ wrap.innerHTML = '<div class="empty">Spieler nicht gefunden.</div>'; return; }
       const targetUid = uSnap.data().uid;
       loadDriverRecord(targetUid, username);
-      const snap = await db.collection('times').where('uid','==',targetUid).get();
+      const [snap, strSnap] = await Promise.all([
+        db.collection('times').where('uid','==',targetUid).get(),
+        db.collection('strikes').where('uid','==',targetUid).get()
+      ]);
       const rows = []; snap.forEach(d => rows.push(Object.assign({ _id:d.id }, d.data())));
+      // Verwaiste Streichungen: die Runde wurde gestrichen und war die einzige,
+      // also ist times/{doc} weg. Ledger-Zeile -> synthetische Zeile, damit die
+      // gestrichene Runde (und der ↩-Knopf) auffindbar bleibt.
+      strSnap.forEach(d => {
+        const s = d.data();
+        if(s.restored || s.finalDeleted) return;
+        if(rows.some(r => r._id === s.docId)) return;
+        rows.push({ _id:s.docId, uid:targetUid, trackId:s.trackId, carId:s.carId,
+          carName:s.carId, classType:'unknown', name:username, timeMs:null, _fromStrike:true });
+      });
       timesRows = rows; timesUsername = username; timesTargetUid = targetUid;
 
       if(!rows.length){
@@ -391,7 +404,7 @@ function boot(){
         return;
       }
       const counts = {};
-      rows.forEach(r => { counts[r.trackId] = (counts[r.trackId]||0) + 1; });
+      rows.forEach(r => { if(r.trackId) counts[r.trackId] = (counts[r.trackId]||0) + 1; });
       const trackIds = Object.keys(counts).sort((a,b) => trackName(a).localeCompare(trackName(b)));
       const sel = $('track-sel');
       sel.innerHTML = '';
@@ -518,7 +531,9 @@ function boot(){
       `<td class="time">${fmtLap(l.timeMs)}</td>`+
       `<td><div class="rowbtns">`+
         (lhasRep ? `<a class="iconbtn" href="${replayLink(l._pid, l._id)}" target="_blank" rel="noopener" title="Replay dieser Runde">▶</a>` : `<span class="iconbtn off">▶</span>`)+
-        (struck ? '' : `<button class="iconbtn del" data-a="strike" title="Runde streichen">✕</button>`)+
+        (struck
+          ? `<button class="iconbtn" data-a="restore" title="Streichung rückgängig machen" style="border-color:#39d98a;color:#39d98a">↩</button>`
+          : `<button class="iconbtn del" data-a="strike" title="Runde streichen">✕</button>`)+
       `</div></td>`;
     tb.appendChild(tr);
 
@@ -557,6 +572,81 @@ function boot(){
 
     const sb = tr.querySelector('[data-a="strike"]');
     if(sb) sb.onclick = () => strikeLap(l, trackId, tr);
+    const rb = tr.querySelector('[data-a="restore"]');
+    if(rb) rb.onclick = () => restoreLap(l, trackId, tr);
+  }
+
+  /* Streichung rückgängig machen (z.B. versehentlich gestrichen). Spiegelt die
+     "WIEDERHERSTELLEN"-Aktion aus dem Einspruchs-Reiter. */
+  async function restoreLap(l, trackId, tr){
+    if(!isAdmin) return;
+    if(!confirm(`Streichung dieser Runde rückgängig machen?\n\n${trackName(l._meta.trackId)} · ${l._meta.carName || l._meta.carId || ''} · ${fmtLap(l.timeMs)}\n\nDie Runde wird wieder gültig und rückt ggf. als Bestzeit nach.`)) return;
+    const r = l._meta;
+    const lapsRef = db.collection('times').doc(l._pid).collection('laps');
+    tr.style.opacity = '0.4';
+    const errs = []; let ok = false;
+    try {
+      await lapsRef.doc(l._id).update({
+        struck: false,
+        struckReason: firebase.firestore.FieldValue.delete(),
+        struckBy: firebase.firestore.FieldValue.delete(),
+        struckAt: firebase.firestore.FieldValue.delete()
+      });
+      ok = true;
+    } catch(e){ errs.push('Entsperren: ' + e.message); }
+
+    let newBest = null;
+    if(ok){
+      try { newBest = await recomputeParentTime(l._pid, {
+        name:r.name, uid:timesTargetUid, carName:r.carName || r.carId, classType:r.classType, trackId:r.trackId, carId:r.carId
+      }); } catch(e){ errs.push('Neuberechnung: ' + e.message); }
+    }
+    // Strike-Ledger-Zeile finden (per lapId, docId clientseitig prüfen) und als wiederhergestellt markieren
+    let strikeId = null;
+    try {
+      const sSnap = await db.collection('strikes').where('lapId', '==', l._id).get();
+      sSnap.forEach(d => { if(d.data().docId === l._pid) strikeId = d.id; });
+      if(strikeId) await db.collection('strikes').doc(strikeId).update({ restored:true, status:'restored', restoredAt:Date.now(), restoredBy:auth.currentUser.uid });
+    } catch(e){ errs.push('Strike-Ledger: ' + e.message); }
+    // Offenen Einspruch dazu ggf. schließen
+    try {
+      if(strikeId){
+        const apSnap = await db.collection('appeals').where('strikeId', '==', strikeId).get();
+        await Promise.all(apSnap.docs
+          .filter(d => d.data().status === 'open')
+          .map(d => d.ref.update({ status:'upheld', decisionNote:'Vom Steward direkt wiederhergestellt.', decidedBy:auth.currentUser.uid, decidedAt:Date.now() })));
+      }
+    } catch(e){ errs.push('Einspruch: ' + e.message); }
+    try {
+      await db.collection('steward_actions').add({
+        type:'lap_restored', targetUid:timesTargetUid, username:timesUsername, docId:l._pid, lapId:l._id,
+        trackId:r.trackId || null, carId:r.carId || null, timeMs:l.timeMs || null,
+        reason:'Streichung zurückgenommen', by:auth.currentUser.uid, at:Date.now()
+      });
+    } catch(e){ errs.push('Protokoll: ' + e.message); }
+    try {
+      await db.collection('steward_msgs').doc(timesTargetUid).set({
+        type:'no_action',
+        reason: `Streichung zurückgenommen · ${trackName(r.trackId)}: Deine Zeit ${fmtLap(l.timeMs)} ist wieder gültig.`,
+        penalty:'Zeit wiederhergestellt', lpDelta:0, ts:Date.now()
+      });
+    } catch(e){ errs.push('Benachrichtigung: ' + e.message); }
+
+    const status = $('status');
+    if(ok){
+      const rowRef = timesRows.find(x => x._id === l._pid);
+      if(rowRef && newBest){ rowRef.timeMs = newBest.timeMs; rowRef.replay = newBest.replay || null; }
+      else if(!rowRef && newBest){ timesRows.push({ _id:l._pid, uid:timesTargetUid, trackId:r.trackId, carId:r.carId, carName:r.carName, classType:r.classType, name:r.name, timeMs:newBest.timeMs, replay:newBest.replay||null }); }
+      status.style.color = errs.length ? '#ffb020' : '#4eff8a';
+      status.textContent = `✓ Wiederhergestellt${newBest ? ` · Bestzeit jetzt ${fmtLap(newBest.timeMs)}` : ''}` + (errs.length ? `  ⚠ ${errs.join(' | ')}` : '');
+      _logLoaded = false; _driversLoaded = false;
+      buildClassFilter();
+      renderTrack(trackId);
+    } else {
+      tr.style.opacity = '1';
+      status.style.color = '#ff6b6b';
+      status.textContent = '❌ ' + errs.join(' | ');
+    }
   }
 
   async function strikeLap(l, trackId, tr){
@@ -611,12 +701,15 @@ function boot(){
     if(okStrike){
       const rowRef = timesRows.find(x => x._id === l._pid);
       if(rowRef){
-        if(newBest){ rowRef.timeMs = newBest.timeMs; rowRef.replay = newBest.replay || null; }
-        else { const i = timesRows.indexOf(rowRef); if(i >= 0) timesRows.splice(i, 1); }
+        // Zeile NICHT entfernen, auch wenn das times-Dokument gelöscht wurde —
+        // sonst wäre die gerade gestrichene Runde (und der ↩-Knopf) weg.
+        rowRef.timeMs = newBest ? newBest.timeMs : null;
+        rowRef.replay = newBest ? (newBest.replay || null) : null;
+        if(!newBest) rowRef._fromStrike = true;
       }
       status.style.color = errs.length ? '#ffb020' : '#4eff8a';
       status.textContent = (newBest ? `✓ Gestrichen · neue Bestzeit ${fmtLap(newBest.timeMs)}` : '✓ Gestrichen · keine gültige Zeit mehr') + (errs.length ? `  ⚠ ${errs.join(' | ')}` : '');
-      _logLoaded = false;
+      _logLoaded = false; _driversLoaded = false;
       renderTrack(trackId);
     } else {
       tr.style.opacity = '1';
@@ -728,7 +821,7 @@ function boot(){
   let _logLoaded = false;
   $('btn-load-log').onclick = loadLog;
 
-  const _ACT_ICON = { lap_struck:'✕', message:'✉', appeal_decided:'⚖' };
+  const _ACT_ICON = { lap_struck:'✕', lap_restored:'↩', message:'✉', appeal_decided:'⚖' };
   async function loadLog(){
     const wrap = $('log-wrap');
     wrap.innerHTML = '<div class="empty">⏳ Laden…</div>';
@@ -754,6 +847,9 @@ function boot(){
         if(it.kind === 'lap_struck'){
           icon = '✕'; color = '#ff8a94';
           text = `<b>Runde gestrichen</b> — ${esc(x.username||x.targetUid||'?')} · ${esc(trackName(x.trackId))} · ${x.timeMs?fmtLap(x.timeMs):'—'}<br><span class="sub" style="margin:0">${esc(x.reason||'')}</span>`;
+        } else if(it.kind === 'lap_restored'){
+          icon = '↩'; color = '#39d98a';
+          text = `<b>Streichung zurückgenommen</b> — ${esc(x.username||x.targetUid||'?')} · ${esc(trackName(x.trackId))} · ${x.timeMs?fmtLap(x.timeMs):'—'}`;
         } else if(it.kind === 'message'){
           icon = '✉'; color = x.msgType === 'penalty' ? '#ff8a94' : x.msgType === 'no_action' ? '#39d98a' : '#ffcc00';
           text = `<b>Nachricht</b> (${_MSG_LABEL[x.msgType]||esc(x.msgType||'')}) — ${esc(x.username||x.targetUid||'?')}<br><span class="sub" style="margin:0">${esc(x.reason||'')}${x.penalty?' · '+esc(x.penalty):''}${x.lpDelta?` · LP ${x.lpDelta>0?'+':''}${x.lpDelta}`:''}</span>`;
