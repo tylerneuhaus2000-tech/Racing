@@ -1477,12 +1477,17 @@ async function _showWorldRankReveal({ trackId, classType, timeMs, oldTimeMs, nam
   void box.offsetWidth;
   box.classList.add('show');
   box.style.pointerEvents = 'auto';
-  const close = () => {
+  function onKey(){ close(); }
+  function close(){
     box.classList.remove('show');
     box.style.pointerEvents = 'none';
     box.removeEventListener('click', close);
-  };
+    document.removeEventListener('keydown', onKey, true);
+    clearTimeout(_showWorldRankReveal._t);
+  }
   box.addEventListener('click', close);
+  // Beim ersten Tastendruck (z.B. Gas geben) sofort wegblenden — verdeckt nix beim Fahren
+  setTimeout(() => document.addEventListener('keydown', onKey, true), 600);
   clearTimeout(_showWorldRankReveal._t);
   _showWorldRankReveal._t = setTimeout(close, 8000);
 }
@@ -1885,6 +1890,8 @@ function _renderLb(){
     const isWR = rank === 1;
     const gapMs = entry.timeMs - leaderMs;
     const gapStr = isWR ? 'Bestzeit' : '+' + (gapMs / 1000).toFixed(3);
+    const upd = entry.updatedAt instanceof Date ? entry.updatedAt : (entry.updatedAt ? new Date(entry.updatedAt) : null);
+    const isFresh = upd && (Date.now() - upd.getTime() < 864e5);
 
     const div = document.createElement('div');
     div.className = 'lb-entry' + (isMe?' lb-me':'');
@@ -1896,6 +1903,7 @@ function _renderLb(){
         `<span class="lb-cls-badge ${cls}">${clsLabel}</span>`+
         `<span class="lb-driver">${_esc(entry.name||'Fahrer')}</span>`+
         (isWR ? `<span class="lb-wr-badge">🏆 World Record</span>` : '')+
+        (isFresh && !isWR ? `<span class="lb-new-badge">NEU</span>` : '')+
       `</span>`+
       `<span class="lb-time-cell ${timeClass}">${fmtLap(entry.timeMs)}<span class="lb-gap">${gapStr}</span></span>`+
       `<span class="lb-car-cell">${_esc(entry.carName||'—')}</span>`+

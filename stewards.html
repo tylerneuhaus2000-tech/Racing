@@ -592,6 +592,13 @@ function boot(){
       if(t === 'log' && !_logLoaded) loadLog();
     };
   });
+  // Tastenkürzel 1–4 für die Reiter (nicht während Texteingabe)
+  document.addEventListener('keydown', e => {
+    if(/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement && document.activeElement.tagName)) return;
+    const map = { '1':'times', '2':'drivers', '3':'appeals', '4':'log' };
+    const t = map[e.key];
+    if(t){ const btn = document.querySelector(`.tab-btn[data-tab="${t}"]`); if(btn) btn.click(); }
+  });
 
   /* ══════════════ STRAFEN-SCHNELLVORLAGEN ══════════════ */
   const PENALTY_PRESETS = [
