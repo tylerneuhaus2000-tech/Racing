@@ -31,12 +31,41 @@ service cloud.firestore {
         // Aufräumen (Pruning) darf der Fahrer für seine eigenen, Streichen/Löschen der Steward
         allow delete: if isAdmin() || (request.auth != null
           && docId.split('_')[0] == request.auth.uid);
+
+        // Beweismaterial (Clips ±3s, Screenshots) zu einer Runde. Öffentlich
+        // lesbar, damit der betroffene Fahrer + Einspruchs-Ansicht es sehen.
+        match /evidence/{evId} {
+          allow read: if true;
+          allow create, delete: if isAdmin();
+        }
       }
     }
 
     // Protokoll der Steward-Entscheidungen (Streichungen von Rundenzeiten etc.)
     match /steward_actions/{docId} {
       allow read, create: if isAdmin();
+    }
+
+    // Strike-Ledger: eine Zeile pro gestrichener Runde. Der Steward schreibt,
+    // der betroffene Fahrer darf seine eigenen sehen (Dashboard "Meine
+    // Streichungen").
+    match /strikes/{strikeId} {
+      allow read: if isAdmin() || (request.auth != null
+        && resource.data.uid == request.auth.uid);
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Einsprüche: der Fahrer legt EINEN Einspruch für seine gestrichene Runde
+    // an (Frist 30 Tage — im Client geprüft). Der Steward entscheidet
+    // (upheld = wiederhergestellt, rejected = endgültig gelöscht).
+    match /appeals/{appealId} {
+      allow read: if isAdmin() || (request.auth != null
+        && resource.data.uid == request.auth.uid);
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'open';
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     match /users/{uid} {

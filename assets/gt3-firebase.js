@@ -48,38 +48,154 @@ document.addEventListener('DOMContentLoaded', () => {
   _handleStewardReplayDeepLink();
 });
 
+/* Einspruchs-Frist ab Streichung */
+const STRIKE_APPEAL_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+function _trackNm(id){
+  try { const t = (typeof TRACKS !== 'undefined') ? TRACKS.find(x => x.id === id) : null; return t ? t.name : (id || '?'); }
+  catch(e){ return id || '?'; }
+}
+
 /* ── Deep-Link: Replay direkt aus dem Stewards-Panel (stewards.html) öffnen ──
-   URL: gt3-web-racer.html?stewardReplayDoc=<times-docId>&stewardReplayLap=<lapId>
-   stewardReplayLap ist optional -> dann die aktuelle Bestzeit des Docs.
-   Lesezugriff auf times/laps ist öffentlich (siehe firestore.rules), es ist
-   also KEIN Login in diesem Tab nötig. */
+   URL: gt3-web-racer.html?stewardReplayDoc=<times-docId>&stewardReplayLap=<lapId>[&ev=<evId>]
+   stewardReplayLap optional -> aktuelle Bestzeit des Docs.
+   ev=<evId> -> spielt einen gespeicherten Beweis-Clip statt der ganzen Runde.
+   Lesezugriff auf times/laps/evidence ist öffentlich (firestore.rules) — KEIN
+   Login in diesem Tab nötig, um zu schauen. Für das Anlegen von Beweisen muss
+   im selben Browser ein Steward-Konto bei grid-line.de angemeldet sein. */
 function _handleStewardReplayDeepLink(){
   const qs = new URLSearchParams(location.search);
   const docId = qs.get('stewardReplayDoc');
   if(!docId) return;
   const lapId = qs.get('stewardReplayLap');
+  const evId  = qs.get('ev');
   if(typeof Game !== 'undefined') Game._replayFromDeepLink = true;
 
   const parentRef = db.collection('times').doc(docId);
-  Promise.all([parentRef.get(), lapId ? parentRef.collection('laps').doc(lapId).get() : Promise.resolve(null)])
-    .then(([parentSnap, lapSnap]) => {
-      if(!parentSnap.exists){ alert('Dieser Eintrag existiert nicht mehr.'); return; }
-      const entry = Object.assign({}, parentSnap.data());
-      if(lapSnap){
-        if(!lapSnap.exists){ alert('Diese Runde existiert nicht mehr (evtl. schon aufgeräumt).'); return; }
-        const l = lapSnap.data();
+  const lapRef = lapId ? parentRef.collection('laps').doc(lapId) : null;
+
+  let load;
+  if(evId && lapRef){
+    load = Promise.all([parentRef.get(), lapRef.collection('evidence').doc(evId).get()]).then(([ps, es]) => {
+      if(!ps.exists || !es.exists) throw new Error('Aufnahme nicht gefunden.');
+      const ev = es.data();
+      if(ev.type !== 'clip' || !ev.clip || !ev.clip.flat) throw new Error('Diese Aufnahme ist kein Video-Clip.');
+      const entry = Object.assign({}, ps.data());
+      entry.replay = ev.clip;
+      return { entry, allowEvidence: false };
+    });
+  } else {
+    load = Promise.all([parentRef.get(), lapRef ? lapRef.get() : Promise.resolve(null)]).then(([ps, ls]) => {
+      if(!ps.exists) throw new Error('Dieser Eintrag existiert nicht mehr.');
+      const entry = Object.assign({}, ps.data());
+      if(ls){
+        if(!ls.exists) throw new Error('Diese Runde existiert nicht mehr (evtl. schon aufgeräumt).');
+        const l = ls.data();
         entry.replay = l.replay || null;
         entry.timeMs = l.timeMs;
       }
-      if(!entry.replay || !entry.replay.flat){ alert('Für diese Runde ist kein Replay gespeichert.'); return; }
-      const t0 = Date.now();
-      const iv = setInterval(() => {
-        const ready = typeof Game !== 'undefined' && typeof _watchLbReplay === 'function' && typeof Game.getTrackPool === 'function';
-        if(ready){ clearInterval(iv); _watchLbReplay(entry); }
-        else if(Date.now() - t0 > 20000){ clearInterval(iv); console.warn('[FB] Steward-Replay-Deep-Link: Spiel wurde nicht rechtzeitig bereit.'); }
-      }, 150);
-    })
-    .catch(e => { console.error('[FB] Steward-Replay-Deep-Link:', e); alert('Replay konnte nicht geladen werden: ' + e.message); });
+      return { entry, allowEvidence: !!lapId };
+    });
+  }
+
+  load.then(({ entry, allowEvidence }) => {
+    if(!entry.replay || !entry.replay.flat) throw new Error('Für diese Runde ist kein Replay gespeichert.');
+    const t0 = Date.now();
+    const iv = setInterval(() => {
+      const ready = typeof Game !== 'undefined' && typeof _watchLbReplay === 'function' && typeof Game.getTrackPool === 'function';
+      if(ready){
+        clearInterval(iv);
+        _watchLbReplay(entry);
+        if(allowEvidence){
+          Game._stewardEvidenceCtx = { docId, lapId };
+          _wireStewardEvidenceToolbar();
+        }
+      } else if(Date.now() - t0 > 20000){ clearInterval(iv); console.warn('[FB] Deep-Link: Spiel nicht rechtzeitig bereit.'); }
+    }, 150);
+  }).catch(e => { console.error('[FB] Deep-Link:', e); alert(e.message || 'Replay konnte nicht geladen werden.'); });
+}
+
+function _stewardOnline(){ return !!(fbUser && ADMIN_UIDS.includes(fbUser.uid)); }
+
+function _evToast(msg){
+  const el = document.getElementById('rpl-ev-toast');
+  if(!el) return;
+  el.textContent = msg; el.style.display = 'block';
+  clearTimeout(_evToast._t);
+  _evToast._t = setTimeout(() => { el.style.display = 'none'; }, 2600);
+}
+
+function _wireStewardEvidenceToolbar(){
+  const box = document.getElementById('rpl-steward');
+  if(!box) return;
+  box.style.display = 'inline-flex';
+  const clipBtn = document.getElementById('rpl-ev-clip');
+  const shotBtn = document.getElementById('rpl-ev-shot');
+  if(clipBtn && !clipBtn._wired){ clipBtn._wired = true; clipBtn.onclick = _captureStewardClip; }
+  if(shotBtn && !shotBtn._wired){ shotBtn._wired = true; shotBtn.onclick = _captureStewardShot; }
+}
+
+function _evidenceRef(){
+  const c = (typeof Game !== 'undefined') && Game._stewardEvidenceCtx;
+  if(!c || !c.lapId) return null;
+  return db.collection('times').doc(c.docId).collection('laps').doc(c.lapId).collection('evidence');
+}
+
+function _captureStewardClip(){
+  if(!_stewardOnline()){ alert('Nur für eingeloggte Stewards. Melde dich im selben Browser bei grid-line.de an.'); return; }
+  const ref = _evidenceRef(); if(!ref) return;
+  const rep = (typeof Game !== 'undefined') && Game.replay;
+  if(!rep || !rep.frames){ alert('Kein Replay aktiv.'); return; }
+  const now = Game._replayT || 0;
+  const frames = rep.frames.filter(f => f.t >= now - 3 && f.t <= now + 3).map(f => ({ t: f.t, cars: f.cars }));
+  if(frames.length < 4){ alert('An dieser Stelle sind zu wenige Videodaten für einen Clip.'); return; }
+  const clip = (typeof _encodeReplay === 'function') ? _encodeReplay(frames) : null;
+  if(!clip){ alert('Clip konnte nicht kodiert werden.'); return; }
+  const note = (prompt('Notiz zum Clip (optional):') || '').trim();
+  _evToast('📎 Clip wird gespeichert…');
+  ref.add({
+    type: 'clip', at: Date.now(), by: fbUser.uid,
+    byName: (fbUsername || fbUser.displayName || fbUser.email || ''),
+    tSec: Math.round(now * 100) / 100, note, clip
+  }).then(() => _evToast('📎 Clip gespeichert')).catch(e => { _evToast('Fehler'); alert('Speichern fehlgeschlagen: ' + e.message); });
+}
+
+function _captureStewardShot(){
+  if(!_stewardOnline()){ alert('Nur für eingeloggte Stewards. Melde dich im selben Browser bei grid-line.de an.'); return; }
+  const ref = _evidenceRef(); if(!ref) return;
+  const note = (prompt('Notiz zum Screenshot (optional):') || '').trim();
+  _evToast('📷 Screenshot…');
+  Game._pendingShot = (dataUrl) => {
+    if(!dataUrl){ _evToast('Screenshot fehlgeschlagen'); return; }
+    ref.add({
+      type: 'shot', at: Date.now(), by: fbUser.uid,
+      byName: (fbUsername || fbUser.displayName || fbUser.email || ''),
+      tSec: Math.round((Game._replayT || 0) * 100) / 100, note, shot: dataUrl
+    }).then(() => _evToast('📷 Screenshot gespeichert')).catch(e => { _evToast('Fehler'); alert('Speichern fehlgeschlagen: ' + e.message); });
+  };
+}
+
+/* Strike-Ledger-Zeile schreiben (eine pro gestrichener Runde) — vom Panel
+   aufgerufen, damit der Fahrer die Streichung in "Meine Streichungen" sieht
+   und binnen 30 Tagen Einspruch einlegen kann. */
+async function _writeStrikeLedger(o){
+  let evidenceCount = 0;
+  try {
+    const ev = await db.collection('times').doc(o.docId).collection('laps').doc(o.lapId).collection('evidence').get();
+    evidenceCount = ev.size;
+  } catch(e){}
+  const struckAt = Date.now();
+  return db.collection('strikes').add({
+    uid: o.uid, username: o.username || null,
+    docId: o.docId, lapId: o.lapId,
+    trackId: o.trackId || null, carId: o.carId || null, timeMs: o.timeMs || null,
+    reason: o.reason, evidenceCount,
+    struckBy: fbUser ? fbUser.uid : null,
+    struckByName: (fbUsername || (fbUser && (fbUser.displayName || fbUser.email)) || ''),
+    struckAt,
+    appealDeadline: struckAt + STRIKE_APPEAL_WINDOW_MS,
+    status: 'active', restored: false, finalDeleted: false
+  });
 }
 
 /* ── Helpers ── */
@@ -653,12 +769,25 @@ function _initAdminPanel(){
     catch(e){ return id || '?'; }
   };
 
-  const _playReplay = (obj) => {
+  const _playReplay = (obj, evCtx) => {
     if(!(obj && obj.replay && obj.replay.flat && obj.replay.flat.length > 5)) return;
     const p = document.getElementById('admin-panel'); if(p) p.style.display = 'none';
     // Merken, dass die Runde aus dem Stewards-Panel kam -> beim Verlassen des
     // Replays soll das Panel wieder aufgehen statt im Hauptmenü zu landen.
-    if(typeof Game !== 'undefined') Game._replayFromSteward = true;
+    if(typeof Game !== 'undefined'){
+      Game._replayFromSteward = true;
+      if(evCtx && evCtx.lapId){
+        Game._stewardEvidenceCtx = evCtx;
+        // Toolbar einblenden, sobald das Replay wirklich läuft
+        const t0 = Date.now();
+        const iv = setInterval(() => {
+          if(Game._replayMode){ clearInterval(iv); _wireStewardEvidenceToolbar(); }
+          else if(Date.now() - t0 > 15000) clearInterval(iv);
+        }, 200);
+      } else {
+        Game._stewardEvidenceCtx = null;
+      }
+    }
     try { _watchLbReplay(obj); } catch(e){ console.error('[Admin] replay:', e); }
   };
 
@@ -712,7 +841,7 @@ function _initAdminPanel(){
           `<span style="flex:1;color:${struck?'#ff8a94':'#e8ecef'};font-variant-numeric:tabular-nums">${fmtLap(l.timeMs)}${struck?` · <span style="font-size:10px">GESTRICHEN: ${_esc(l.struckReason||'—')}</span>`:''}</span>`+
           (lhasRep ? _btn('lrep','Replay dieser Runde','▶','#8bd3ff','#1a2533','#2a3a4a') : '')+
           (struck ? '' : _btn('lstr','Diese Runde streichen','✕','#ff8a94','#3a0d12','#ff2e3d'));
-        if(lhasRep) lr.querySelector('[data-a="lrep"]').onclick = () => _playReplay(l);
+        if(lhasRep) lr.querySelector('[data-a="lrep"]').onclick = () => _playReplay(l, { docId: r._id, lapId: l._id });
         const strBtn = lr.querySelector('[data-a="lstr"]');
         if(strBtn) strBtn.onclick = async () => {
           if(!_isAdmin()) return;
@@ -748,6 +877,14 @@ function _initAdminPanel(){
               penalty:'Zeit annulliert', lpDelta:0, ts:Date.now()
             });
           } catch(e){ errs.push('Benachrichtigung: '+e.message); }
+          if(okStrike){
+            try {
+              await _writeStrikeLedger({
+                uid:_timesTargetUid, username:_timesUsername, docId:r._id, lapId:l._id,
+                trackId:r.trackId, carId:r.carId, timeMs:l.timeMs, reason:rsn
+              });
+            } catch(e){ errs.push('Strike-Ledger: '+e.message); }
+          }
 
           if(okStrike){
             if(newBest){ r.timeMs = newBest.timeMs; r.replay = newBest.replay || null; }
@@ -771,6 +908,41 @@ function _initAdminPanel(){
           }
         };
         histBox.appendChild(lr);
+
+        // Beweismaterial zu dieser Runde (Clips ±3s / Screenshots)
+        const evRow = document.createElement('div');
+        evRow.style.cssText = 'margin:0 0 4px 26px';
+        histBox.appendChild(evRow);
+        const evCol = db.collection('times').doc(r._id).collection('laps').doc(l._id).collection('evidence');
+        evCol.orderBy('at').get().then(es => {
+          if(es.empty) return;
+          const toggle = document.createElement('button');
+          toggle.style.cssText = 'padding:3px 8px;background:#2d0057;border:1px solid #7c3aed;border-radius:4px;color:#d8b4fe;font:700 9px var(--mono);cursor:pointer';
+          toggle.textContent = `📎 ${es.size} BEWEIS${es.size===1?'':'E'}`;
+          const box = document.createElement('div');
+          box.style.display = 'none';
+          box.style.cssText = 'display:none;margin:6px 0';
+          toggle.onclick = () => {
+            const open = box.style.display !== 'none';
+            box.style.display = open ? 'none' : 'block';
+            if(open || box._built) return;
+            box._built = true;
+            const parts = [];
+            es.forEach(d => {
+              const e = d.data();
+              const when = _fmtDate(new Date(e.at || 0));
+              if(e.type === 'shot' && e.shot){
+                parts.push(`<div style="margin:6px 0"><img src="${e.shot}" style="max-width:320px;width:100%;border-radius:6px;border:1px solid #2a3a4a"><div style="color:#8b95a1;font-size:9px">📷 ${when}${e.note?' · '+_esc(e.note):''}</div></div>`);
+              } else if(e.type === 'clip'){
+                const url = `gt3-web-racer.html?stewardReplayDoc=${encodeURIComponent(r._id)}&stewardReplayLap=${encodeURIComponent(l._id)}&ev=${encodeURIComponent(d.id)}`;
+                parts.push(`<div style="margin:6px 0"><a href="${url}" target="_blank" style="padding:4px 9px;background:#2d0057;border:1px solid #7c3aed;border-radius:4px;color:#d8b4fe;font:700 9px var(--mono);text-decoration:none">▶ CLIP ±3s</a><span style="color:#8b95a1;font-size:9px;margin-left:6px">${when}${e.note?' · '+_esc(e.note):''}</span></div>`);
+              }
+            });
+            box.innerHTML = parts.join('');
+          };
+          evRow.appendChild(toggle);
+          evRow.appendChild(box);
+        }).catch(()=>{});
       });
     }
 
@@ -893,6 +1065,7 @@ auth.onAuthStateChanged(user => {
 
   // Stewards Listener starten
   _initStewardsListener(user.uid);
+  _initMyStrikes(user.uid);
   if(ADMIN_UIDS.includes(user.uid)){
     _initAdminPanel();
     const adminBtn = document.getElementById('btn-admin-panel');
@@ -930,6 +1103,173 @@ auth.onAuthStateChanged(user => {
     // Buttons bleiben entsperrt mit Fallback-Name
   });
 });
+
+/* ══════════════════════════════════════════════════════
+   FAHRER-DASHBOARD: "MEINE STREICHUNGEN" + EINSPRÜCHE
+   ══════════════════════════════════════════════════════ */
+let _myStrikesData = { strikes: [], appeals: {} };
+
+function _carNm(id){
+  try { const c = (typeof CARS !== 'undefined') ? CARS.find(x => x.id === id) : null; return c ? (c.name || c.id) : (id || '?'); }
+  catch(e){ return id || '?'; }
+}
+
+function _initMyStrikes(uid){
+  const btn = document.getElementById('btn-my-strikes');
+  const modal = document.getElementById('strikes-modal');
+  if(!btn || !modal) return;
+
+  const closeBtn = document.getElementById('strikes-close');
+  if(closeBtn && !closeBtn._wired){ closeBtn._wired = true; closeBtn.onclick = () => { modal.style.display = 'none'; }; }
+  if(!modal._wired){ modal._wired = true; modal.addEventListener('click', e => { if(e.target === modal) modal.style.display = 'none'; }); }
+  if(!btn._wired){
+    btn._wired = true;
+    btn.onclick = () => { modal.style.display = 'flex'; _renderMyStrikes(); };
+  }
+
+  const reload = () => {
+    Promise.all([
+      db.collection('strikes').where('uid', '==', uid).get(),
+      db.collection('appeals').where('uid', '==', uid).get()
+    ]).then(([sSnap, aSnap]) => {
+      const strikes = [];
+      sSnap.forEach(d => strikes.push(Object.assign({ _id: d.id }, d.data())));
+      strikes.sort((a, b) => (b.struckAt || 0) - (a.struckAt || 0));
+      const appeals = {};
+      aSnap.forEach(d => { const a = d.data(); appeals[a.strikeId] = Object.assign({ _id: d.id }, a); });
+      _myStrikesData = { strikes, appeals };
+
+      const active = strikes.filter(s => !s.restored);
+      if(active.length){
+        btn.style.display = 'inline-block';
+        const badge = document.getElementById('my-strikes-badge');
+        const pending = active.filter(s => {
+          const ap = appeals[s._id];
+          return !s.finalDeleted && (!ap || ap.status === 'open');
+        }).length;
+        if(badge){
+          if(pending){ badge.style.display = 'inline-block'; badge.textContent = pending; }
+          else badge.style.display = 'none';
+        }
+      } else {
+        btn.style.display = 'none';
+      }
+      if(modal.style.display === 'flex') _renderMyStrikes();
+    }).catch(e => console.warn('[FB] Streichungen laden:', e.message));
+  };
+  reload();
+  _initMyStrikes._reload = reload;
+}
+
+function _renderMyStrikes(){
+  const list = document.getElementById('strikes-list');
+  if(!list) return;
+  const { strikes, appeals } = _myStrikesData;
+  if(!strikes.length){
+    list.innerHTML = '<div style="color:#8b95a1;padding:24px 0;text-align:center">Keine gestrichenen Zeiten. Sauber gefahren. 🏁</div>';
+    return;
+  }
+  list.innerHTML = strikes.map(s => {
+    const ap = appeals[s._id];
+    const now = Date.now();
+    const deadline = s.appealDeadline || ((s.struckAt || now) + STRIKE_APPEAL_WINDOW_MS);
+    const daysLeft = Math.ceil((deadline - now) / 86400000);
+    const canAppeal = !s.restored && !s.finalDeleted && !ap && daysLeft > 0;
+
+    let statusHtml;
+    if(s.restored){
+      statusHtml = '<span style="color:#39d98a;font-weight:700">✔ WIEDERHERGESTELLT</span>';
+    } else if(s.finalDeleted){
+      statusHtml = '<span style="color:#ff2e3d;font-weight:700">✖ ENDGÜLTIG GELÖSCHT</span>';
+    } else if(ap && ap.status === 'open'){
+      statusHtml = '<span style="color:#ffcc00;font-weight:700">⏳ EINSPRUCH IN PRÜFUNG</span>';
+    } else if(ap && ap.status === 'upheld'){
+      statusHtml = '<span style="color:#39d98a;font-weight:700">✔ EINSPRUCH STATTGEGEBEN</span>';
+    } else if(ap && ap.status === 'rejected'){
+      statusHtml = '<span style="color:#ff2e3d;font-weight:700">✖ EINSPRUCH ABGELEHNT</span>';
+    } else if(daysLeft > 0){
+      statusHtml = `<span style="color:#ff8a94;font-weight:700">GESTRICHEN</span> · <span style="color:#8b95a1">noch ${daysLeft} Tag${daysLeft===1?'':'e'} für Einspruch</span>`;
+    } else {
+      statusHtml = '<span style="color:#ff8a94;font-weight:700">GESTRICHEN</span> · <span style="color:#8b95a1">Einspruchsfrist abgelaufen</span>';
+    }
+
+    return `<div style="border:1px solid #2a3a4a;border-radius:8px;padding:14px;margin-bottom:12px;background:#0a1420">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div style="font-weight:700;color:#e8edf2">${_esc(_trackNm(s.trackId))} · ${_esc(_carNm(s.carId))}</div>
+        <div style="font-family:var(--mono);color:#ff8a94;font-weight:700">${s.timeMs ? _esc(fmtLap(s.timeMs)) : '—'}</div>
+      </div>
+      <div style="color:#8b95a1;font-size:11px;margin-top:6px">Gestrichen am ${_fmtDate(new Date(s.struckAt || 0))}${s.struckByName ? ' von ' + _esc(s.struckByName) : ''}</div>
+      <div style="margin-top:8px;color:#c9d1d9;font-size:12px"><b style="color:#8b95a1">Begründung:</b> ${_esc(s.reason || '—')}</div>
+      <div style="margin-top:8px;font-size:11px">${statusHtml}</div>
+      ${ap && ap.driverReason ? `<div style="margin-top:6px;font-size:11px;color:#8b95a1"><b>Dein Einspruch:</b> ${_esc(ap.driverReason)}</div>` : ''}
+      ${ap && ap.decisionNote ? `<div style="margin-top:6px;font-size:11px;color:#8b95a1"><b>Steward-Entscheid:</b> ${_esc(ap.decisionNote)}</div>` : ''}
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        ${(s.evidenceCount ? `<button data-ev="${s._id}" style="padding:6px 12px;background:#2d0057;border:1px solid #7c3aed;border-radius:4px;color:#d8b4fe;font:700 10px var(--mono);cursor:pointer">📎 ${s.evidenceCount} BEWEIS${s.evidenceCount===1?'':'E'} ANSEHEN</button>` : '')}
+        ${(canAppeal ? `<button data-appeal="${s._id}" style="padding:6px 12px;background:#3a0d12;border:1px solid #ff2e3d;border-radius:4px;color:#ff8a94;font:700 10px var(--mono);cursor:pointer">⚖ EINSPRUCH EINLEGEN</button>` : '')}
+      </div>
+      <div data-evbox="${s._id}"></div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('[data-appeal]').forEach(b => {
+    b.onclick = () => _fileAppeal(b.getAttribute('data-appeal'));
+  });
+  list.querySelectorAll('[data-ev]').forEach(b => {
+    b.onclick = () => _showMyEvidence(b.getAttribute('data-ev'), b);
+  });
+}
+
+function _showMyEvidence(strikeId, btn){
+  const s = _myStrikesData.strikes.find(x => x._id === strikeId);
+  if(!s) return;
+  const box = document.querySelector(`[data-evbox="${strikeId}"]`);
+  if(!box) return;
+  if(box._open){ box.innerHTML = ''; box._open = false; return; }
+  box._open = true;
+  box.innerHTML = '<div style="color:#8b95a1;font-size:10px;padding:8px 0">Beweise laden…</div>';
+  db.collection('times').doc(s.docId).collection('laps').doc(s.lapId).collection('evidence')
+    .orderBy('at').get().then(snap => {
+      if(snap.empty){ box.innerHTML = '<div style="color:#8b95a1;font-size:10px;padding:8px 0">Keine Beweise gespeichert.</div>'; return; }
+      const parts = [];
+      snap.forEach(d => {
+        const e = d.data();
+        const when = _fmtDate(new Date(e.at || 0));
+        if(e.type === 'shot' && e.shot){
+          parts.push(`<div style="margin:8px 0"><img src="${e.shot}" style="width:100%;border-radius:6px;border:1px solid #2a3a4a"><div style="color:#8b95a1;font-size:10px;margin-top:3px">📷 ${when}${e.note ? ' · ' + _esc(e.note) : ''}</div></div>`);
+        } else if(e.type === 'clip'){
+          const url = `?stewardReplayDoc=${encodeURIComponent(s.docId)}&stewardReplayLap=${encodeURIComponent(s.lapId)}&ev=${encodeURIComponent(d.id)}`;
+          parts.push(`<div style="margin:8px 0"><a href="${url}" target="_blank" style="display:inline-block;padding:6px 12px;background:#2d0057;border:1px solid #7c3aed;border-radius:4px;color:#d8b4fe;font:700 10px var(--mono);text-decoration:none">▶ CLIP ±3s ABSPIELEN</a><span style="color:#8b95a1;font-size:10px;margin-left:8px">${when}${e.note ? ' · ' + _esc(e.note) : ''}</span></div>`);
+        }
+      });
+      box.innerHTML = parts.join('');
+    }).catch(e => { box.innerHTML = `<div style="color:#ff8a94;font-size:10px;padding:8px 0">Fehler: ${_esc(e.message)}</div>`; });
+}
+
+function _fileAppeal(strikeId){
+  const s = _myStrikesData.strikes.find(x => x._id === strikeId);
+  if(!s || !fbUser) return;
+  const deadline = s.appealDeadline || ((s.struckAt || 0) + STRIKE_APPEAL_WINDOW_MS);
+  if(Date.now() > deadline){ alert('Die Einspruchsfrist (30 Tage ab Streichung) ist abgelaufen.'); return; }
+  if(_myStrikesData.appeals[strikeId]){ alert('Für diese Streichung liegt bereits ein Einspruch vor.'); return; }
+  const why = (prompt('Warum sollte diese Zeit wiederhergestellt werden? Begründe deinen Einspruch — ein Steward prüft ihn erneut:') || '').trim();
+  if(!why){ return; }
+  if(why.length < 10){ alert('Bitte gib eine kurze Begründung an (mind. 10 Zeichen).'); return; }
+  db.collection('appeals').add({
+    uid: fbUser.uid,
+    username: fbUsername || null,
+    strikeId,
+    docId: s.docId, lapId: s.lapId,
+    trackId: s.trackId || null, carId: s.carId || null, timeMs: s.timeMs || null,
+    strikeReason: s.reason || null,
+    driverReason: why,
+    status: 'open',
+    createdAt: Date.now(),
+    struckAt: s.struckAt || null
+  }).then(() => {
+    alert('Einspruch eingereicht. Du siehst den Status hier im Dashboard.');
+    if(_initMyStrikes._reload) _initMyStrikes._reload();
+  }).catch(e => alert('Einspruch fehlgeschlagen: ' + e.message));
+}
 
 /* ── Replay-Frames -> kompaktes flaches Array (nur Spieler-Car) ── */
 function _encodeReplay(replayFrames){

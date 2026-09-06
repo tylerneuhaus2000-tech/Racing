@@ -28,6 +28,7 @@
   .btn.primary{background:var(--red);border-color:var(--red);color:#fff}
   .btn.danger{background:#3a0d12;border-color:var(--red);color:#ff8a94}
   .btn:disabled{opacity:.5;cursor:default}
+  .tab-btn.tab-on{background:#12243d;border-color:#3b82f6;color:#dbeafe}
 
   #gate{min-height:80vh;display:flex;align-items:center;justify-content:center;padding:24px}
   #gate .card{width:380px;max-width:100%;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:32px}
@@ -103,6 +104,13 @@
   </header>
 
   <main id="main">
+    <nav id="tabs" style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+      <button class="btn tab-btn tab-on" data-tab="times">RUNDENZEITEN</button>
+      <button class="btn tab-btn" data-tab="drivers">ALLE FAHRER</button>
+      <button class="btn tab-btn" data-tab="appeals">EINSPRÜCHE <span id="appeals-badge" style="display:none;background:#ffcc00;color:#111;border-radius:999px;padding:1px 7px;font-size:11px;margin-left:4px">0</span></button>
+    </nav>
+
+    <div id="view-times">
     <div class="grid">
       <!-- Links: Spieler + Nachricht -->
       <div>
@@ -146,6 +154,31 @@
         <div id="times-wrap" style="margin-top:14px">
           <div class="empty">Noch keine Zeiten geladen.</div>
         </div>
+      </div>
+    </div>
+    </div><!-- /view-times -->
+
+    <div id="view-drivers" style="display:none">
+      <div class="box">
+        <h2>ALLE FAHRER</h2>
+        <p class="sub">Übersicht über jeden Fahrer: gespeicherte Bestzeiten, gestrichene Runden, offene Einsprüche. Zeile anklicken lädt den Fahrer in den Reiter RUNDENZEITEN.</p>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" id="btn-load-drivers">↻ DASHBOARD LADEN</button>
+          <span id="drivers-hint" class="sub" style="margin:0"></span>
+        </div>
+        <div id="drivers-wrap" style="margin-top:14px"><div class="empty">Noch nicht geladen.</div></div>
+      </div>
+    </div>
+
+    <div id="view-appeals" style="display:none">
+      <div class="box">
+        <h2>EINSPRÜCHE</h2>
+        <p class="sub">Fahrer legen binnen 30 Tagen ab Streichung Einspruch ein. Prüfe die Beweise und entscheide: <b>WIEDERHERSTELLEN</b> (Runde wird wieder gültig, rückt ggf. als Bestzeit nach) oder <b>ENDGÜLTIG LÖSCHEN</b> (Runde + Beweise werden gelöscht).</p>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" id="btn-load-appeals">↻ EINSPRÜCHE LADEN</button>
+          <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="appeals-show-all"> auch erledigte zeigen</label>
+        </div>
+        <div id="appeals-wrap" style="margin-top:14px"><div class="empty">Noch nicht geladen.</div></div>
       </div>
     </div>
   </main>
@@ -445,6 +478,21 @@ function boot(){
               penalty:'Zeit annulliert', lpDelta:0, ts:Date.now()
             });
           } catch(e){ errs.push('Benachrichtigung: '+e.message); }
+          if(okStrike){
+            try {
+              let evCount = 0;
+              try { const ev = await lapsRef.doc(l._id).collection('evidence').get(); evCount = ev.size; } catch(e){}
+              const now = Date.now();
+              await db.collection('strikes').add({
+                uid:timesTargetUid, username:timesUsername, docId:r._id, lapId:l._id,
+                trackId:r.trackId||null, carId:r.carId||null, timeMs:l.timeMs||null,
+                reason:rsn, evidenceCount:evCount,
+                struckBy:auth.currentUser.uid, struckByName:(auth.currentUser.displayName||auth.currentUser.email||''),
+                struckAt:now, appealDeadline: now + 30*24*60*60*1000,
+                status:'active', restored:false, finalDeleted:false
+              });
+            } catch(e){ errs.push('Strike-Ledger: '+e.message); }
+          }
 
           const status = $('status');
           if(okStrike){
@@ -460,6 +508,38 @@ function boot(){
           }
         };
         histBox.appendChild(lr);
+
+        const evRow = document.createElement('div');
+        evRow.style.cssText = 'margin:0 0 6px 28px';
+        histBox.appendChild(evRow);
+        lapsRef.doc(l._id).collection('evidence').orderBy('at').get().then(es => {
+          if(es.empty) return;
+          const toggle = document.createElement('button');
+          toggle.className = 'iconbtn';
+          toggle.style.cssText = 'width:auto;padding:2px 8px;font-size:10px;color:#d8b4fe;border-color:#7c3aed';
+          toggle.textContent = `📎 ${es.size} Beweis${es.size===1?'':'e'}`;
+          const box = document.createElement('div');
+          box.style.display = 'none';
+          toggle.onclick = () => {
+            const open = box.style.display !== 'none';
+            box.style.display = open ? 'none' : 'block';
+            if(open || box._built) return;
+            box._built = true;
+            const parts = [];
+            es.forEach(d => {
+              const e = d.data();
+              const when = new Date(e.at||0).toLocaleDateString('de-DE');
+              if(e.type === 'shot' && e.shot){
+                parts.push(`<div style="margin:6px 0"><img src="${e.shot}" style="max-width:360px;width:100%;border-radius:6px;border:1px solid #2a3a4a"><div style="color:#8b95a1;font-size:10px">📷 ${when}${e.note?' · '+esc(e.note):''}</div></div>`);
+              } else if(e.type === 'clip'){
+                parts.push(`<div style="margin:6px 0"><a class="iconbtn" style="width:auto;padding:3px 9px;font-size:10px;color:#d8b4fe;border-color:#7c3aed;text-decoration:none" href="${replayLink(r._id, l._id)}&ev=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">▶ CLIP ±3s</a><span style="color:#8b95a1;font-size:10px;margin-left:6px">${when}${e.note?' · '+esc(e.note):''}</span></div>`);
+              }
+            });
+            box.innerHTML = parts.join('');
+          };
+          evRow.appendChild(toggle);
+          evRow.appendChild(box);
+        }).catch(()=>{});
       });
     }
 
@@ -469,6 +549,240 @@ function boot(){
       tr.querySelector('[data-a="hist"]').textContent = open ? '▾' : '▴';
       if(!open && !histLoaded){ histLoaded = true; try { await renderHist(); } catch(e){ histBox.innerHTML = `<div class="empty">${esc(e.message)}</div>`; } }
     };
+  }
+
+  /* ══════════════ REITER-UMSCHALTUNG ══════════════ */
+  const _views = { times:'view-times', drivers:'view-drivers', appeals:'view-appeals' };
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.onclick = () => {
+      const t = b.getAttribute('data-tab');
+      document.querySelectorAll('.tab-btn').forEach(x => x.classList.toggle('tab-on', x === b));
+      Object.entries(_views).forEach(([k, id]) => { $(id).style.display = (k === t) ? 'block' : 'none'; });
+      if(t === 'drivers' && !_driversLoaded) loadDrivers();
+      if(t === 'appeals' && !_appealsLoaded) loadAppeals();
+    };
+  });
+
+  /* ══════════════ ALLE FAHRER ══════════════ */
+  let _driversLoaded = false;
+  $('btn-load-drivers').onclick = loadDrivers;
+
+  async function loadDrivers(){
+    const wrap = $('drivers-wrap');
+    wrap.innerHTML = '<div class="empty">⏳ Laden…</div>';
+    try {
+      const [uSnap, tSnap, sSnap, aSnap] = await Promise.all([
+        db.collection('usernames').get(),
+        db.collection('times').get(),
+        db.collection('strikes').get(),
+        db.collection('appeals').get()
+      ]);
+      const byUid = {};
+      uSnap.forEach(d => { const uid = d.data().uid; if(uid) byUid[uid] = { username:d.id, uid, times:0, strikes:0, restored:0, openAppeals:0 }; });
+      const ensure = uid => (byUid[uid] || (byUid[uid] = { username:'(unbekannt)', uid, times:0, strikes:0, restored:0, openAppeals:0 }));
+      tSnap.forEach(d => { const x = d.data(); if(x.uid) ensure(x.uid).times++; });
+      sSnap.forEach(d => { const x = d.data(); if(!x.uid) return; const r = ensure(x.uid); r.strikes++; if(x.restored) r.restored++; });
+      aSnap.forEach(d => { const x = d.data(); if(x.uid && x.status === 'open') ensure(x.uid).openAppeals++; });
+
+      const rows = Object.values(byUid).sort((a, b) =>
+        (b.openAppeals - a.openAppeals) || (b.strikes - a.strikes) || a.username.localeCompare(b.username));
+
+      const table = document.createElement('table');
+      table.className = 'times';
+      table.innerHTML = '<thead><tr><th>Fahrer</th><th style="text-align:right">Bestzeiten</th><th style="text-align:right">Streichungen</th><th style="text-align:right">Einsprüche offen</th></tr></thead>';
+      const tb = document.createElement('tbody');
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.innerHTML =
+          `<td class="carname">${esc(r.username)}</td>`+
+          `<td class="time">${r.times}</td>`+
+          `<td class="time" style="color:${r.strikes?'#ff8a94':'#8b95a1'}">${r.strikes}${r.restored?` <span style="font-size:10px;color:#39d98a">(${r.restored} wiederhergest.)</span>`:''}</td>`+
+          `<td class="time" style="color:${r.openAppeals?'#ffcc00':'#8b95a1'}">${r.openAppeals}</td>`;
+        tr.onclick = () => {
+          $('in-username').value = r.username;
+          document.querySelector('.tab-btn[data-tab="times"]').click();
+          $('btn-load-times').click();
+        };
+        tb.appendChild(tr);
+      });
+      table.appendChild(tb);
+      wrap.innerHTML = '';
+      wrap.appendChild(table);
+      $('drivers-hint').textContent = `${rows.length} Fahrer`;
+      _driversLoaded = true;
+    } catch(e){
+      wrap.innerHTML = `<div class="empty">Fehler: ${esc(e.message)}</div>`;
+    }
+  }
+
+  /* ══════════════ EINSPRÜCHE ══════════════ */
+  let _appealsLoaded = false;
+  $('btn-load-appeals').onclick = loadAppeals;
+  $('appeals-show-all').onchange = loadAppeals;
+
+  // Badge mit Anzahl offener Einsprüche (live)
+  db.collection('appeals').where('status', '==', 'open').onSnapshot(snap => {
+    const b = $('appeals-badge');
+    if(snap.size){ b.style.display = 'inline-block'; b.textContent = snap.size; }
+    else b.style.display = 'none';
+  }, () => {});
+
+  async function loadAppeals(){
+    const wrap = $('appeals-wrap');
+    const showAll = $('appeals-show-all').checked;
+    wrap.innerHTML = '<div class="empty">⏳ Laden…</div>';
+    try {
+      const snap = await db.collection('appeals').get();
+      const rows = [];
+      snap.forEach(d => rows.push(Object.assign({ _id:d.id }, d.data())));
+      rows.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      const shown = rows.filter(a => showAll || a.status === 'open');
+      if(!shown.length){ wrap.innerHTML = '<div class="empty">Keine Einsprüche.</div>'; return; }
+      wrap.innerHTML = '';
+      shown.forEach(a => wrap.appendChild(renderAppeal(a)));
+      _appealsLoaded = true;
+    } catch(e){
+      wrap.innerHTML = `<div class="empty">Fehler: ${esc(e.message)}</div>`;
+    }
+  }
+
+  function renderAppeal(a){
+    const card = document.createElement('div');
+    card.className = 'box';
+    card.style.cssText = 'border:1px solid #2a3a4a;margin-bottom:14px';
+    const created = new Date(a.createdAt || 0).toLocaleString('de-DE');
+    const struck = new Date(a.struckAt || 0).toLocaleDateString('de-DE');
+    const stBadge = a.status === 'open' ? '<span style="color:#ffcc00;font-weight:700">⏳ OFFEN</span>'
+      : a.status === 'upheld' ? '<span style="color:#39d98a;font-weight:700">✔ WIEDERHERGESTELLT</span>'
+      : '<span style="color:#ff2e3d;font-weight:700">✖ ENDGÜLTIG GELÖSCHT</span>';
+
+    card.innerHTML =
+      `<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <b>${esc(a.username || a.uid)} · ${esc(trackName(a.trackId))} · ${esc(a.carId || '?')}</b>
+        <span class="time">${a.timeMs ? fmtLap(a.timeMs) : '—'}</span>
+      </div>
+      <p class="sub" style="margin:6px 0">Eingereicht ${esc(created)} · gestrichen am ${esc(struck)} · Status: ${stBadge}</p>
+      <div style="margin:8px 0"><b class="sub" style="margin:0">Steward-Begründung damals:</b><br>${esc(a.strikeReason || '—')}</div>
+      <div style="margin:8px 0"><b class="sub" style="margin:0">Einspruch des Fahrers:</b><br>${esc(a.driverReason || '—')}</div>
+      <div class="row" data-ev></div>
+      <div class="row" data-act style="margin-top:12px"></div>
+      <div data-status class="sub" style="margin:6px 0 0"></div>`;
+
+    // Beweise
+    const evBox = card.querySelector('[data-ev]');
+    if(a.docId && a.lapId){
+      db.collection('times').doc(a.docId).collection('laps').doc(a.lapId).collection('evidence').orderBy('at').get().then(es => {
+        if(es.empty){ evBox.innerHTML = '<span class="sub" style="margin:0">Keine Beweise gespeichert.</span>'; return; }
+        const parts = [];
+        es.forEach(d => {
+          const e = d.data();
+          if(e.type === 'shot' && e.shot){
+            parts.push(`<a href="${e.shot}" target="_blank" rel="noopener"><img src="${e.shot}" style="height:70px;border-radius:5px;border:1px solid #2a3a4a"></a>`);
+          } else if(e.type === 'clip'){
+            parts.push(`<a class="iconbtn" style="width:auto;padding:4px 10px;font-size:10px;color:#d8b4fe;border-color:#7c3aed;text-decoration:none" href="${replayLink(a.docId, a.lapId)}&ev=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">▶ CLIP ±3s</a>`);
+          }
+        });
+        parts.push(`<a class="iconbtn" style="width:auto;padding:4px 10px;font-size:10px;text-decoration:none" href="${replayLink(a.docId, a.lapId)}" target="_blank" rel="noopener">▶ GANZE RUNDE</a>`);
+        evBox.innerHTML = parts.join(' ');
+      }).catch(() => { evBox.innerHTML = ''; });
+    }
+
+    const actBox = card.querySelector('[data-act]');
+    const statusEl = card.querySelector('[data-status]');
+    if(a.status === 'open'){
+      const restoreBtn = document.createElement('button');
+      restoreBtn.className = 'btn primary';
+      restoreBtn.textContent = '✔ WIEDERHERSTELLEN';
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn';
+      delBtn.style.cssText = 'border-color:#ff2e3d;color:#ff8a94';
+      delBtn.textContent = '✖ ENDGÜLTIG LÖSCHEN';
+      restoreBtn.onclick = () => decideAppeal(a, 'restore', statusEl, actBox);
+      delBtn.onclick = () => decideAppeal(a, 'delete', statusEl, actBox);
+      actBox.appendChild(restoreBtn);
+      actBox.appendChild(delBtn);
+    }
+    return card;
+  }
+
+  async function decideAppeal(a, action, statusEl, actBox){
+    if(!isAdmin) return;
+    const note = prompt(action === 'restore'
+      ? 'Notiz für den Fahrer (warum wird die Zeit wiederhergestellt?):'
+      : 'Notiz für den Fahrer (warum wird der Einspruch abgelehnt / die Zeit endgültig gelöscht?):');
+    if(note == null) return;
+    actBox.querySelectorAll('button').forEach(b => b.disabled = true);
+    statusEl.style.color = '#8b95a1';
+    statusEl.textContent = '⏳ Wird verarbeitet…';
+    const lapRef = db.collection('times').doc(a.docId).collection('laps').doc(a.lapId);
+    const meta = { name: a.username, uid: a.uid, carName: a.carId, classType: 'unknown', trackId: a.trackId, carId: a.carId };
+    const errs = [];
+    try {
+      if(action === 'restore'){
+        try {
+          await lapRef.update({
+            struck: false,
+            struckReason: firebase.firestore.FieldValue.delete(),
+            struckBy: firebase.firestore.FieldValue.delete(),
+            struckAt: firebase.firestore.FieldValue.delete()
+          });
+        } catch(e){ errs.push('Runde entsperren: ' + e.message); }
+      } else {
+        try {
+          const ev = await lapRef.collection('evidence').get();
+          await Promise.all(ev.docs.map(d => d.ref.delete().catch(() => {})));
+        } catch(e){ errs.push('Beweise löschen: ' + e.message); }
+        try { await lapRef.delete(); } catch(e){ errs.push('Runde löschen: ' + e.message); }
+      }
+
+      let newBest = null;
+      try { newBest = await recomputeParentTime(a.docId, meta); }
+      catch(e){ errs.push('Neuberechnung: ' + e.message); }
+
+      try {
+        await db.collection('appeals').doc(a._id).update({
+          status: action === 'restore' ? 'upheld' : 'rejected',
+          decisionNote: note.trim(),
+          decidedBy: auth.currentUser.uid,
+          decidedByName: auth.currentUser.displayName || auth.currentUser.email || '',
+          decidedAt: Date.now()
+        });
+      } catch(e){ errs.push('Einspruch-Status: ' + e.message); }
+
+      if(a.strikeId){
+        try {
+          await db.collection('strikes').doc(a.strikeId).update(
+            action === 'restore'
+              ? { restored: true, status: 'restored', restoredAt: Date.now() }
+              : { finalDeleted: true, status: 'final_deleted', finalDeletedAt: Date.now() }
+          );
+        } catch(e){ errs.push('Strike-Ledger: ' + e.message); }
+      }
+
+      try {
+        await db.collection('steward_msgs').doc(a.uid).set({
+          type: action === 'restore' ? 'no_action' : 'penalty',
+          reason: action === 'restore'
+            ? `Einspruch stattgegeben · ${trackName(a.trackId)}: Deine Zeit wurde wiederhergestellt. ${note.trim()}`
+            : `Einspruch abgelehnt · ${trackName(a.trackId)}: Die Zeit bleibt endgültig gestrichen. ${note.trim()}`,
+          penalty: action === 'restore' ? 'Zeit wiederhergestellt' : 'Zeit endgültig annulliert',
+          lpDelta: 0, ts: Date.now()
+        });
+      } catch(e){ errs.push('Benachrichtigung: ' + e.message); }
+
+      statusEl.style.color = errs.length ? '#ffb020' : '#4eff8a';
+      statusEl.textContent = (action === 'restore'
+        ? (newBest ? `✓ Wiederhergestellt · Bestzeit jetzt ${fmtLap(newBest.timeMs)}` : '✓ Wiederhergestellt')
+        : '✓ Endgültig gelöscht') + (errs.length ? `  ⚠ ${errs.join(' | ')}` : '');
+      _appealsLoaded = false;
+      _driversLoaded = false;
+      setTimeout(loadAppeals, 1200);
+    } catch(e){
+      statusEl.style.color = '#ff6b6b';
+      statusEl.textContent = '❌ ' + e.message;
+      actBox.querySelectorAll('button').forEach(b => b.disabled = false);
+    }
   }
 }
 

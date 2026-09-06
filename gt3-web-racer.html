@@ -1607,8 +1607,13 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
   <span id="rpl-time" style="min-width:48px;color:#8b95a1">0:00</span>
   <span id="rpl-total" style="min-width:48px;color:#555">/ 0:00</span>
   <button id="rpl-cam" style="background:#0d1a2a;border:1px solid #2a3a4a;color:#60b4ff;padding:6px 14px;border-radius:4px;cursor:pointer;font:700 10px var(--mono)">CAM: CHASE</button>
+  <span id="rpl-steward" style="display:none;gap:6px;align-items:center">
+    <button id="rpl-ev-clip" title="Clip von 3s vor bis 3s nach dieser Stelle als Beweis speichern" style="background:#2d0057;border:1px solid #7c3aed;color:#d8b4fe;padding:6px 12px;border-radius:4px;cursor:pointer;font:700 10px var(--mono)">&#128206; CLIP &plusmn;3s</button>
+    <button id="rpl-ev-shot" title="Screenshot dieses Moments als Beweis speichern" style="background:#2d0057;border:1px solid #7c3aed;color:#d8b4fe;padding:6px 12px;border-radius:4px;cursor:pointer;font:700 10px var(--mono)">&#128247; FOTO</button>
+  </span>
   <button id="rpl-exit" style="background:transparent;border:1px solid #3a4450;color:#8b95a1;padding:6px 12px;border-radius:4px;cursor:pointer;font:700 10px var(--mono)">&#10005; EXIT</button>
 </div>
+<div id="rpl-ev-toast" style="display:none;position:fixed;bottom:64px;left:50%;transform:translateX(-50%);z-index:600;background:#2d0057;color:#d8b4fe;border:1px solid #7c3aed;border-radius:8px;padding:9px 18px;font:700 11px var(--mono);letter-spacing:.04em"></div>
 
 <!-- STEWARDS BANNER -->
 <div id="stewards-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999;pointer-events:none">
@@ -1673,6 +1678,18 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
   </div>
 </div>
 
+<!-- MEINE STREICHUNGEN (Fahrer-Dashboard) -->
+<div id="strikes-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);backdrop-filter:blur(12px);align-items:center;justify-content:center">
+  <div style="background:#0d1a2a;border:1px solid #ff2e3d;border-radius:10px;padding:28px;width:620px;max-width:94vw;max-height:88vh;overflow-y:auto;font:400 13px var(--mono)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font:700 10px var(--mono);letter-spacing:.2em;color:#ff2e3d">⚖ MEINE GESTRICHENEN ZEITEN</div>
+      <button id="strikes-close" style="background:transparent;border:1px solid #2a3a4a;border-radius:4px;color:#8b95a1;font:700 16px var(--mono);cursor:pointer;line-height:1;padding:2px 9px">✕</button>
+    </div>
+    <div style="color:#8b95a1;font-size:10.5px;margin-bottom:16px">Von den FIA-Stewards gestrichene Rundenzeiten. Du kannst binnen <b>30 Tagen</b> ab Streichung Einspruch einlegen — ein Steward prüft ihn dann erneut.</div>
+    <div id="strikes-list"><div style="color:#8b95a1;padding:16px 0;text-align:center">Laden…</div></div>
+  </div>
+</div>
+
 <!-- ===================== MENÜS ===================== -->
 <!-- Hidden functional elements preserved for JS -->
 <div id="fb-user-chip" style="display:none">
@@ -1714,6 +1731,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
               <div class="ms-stat-value" id="ms-stat-km">—</div>
             </div>
           </div>
+          <button id="btn-my-strikes" style="display:none;padding:8px 14px;background:#3a0d12;border:1px solid #ff2e3d;border-radius:6px;color:#ff8a94;font:700 9px var(--mono);letter-spacing:.1em;cursor:pointer">⚖ MEINE STREICHUNGEN <span id="my-strikes-badge" style="display:none;background:#ff2e3d;color:#fff;border-radius:999px;padding:1px 6px;margin-left:4px"></span></button>
         </div>
         <!-- Login button shown when logged out -->
         <button id="btn-fb-login-chip">ANMELDEN</button>
@@ -16678,6 +16696,20 @@ const Game = {
     this._updateReplayUI();
     if(this.renderer && this.scene && this.camera)
       this.renderer.render(this.scene, this.camera);
+    /* Steward-Screenshot: MUSS im selben Frame direkt nach dem render() passieren,
+       solange der WebGL-Zeichenpuffer noch steht (kein preserveDrawingBuffer). */
+    if(this._pendingShot){
+      const cb = this._pendingShot; this._pendingShot = null;
+      try {
+        const src = this.renderer.domElement;
+        const scale = Math.min(1, 1280 / (src.width || 1280));
+        const oc = document.createElement('canvas');
+        oc.width = Math.round((src.width||1280) * scale);
+        oc.height = Math.round((src.height||720) * scale);
+        oc.getContext('2d').drawImage(src, 0, 0, oc.width, oc.height);
+        cb(oc.toDataURL('image/jpeg', 0.72));
+      } catch(e){ console.warn('[Replay] Screenshot fehlgeschlagen:', e); cb(null); }
+    }
     }catch(e){ console.error('Replay error:', e); }
   },
 
@@ -16712,7 +16744,7 @@ addEventListener('DOMContentLoaded',()=>Game.boot());
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js" defer></script>
-<script src="assets/gt3-firebase.js?v=11" defer></script>
+<script src="assets/gt3-firebase.js?v=12" defer></script>
 
   <section class="screen hidden" id="screen-impressum">
     <button class="btn" onclick="Game.showScreen('screen-start')" style="margin-bottom:24px">&larr; ZUR&Uuml;CK</button>
