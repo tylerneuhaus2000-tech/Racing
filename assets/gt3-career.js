@@ -678,6 +678,7 @@
           <h2>🏁 KARRIERE</h2>
           <div style="display:flex;align-items:center;gap:14px">
             <span class="cr-credits" id="cr-credits">0 CR</span>
+            <button class="cr-btn" id="cr-reset" style="border-color:#3a2a2e;color:#8b6a70">RESET</button>
             <button class="cr-btn" id="cr-back">← MENÜ</button>
           </div>
         </div>
@@ -702,6 +703,12 @@
     const toast = document.createElement('div'); toast.id = 'cr-toast'; document.body.appendChild(toast);
 
     document.getElementById('cr-back').onclick = () => { if (typeof Game !== 'undefined') Game.showScreen('screen-start'); };
+    const rs = document.getElementById('cr-reset');
+    if (rs) rs.onclick = () => {
+      if (confirm('Karriere komplett zurücksetzen? Fortschritt, Credits und Verträge gehen verloren.')) {
+        S = _defaultState(); _save(); render();
+      }
+    };
   }
 
   function show() {
