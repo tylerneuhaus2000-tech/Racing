@@ -82,7 +82,8 @@ service cloud.firestore {
     }
 
     match /steward_msgs/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
+      // Der Fahrer liest seine eigene Nachricht; der Steward liest jede (Fahrerakte).
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
       allow write: if isAdmin();
     }
 

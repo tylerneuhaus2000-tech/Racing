@@ -635,12 +635,14 @@ function boot(){
     if(!box) return;
     box.innerHTML = '<div class="sub" style="margin:10px 0 0">⏳ Fahrerakte…</div>';
     try {
-      const [uSnap, sSnap, aSnap, mSnap] = await Promise.all([
+      const [uSnap, sSnap, aSnap] = await Promise.all([
         db.collection('users').doc(uid).get(),
         db.collection('strikes').where('uid','==',uid).get(),
-        db.collection('appeals').where('uid','==',uid).get(),
-        db.collection('steward_msgs').doc(uid).get()
+        db.collection('appeals').where('uid','==',uid).get()
       ]);
+      // steward_msgs/{uid} nur lesbar, wenn die Regeln isAdmin() erlauben — sonst still überspringen
+      let mSnap = { exists:false };
+      try { mSnap = await db.collection('steward_msgs').doc(uid).get(); } catch(e){ /* Regeln noch nicht deployed */ }
       const u = uSnap.exists ? uSnap.data() : {};
       let strikesActive = 0, strikesRestored = 0;
       sSnap.forEach(d => { const x = d.data(); if(x.restored) strikesRestored++; else strikesActive++; });
@@ -733,15 +735,20 @@ function boot(){
     const wrap = $('drivers-wrap');
     wrap.innerHTML = '<div class="empty">⏳ Laden…</div>';
     try {
-      const [uSnap, tSnap, sSnap, aSnap] = await Promise.all([
+      const [uSnap, tSnap, sSnap, aSnap, usrSnap] = await Promise.all([
         db.collection('usernames').get(),
         db.collection('times').get(),
         db.collection('strikes').get(),
-        db.collection('appeals').get()
+        db.collection('appeals').get(),
+        db.collection('users').get()
       ]);
+      const prof = {};
+      usrSnap.forEach(d => { prof[d.id] = d.data(); });
       const byUid = {};
-      uSnap.forEach(d => { const uid = d.data().uid; if(uid) byUid[uid] = { username:d.id, uid, times:0, strikes:0, restored:0, openAppeals:0 }; });
-      const ensure = uid => (byUid[uid] || (byUid[uid] = { username:'(unbekannt)', uid, times:0, strikes:0, restored:0, openAppeals:0 }));
+      const mk = (username, uid) => ({ username, uid, times:0, strikes:0, restored:0, openAppeals:0,
+        lic:(prof[uid]&&prof[uid].license)||'bronze', lp:parseFloat(prof[uid]&&prof[uid].licensePoints)||0 });
+      uSnap.forEach(d => { const uid = d.data().uid; if(uid) byUid[uid] = mk(d.id, uid); });
+      const ensure = uid => (byUid[uid] || (byUid[uid] = mk('(unbekannt)', uid)));
       tSnap.forEach(d => { const x = d.data(); if(x.uid) ensure(x.uid).times++; });
       sSnap.forEach(d => { const x = d.data(); if(!x.uid) return; const r = ensure(x.uid); r.strikes++; if(x.restored) r.restored++; });
       aSnap.forEach(d => { const x = d.data(); if(x.uid && x.status === 'open') ensure(x.uid).openAppeals++; });
@@ -751,13 +758,14 @@ function boot(){
 
       const table = document.createElement('table');
       table.className = 'times';
-      table.innerHTML = '<thead><tr><th>Fahrer</th><th style="text-align:right">Bestzeiten</th><th style="text-align:right">Streichungen</th><th style="text-align:right">Einsprüche offen</th></tr></thead>';
+      table.innerHTML = '<thead><tr><th>Fahrer</th><th style="text-align:right">LP</th><th style="text-align:right">Bestzeiten</th><th style="text-align:right">Streichungen</th><th style="text-align:right">Einsprüche offen</th></tr></thead>';
       const tb = document.createElement('tbody');
       rows.forEach(r => {
         const tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
         tr.innerHTML =
-          `<td class="carname">${esc(r.username)}</td>`+
+          `<td class="carname">${(_LIC_EMOJI[r.lic]||'')} ${esc(r.username)}</td>`+
+          `<td class="time" style="color:#8bd3ff">${r.lp.toFixed(1)}</td>`+
           `<td class="time">${r.times}</td>`+
           `<td class="time" style="color:${r.strikes?'#ff8a94':'#8b95a1'}">${r.strikes}${r.restored?` <span style="font-size:10px;color:#39d98a">(${r.restored} wiederhergest.)</span>`:''}</td>`+
           `<td class="time" style="color:${r.openAppeals?'#ffcc00':'#8b95a1'}">${r.openAppeals}</td>`;
