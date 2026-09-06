@@ -24,8 +24,10 @@ service cloud.firestore {
       // docId = "<uid>_<trackId>_<carId>" — die uid ist der Teil vor dem ersten "_".
       match /laps/{lapId} {
         allow read: if true;
-        allow create: if request.auth != null
-          && docId.split('_')[0] == request.auth.uid;
+        // Eigentümer legt neue Runden an; der Steward darf die erste Runde aus
+        // einer alten Bestzeit nachtragen (Migration der Runden-Historie).
+        allow create: if isAdmin() || (request.auth != null
+          && docId.split('_')[0] == request.auth.uid);
         // struck-Markierung setzt nur der Steward
         allow update: if isAdmin();
         // Aufräumen (Pruning) darf der Fahrer für seine eigenen, Streichen/Löschen der Steward
