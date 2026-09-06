@@ -656,6 +656,38 @@ body.mobile-touch-layout #touch-controls .tc-group:nth-child(4) .tc-btn{min-widt
 #fl-notif .fl-label{font:700 8px var(--mono);letter-spacing:.3em;margin-bottom:4px;opacity:.7}
 #fl-notif .fl-time{font:700 18px var(--mono);letter-spacing:.1em}
 #fl-notif .fl-driver{font-size:9px;margin-top:3px;opacity:.8}
+/* ── WELTRANG-REVEAL (nach persönlicher Bestzeit im Zeitfahren) ── */
+#wr-reveal{position:fixed;left:50%;top:0;transform:translateX(-50%) translateY(-140%);
+  width:452px;max-width:94vw;z-index:64;pointer-events:none;font-family:var(--mono);
+  background:linear-gradient(162deg,rgba(24,12,44,.97),rgba(9,7,17,.98));
+  border:1px solid #7c3aed;border-top:none;border-radius:0 0 16px 16px;
+  box-shadow:0 20px 64px rgba(0,0,0,.6),0 0 42px rgba(124,58,237,.28);
+  padding:16px 26px 0;overflow:hidden;
+  transition:transform .55s cubic-bezier(.16,1,.3,1),opacity .3s;opacity:0}
+#wr-reveal.show{transform:translateX(-50%) translateY(0);opacity:1}
+#wr-reveal.wr{border-color:#f5c518;box-shadow:0 20px 64px rgba(0,0,0,.6),0 0 48px rgba(245,197,24,.4)}
+#wr-reveal.p2{border-color:#c8d2dc}#wr-reveal.p3{border-color:#cd7f32}
+#wr-reveal .wrr-eyebrow{font:700 8px var(--mono);letter-spacing:.3em;color:#a98bff;text-align:center;text-transform:uppercase}
+#wr-reveal.wr .wrr-eyebrow{color:#f5c518}
+#wr-reveal .wrr-rank{font:900 64px var(--mono);letter-spacing:-.03em;line-height:1.02;text-align:center;margin-top:6px;
+  color:#fff;background:linear-gradient(180deg,#fff,#cbbcff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+#wr-reveal.wr .wrr-rank{background:linear-gradient(180deg,#fff6cf,#f5c518);-webkit-background-clip:text;background-clip:text}
+#wr-reveal .wrr-of{font:600 10.5px var(--mono);letter-spacing:.12em;color:#8b95a1;text-align:center;margin-top:3px}
+#wr-reveal .wrr-time{font:800 22px var(--mono);letter-spacing:.08em;color:#e0d5ff;text-align:center;margin-top:10px}
+#wr-reveal.wr .wrr-time{color:#ffe9a8}
+#wr-reveal .wrr-deltas{display:flex;gap:8px;justify-content:center;margin-top:9px;flex-wrap:wrap}
+#wr-reveal .wrr-d{font:700 9.5px var(--mono);letter-spacing:.05em;padding:3px 10px;border-radius:20px;border:1px solid #2a2540;color:#9aa6b2}
+#wr-reveal .wrr-d.up{color:#3dff7a;border-color:#1c5c34;background:rgba(34,196,99,.08)}
+#wr-reveal .wrr-move{text-align:center;margin-top:9px;font:700 9.5px var(--mono);letter-spacing:.12em;color:#3dff7a}
+#wr-reveal .wrr-move.neutral{color:#a98bff}
+#wr-reveal .wrr-bar{height:3px;background:#7c3aed;margin:13px -26px 0;transform-origin:left}
+#wr-reveal.show .wrr-bar{animation:wrrBar 8s linear forwards}
+#wr-reveal.wr .wrr-bar{background:#f5c518}
+@keyframes wrrBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@keyframes wrrShimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+#wr-reveal.wr::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(110deg,transparent 32%,rgba(245,197,24,.16) 50%,transparent 68%);
+  background-size:220% 100%;animation:wrrShimmer 2.6s linear infinite}
 #ers-popup{position:fixed;left:50%;bottom:160px;transform:translateX(-50%);background:rgba(12,16,22,0.9);border:1px solid var(--line);border-left:3px solid #22c4ff;padding:10px 14px;min-width:240px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;color:#d7e5f2;pointer-events:none;z-index:26;opacity:0;transition:opacity .18s}
 #ers-popup.show{opacity:1}
 #ers-popup .ep-title{font-weight:700;color:#9af0ff;margin-bottom:6px}
@@ -1524,6 +1556,15 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 <div id="flag-border"></div>
 <div id="pit-car-select" class="modal-panel"><div class="pcs-title">FAHRZEUG WECHSELN — WIRD BEI STOPP-ENDE ANGEWENDET</div><div class="pcs-grid" id="pit-car-grid"></div></div>
 <div id="fl-notif"><div class="fl-label">SCHNELLSTE RUNDE</div><div class="fl-time" id="fl-time">--:--.---</div><div class="fl-driver" id="fl-driver"></div></div>
+<div id="wr-reveal">
+  <div class="wrr-eyebrow" id="wrr-eyebrow">WELTRANG</div>
+  <div class="wrr-rank" id="wrr-rank">P—</div>
+  <div class="wrr-of" id="wrr-of"></div>
+  <div class="wrr-time" id="wrr-time">--:--.---</div>
+  <div class="wrr-deltas" id="wrr-deltas"></div>
+  <div class="wrr-move" id="wrr-move"></div>
+  <div class="wrr-bar" id="wrr-bar"></div>
+</div>
 <div id="ers-popup">
   <div class="ep-title">ERS · <span id="ep-modename">RACE</span></div>
   <div class="ep-row"><span>Batterie</span><b id="ep-energy">40%</b></div>

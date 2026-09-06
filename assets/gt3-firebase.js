@@ -1357,6 +1357,7 @@ window.FB_saveBestLap = async function(trackId, carId, timeMs, carName, classTyp
 
   try {
     const [parentSnap, lapsSnap] = await Promise.all([parentRef.get(), lapsRef.limit(1).get()]);
+    const oldTimeMs = parentSnap.exists ? (parentSnap.data().timeMs || null) : null;
 
     // Migration: alte Bestzeit ohne Historie -> als erste Runde sichern
     if(parentSnap.exists && lapsSnap.empty){
@@ -1376,32 +1377,115 @@ window.FB_saveBestLap = async function(trackId, carId, timeMs, carName, classTyp
     // Parent neu berechnen (schnellste gültige = i.d.R. die neue) + prunen
     await _recomputeParentTime(docId, meta);
 
-    // World-Record-Flash wie bisher
-    try {
-      const wrSnap = await db.collection('times')
-        .where('trackId','==',trackId).where('classType','==',classType||'unknown')
-        .orderBy('timeMs').limit(1).get();
-      const currentWR = wrSnap.empty ? null : wrSnap.docs[0].data();
-      const isWR = !currentWR || timeMs <= currentWR.timeMs;
-      const el = document.getElementById('fl-driver');
-      if(isWR && (!currentWR || currentWR.uid !== fbUser.uid)){
-        if(typeof Game !== 'undefined' && Game._showFlash) Game._showFlash('🏆 WORLD RECORD!', '#7c3aed', 4000);
-        setTimeout(() => {
-          const wr = document.createElement('div');
-          wr.innerHTML = `🏆 <b>WORLD RECORD!</b> ${name} — ${fmtLap(timeMs)}`;
-          wr.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#2d0057;color:#d8b4fe;border:1px solid #7c3aed;padding:12px 24px;border-radius:8px;font:700 14px var(--mono);z-index:9999;letter-spacing:.05em;text-align:center;white-space:nowrap';
-          document.body.appendChild(wr);
-          setTimeout(() => wr.remove(), 5000);
-        }, 500);
-      } else if(isWR && typeof Game !== 'undefined' && Game._showFlash){
-        Game._showFlash('🏆 NEUER WORLD RECORD!', '#7c3aed', 4000);
-      }
-      if(el){ const prev = el.textContent; el.textContent = isWR ? '🏆 World Record!' : '☁ Zeit gespeichert'; setTimeout(()=>{ el.textContent = prev; }, 3000); }
-    } catch(e){ console.warn('[FB] WR-Check:', e.message); }
+    // Weltrang-Reveal: großes Banner mit Position in der Klassen-Weltrangliste.
+    // Nur im Zeitfahren (nicht im Rennen/Replay) — sonst nur ein kurzer Flash.
+    const inTT = typeof Game !== 'undefined' && Game.mode === 'tt' && !Game._replayMode;
+    if(inTT){
+      _showWorldRankReveal({ trackId, classType: classType || 'unknown', timeMs, oldTimeMs, name })
+        .catch(e => console.warn('[FB] Weltrang-Reveal:', e.message));
+    } else {
+      try {
+        const wrSnap = await db.collection('times')
+          .where('trackId','==',trackId).where('classType','==',classType||'unknown')
+          .orderBy('timeMs').limit(1).get();
+        const currentWR = wrSnap.empty ? null : wrSnap.docs[0].data();
+        const isWR = !currentWR || timeMs <= currentWR.timeMs;
+        if(isWR && typeof Game !== 'undefined' && Game._showFlash) Game._showFlash('🏆 WORLD RECORD!', '#7c3aed', 4000);
+        const el = document.getElementById('fl-driver');
+        if(el){ const prev = el.textContent; el.textContent = isWR ? '🏆 World Record!' : '☁ Zeit gespeichert'; setTimeout(()=>{ el.textContent = prev; }, 3000); }
+      } catch(e){ console.warn('[FB] WR-Check:', e.message); }
+    }
   } catch(e){
     console.error('[FB] saveBestLap Fehler:', e);
   }
 };
+
+/* ── Weltrang-Reveal: nach neuer persönlicher Bestzeit die eigene Position in
+   der Klassen-Weltrangliste dieser Strecke groß einblenden. ── */
+async function _showWorldRankReveal({ trackId, classType, timeMs, oldTimeMs, name }){
+  const box = document.getElementById('wr-reveal');
+  if(!box || !fbUser) return;
+
+  const entries = await _lbFetch(trackId);   // alle times-Docs dieser Strecke (öffentlich lesbar)
+  const cls = (classType || 'unknown').toLowerCase();
+
+  const best = new Map();
+  entries.forEach(e => {
+    if((e.classType || 'unknown').toLowerCase() !== cls) return;
+    if(!e.uid || !e.timeMs) return;
+    if(!best.has(e.uid) || e.timeMs < best.get(e.uid).timeMs) best.set(e.uid, e);
+  });
+  // Die soeben gespeicherte Zeit sicher einbeziehen (Query könnte minimal nachhinken)
+  const mine = best.get(fbUser.uid);
+  if(!mine || timeMs < mine.timeMs) best.set(fbUser.uid, { uid: fbUser.uid, timeMs, classType: cls, name });
+
+  const board = [...best.values()].sort((a, b) => a.timeMs - b.timeMs);
+  const total = board.length;
+  const myRank = board.findIndex(e => e.uid === fbUser.uid) + 1;
+  if(myRank < 1) return;
+
+  const isWR    = myRank === 1;
+  const wr      = board[0];
+  const ahead   = myRank > 1 ? board[myRank - 2] : null;
+  const gapWR   = isWR ? 0 : (timeMs - wr.timeMs) / 1000;
+  const gapAh   = ahead ? (timeMs - ahead.timeMs) / 1000 : null;
+
+  let oldRank = null;
+  if(oldTimeMs && oldTimeMs > 0)
+    oldRank = 1 + board.filter(e => e.uid !== fbUser.uid && e.timeMs < oldTimeMs).length;
+  const gained = oldRank != null ? (oldRank - myRank) : null;
+
+  const clsLabel = cls === 'hypercar' ? 'HYPERCAR' : cls.toUpperCase();
+  box.classList.remove('wr', 'p2', 'p3');
+  if(isWR) box.classList.add('wr');
+  else if(myRank === 2) box.classList.add('p2');
+  else if(myRank === 3) box.classList.add('p3');
+
+  const set = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+  set('wrr-eyebrow', `${isWR ? '🏆 WORLD RECORD' : 'WELTRANG'} · ${_trackNm(trackId)} · ${clsLabel}`);
+  set('wrr-rank', 'P' + myRank);
+  set('wrr-of', total > 1 ? `von ${total} Fahrern in der Klasse` : 'erste Zeit in dieser Klasse');
+  set('wrr-time', fmtLap(timeMs));
+
+  const dbox = document.getElementById('wrr-deltas');
+  if(dbox){
+    dbox.innerHTML = '';
+    if(ahead && gapAh != null){
+      const d = document.createElement('span');
+      d.className = 'wrr-d up';
+      d.textContent = `▲ P${myRank - 1}  −${gapAh.toFixed(3)}s`;
+      dbox.appendChild(d);
+    }
+    if(!isWR){
+      const d = document.createElement('span');
+      d.className = 'wrr-d';
+      d.textContent = `Bestzeit  +${gapWR.toFixed(3)}s`;
+      dbox.appendChild(d);
+    }
+  }
+
+  const mv = document.getElementById('wrr-move');
+  if(mv){
+    mv.classList.remove('neutral');
+    if(oldRank == null){ mv.textContent = '★ ERSTE ZEIT AUF DIESER STRECKE'; }
+    else if(gained > 0){ mv.textContent = `▲ ${gained} ${gained === 1 ? 'PLATZ' : 'PLÄTZE'} GUT GEMACHT · VORHER P${oldRank}`; }
+    else { mv.textContent = 'PERSÖNLICHE BESTZEIT VERBESSERT'; mv.classList.add('neutral'); }
+  }
+
+  // Reveal zeigen + Progress-Bar-Animation neu starten
+  box.classList.remove('show');
+  void box.offsetWidth;
+  box.classList.add('show');
+  box.style.pointerEvents = 'auto';
+  const close = () => {
+    box.classList.remove('show');
+    box.style.pointerEvents = 'none';
+    box.removeEventListener('click', close);
+  };
+  box.addEventListener('click', close);
+  clearTimeout(_showWorldRankReveal._t);
+  _showWorldRankReveal._t = setTimeout(close, 8000);
+}
 
 /* ── Auth Modal ── */
 let fbAuthMode = 'login'; // 'login' | 'register'
