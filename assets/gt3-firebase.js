@@ -74,25 +74,35 @@ function _handleStewardReplayDeepLink(){
   const parentRef = db.collection('times').doc(docId);
   const lapRef = lapId ? parentRef.collection('laps').doc(lapId) : null;
 
+  /* Notfall-Meta aus der Doc-ID "<uid>_<trackId>_<carId>" (trackId kann selbst
+     "_" enthalten, z.B. custom_123...). Nötig, wenn das times-Dokument nach
+     einer Streichung schon gelöscht wurde, der Beweis/die Runde aber noch da ist. */
+  const _metaFromDocId = () => {
+    const p = docId.split('_');
+    if(p.length < 3) return {};
+    return { uid: p[0], carId: p[p.length - 1], trackId: p.slice(1, -1).join('_') };
+  };
+
   let load;
   if(evId && lapRef){
     load = Promise.all([parentRef.get(), lapRef.collection('evidence').doc(evId).get()]).then(([ps, es]) => {
-      if(!ps.exists || !es.exists) throw new Error('Aufnahme nicht gefunden.');
+      if(!es.exists) throw new Error('Aufnahme nicht gefunden.');
       const ev = es.data();
       if(ev.type !== 'clip' || !ev.clip || !ev.clip.flat) throw new Error('Diese Aufnahme ist kein Video-Clip.');
-      const entry = Object.assign({}, ps.data());
+      const entry = ps.exists ? Object.assign({}, ps.data()) : _metaFromDocId();
       entry.replay = ev.clip;
       return { entry, allowEvidence: false };
     });
   } else {
     load = Promise.all([parentRef.get(), lapRef ? lapRef.get() : Promise.resolve(null)]).then(([ps, ls]) => {
-      if(!ps.exists) throw new Error('Dieser Eintrag existiert nicht mehr.');
-      const entry = Object.assign({}, ps.data());
+      const entry = ps.exists ? Object.assign({}, ps.data()) : _metaFromDocId();
       if(ls){
         if(!ls.exists) throw new Error('Diese Runde existiert nicht mehr (evtl. schon aufgeräumt).');
         const l = ls.data();
         entry.replay = l.replay || null;
         entry.timeMs = l.timeMs;
+      } else if(!ps.exists){
+        throw new Error('Dieser Eintrag existiert nicht mehr.');
       }
       return { entry, allowEvidence: !!lapId };
     });
@@ -1960,9 +1970,12 @@ function _watchLbReplay(entry){
   if(Game.allCars && Game.allCars.length){
     _launchReplay();
   } else {
-    const trackIdx = (typeof TRACKS !== 'undefined') ? TRACKS.findIndex(t => t.id === entry.trackId) : -1;
-    const carIdx   = (typeof CARS   !== 'undefined') ? CARS.findIndex(c => c.id === entry.carId)     : -1;
+    // Strecken-Pool inkl. Custom-Strecken durchsuchen (selTrack indexiert getTrackPool())
+    const pool = (typeof Game.getTrackPool === 'function') ? Game.getTrackPool() : (typeof TRACKS !== 'undefined' ? TRACKS : []);
+    const trackIdx = pool.findIndex(t => t && t.id === entry.trackId);
+    const carIdx   = (typeof CARS !== 'undefined') ? CARS.findIndex(c => c.id === entry.carId) : -1;
     if(trackIdx >= 0) Game.selTrack = trackIdx;
+    else if(entry.trackId && /^custom_/.test(entry.trackId)) { alert('Diese Custom-Strecke ist in diesem Browser nicht gespeichert — das Replay kann nicht geladen werden.'); return; }
     if(carIdx   >= 0) Game.selCar   = carIdx;
     Game.mode = 'tt';
     Game._showFlash('REPLAY WIRD GELADEN…', '#58d7ff', 3000);
