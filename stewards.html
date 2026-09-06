@@ -153,8 +153,9 @@
       <!-- Rechts: Rundenzeiten -->
       <div class="box">
         <h2>RUNDENZEITEN</h2>
-        <p class="sub">Strecke wählen — schnellste zuerst. „▾" öffnet die Runden-Historie; einzelne Runde mit Grund streichen, die nächst-schnellste gültige rückt automatisch nach.</p>
+        <p class="sub">Strecke + Klasse wählen — es werden ALLE gespeicherten Runden dieser Klasse angezeigt (Top 50 gültige, schnellste zuerst), nicht nach Auto gruppiert. Einzelne Runde mit Grund streichen, die nächst-schnellste gültige rückt automatisch nach.</p>
         <select id="track-sel"><option value="">— zuerst Zeiten laden —</option></select>
+        <div id="class-filter" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px"></div>
         <div id="times-wrap" style="margin-top:14px">
           <div class="empty">Noch keine Zeiten geladen.</div>
         </div>
@@ -400,6 +401,7 @@ function boot(){
         sel.appendChild(o);
       });
       sel.value = trackIds[0];
+      buildClassFilter();
       renderTrack(trackIds[0]);
       status.style.color = '#8b95a1';
       status.textContent = `${rows.length} Zeit(en) über ${trackIds.length} Strecke(n) für ${username}`;
@@ -408,176 +410,197 @@ function boot(){
     }
   };
 
+  /* ── Klassen-Filter ── */
+  let classFilter = 'all';
+  const _CLASS_LABEL = { gt3:'GT3', lmp2:'LMP2', hypercar:'HYPERCAR', formula:'FORMULA', kart:'KART', unknown:'SONSTIGE' };
+
+  function buildClassFilter(){
+    const box = $('class-filter');
+    if(!box) return;
+    const present = new Set();
+    timesRows.forEach(r => present.add((r.classType || 'unknown').toLowerCase()));
+    if(!present.has(classFilter) && classFilter !== 'all') classFilter = 'all';
+    box.innerHTML = '';
+    ['all', ...[...present].sort()].forEach(c => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn' + (c === classFilter ? ' primary' : '');
+      b.style.cssText = 'padding:4px 12px;font-size:9px';
+      b.textContent = c === 'all' ? 'ALLE KLASSEN' : (_CLASS_LABEL[c] || c.toUpperCase());
+      b.onclick = () => { classFilter = c; buildClassFilter(); renderTrack($('track-sel').value); };
+      box.appendChild(b);
+    });
+  }
+
   $('track-sel').onchange = () => renderTrack($('track-sel').value);
 
-  function renderTrack(trackId){
+  /* Zeigt ALLE gespeicherten Runden der gewählten Strecke + Klasse als flache
+     Liste (Top 50 gültige nach Zeit, dann gestrichene). Nicht nach Auto gruppiert. */
+  async function renderTrack(trackId){
     const wrap = $('times-wrap');
-    wrap.innerHTML = '';
     if(!trackId){ wrap.innerHTML = '<div class="empty">Strecke wählen.</div>'; return; }
-    const rows = timesRows.filter(r => r.trackId === trackId).sort((a,b) => (a.timeMs||0) - (b.timeMs||0));
-    if(!rows.length){ wrap.innerHTML = '<div class="empty">Keine gültige Zeit mehr auf dieser Strecke.</div>'; return; }
+    wrap.innerHTML = '<div class="empty">⏳ Runden laden…</div>';
+
+    const docs = timesRows.filter(r => r.trackId === trackId
+      && (classFilter === 'all' || (r.classType || 'unknown').toLowerCase() === classFilter));
+    if(!docs.length){ wrap.innerHTML = '<div class="empty">Keine Zeiten in dieser Klasse auf dieser Strecke.</div>'; return; }
+
+    let laps = [];
+    try {
+      const perDoc = await Promise.all(docs.map(async r => {
+        const lapsRef = db.collection('times').doc(r._id).collection('laps');
+        let s = await lapsRef.orderBy('timeMs').get();
+        if(s.empty && r.timeMs){
+          const seed = { timeMs:r.timeMs, at:r.updatedAt || firebase.firestore.FieldValue.serverTimestamp(), struck:false };
+          if(r.replay) seed.replay = r.replay;
+          try { await lapsRef.add(seed); s = await lapsRef.orderBy('timeMs').get(); } catch(e){}
+        }
+        const out = [];
+        s.forEach(d => out.push(Object.assign({ _id:d.id, _pid:r._id, _meta:r }, d.data())));
+        return out;
+      }));
+      perDoc.forEach(arr => { laps = laps.concat(arr); });
+    } catch(e){ wrap.innerHTML = `<div class="empty">Fehler: ${esc(e.message)}</div>`; return; }
+
+    if(!laps.length){ wrap.innerHTML = '<div class="empty">Keine Runden gespeichert.</div>'; return; }
+
+    const valid  = laps.filter(l => !l.struck).sort((a,b) => (a.timeMs||0) - (b.timeMs||0)).slice(0, 50);
+    const struck = laps.filter(l => l.struck).sort((a,b) => (b.struckAt||0) - (a.struckAt||0));
+
+    wrap.innerHTML = '';
+    const clsTxt = classFilter === 'all' ? 'alle Klassen' : (_CLASS_LABEL[classFilter] || classFilter.toUpperCase());
+    const head = document.createElement('div');
+    head.className = 'sub'; head.style.margin = '0 0 8px';
+    head.textContent = `${trackName(trackId)} · ${clsTxt} · ${valid.length} gültige${struck.length ? ` · ${struck.length} gestrichen` : ''}`;
+    wrap.appendChild(head);
 
     const table = document.createElement('table');
     table.className = 'times';
     table.innerHTML = '<thead><tr><th>Pos</th><th>Fahrzeug</th><th style="text-align:right">Zeit</th><th></th></tr></thead>';
-    const tbody = document.createElement('tbody');
-    table.appendChild(tbody);
+    const tb = document.createElement('tbody');
+    table.appendChild(tb);
     wrap.appendChild(table);
 
-    rows.forEach((r, i) => renderRow(tbody, r, i + 1, trackId));
+    valid.forEach((l, i) => renderFlatLap(tb, l, i + 1, trackId, false));
+    struck.forEach(l => renderFlatLap(tb, l, null, trackId, true));
   }
 
-  function renderRow(tbody, r, rank, trackId){
-    const hasRep = !!(r.replay && r.replay.flat && r.replay.flat.length > 5);
+  function renderFlatLap(tb, l, rank, trackId, struck){
+    const r = l._meta;
+    const lhasRep = !!(l.replay && l.replay.flat && l.replay.flat.length > 5);
     const tr = document.createElement('tr');
+    if(struck) tr.style.opacity = '.5';
     tr.innerHTML =
-      `<td class="pos${rank===1?' p1':''}">P${rank}</td>`+
-      `<td class="carname">${esc(r.carName||r.carId||'?')}</td>`+
-      `<td class="time">${fmtLap(r.timeMs)}</td>`+
+      `<td class="pos${rank === 1 ? ' p1' : ''}">${struck ? '—' : 'P' + rank}</td>`+
+      `<td class="carname">${esc(r.carName || r.carId || '?')}${struck ? ` · <span style="font-size:10px;color:#ff8a94">GESTRICHEN: ${esc(l.struckReason || '—')}</span>` : ''}</td>`+
+      `<td class="time">${fmtLap(l.timeMs)}</td>`+
       `<td><div class="rowbtns">`+
-        `<a class="iconbtn${hasRep?'':' off'}" ${hasRep?`href="${replayLink(r._id)}" target="_blank" rel="noopener"`:''} title="Replay der Bestzeit (im Spiel, neuer Tab)">▶</a>`+
-        `<button class="iconbtn" data-a="hist" title="Runden-Historie">▾</button>`+
+        (lhasRep ? `<a class="iconbtn" href="${replayLink(l._pid, l._id)}" target="_blank" rel="noopener" title="Replay dieser Runde">▶</a>` : `<span class="iconbtn off">▶</span>`)+
+        (struck ? '' : `<button class="iconbtn del" data-a="strike" title="Runde streichen">✕</button>`)+
       `</div></td>`;
-    tbody.appendChild(tr);
+    tb.appendChild(tr);
 
-    const histTr = document.createElement('tr');
-    const histTd = document.createElement('td');
-    histTd.colSpan = 4; histTd.style.padding = '0';
-    const histBox = document.createElement('div');
-    histBox.className = 'laphist'; histBox.style.display = 'none';
-    histTd.appendChild(histBox); histTr.appendChild(histTd);
-    tbody.appendChild(histTr);
+    const evTr = document.createElement('tr');
+    const evTd = document.createElement('td'); evTd.colSpan = 4; evTd.style.padding = '0 0 4px 28px';
+    evTr.appendChild(evTd); tb.appendChild(evTr);
+    const evToggle = document.createElement('button');
+    evToggle.className = 'iconbtn';
+    evToggle.style.cssText = 'width:auto;padding:2px 8px;font-size:10px;color:#8b95a1;margin:4px 0';
+    evToggle.textContent = '📎 Beweise';
+    const bx = document.createElement('div'); bx.style.display = 'none';
+    evToggle.onclick = async () => {
+      const open = bx.style.display !== 'none';
+      bx.style.display = open ? 'none' : 'block';
+      if(open || bx._built) return;
+      bx._built = true;
+      bx.innerHTML = '<span style="color:#8b95a1;font-size:10px">⏳…</span>';
+      try {
+        const es = await db.collection('times').doc(l._pid).collection('laps').doc(l._id).collection('evidence').orderBy('at').get();
+        if(es.empty){ bx.innerHTML = '<span style="color:#8b95a1;font-size:10px">Keine Beweise.</span>'; return; }
+        const parts = [];
+        es.forEach(d => {
+          const e = d.data();
+          const when = new Date(e.at || 0).toLocaleDateString('de-DE');
+          if(e.type === 'shot' && e.shot)
+            parts.push(`<div style="margin:6px 0"><img src="${e.shot}" style="max-width:360px;width:100%;border-radius:6px;border:1px solid #2a3a4a"><div style="color:#8b95a1;font-size:10px">📷 ${when}${e.note ? ' · ' + esc(e.note) : ''}</div></div>`);
+          else if(e.type === 'clip')
+            parts.push(`<div style="margin:6px 0"><a class="iconbtn" style="width:auto;padding:3px 9px;font-size:10px;color:#d8b4fe;border-color:#7c3aed;text-decoration:none" href="${replayLink(l._pid, l._id)}&ev=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">▶ CLIP ±3s</a><span style="color:#8b95a1;font-size:10px;margin-left:6px">${when}${e.note ? ' · ' + esc(e.note) : ''}</span></div>`);
+        });
+        bx.innerHTML = parts.join('');
+        evToggle.textContent = `📎 ${es.size} Beweis${es.size === 1 ? '' : 'e'}`;
+        evToggle.style.color = '#d8b4fe';
+      } catch(e){ bx.innerHTML = `<span style="color:#ff8a94;font-size:10px">${esc(e.message)}</span>`; }
+    };
+    evTd.appendChild(evToggle); evTd.appendChild(bx);
 
-    let histLoaded = false;
-    async function renderHist(){
-      histBox.innerHTML = '<div class="empty" style="padding:10px">⏳ Runden laden…</div>';
-      const lapsRef = db.collection('times').doc(r._id).collection('laps');
-      let lapsSnap = await lapsRef.orderBy('timeMs').get();
-      if(lapsSnap.empty && r.timeMs){
-        const seed = { timeMs: r.timeMs, at: r.updatedAt || firebase.firestore.FieldValue.serverTimestamp(), struck:false };
-        if(r.replay) seed.replay = r.replay;
-        try { await lapsRef.add(seed); lapsSnap = await lapsRef.orderBy('timeMs').get(); }
-        catch(e){ histBox.innerHTML = `<div class="empty">Historie anlegen fehlgeschlagen: ${esc(e.message)}</div>`; return; }
-      }
-      const laps = []; lapsSnap.forEach(d => laps.push(Object.assign({ _id:d.id }, d.data())));
-      if(!laps.length){ histBox.innerHTML = '<div class="empty">Keine Runden gespeichert.</div>'; return; }
-      histBox.innerHTML = '';
-      let hrank = 0;
-      laps.forEach(l => {
-        const struck = !!l.struck;
-        if(!struck) hrank++;
-        const lhasRep = !!(l.replay && l.replay.flat && l.replay.flat.length > 5);
-        const lr = document.createElement('div');
-        lr.className = 'laprow' + (struck ? ' struck' : '');
-        lr.innerHTML =
-          `<span style="width:28px;color:#8b95a1">${struck?'—':'#'+hrank}</span>`+
-          `<span style="flex:1;color:${struck?'#ff8a94':'#e8ecef'}">${fmtLap(l.timeMs)}${struck?` · <span style="font-size:10px">GESTRICHEN: ${esc(l.struckReason||'—')}</span>`:''}</span>`+
-          (lhasRep ? `<a class="iconbtn" href="${replayLink(r._id, l._id)}" target="_blank" rel="noopener" title="Replay dieser Runde">▶</a>` : '')+
-          (struck ? '' : `<button class="iconbtn del" data-a="strike" title="Runde streichen">✕</button>`);
-        const strikeBtn = lr.querySelector('[data-a="strike"]');
-        if(strikeBtn) strikeBtn.onclick = async () => {
-          if(!isAdmin) return;
-          const reason = prompt(`Grund für die Streichung dieser Runde?\n\n${trackName(r.trackId)} · ${fmtLap(l.timeMs)}\n\nz.B. "Corner Cut Kurve 3"`);
-          if(reason == null || !reason.trim()) return;
-          const rsn = reason.trim();
-          lr.style.opacity = '0.4';
-          const errs = []; let okStrike = false;
-          try {
-            await lapsRef.doc(l._id).update({ struck:true, struckReason:rsn, struckBy:auth.currentUser.uid, struckAt:Date.now() });
-            okStrike = true;
-          } catch(e){ errs.push('Streichen: '+e.message); }
+    const sb = tr.querySelector('[data-a="strike"]');
+    if(sb) sb.onclick = () => strikeLap(l, trackId, tr);
+  }
 
-          let newBest = null;
-          if(okStrike){
-            try { newBest = await recomputeParentTime(r._id, {
-              name:r.name, uid:timesTargetUid, carName:r.carName||r.carId, classType:r.classType, trackId:r.trackId, carId:r.carId
-            }); } catch(e){ errs.push('Neuberechnung: '+e.message); }
-          }
-          try {
-            await db.collection('steward_actions').add({
-              type:'lap_struck', targetUid:timesTargetUid, username:timesUsername, docId:r._id, lapId:l._id,
-              trackId:r.trackId||null, carId:r.carId||null, timeMs:l.timeMs||null,
-              reason:rsn, by:auth.currentUser.uid, at:Date.now()
-            });
-          } catch(e){ errs.push('Protokoll: '+e.message); }
-          try {
-            await db.collection('steward_msgs').doc(timesTargetUid).set({
-              type:'penalty',
-              reason: `Rundenzeit gestrichen · ${trackName(r.trackId)}: ${rsn}. ` + (newBest ? `Neue Bestzeit: ${fmtLap(newBest.timeMs)}` : 'Keine gültige Zeit mehr auf dieser Strecke.'),
-              penalty:'Zeit annulliert', lpDelta:0, ts:Date.now()
-            });
-          } catch(e){ errs.push('Benachrichtigung: '+e.message); }
-          if(okStrike){
-            try {
-              let evCount = 0;
-              try { const ev = await lapsRef.doc(l._id).collection('evidence').get(); evCount = ev.size; } catch(e){}
-              const now = Date.now();
-              await db.collection('strikes').add({
-                uid:timesTargetUid, username:timesUsername, docId:r._id, lapId:l._id,
-                trackId:r.trackId||null, carId:r.carId||null, timeMs:l.timeMs||null,
-                reason:rsn, evidenceCount:evCount,
-                struckBy:auth.currentUser.uid, struckByName:(auth.currentUser.displayName||auth.currentUser.email||''),
-                struckAt:now, appealDeadline: now + 30*24*60*60*1000,
-                status:'active', restored:false, finalDeleted:false
-              });
-            } catch(e){ errs.push('Strike-Ledger: '+e.message); }
-          }
+  async function strikeLap(l, trackId, tr){
+    if(!isAdmin) return;
+    const r = l._meta;
+    const lapsRef = db.collection('times').doc(l._pid).collection('laps');
+    const reason = prompt(`Grund für die Streichung dieser Runde?\n\n${trackName(r.trackId)} · ${r.carName || r.carId || ''} · ${fmtLap(l.timeMs)}\n\nz.B. "Corner Cut Kurve 3"`);
+    if(reason == null || !reason.trim()) return;
+    const rsn = reason.trim();
+    tr.style.opacity = '0.4';
+    const errs = []; let okStrike = false;
+    try { await lapsRef.doc(l._id).update({ struck:true, struckReason:rsn, struckBy:auth.currentUser.uid, struckAt:Date.now() }); okStrike = true; }
+    catch(e){ errs.push('Streichen: ' + e.message); }
 
-          const status = $('status');
-          if(okStrike){
-            if(newBest){ r.timeMs = newBest.timeMs; r.replay = newBest.replay || null; }
-            else { const i = timesRows.indexOf(r); if(i>=0) timesRows.splice(i,1); }
-            renderTrack(trackId);
-            status.style.color = errs.length ? '#ffb020' : '#4eff8a';
-            status.textContent = (newBest ? `✓ Gestrichen · neue Bestzeit ${fmtLap(newBest.timeMs)}` : '✓ Gestrichen · keine gültige Zeit mehr') + (errs.length ? `  ⚠ ${errs.join(' | ')}` : '');
-          } else {
-            lr.style.opacity = '1';
-            status.style.color = '#ff6b6b';
-            status.textContent = '❌ ' + errs.join(' | ');
-          }
-        };
-        histBox.appendChild(lr);
-
-        const evRow = document.createElement('div');
-        evRow.style.cssText = 'margin:0 0 6px 28px';
-        histBox.appendChild(evRow);
-        lapsRef.doc(l._id).collection('evidence').orderBy('at').get().then(es => {
-          if(es.empty) return;
-          const toggle = document.createElement('button');
-          toggle.className = 'iconbtn';
-          toggle.style.cssText = 'width:auto;padding:2px 8px;font-size:10px;color:#d8b4fe;border-color:#7c3aed';
-          toggle.textContent = `📎 ${es.size} Beweis${es.size===1?'':'e'}`;
-          const box = document.createElement('div');
-          box.style.display = 'none';
-          toggle.onclick = () => {
-            const open = box.style.display !== 'none';
-            box.style.display = open ? 'none' : 'block';
-            if(open || box._built) return;
-            box._built = true;
-            const parts = [];
-            es.forEach(d => {
-              const e = d.data();
-              const when = new Date(e.at||0).toLocaleDateString('de-DE');
-              if(e.type === 'shot' && e.shot){
-                parts.push(`<div style="margin:6px 0"><img src="${e.shot}" style="max-width:360px;width:100%;border-radius:6px;border:1px solid #2a3a4a"><div style="color:#8b95a1;font-size:10px">📷 ${when}${e.note?' · '+esc(e.note):''}</div></div>`);
-              } else if(e.type === 'clip'){
-                parts.push(`<div style="margin:6px 0"><a class="iconbtn" style="width:auto;padding:3px 9px;font-size:10px;color:#d8b4fe;border-color:#7c3aed;text-decoration:none" href="${replayLink(r._id, l._id)}&ev=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">▶ CLIP ±3s</a><span style="color:#8b95a1;font-size:10px;margin-left:6px">${when}${e.note?' · '+esc(e.note):''}</span></div>`);
-              }
-            });
-            box.innerHTML = parts.join('');
-          };
-          evRow.appendChild(toggle);
-          evRow.appendChild(box);
-        }).catch(()=>{});
+    let newBest = null;
+    if(okStrike){
+      try { newBest = await recomputeParentTime(l._pid, {
+        name:r.name, uid:timesTargetUid, carName:r.carName || r.carId, classType:r.classType, trackId:r.trackId, carId:r.carId
+      }); } catch(e){ errs.push('Neuberechnung: ' + e.message); }
+    }
+    try {
+      await db.collection('steward_actions').add({
+        type:'lap_struck', targetUid:timesTargetUid, username:timesUsername, docId:l._pid, lapId:l._id,
+        trackId:r.trackId || null, carId:r.carId || null, timeMs:l.timeMs || null,
+        reason:rsn, by:auth.currentUser.uid, at:Date.now()
       });
+    } catch(e){ errs.push('Protokoll: ' + e.message); }
+    try {
+      await db.collection('steward_msgs').doc(timesTargetUid).set({
+        type:'penalty',
+        reason: `Rundenzeit gestrichen · ${trackName(r.trackId)}: ${rsn}. ` + (newBest ? `Neue Bestzeit: ${fmtLap(newBest.timeMs)}` : 'Keine gültige Zeit mehr in dieser Kombination.'),
+        penalty:'Zeit annulliert', lpDelta:0, ts:Date.now()
+      });
+    } catch(e){ errs.push('Benachrichtigung: ' + e.message); }
+    if(okStrike){
+      try {
+        let evCount = 0;
+        try { const ev = await lapsRef.doc(l._id).collection('evidence').get(); evCount = ev.size; } catch(e){}
+        const now = Date.now();
+        await db.collection('strikes').add({
+          uid:timesTargetUid, username:timesUsername, docId:l._pid, lapId:l._id,
+          trackId:r.trackId || null, carId:r.carId || null, timeMs:l.timeMs || null,
+          reason:rsn, evidenceCount:evCount,
+          struckBy:auth.currentUser.uid, struckByName:(auth.currentUser.displayName || auth.currentUser.email || ''),
+          struckAt:now, appealDeadline: now + 30 * 24 * 60 * 60 * 1000,
+          status:'active', restored:false, finalDeleted:false
+        });
+      } catch(e){ errs.push('Strike-Ledger: ' + e.message); }
     }
 
-    tr.querySelector('[data-a="hist"]').onclick = async () => {
-      const open = histBox.style.display !== 'none';
-      histBox.style.display = open ? 'none' : 'block';
-      tr.querySelector('[data-a="hist"]').textContent = open ? '▾' : '▴';
-      if(!open && !histLoaded){ histLoaded = true; try { await renderHist(); } catch(e){ histBox.innerHTML = `<div class="empty">${esc(e.message)}</div>`; } }
-    };
+    const status = $('status');
+    if(okStrike){
+      const rowRef = timesRows.find(x => x._id === l._pid);
+      if(rowRef){
+        if(newBest){ rowRef.timeMs = newBest.timeMs; rowRef.replay = newBest.replay || null; }
+        else { const i = timesRows.indexOf(rowRef); if(i >= 0) timesRows.splice(i, 1); }
+      }
+      status.style.color = errs.length ? '#ffb020' : '#4eff8a';
+      status.textContent = (newBest ? `✓ Gestrichen · neue Bestzeit ${fmtLap(newBest.timeMs)}` : '✓ Gestrichen · keine gültige Zeit mehr') + (errs.length ? `  ⚠ ${errs.join(' | ')}` : '');
+      _logLoaded = false;
+      renderTrack(trackId);
+    } else {
+      tr.style.opacity = '1';
+      status.style.color = '#ff6b6b';
+      status.textContent = '❌ ' + errs.join(' | ');
+    }
   }
 
   /* ══════════════ REITER-UMSCHALTUNG ══════════════ */

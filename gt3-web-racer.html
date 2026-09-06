@@ -15190,6 +15190,19 @@ const Game = {
               }
               Store.set('best_'+this.trackDef.id+'_'+CARS[this.selCar].id, r.bestLap);
             }
+            else if(r.lapValid !== false && this.mode==='tt' && typeof window.FB_saveLap==='function'
+                    && r.lastLap > 10 && r.lastLap < 900){
+              /* Jede gültige Runde (keine neue Bestzeit) in die Cloud-Historie —
+                 die Bestzeiten laufen oben über Store.set -> FB_saveBestLap. */
+              let lf = null;
+              if(this.replay && this.replay._len){
+                const tS = (r.lapStartRaceT||0) - 5, tE = (this._raceTimeS||0) + 3;
+                const ff = this.replay.frames.filter(f => f.t >= tS && f.t <= tE);
+                if(ff.length > 5) lf = ff.map(f=>({...f}));
+              }
+              const cd = CARS[this.selCar];
+              window.FB_saveLap(this.trackDef.id, cd.id, r.lastLap*1000, cd.name, cd.classType, lf);
+            }
             // License-System Hook
             if(c===this.car && typeof window.onGameLapComplete === 'function'){
               window.onGameLapComplete({
@@ -16816,7 +16829,7 @@ addEventListener('DOMContentLoaded',()=>Game.boot());
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js" defer></script>
-<script src="assets/gt3-firebase.js?v=14" defer></script>
+<script src="assets/gt3-firebase.js?v=15" defer></script>
 
   <section class="screen hidden" id="screen-impressum">
     <button class="btn" onclick="Game.showScreen('screen-start')" style="margin-bottom:24px">&larr; ZUR&Uuml;CK</button>

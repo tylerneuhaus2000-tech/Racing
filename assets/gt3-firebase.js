@@ -1410,6 +1410,36 @@ window.FB_saveBestLap = async function(trackId, carId, timeMs, carName, classTyp
   }
 };
 
+/* ── Jede GÜLTIGE Runde (nicht nur Bestzeiten) in die Cloud-Historie legen.
+   Wird im Zeitfahren für Runden aufgerufen, die KEINE neue Bestzeit sind —
+   die neuen Bestzeiten laufen weiter über FB_saveBestLap (mit Reveal).
+   _recomputeParentTime kappt danach auf Top 50 gültige + 50 gestrichene. ── */
+window.FB_saveLap = async function(trackId, carId, timeMs, carName, classType, replayFrames){
+  if(!fbUser || !timeMs || timeMs <= 0) return;
+  const docId = `${fbUser.uid}_${trackId}_${carId}`;
+  const name  = fbUsername || fbUser.displayName || fbUser.email?.split('@')[0] || 'Fahrer';
+  const meta  = { name, uid: fbUser.uid, carName: carName || carId, classType: classType || 'unknown', trackId, carId };
+  const parentRef = db.collection('times').doc(docId);
+  const lapsRef   = parentRef.collection('laps');
+  try {
+    const [parentSnap, lapsSnap] = await Promise.all([parentRef.get(), lapsRef.limit(1).get()]);
+    // Migration: alte Bestzeit ohne Historie -> als erste Runde sichern
+    if(parentSnap.exists && lapsSnap.empty){
+      const p = parentSnap.data();
+      if(p && p.timeMs){
+        const seed = { timeMs: p.timeMs, at: p.updatedAt || firebase.firestore.FieldValue.serverTimestamp(), struck: false };
+        if(p.replay) seed.replay = p.replay;
+        await lapsRef.add(seed);
+      }
+    }
+    const lap = { timeMs, at: firebase.firestore.FieldValue.serverTimestamp(), struck: false };
+    const enc = _encodeReplay(replayFrames);
+    if(enc) lap.replay = enc;
+    await lapsRef.add(lap);
+    await _recomputeParentTime(docId, meta);
+  } catch(e){ console.warn('[FB] saveLap:', e.message); }
+};
+
 /* ── Weltrang-Reveal: nach neuer persönlicher Bestzeit die eigene Position in
    der Klassen-Weltrangliste dieser Strecke groß einblenden. ── */
 async function _showWorldRankReveal({ trackId, classType, timeMs, oldTimeMs, name }){
