@@ -1812,10 +1812,63 @@ function _renderLb(){
     });
   }
 
+  const podium  = document.getElementById('lb-podium');
+  const youStrip = document.getElementById('lb-you-strip');
+  if(podium)  { podium.classList.remove('show'); podium.innerHTML = ''; }
+  if(youStrip){ youStrip.classList.remove('show'); youStrip.innerHTML = ''; }
+
   if(entries.length === 0){
     const cls = lbClassFilter === 'all' ? '' : ` in der Klasse ${lbClassFilter.toUpperCase()}`;
     list.innerHTML = `<div id="lb-empty-msg">🏁 Noch keine Rundenzeit${cls} gesetzt.<br><span style="font-size:10px;color:#444;margin-top:6px;display:block">Fahre ein Zeitfahren um in der Bestenliste zu erscheinen.</span></div>`;
     return;
+  }
+
+  const leaderMs = entries[0].timeMs;
+  const meIdx = fbUser ? entries.findIndex(e => e.uid === fbUser.uid) : -1;
+
+  // ── Podium (Top 3), visuell P2 · P1 · P3 ──
+  if(podium && entries.length >= 3){
+    [1, 0, 2].forEach(idx => {
+      const e = entries[idx];
+      const pos = idx + 1;
+      const isMe = fbUser && e.uid === fbUser.uid;
+      const hasRep = !!(e.replay && e.replay.flat && e.replay.flat.length > 5);
+      const card = document.createElement('div');
+      card.className = `lb-pod p${pos}` + (isMe ? ' lb-me' : '');
+      card.innerHTML =
+        `<div class="lb-pod-pos">${pos === 1 ? '🏆 P1' : 'P' + pos}</div>`+
+        `<div class="lb-pod-name">${_esc(e.name || 'Fahrer')}</div>`+
+        `<div class="lb-pod-time">${fmtLap(e.timeMs)}</div>`+
+        `<div class="lb-pod-car">${_esc(e.carName || '—')}</div>`+
+        (hasRep ? `<button class="lb-pod-replay">▶ REPLAY</button>` : '');
+      if(hasRep) card.querySelector('.lb-pod-replay').onclick = () => _watchLbReplay(e);
+      podium.appendChild(card);
+    });
+    podium.classList.add('show');
+  }
+
+  // ── "Deine Position"-Strip ──
+  if(youStrip){
+    if(meIdx >= 0){
+      const gap = (entries[meIdx].timeMs - leaderMs) / 1000;
+      youStrip.innerHTML =
+        `<span class="lys-rank">P${meIdx + 1}</span>`+
+        `<span class="lys-sep">│</span><span>von ${entries.length} Fahrern</span>`+
+        `<span class="lys-sep">│</span>`+
+        (meIdx === 0
+          ? `<span>🏆 Weltbestzeit</span>`
+          : `<span class="lys-dim">+${gap.toFixed(3)}s auf die Bestzeit</span>`)+
+        `<button id="lb-scroll-me">ZU MEINER ZEIT ▾</button>`;
+      youStrip.classList.add('show');
+      const jb = document.getElementById('lb-scroll-me');
+      if(jb) jb.onclick = () => {
+        const row = list.children[meIdx];
+        if(row){ row.scrollIntoView({ behavior: 'smooth', block: 'center' }); row.classList.add('lb-flash'); setTimeout(() => row.classList.remove('lb-flash'), 2400); }
+      };
+    } else if(fbUser){
+      youStrip.innerHTML = `<span class="lys-dim">Noch keine Zeit auf dieser Strecke — fahr ein Zeitfahren.</span>`;
+      youStrip.classList.add('show');
+    }
   }
 
   entries.forEach((entry, i) => {
@@ -1830,9 +1883,12 @@ function _renderLb(){
     const rankClass = rank===1?'p1':rank===2?'p2':rank===3?'p3':'';
     const timeClass = rank===1?'lb-wr':'';
     const isWR = rank === 1;
+    const gapMs = entry.timeMs - leaderMs;
+    const gapStr = isWR ? 'Bestzeit' : '+' + (gapMs / 1000).toFixed(3);
 
     const div = document.createElement('div');
     div.className = 'lb-entry' + (isMe?' lb-me':'');
+    div.style.animationDelay = Math.min(i, 20) * 22 + 'ms';
     const hasReplay = !!(entry.replay && entry.replay.flat && entry.replay.flat.length > 5);
     div.innerHTML =
       `<span class="lb-rank ${rankClass}">${rank}</span>`+
@@ -1841,7 +1897,7 @@ function _renderLb(){
         `<span class="lb-driver">${_esc(entry.name||'Fahrer')}</span>`+
         (isWR ? `<span class="lb-wr-badge">🏆 World Record</span>` : '')+
       `</span>`+
-      `<span class="lb-time-cell ${timeClass}">${fmtLap(entry.timeMs)}</span>`+
+      `<span class="lb-time-cell ${timeClass}">${fmtLap(entry.timeMs)}<span class="lb-gap">${gapStr}</span></span>`+
       `<span class="lb-car-cell">${_esc(entry.carName||'—')}</span>`+
       `<span class="lb-date-cell">${date}</span>`+
       `<span class="lb-replay-cell">${hasReplay?'<button class="lb-replay-btn" title="Runde anschauen">▶</button>':''}</span>`+
@@ -1970,7 +2026,14 @@ function switchLbMode(mode){
   document.getElementById('lb-world-head').style.display = isTimes ? 'none' : 'grid';
   document.getElementById('lb-world-list').style.display = isTimes ? 'none' : 'flex';
 
-  if(!isTimes) _loadWorldRanking();
+  // Podium + "Deine Position"-Strip gehören zum Rundenzeiten-Modus
+  ['lb-podium', 'lb-you-strip'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.style.display = isTimes ? '' : 'none';
+  });
+
+  if(isTimes){ if(lbAllEntries.length) _renderLb(); }
+  else _loadWorldRanking();
 }
 
 window.switchLbMode = switchLbMode;
@@ -2025,6 +2088,20 @@ async function _loadWorldRanking(){
     if(entries.length === 0){
       list.innerHTML = '<div style="padding:20px;color:#555;font:12px var(--mono)">Keine Fahrer gefunden.</div>';
       return;
+    }
+
+    // "Dein Rang"-Kopfzeile
+    const myIdx = (typeof fbUser !== 'undefined' && fbUser) ? entries.findIndex(e => e.uid === fbUser.uid) : -1;
+    if(myIdx >= 0){
+      const me = entries[myIdx];
+      const head = document.createElement('div');
+      head.style.cssText = 'display:flex;align-items:center;gap:9px;padding:10px 16px;background:#120a0c;border-bottom:1px solid #2a1417;font:700 10px var(--mono);letter-spacing:.05em;color:#ff8a94;position:sticky;top:0;z-index:2';
+      head.innerHTML =
+        `<span style="font:900 15px var(--mono);color:#ff2e3d">P${myIdx + 1}</span>`+
+        `<span style="color:#3a2a2e">│</span><span>von ${entries.length} Fahrern weltweit</span>`+
+        `<span style="color:#3a2a2e">│</span>`+
+        `<span style="color:#9a7a80;font-weight:600">${me.lp.toFixed(1)} LP · ${Math.round(me.km).toLocaleString()} km</span>`;
+      list.appendChild(head);
     }
 
     entries.forEach((e, i) => {

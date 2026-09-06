@@ -1075,7 +1075,36 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 .lb-cls-tab[data-cls="hypercar"].active{border-color:#ff2e3d;color:#ff2e3d;background:rgba(255,46,61,.1)}
 #lb-table-head{display:grid;grid-template-columns:2.8em 1fr 7em 10em 6.5em;gap:0;padding:7px 14px;background:#111518;border-bottom:1px solid #1e252e;font:700 9px var(--mono);letter-spacing:.14em;color:#555;text-transform:uppercase}
 #lb-list,#hud-lb-list{flex:1;overflow-y:auto;display:flex;flex-direction:column}
-.lb-entry{display:grid;grid-template-columns:2.8em 1fr 7em 10em 6.5em 2.5em;align-items:center;gap:0;padding:10px 14px;border-bottom:1px solid #1a1f26;font:12px var(--mono);transition:background .1s}
+.lb-entry{display:grid;grid-template-columns:2.8em 1fr 7em 10em 6.5em 2.5em;align-items:center;gap:0;padding:10px 14px;border-bottom:1px solid #1a1f26;font:12px var(--mono);transition:background .1s;animation:lbRowIn .34s cubic-bezier(.16,1,.3,1) both}
+@keyframes lbRowIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.lb-entry.lb-flash{animation:lbFlash 1.1s ease 2}
+@keyframes lbFlash{0%,100%{background:#120a0c}50%{background:#3a1620}}
+/* Podium (Top 3) */
+#lb-podium{display:none;grid-template-columns:1fr 1.14fr 1fr;gap:8px;padding:16px 16px 6px;align-items:end}
+#lb-podium.show{display:grid}
+.lb-pod{background:linear-gradient(180deg,#12171e,#0c1015);border:1px solid #1e252e;border-radius:10px;padding:12px 9px;text-align:center;position:relative;overflow:hidden}
+.lb-pod .lb-pod-pos{font:900 19px var(--mono);line-height:1;color:#8b95a1}
+.lb-pod .lb-pod-name{font:700 10.5px var(--mono);color:#e8ecef;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-pod .lb-pod-time{font:700 12px var(--mono);margin-top:3px;font-variant-numeric:tabular-nums;color:#c8d0d8}
+.lb-pod .lb-pod-car{font:500 8px var(--mono);color:#6b7480;margin-top:2px;letter-spacing:.04em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-pod.p1{border-color:#f5c51855;background:linear-gradient(180deg,#1c1706,#0c1015);transform:translateY(-9px)}
+.lb-pod.p1 .lb-pod-pos,.lb-pod.p1 .lb-pod-time{color:#f5c518}
+.lb-pod.p2 .lb-pod-pos,.lb-pod.p2 .lb-pod-time{color:#c8d2dc}
+.lb-pod.p3 .lb-pod-pos,.lb-pod.p3 .lb-pod-time{color:#cd7f32}
+.lb-pod.p2{border-color:#c8d2dc33}.lb-pod.p3{border-color:#cd7f3233}
+.lb-pod.lb-me{outline:1px solid #ff2e3d;outline-offset:-1px}
+.lb-pod-replay{margin-top:8px;background:none;border:1px solid #2a394b;border-radius:4px;color:var(--blue);font:700 8px var(--mono);letter-spacing:.1em;cursor:pointer;padding:3px 9px}
+.lb-pod-replay:hover{background:#1a2533;border-color:var(--blue)}
+/* "Deine Position"-Strip */
+#lb-you-strip{display:none;align-items:center;gap:9px;padding:9px 16px;background:#120a0c;border-bottom:1px solid #2a1417;font:700 10px var(--mono);letter-spacing:.05em;color:#ff8a94}
+#lb-you-strip.show{display:flex}
+#lb-you-strip .lys-rank{font:900 15px var(--mono);color:#ff2e3d}
+#lb-you-strip .lys-sep{color:#3a2a2e}
+#lb-you-strip .lys-dim{color:#9a7a80;font-weight:600}
+#lb-you-strip button{margin-left:auto;background:none;border:1px solid #ff2e3d55;border-radius:5px;color:#ff8a94;font:700 9px var(--mono);letter-spacing:.08em;cursor:pointer;padding:4px 10px;flex-shrink:0}
+#lb-you-strip button:hover{background:#1e0e11}
+.lb-time-cell{color:var(--green);font-weight:700;letter-spacing:.05em;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;align-items:flex-start;line-height:1.18}
+.lb-gap{font:600 9px var(--mono);color:#5a6470;letter-spacing:.02em}
 .lb-entry:hover{background:#131820}
 .lb-entry.lb-me{background:#120a0c!important;border-left:3px solid #ff2e3d}
 .lb-entry.lb-me .lb-rank{color:#ff2e3d}
@@ -2210,6 +2239,8 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
           <button class="lb-cls-tab" data-cls="hypercar">HYPERCAR</button>
         </div>
       </div>
+      <div id="lb-podium"></div>
+      <div id="lb-you-strip"></div>
       <div id="lb-table-head">
         <span>POS</span><span>FAHRER</span><span>ZEIT</span><span>FAHRZEUG</span><span>DATUM</span>
       </div>
