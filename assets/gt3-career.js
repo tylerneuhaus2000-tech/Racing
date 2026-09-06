@@ -392,12 +392,21 @@
     const cIdx = (typeof CARS !== 'undefined') ? CARS.findIndex(c => c.id === ev.carId) : -1;
     if (tIdx < 0 || cIdx < 0) { alert('Strecke oder Fahrzeug für dieses Event nicht verfügbar.'); return; }
     Game._careerQualiWatch = { trackId: ev.trackId, carId: ev.carId };
+    _applyCategory(ev.stageKey);
     Game.selTrack = tIdx;
     Game.selCar = cIdx;
     Game.selLivery = 0;
     Game.mode = 'tt';
     hide();
     try { Game.startRace(); } catch (e) { console.error('[Career] Quali-Start:', e); }
+  }
+
+  /* Fahrzeug-/Strecken-Kategorie ans Spiel angleichen (Kart-Pool ↔ Straßen-Pool). */
+  function _applyCategory(stageKey) {
+    if (typeof Game === 'undefined') return;
+    Game.garageCat = (stageKey === 'kart_bumper' || stageKey === 'kart') ? 'kart'
+      : /^(f1|f2|f3|f4)$/.test(stageKey) ? 'formula'
+        : 'race';
   }
 
   /* Vom Spiel aufgerufen (Hook in _wrapHooks), wenn im Zeitfahren eine Runde
@@ -429,8 +438,8 @@
       pMs, pPos: fld.pPos, poleMs: fld.poleMs, field: fld.grid.map(e => e.ms),
       rivals: ev.ladder.rivals
     };
-    if (fld.pPos === 1) { S.stats.poles = (S.stats.poles || 0) + 1; }
 
+    _applyCategory(ev.stageKey);
     Game.selTrack = tIdx;
     Game.selCar = cIdx;
     Game.selLivery = 0;
@@ -484,6 +493,7 @@
     S.stats.races = (S.stats.races || 0) + 1;
     if (pos === 1) S.stats.wins = (S.stats.wins || 0) + 1;
     if (pos <= 3) S.stats.podiums = (S.stats.podiums || 0) + 1;
+    if (cr.pPos === 1) S.stats.poles = (S.stats.poles || 0) + 1;
 
     s.results.push({
       trackId: cr.trackId, carId: cr.carId,
