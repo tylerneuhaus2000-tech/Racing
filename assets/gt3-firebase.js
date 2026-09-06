@@ -1437,6 +1437,7 @@ window.FB_saveLap = async function(trackId, carId, timeMs, carName, classType, r
     if(enc) lap.replay = enc;
     await lapsRef.add(lap);
     await _recomputeParentTime(docId, meta);
+    console.log(`[FB] saveLap OK: ${trackId} / ${carId} / ${classType||'unknown'} / ${(timeMs/1000).toFixed(3)}s`);
   } catch(e){ console.warn('[FB] saveLap:', e.message); }
 };
 

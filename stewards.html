@@ -443,7 +443,29 @@ function boot(){
 
     const docs = timesRows.filter(r => r.trackId === trackId
       && (classFilter === 'all' || (r.classType || 'unknown').toLowerCase() === classFilter));
-    if(!docs.length){ wrap.innerHTML = '<div class="empty">Keine Zeiten in dieser Klasse auf dieser Strecke.</div>'; return; }
+    if(!docs.length){
+      // Was hat der Fahrer sonst? -> hilft zu sehen, wo die vermisste Zeit liegt
+      const onThisTrack = {};
+      timesRows.filter(r => r.trackId === trackId).forEach(r => {
+        const c = (r.classType || 'unknown').toLowerCase();
+        onThisTrack[c] = (onThisTrack[c] || 0) + 1;
+      });
+      const classTracks = timesRows
+        .filter(r => classFilter !== 'all' && (r.classType || 'unknown').toLowerCase() === classFilter)
+        .map(r => trackName(r.trackId));
+      const uniqTracks = [...new Set(classTracks)];
+      let hint = '';
+      const thisTxt = Object.keys(onThisTrack).length
+        ? `Auf <b>${esc(trackName(trackId))}</b> vorhanden: ` + Object.entries(onThisTrack).map(([c, n]) => `${(_CLASS_LABEL[c] || c.toUpperCase())} (${n})`).join(', ')
+        : `Auf <b>${esc(trackName(trackId))}</b> sind gar keine Zeiten gespeichert.`;
+      if(classFilter !== 'all'){
+        hint = uniqTracks.length
+          ? `<br>${_CLASS_LABEL[classFilter] || classFilter.toUpperCase()}-Zeiten von diesem Fahrer liegen auf: <b>${uniqTracks.map(esc).join(', ')}</b>.`
+          : `<br>Dieser Fahrer hat überhaupt keine ${_CLASS_LABEL[classFilter] || classFilter.toUpperCase()}-Zeit gespeichert.`;
+      }
+      wrap.innerHTML = `<div class="empty">Keine Zeiten in dieser Klasse auf dieser Strecke.<br><span style="font-size:11px;color:#8b95a1;display:block;margin-top:8px">${thisTxt}${hint}</span></div>`;
+      return;
+    }
 
     let laps = [];
     try {
