@@ -75,6 +75,12 @@ service cloud.firestore {
       allow write: if (request.auth != null && request.auth.uid == uid) || isAdmin();
     }
 
+    // Karriere-Speicherstand: nur der Fahrer selbst. Rein clientseitiger
+    // Fortschritt (kein Wett-/Bestenlisten-Bezug), daher keine Feldprüfung.
+    match /careers/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
     match /usernames/{username} {
       allow read: if true;
       allow create: if request.auth != null

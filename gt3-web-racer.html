@@ -1857,8 +1857,14 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
       </div>
     </div>
 
-    <!-- MENU GRID (6 cards) -->
+    <!-- MENU GRID -->
     <div id="ms-grid">
+      <button class="ms-card" id="btn-career" onclick="if(window.Career)Career.open()">
+        <div class="ms-card-icon">🏁</div>
+        <div class="ms-card-title">Karriere</div>
+        <div class="ms-card-desc">Vom Kart zur Spitzenklasse. Speicherbar.</div>
+        <span class="ms-card-arrow">›</span>
+      </button>
       <button class="ms-card" id="btn-multiplayer">
         <div class="ms-card-icon">🌐</div>
         <div class="ms-card-title">Multiplayer</div>
@@ -2812,7 +2818,7 @@ const Store = {
 /* Versions-Guard: wenn sich die CARS-Liste ändert (Autos hinzugefügt/entfernt),
    wird der LocalStorage einmalig geleert um veraltete Indizes zu verhindern.
    Einfach GAME_DATA_VERSION erhöhen nach Änderungen an CARS oder TRACKS. */
-const GAME_DATA_VERSION = '16';
+const GAME_DATA_VERSION = '17';
 (()=>{
   try {
     if(Store.get('game_data_version') !== GAME_DATA_VERSION){
@@ -2978,6 +2984,25 @@ const keybindLabels = {
 /* ============================ FAHRZEUGDATEN ============================ */
 const CARS = [
   /* === GT3 Klasse (blau im Leaderboard) === */
+  {
+    /* Karriere-Einstiegsvertrag (GT3). Bewusst am unteren Ende der Klasse,
+       damit der Vertrags-Aufstieg spürbar ist. Modell: assets/models/dacia_gt3.glb
+       (roh, ~22 MB — noch nicht meshopt-komprimiert). rotY/targetLength ggf.
+       im Playtest nachjustieren. */
+    id:'dacia', name:'Dacia · Ollis Garage Racing', classType:'gt3',
+    color:0x0a2c66, accent:0xc8102e, rim:0x1a1a1a,
+    model:{
+      url:'assets/models/dacia_gt3.glb',
+      scale:1,
+      targetLength:4.6,
+      yOffset:0,
+      rotY:0
+    },
+    mass:1345, power:392000, maxForce:8500, topSpeed:279/3.6, brakeForce:14200,
+    gripF:1.24, gripR:1.27, yawDamp:0.74, tractionBoost:0.04, liftOversteer:0.08,
+    desc:'GT3 · Einstiegsvertrag. Solide und gutmütig, aber ohne Spitzenwerte.',
+    stats:{speed:0.80, grip:0.83, stab:0.86}
+  },
   {
     id:'porsche', name:'Porsche 911 GT3 R', classType:'gt3',
     color:0xe8e8e8, accent:0xd5001c, rim:0xc8a44a,
@@ -16830,6 +16855,7 @@ addEventListener('DOMContentLoaded',()=>Game.boot());
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js" defer></script>
 <script src="assets/gt3-firebase.js?v=16" defer></script>
+<script src="assets/gt3-career.js?v=1" defer></script>
 
   <section class="screen hidden" id="screen-impressum">
     <button class="btn" onclick="Game.showScreen('screen-start')" style="margin-bottom:24px">&larr; ZUR&Uuml;CK</button>
