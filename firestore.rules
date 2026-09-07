@@ -59,9 +59,9 @@ service cloud.firestore {
 
     // Strike-Ledger: eine Zeile pro gestrichener Runde. Der Steward schreibt,
     // der betroffene Fahrer darf seine eigenen sehen (Dashboard "Meine
-    // Streichungen").
+    // Streichungen"), Mitarbeiter dürfen Fahrerakten einsehen.
     match /strikes/{strikeId} {
-      allow read: if isAdmin() || (request.auth != null
+      allow read: if isStaff() || (request.auth != null
         && resource.data.uid == request.auth.uid);
       allow create, update, delete: if isAdmin();
     }
@@ -70,7 +70,7 @@ service cloud.firestore {
     // an (Frist 30 Tage — im Client geprüft). Der Steward entscheidet
     // (upheld = wiederhergestellt, rejected = endgültig gelöscht).
     match /appeals/{appealId} {
-      allow read: if isAdmin() || (request.auth != null
+      allow read: if isStaff() || (request.auth != null
         && resource.data.uid == request.auth.uid);
       allow create: if request.auth != null
         && request.resource.data.uid == request.auth.uid
@@ -99,8 +99,8 @@ service cloud.firestore {
     }
 
     match /steward_msgs/{uid} {
-      // Der Fahrer liest seine eigene Nachricht; der Steward liest jede (Fahrerakte).
-      allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      // Der Fahrer liest seine eigene Nachricht; Mitarbeiter/Admins lesen Fahrerakten.
+      allow read: if isStaff() || (request.auth != null && request.auth.uid == uid);
       allow write: if isAdmin();
     }
 
