@@ -143,8 +143,11 @@
       <div>
         <div class="box">
           <h2>SPIELER</h2>
-          <p class="sub">Username eingeben (Groß/Kleinschreibung egal) und laden.</p>
-          <input type="text" id="in-username" list="usernames-list" placeholder="username" autocomplete="off">
+          <p class="sub">Spieler aus der Liste auswählen und laden.</p>
+          <select id="player-select" aria-label="Spieler auswählen">
+            <option value="">— Spieler auswählen —</option>
+          </select>
+          <input type="hidden" id="in-username">
           <datalist id="usernames-list"></datalist>
           <div id="playerHint"></div>
           <div class="row" style="margin-top:10px">
@@ -344,15 +347,40 @@ function boot(){
     }
     // Löschantrag-Badge live
     watchDelreqBadge();
+    // Auf iPad die Spielerliste direkt bereitstellen, ohne Namen abtippen zu müssen.
+    $('btn-load-usernames').click();
   });
 
-  /* ── Spieler-Liste (Datalist) ── */
+  /* ── Spieler-Liste ── */
+  $('player-select').onchange = () => {
+    $('in-username').value = $('player-select').value;
+    try { localStorage.setItem('steward-selected-player', $('in-username').value); } catch(e) {}
+  };
+
   $('btn-load-usernames').onclick = async () => {
     const btn = $('btn-load-usernames'); btn.disabled = true; btn.textContent = '⏳';
     try {
       const snap = await db.collection('usernames').get();
       const dl = $('usernames-list'); dl.innerHTML = '';
-      snap.forEach(d => { const o = document.createElement('option'); o.value = d.id; dl.appendChild(o); });
+      const select = $('player-select');
+      const selected = $('in-username').value || (() => { try { return localStorage.getItem('steward-selected-player') || ''; } catch(e) { return ''; } })();
+      select.innerHTML = '<option value="">— Spieler auswählen —</option>';
+      const names = [];
+      snap.forEach(d => names.push(d.id));
+      names.sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
+      names.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+        const datalistOption = document.createElement('option');
+        datalistOption.value = name;
+        dl.appendChild(datalistOption);
+      });
+      if (names.includes(selected)) {
+        select.value = selected;
+        $('in-username').value = selected;
+      }
       $('playerHint').textContent = `${snap.size} Spieler geladen — tippen zum Filtern`;
     } catch(e){ $('playerHint').textContent = 'Fehler: ' + e.message; }
     finally { btn.disabled = false; btn.textContent = '↻ SPIELER LISTE'; }
