@@ -109,7 +109,7 @@
     low:  ['norisring', 'stadtring', 'hockenheim-alt', 'silberpfeil', 'veloce', 'alpen',
            'redbullring-custom', 'highspeed-pro', 'inselring'],
     mid:  ['hockenheim-alt', 'silberpfeil', 'redbullring-custom', 'bahrain-custom', 'monza',
-           'custom_1782749661475', 'custom_1782746264191', 'silverstone-gp', 'monza-gp', 'oasis', 'riviera', 'bergkristall'],
+           'custom_1782749661475', 'custom_1782746264191', 'silverstone-gp', 'oasis', 'riviera', 'bergkristall'],
     high: ['redbullring-custom', 'bahrain-custom', 'monza', 'silverstone-gp', 'custom_1782749661475',
            'custom_1782746264191', 'custom_1782743640261', 'inselring', 'bergkristall', 'highspeed-pro',
            'riviera', 'lemans-long']
@@ -127,7 +127,7 @@
   const REF_LAP_GT3 = {
     'kartbahn-lider': 52, 'norisring': 49, 'stadtring': 74, 'hockenheim-alt': 78,
     'silberpfeil': 86, 'redbullring-custom': 90, 'bahrain-custom': 103,
-    'silverstone-gp': 118, 'monza': 108, 'monza-gp': 104, 'lemans-long': 218,
+    'silverstone-gp': 118, 'monza': 108, 'lemans-long': 218,
     'custom_1782743640261': 138, 'custom_1782746264191': 100, 'custom_1782749661475': 92,
     'veloce': 70, 'alpen': 64, 'flat': 66, 'highspeed-pro': 96, 'superspeedway': 44,
     'inselring': 88, 'oasis': 92, 'bergkristall': 95, 'riviera': 99, 'monza-alt': 105
