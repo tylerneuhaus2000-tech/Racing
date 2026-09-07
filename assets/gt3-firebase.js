@@ -1683,7 +1683,8 @@ document.getElementById('btn-fb-google').onclick = () => {
     // Pop-up wurde blockiert oder haengt: auf die Weiterleitung ausweichen.
     if(code === 'auth/popup-blocked' ||
        code === 'auth/cancelled-popup-request' ||
-       code === 'auth/operation-not-supported-in-this-environment'){
+       code === 'auth/operation-not-supported-in-this-environment' ||
+       code === 'auth/web-storage-unsupported'){
       perWeiterleitung();
       return;
     }

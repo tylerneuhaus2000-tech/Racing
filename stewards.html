@@ -294,7 +294,13 @@ function boot(){
   /* ── Auth ── */
   $('btn-google').onclick = () => {
     $('err').textContent = '';
-    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => { $('err').textContent = e.message; });
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(e => {
+      if(['auth/popup-blocked', 'auth/cancelled-popup-request', 'auth/operation-not-supported-in-this-environment', 'auth/web-storage-unsupported'].includes(e.code)){
+        return auth.signInWithRedirect(provider);
+      }
+      $('err').textContent = e.message;
+    }).catch(e => { $('err').textContent = e.message; });
   };
   $('btn-email').onclick = () => {
     $('err').textContent = '';
@@ -303,6 +309,7 @@ function boot(){
     auth.signInWithEmailAndPassword(email, pw).catch(e => { $('err').textContent = e.message; });
   };
   $('btn-logout').onclick = () => auth.signOut();
+  auth.getRedirectResult().catch(e => { $('err').textContent = e.message; });
 
   auth.onAuthStateChanged(user => {
     if(!user){
