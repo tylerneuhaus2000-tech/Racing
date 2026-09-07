@@ -93,6 +93,19 @@ for (const T of tris) {
     const k=j*W+i; road[k]=1; yA[k]+=yv; yN[k]++;
   }
 }
+// Manche Modelle speichern die präzisen Fahrbahnkanten als sehr dünne
+// Decal-Streifen. Deren Dreiecke können zwischen Rasterzellen verschwinden;
+// im Punktmodus werden deshalb ihre Kanten explizit eingebrannt.
+if (opt.points) {
+  const mark=(x,z,y)=>{const i=gi(x),j=gj(z);for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){
+    const ii=i+di,jj=j+dj;if(ii<0||jj<0||ii>=W||jj>=H)continue;
+    const k=jj*W+ii;road[k]=1;yA[k]+=y;yN[k]++;
+  }};
+  for(const T of tris) for(let e=0;e<3;e++){
+    const A=T[e],B=T[(e+1)%3],steps=Math.max(1,Math.ceil(Math.hypot(B[0]-A[0],B[2]-A[2])/CELL));
+    for(let s=0;s<=steps;s++){const t=s/steps;mark(A[0]+(B[0]-A[0])*t,A[2]+(B[2]-A[2])*t,A[1]+(B[1]-A[1])*t);}
+  }
+}
 let nR=0; for(let k=0;k<road.length;k++) if(road[k]) nR++;
 console.log(`GLB-Asphalt: ${tris.length} Dreiecke → ${nR} Zellen (${CELL} m), Fläche ${(x1-x0).toFixed(0)}×${(z1-z0).toFixed(0)} m`);
 const onRoad=(x,z)=>{ const i=gi(x), j=gj(z); return i>=0&&j>=0&&i<W&&j<H&&road[j*W+i]===1; };
@@ -117,10 +130,11 @@ console.log(`OSM-RMS ${mO.rms.toFixed(1)} m · GLB-Asphalt-RMS ${mG.rms.toFixed(
    (gedeckelt). Anders als eine Trefferquote belohnt das kein Schrumpfen der
    Linie in dichte Flächen — kleiner ist strikt besser. */
 const CAP = 45;
-function score(sc, ang, ox, oz) {
+function score(sc, ang, ox, oz, mirror) {
   const cs=Math.cos(ang), sn=Math.sin(ang); let sum=0, on=0;
   for (const p of osmLine) {
-    const X = sc*(cs*p[0]-sn*p[1])+ox, Z = sc*(sn*p[0]+cs*p[1])+oz;
+    const px=mirror*p[0];
+    const X = sc*(cs*px-sn*p[1])+ox, Z = sc*(sn*px+cs*p[1])+oz;
     let d = distToRoad(X, Z, Math.ceil(CAP/CELL));
     if (!isFinite(d)) d = CAP; else if (d>CAP) d = CAP;
     sum += d; if (d<=8) on++;
@@ -131,35 +145,43 @@ function score(sc, ang, ox, oz) {
    steht in Metern (Gelände 1947x1384 m). Daher nur ein schmales Fenster. */
 const SMIN = parseFloat(opt.smin || '0.90'), SMAX = parseFloat(opt.smax || '1.12');
 let best={cost:Infinity};
-for (let si=0; si<=16; si++) {
-  const sc = SMIN + (SMAX-SMIN)*si/16;
-  for (let ai=0; ai<180; ai++) {
-    const ang = ai*Math.PI/90;
-    const ox = mG.mx - sc*(Math.cos(ang)*mO.mx - Math.sin(ang)*mO.mz);
-    const oz = mG.mz - sc*(Math.sin(ang)*mO.mx + Math.cos(ang)*mO.mz);
-    const r = score(sc, ang, ox, oz);
-    if (r.cost < best.cost) best={...r, sc, ang, ox, oz};
+if (opt.fixed) {
+  const [sc,deg,ox,oz,mirror=1]=String(opt.fixed).split(',').map(Number);
+  const ang=deg*Math.PI/180, r=score(sc,ang,ox,oz,mirror);
+  best={...r,sc,ang,ox,oz,mirror};
+}
+for (const mirror of opt.fixed ? [] : [1,-1]) {
+  for (let si=0; si<=16; si++) {
+    const sc = SMIN + (SMAX-SMIN)*si/16;
+    for (let ai=0; ai<180; ai++) {
+      const ang = ai*Math.PI/90;
+      const ox = mG.mx - sc*(Math.cos(ang)*mirror*mO.mx - Math.sin(ang)*mO.mz);
+      const oz = mG.mz - sc*(Math.sin(ang)*mirror*mO.mx + Math.cos(ang)*mO.mz);
+      const r = score(sc, ang, ox, oz, mirror);
+      if (r.cost < best.cost) best={...r, sc, ang, ox, oz, mirror};
+    }
   }
 }
-console.log(`Grobsuche: scale ${best.sc.toFixed(4)} · rot ${(best.ang*180/Math.PI).toFixed(1)}° · Ø ${best.cost.toFixed(2)} m · auf Asphalt ${(best.frac*100).toFixed(1)}%`);
+console.log(`Grobsuche: scale ${best.sc.toFixed(4)} · rot ${(best.ang*180/Math.PI).toFixed(1)}° · gespiegelt ${best.mirror<0?'ja':'nein'} · Ø ${best.cost.toFixed(2)} m · auf Asphalt ${(best.frac*100).toFixed(1)}%`);
 let cur = best;
-for (let round=0; round<8; round++) {
+for (let round=0; round<(opt.fixed?0:8); round++) {
   const dS=0.05/(round+1), dA=0.18/(round+1), dT=90/(round+1);
   for (let i=0;i<900;i++) {
     let sc=cur.sc*(1+(Math.random()-0.5)*dS);
     sc = Math.max(SMIN, Math.min(SMAX, sc));
     const ang=cur.ang+(Math.random()-0.5)*dA;
     const ox=cur.ox+(Math.random()-0.5)*dT, oz=cur.oz+(Math.random()-0.5)*dT;
-    const r=score(sc,ang,ox,oz);
-    if (r.cost < cur.cost) cur={...r,sc,ang,ox,oz};
+    const r=score(sc,ang,ox,oz,cur.mirror);
+    if (r.cost < cur.cost) cur={...r,sc,ang,ox,oz,mirror:cur.mirror};
   }
 }
-const { sc, ang, ox, oz } = cur;
+const { sc, ang, ox, oz, mirror } = cur;
 console.log(`Feinsuche: scale ${sc.toFixed(4)} · rot ${(ang*180/Math.PI).toFixed(2)}° · Versatz [${ox.toFixed(1)}, ${oz.toFixed(1)}]`);
 console.log(`QUALITÄT : Ø Abstand ${cur.cost.toFixed(2)} m · ${(cur.frac*100).toFixed(1)}% der Punkte auf Asphalt (<8 m)`);
 
 const T = p => { const cs=Math.cos(ang), sn=Math.sin(ang);
-  return [sc*(cs*p[0]-sn*p[1])+ox, sc*(sn*p[0]+cs*p[1])+oz]; };
+  const px=mirror*p[0];
+  return [sc*(cs*px-sn*p[1])+ox, sc*(sn*px+cs*p[1])+oz]; };
 
 /* ── Höhe aus dem Modell ──────────────────────────────────────────────── */
 function sampleY(x,z){ const i0=gi(x), j0=gj(z);
@@ -207,7 +229,7 @@ if (opt.png) {
 }
 
 const out = { name, source:path.basename(inGlb), osm:{ id:circuit.id, name:circuit.tags.name, km:+(plen(osmLine,true)/1000).toFixed(3) },
-  fit:{ scale:+sc.toFixed(5), rotDeg:+(ang*180/Math.PI).toFixed(3), offset:[r2(ox),r2(oz)], onAsphaltPct:+(cur.frac*100).toFixed(1), meanDist:+cur.cost.toFixed(2) },
+  fit:{ scale:+sc.toFixed(5), rotDeg:+(ang*180/Math.PI).toFixed(3), mirrored:mirror<0, offset:[r2(ox),r2(oz)], onAsphaltPct:+(cur.frac*100).toFixed(1), meanDist:+cur.cost.toFixed(2) },
   lengthKm:+(L/1000).toFixed(3), heightSpan:+ysp.toFixed(1),
   meshOffset:[r2(-cx), r2(-cy), r2(-cz)], n:pts.length, pts, pitPts };
 const f = path.join(ROOT,'assets/tracks', name+'.centerline.json');
