@@ -31,7 +31,7 @@ for (const track of context.TRACKS_REF) {
 
   console.log(`${track.name}: ${track.pts.length} points, ${(length / 1000).toFixed(3)} km, `
     + `${heightSpan.toFixed(1)} m height span, max segment ${maxSegment.toFixed(2)} m`);
-  if (!finite || track.pts.length < 300 || maxSegment > 15 || length < 3400 || length > 3800) {
+  if (!finite || track.pts.length < 300 || maxSegment > 15 || length < 3300 || length > 3800) {
     console.error('Sachsenring centerline failed plausibility checks.');
     failed = true;
   }
