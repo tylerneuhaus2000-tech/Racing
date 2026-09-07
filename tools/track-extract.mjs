@@ -28,8 +28,10 @@ function mvp(m, p) {   // column-major mat4 * vec3(w=1)
 
 // alle ~horizontalen Dreiecke, Zentroide, in Welt-Y-up
 const C = [];   // {x,z,y,a}
+const MESHRE = opt.mesh ? new RegExp(opt.mesh,'i') : null;
 for (const node of doc.getRoot().listNodes()) {
   const mesh = node.getMesh(); if (!mesh) continue;
+  if (MESHRE && !MESHRE.test((mesh.getName()||'') + ' ' + (node.getName()||''))) continue;
   const M = node.getWorldMatrix();
   for (const prim of mesh.listPrimitives()) {
     const pa = prim.getAttribute('POSITION'); if (!pa) continue;
