@@ -84,17 +84,18 @@ const track = {
   sub: 'Grand-Prix-Kurs · 3,53 km · 14 Kurven · starkes Hoehenprofil',
   meshUrl: 'assets/tracks/sachsenring.glb',
   mesh: { offset: source.meshOffset, rawSurface: true, light: { sun: 0.95, hemi: 0.8, exposure: 1 } },
-  halfWidth: 7.5,
+  halfWidth: 8.5,
   sky: 0x9fc3eb,
   hill: 0x5e8a42,
   grass: [0x4e8b3a, 0x407531],
-  wallDist: 22,
-  kerbW: 3,
+  wallDist: 12,
+  kerbW: 2.5,
   vergeW: 10,
   startFinishPct: 0,
   startGridPct: 99,
   env: 'forest',
   noWalls: true,
+  containCars: true,
   pts: source.pts
 };
 

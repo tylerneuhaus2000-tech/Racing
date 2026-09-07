@@ -2792,7 +2792,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 <script src="assets/vehicle-animation.js?v=1" defer></script>
 <script src="assets/meshopt_decoder.js" defer></script>
 <script src="assets/tracks.js?v=20260907c" defer></script>
-<script src="assets/tracks/sachsenring.js?v=20260907e" defer></script>
+<script src="assets/tracks/sachsenring.js?v=20260908a" defer></script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
 <script>
 /* Alle Fahrzeugmodelle sind mit EXT_meshopt_compression gepackt (ca. 8x kleiner
@@ -7022,8 +7022,9 @@ class Car {
     const _prevLat = this.query ? this.query.lat : 0;
     const _latJump = Math.abs(Math.abs(q2.lat) - Math.abs(_prevLat));
     const _phantomSeg = _latJump > 5;
-    // noWalls disables both visual and physics walls
-    if(!track.def.noWalls && !_phantomSeg && Math.abs(q2.lat) > track.wallDist - 1.1){
+    // rawSurface tracks may use the GLB for visible barriers while retaining physics containment.
+    const hasContainment = !track.def.noWalls || track.def.containCars;
+    if(hasContainment && !_phantomSeg && Math.abs(q2.lat) > track.wallDist - 1.1){
       const sgn = Math.sign(q2.lat);
       // Cap overlap per step to prevent teleportation from wrong-segment queries
       const overlap = Math.min(Math.abs(q2.lat) - (track.wallDist - 1.1), 8);
