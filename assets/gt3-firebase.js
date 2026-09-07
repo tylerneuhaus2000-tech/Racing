@@ -1728,14 +1728,6 @@ document.getElementById('btn-fb-email').onclick = () => {
    .catch(e => { fertig(); zeigeAuthFehler(e); });
 };
 
-/* ── Magic Link (passwortlose Anmeldung) ──
-   Fuer Leute, die ihr Passwort verloren haben oder gar keins wollen: Firebase
-   verschickt eine E-Mail mit einem Einmal-Link, der Klick darauf loggt direkt
-   ein. Muss vorher in der Firebase Console unter Authentication -> Sign-in
-   method -> E-Mail/Passwort -> "Email link (passwordless sign-in)" aktiviert
-   werden, sonst kommt auth/operation-not-allowed. */
-const MAGIC_LINK_EMAIL_KEY = 'gt3_magicLinkEmail';
-
 document.getElementById('btn-fb-magiclink').onclick = () => {
   const email = document.getElementById('fb-email-input').value.trim();
   const errEl = document.getElementById('fb-error-msg');
@@ -1746,42 +1738,15 @@ document.getElementById('btn-fb-magiclink').onclick = () => {
 
   const label = btn.textContent;
   btn.disabled = true; btn.textContent = '…';
-  const fertig = () => { btn.disabled = false; btn.textContent = label; };
-
-  const actionCodeSettings = {
-    url: window.location.href.split('#')[0],
-    handleCodeInApp: true
-  };
-
-  auth.sendSignInLinkToEmail(email, actionCodeSettings).then(() => {
-    try{ window.localStorage.setItem(MAGIC_LINK_EMAIL_KEY, email); }catch(e){}
-    fertig();
+  auth.sendPasswordResetEmail(email).then(() => {
+    btn.disabled = false; btn.textContent = label;
     errEl.classList.add('fb-ok');
-    errEl.textContent = 'Link verschickt! E-Mail-Postfach pruefen (auch Spam-Ordner) und den Link auf diesem Geraet oeffnen.';
-  }).catch(e => { fertig(); zeigeAuthFehler(e); });
-};
-
-/* Seite wurde ueber einen Magic-Link-Klick geoeffnet -> direkt einloggen. */
-if(auth.isSignInWithEmailLink(window.location.href)){
-  document.addEventListener('DOMContentLoaded', () => {
-    let email = null;
-    try{ email = window.localStorage.getItem(MAGIC_LINK_EMAIL_KEY); }catch(e){}
-    if(!email){
-      // Link auf einem anderen Geraet/Browser geoeffnet als angefordert -
-      // E-Mail ist dann nicht mehr im localStorage. Nachfragen.
-      email = window.prompt('Zur Bestaetigung: mit welcher E-Mail-Adresse hast du den Magic Link angefordert?');
-    }
-    if(!email) return;
-    openAuthModal();
-    auth.signInWithEmailLink(email, window.location.href).then(() => {
-      try{ window.localStorage.removeItem(MAGIC_LINK_EMAIL_KEY); }catch(e){}
-      closeAuthModal();
-      // Auth-Query-Parameter (oobCode etc.) aus der URL entfernen, sonst
-      // versucht die Seite bei jedem Reload erneut, den (dann verbrauchten) Link einzuloesen.
-      history.replaceState(null, '', window.location.pathname);
-    }).catch(e => zeigeAuthFehler(e));
+    errEl.textContent = 'Reset-Mail verschickt! Bitte auch den Spam-Ordner prüfen.';
+  }).catch(e => {
+    btn.disabled = false; btn.textContent = label;
+    zeigeAuthFehler(e);
   });
-}
+};
 
 /* ── Leaderboard Screen ── */
 let lbUnsub = null;
