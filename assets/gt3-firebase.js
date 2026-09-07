@@ -1562,7 +1562,9 @@ const AUTH_FEHLER = {
   'auth/unauthorized-domain':
     'Diese Domain ist bei Firebase nicht freigegeben. In der Firebase Console unter Authentication → Settings → Authorized domains muss grid-line.de (und www.grid-line.de) eingetragen sein.',
   'auth/api-key-not-valid':        'Der Firebase-API-Schlüssel wird abgelehnt. Bitte die Konfiguration prüfen.',
-  'auth/internal-error':           'Firebase meldet einen internen Fehler. Bitte später erneut versuchen.'
+  'auth/internal-error':           'Firebase meldet einen internen Fehler. Bitte später erneut versuchen.',
+  'auth/invalid-action-code':      'Dieser Link wurde schon benutzt oder ist ungültig. Fordere einen neuen Magic Link an.',
+  'auth/expired-action-code':      'Dieser Link ist abgelaufen (gültig für 1 Stunde). Fordere einen neuen Magic Link an.'
 };
 
 function authFehler(e){
@@ -1725,6 +1727,61 @@ document.getElementById('btn-fb-email').onclick = () => {
   p.then(() => { fertig(); closeAuthModal(); })
    .catch(e => { fertig(); zeigeAuthFehler(e); });
 };
+
+/* ── Magic Link (passwortlose Anmeldung) ──
+   Fuer Leute, die ihr Passwort verloren haben oder gar keins wollen: Firebase
+   verschickt eine E-Mail mit einem Einmal-Link, der Klick darauf loggt direkt
+   ein. Muss vorher in der Firebase Console unter Authentication -> Sign-in
+   method -> E-Mail/Passwort -> "Email link (passwordless sign-in)" aktiviert
+   werden, sonst kommt auth/operation-not-allowed. */
+const MAGIC_LINK_EMAIL_KEY = 'gt3_magicLinkEmail';
+
+document.getElementById('btn-fb-magiclink').onclick = () => {
+  const email = document.getElementById('fb-email-input').value.trim();
+  const errEl = document.getElementById('fb-error-msg');
+  const btn   = document.getElementById('btn-fb-magiclink');
+  errEl.textContent = '';
+  errEl.classList.remove('fb-ok');
+  if(!email){ errEl.textContent = 'Bitte gib zuerst deine E-Mail-Adresse ein.'; return; }
+
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = '…';
+  const fertig = () => { btn.disabled = false; btn.textContent = label; };
+
+  const actionCodeSettings = {
+    url: window.location.href.split('#')[0],
+    handleCodeInApp: true
+  };
+
+  auth.sendSignInLinkToEmail(email, actionCodeSettings).then(() => {
+    try{ window.localStorage.setItem(MAGIC_LINK_EMAIL_KEY, email); }catch(e){}
+    fertig();
+    errEl.classList.add('fb-ok');
+    errEl.textContent = 'Link verschickt! E-Mail-Postfach pruefen (auch Spam-Ordner) und den Link auf diesem Geraet oeffnen.';
+  }).catch(e => { fertig(); zeigeAuthFehler(e); });
+};
+
+/* Seite wurde ueber einen Magic-Link-Klick geoeffnet -> direkt einloggen. */
+if(auth.isSignInWithEmailLink(window.location.href)){
+  document.addEventListener('DOMContentLoaded', () => {
+    let email = null;
+    try{ email = window.localStorage.getItem(MAGIC_LINK_EMAIL_KEY); }catch(e){}
+    if(!email){
+      // Link auf einem anderen Geraet/Browser geoeffnet als angefordert -
+      // E-Mail ist dann nicht mehr im localStorage. Nachfragen.
+      email = window.prompt('Zur Bestaetigung: mit welcher E-Mail-Adresse hast du den Magic Link angefordert?');
+    }
+    if(!email) return;
+    openAuthModal();
+    auth.signInWithEmailLink(email, window.location.href).then(() => {
+      try{ window.localStorage.removeItem(MAGIC_LINK_EMAIL_KEY); }catch(e){}
+      closeAuthModal();
+      // Auth-Query-Parameter (oobCode etc.) aus der URL entfernen, sonst
+      // versucht die Seite bei jedem Reload erneut, den (dann verbrauchten) Link einzuloesen.
+      history.replaceState(null, '', window.location.pathname);
+    }).catch(e => zeigeAuthFehler(e));
+  });
+}
 
 /* ── Leaderboard Screen ── */
 let lbUnsub = null;

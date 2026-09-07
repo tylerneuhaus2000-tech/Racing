@@ -1044,8 +1044,10 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 #btn-fb-email{width:100%;padding:11px;background:var(--red);border:none;border-radius:6px;color:#fff;font:700 12px var(--mono);letter-spacing:.1em;cursor:pointer}
 #btn-fb-email:hover{background:#e02030}
 #btn-fb-toggle{background:none;border:none;color:#8b95a1;font:11px var(--mono);letter-spacing:.06em;cursor:pointer;text-decoration:underline;text-align:center}
+.fb-link-btn{background:none;border:none;color:#8b95a1;font:11px var(--mono);letter-spacing:.06em;cursor:pointer;text-decoration:underline;text-align:center}
 #btn-fb-close{background:none;border:none;color:#555;font:11px var(--mono);letter-spacing:.06em;cursor:pointer;text-align:center}
 .fb-error{color:#ff2e3d;font:11px var(--mono);text-align:center;min-height:16px}
+.fb-error.fb-ok{color:#2ecc71}
 
 /* ── LEADERBOARD SCREEN ── */
 #screen-leaderboard{gap:0;align-items:stretch;justify-content:flex-start;padding:0}
@@ -1230,6 +1232,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
     <div class="fb-error" id="fb-error-msg"></div>
     <button id="btn-fb-email">ANMELDEN</button>
     <button id="btn-fb-toggle">Noch kein Konto? Registrieren</button>
+    <button id="btn-fb-magiclink" class="fb-link-btn">Kein Passwort mehr? Magic Link per E-Mail senden</button>
     <button id="btn-fb-close">Ohne Konto spielen (Gast)</button>
   </div>
 </div>
@@ -16817,7 +16820,7 @@ addEventListener('DOMContentLoaded',()=>Game.boot());
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js" defer></script>
-<script src="assets/gt3-firebase.js?v=16" defer></script>
+<script src="assets/gt3-firebase.js?v=18" defer></script>
 <script src="assets/gt3-career.js?v=1" defer></script>
 
   <section class="screen hidden" id="screen-impressum">
