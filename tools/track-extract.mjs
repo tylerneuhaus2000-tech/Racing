@@ -29,11 +29,16 @@ function mvp(m, p) {   // column-major mat4 * vec3(w=1)
 // alle ~horizontalen Dreiecke, Zentroide, in Welt-Y-up
 const C = [];   // {x,z,y,a}
 const MESHRE = opt.mesh ? new RegExp(opt.mesh,'i') : null;
+const MATRE  = opt.mat  ? new RegExp(opt.mat ,'i') : null;
+const MATNOT = opt.matnot ? new RegExp(opt.matnot,'i') : null;
 for (const node of doc.getRoot().listNodes()) {
   const mesh = node.getMesh(); if (!mesh) continue;
   if (MESHRE && !MESHRE.test((mesh.getName()||'') + ' ' + (node.getName()||''))) continue;
   const M = node.getWorldMatrix();
   for (const prim of mesh.listPrimitives()) {
+    if (MATRE || MATNOT) { const mt = prim.getMaterial(); const mn = mt ? (mt.getName()||'') : '';
+      if (MATRE && !MATRE.test(mn)) continue;
+      if (MATNOT && MATNOT.test(mn)) continue; }
     const pa = prim.getAttribute('POSITION'); if (!pa) continue;
     const pos = pa.getArray();
     const ia = prim.getIndices(); const idx = ia ? ia.getArray() : null;
@@ -48,7 +53,7 @@ for (const node of doc.getRoot().listNodes()) {
       const u = [B[0]-A[0], B[1]-A[1], B[2]-A[2]], v = [D[0]-A[0], D[1]-A[1], D[2]-A[2]];
       const n = [u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0]];
       const nl = Math.hypot(n[0], n[1], n[2]) || 1;
-      if (Math.abs(n[1]/nl) < 0.86) continue;
+      if (!opt.nonormal && Math.abs(n[1]/nl) < 0.86) continue;
       const area = nl/2;
       C.push({ x: SCALE*(A[0]+B[0]+D[0])/3, y: SCALE*(A[1]+B[1]+D[1])/3, z: SCALE*(A[2]+B[2]+D[2])/3, a: area*SCALE*SCALE });
     }
@@ -74,8 +79,33 @@ const yMed = C[Math.floor(C.length/2)].y;
 // besser: gleitendes Fenster mit den meisten Punkten
 let bestC = 0, bestY = yMed;
 for (let yy = yMin; yy <= yMax; yy += 2) { let k = 0; for (const p of C) if (Math.abs(p.y-yy) < BAND) k++; if (k > bestC) { bestC = k; bestY = yy; } }
-const band = C.filter(p => Math.abs(p.y - bestY) < BAND && p.a < 25);
+let band = C.filter(p => Math.abs(p.y - bestY) < BAND && p.a < (parseFloat(opt.maxarea) || 25));
 console.log(`Band y≈${bestY.toFixed(1)} ±${BAND} m, kleine Dreiecke: ${band.length}`);
+
+/* Größte zusammenhängende Komponente behalten — Zufahrten, lose Fragmente und
+   weit entfernte Splitter würden den March sofort in eine Sackgasse führen. */
+{
+  const CC = 9, cg = new Map();
+  band.forEach((p, i) => { const k = ((p.x/CC)|0)+','+((p.z/CC)|0); (cg.get(k)||cg.set(k,[]).get(k)).push(i); });
+  const seen = new Set(); let best = null;
+  for (const k0 of cg.keys()) {
+    if (seen.has(k0)) continue;
+    const stack = [k0]; seen.add(k0); const cells = [];
+    while (stack.length) {
+      const cur = stack.pop(); cells.push(cur);
+      const [cx, cz] = cur.split(',').map(Number);
+      for (let i=-1;i<=1;i++) for (let j=-1;j<=1;j++) {
+        const nk = (cx+i)+','+(cz+j);
+        if (cg.has(nk) && !seen.has(nk)) { seen.add(nk); stack.push(nk); }
+      }
+    }
+    if (!best || cells.length > best.length) best = cells;
+  }
+  const keep = new Set(); best.forEach(k => cg.get(k).forEach(i => keep.add(i)));
+  const before = band.length;
+  band = band.filter((_, i) => keep.has(i));
+  console.log(`  größte Komponente: ${band.length}/${before} Punkte (${best.length} Zellen)`);
+}
 
 const CELL = 7;
 const grid = new Map();
@@ -106,13 +136,25 @@ for (let s = 0; s < 3000; s++) {
   let tx = pc.tx, tz = pc.tz; if (tx*dir.x + tz*dir.z < 0) { tx=-tx; tz=-tz; }
   dir = { x: tx, z: tz };
   const nx = -tz, nz = tx;
-  const off = nb.map(p => (p.x-cur.x)*nx + (p.z-cur.z)*nz).sort((a,b)=>a-b);
+  /* Querschnitt NUR aus Punkten nahe der Tangenten-Ebene: sonst mittelt man
+     über die halbe Kurve und die Linie schneidet ab / oszilliert. */
+  const slice = nb.filter(p => Math.abs((p.x-cur.x)*tx + (p.z-cur.z)*tz) < STEP*0.6);
+  const use = slice.length >= 4 ? slice : nb;
+  const off = use.map(p => (p.x-cur.x)*nx + (p.z-cur.z)*nz).sort((a,b)=>a-b);
   const om = off[Math.floor(off.length/2)];
-  const ym = nb.map(p=>p.y).sort((a,b)=>a-b)[Math.floor(nb.length/2)];
-  const cx = cur.x + nx*om, cz = cur.z + nz*om;
+  const ym = use.map(p=>p.y).sort((a,b)=>a-b)[Math.floor(use.length/2)];
+  /* seitliche Korrektur begrenzen — verhindert Springen auf die Gegenfahrbahn */
+  const omC = Math.max(-R*0.5, Math.min(R*0.5, om));
+  const cx = cur.x + nx*omC, cz = cur.z + nz*omC;
+  /* Anti-Stillstand: wirklich vorangekommen? sonst blind einen Schritt gehen */
+  const prev = line[line.length-1];
+  if (prev) {
+    const adv = (cx-prev.x)*tx + (cz-prev.z)*tz;
+    if (adv < STEP*0.25) { cur = { x: prev.x + tx*STEP, z: prev.z + tz*STEP }; continue; }
+  }
   line.push({ x: cx, z: cz, y: ym, w: (off[off.length-1]-off[0])/2 });
   cur = { x: cx + tx*STEP, z: cz + tz*STEP };
-  if (line.length > 40) { const d0 = Math.hypot(cur.x-line[0].x, cur.z-line[0].z); if (d0 < STEP*1.8) { closed = true; break; } }
+  if (line.length > 40) { const d0 = Math.hypot(cur.x-line[0].x, cur.z-line[0].z); if (d0 < STEP*2.2) { closed = true; break; } }
 }
 let L2 = 0; for (let i=1;i<line.length;i++) L2 += Math.hypot(line[i].x-line[i-1].x, line[i].z-line[i-1].z);
 if (closed) L2 += Math.hypot(line[0].x-line[line.length-1].x, line[0].z-line[line.length-1].z);
