@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Gridline — Support</title>
+<style>
+  :root{
+    --bg:#0a0d12; --panel:#0d1520; --panel2:#111a26; --line:#1e2a38; --line2:#2a3a4a;
+    --red:#ff2e3d; --green:#22e87a; --amber:#ffb020; --blue:#8bd3ff;
+    --text:#e8ecef; --dim:#8b95a1; --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 var(--mono);min-height:100vh}
+  a{color:var(--blue)}
+  .hidden{display:none !important}
+
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    padding:16px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;
+    background:rgba(10,13,18,.92);backdrop-filter:blur(10px);z-index:10}
+  header .brand b{font-size:15px;letter-spacing:.04em}
+  header .brand small{display:block;color:var(--blue);font-size:9px;letter-spacing:.22em;font-weight:700}
+  #chip{color:var(--dim);font-size:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  #chip b{color:var(--text)}
+  #role-badge{display:inline-block;padding:2px 8px;border-radius:999px;font:700 9px var(--mono);letter-spacing:.12em}
+  #role-badge.staff{background:#12243d;border:1px solid #3b82f6;color:#dbeafe}
+  #role-badge.user{background:#1c2b12;border:1px solid #5b9d2f;color:#d7f5c0}
+
+  .btn{padding:11px 18px;background:var(--panel2);border:1px solid var(--line2);border-radius:9px;
+    color:var(--text);font:700 11px var(--mono);letter-spacing:.06em;cursor:pointer;display:inline-block;text-decoration:none}
+  .btn:hover{border-color:#3a4a5c}
+  .btn.primary{background:var(--blue);border-color:var(--blue);color:#04121b}
+  .btn.danger{background:#3a0d12;border-color:var(--red);color:#ff8a94}
+  .btn:disabled{opacity:.5;cursor:default}
+
+  main{max-width:920px;margin:0 auto;padding:22px 18px 80px}
+  #gate{min-height:78vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  #gate .card{width:400px;max-width:100%;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:30px}
+  #gate h1{margin:0 0 4px;font-size:19px}
+  #gate p{color:var(--dim);font-size:12px;margin:0 0 20px}
+  input,textarea,select{width:100%;padding:13px 14px;margin-bottom:10px;background:var(--panel2);
+    border:1px solid var(--line2);border-radius:9px;color:var(--text);font:15px var(--mono)}
+  textarea{min-height:96px;resize:vertical}
+  .err{color:var(--red);font-size:12px;min-height:16px;margin:4px 0}
+  .err.ok{color:var(--green)}
+  .link-btn{display:block;margin:2px auto 0;border:0;background:none;color:var(--muted);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer}
+  .link-btn:hover{color:var(--text)}
+  .or{text-align:center;color:#445;font-size:10px;margin:12px 0;letter-spacing:.1em}
+
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+  .box h2{margin:0 0 4px;font-size:12px;letter-spacing:.14em;color:var(--blue)}
+  .box .sub{color:var(--dim);font-size:11.5px;margin:0 0 14px}
+  label{display:block;color:var(--dim);font-size:10.5px;letter-spacing:.08em;margin:10px 0 5px}
+
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .ticket{border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px;background:var(--panel2)}
+  .ticket .thead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline;cursor:pointer}
+  .ticket .subj{font-weight:700;font-size:14px}
+  .ticket .meta{color:var(--dim);font-size:10.5px}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font:700 9px var(--mono);letter-spacing:.1em}
+  .pill.open{background:#2a1c05;border:1px solid var(--amber);color:#ffd591}
+  .pill.pending{background:#12243d;border:1px solid var(--blue);color:#cfe9ff}
+  .pill.closed{background:#12261a;border:1px solid var(--green);color:#b6f2cf}
+  .thread{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+  .msg{margin:0 0 10px;padding:10px 12px;border-radius:9px;background:#0b121b;border:1px solid var(--line)}
+  .msg.staff{border-color:#264a6b;background:#0c1926}
+  .msg .who{font-size:10px;color:var(--dim);margin-bottom:4px}
+  .msg .body{white-space:pre-wrap;font-size:13px}
+  .empty{color:var(--dim);font-size:12px;padding:22px 4px;text-align:center}
+  #status{min-height:16px;font-size:12px;margin-top:8px}
+
+  @media (pointer:coarse){
+    body{font-size:15px}
+    .btn{padding:13px 20px}
+    input,textarea,select{font-size:16px;padding:14px}
+  }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="card">
+    <h1>🎧 Gridline Support</h1>
+    <p>Melde dich mit demselben Konto an wie im Spiel, um eine Anfrage zu stellen oder deine bestehenden Tickets zu sehen.</p>
+    <button class="btn primary" id="btn-google" style="width:100%;padding:13px">MIT GOOGLE ANMELDEN</button>
+    <div class="or">— oder —</div>
+    <input type="email" id="in-email" placeholder="E-Mail" autocomplete="username">
+    <input type="password" id="in-pw" placeholder="Passwort" autocomplete="current-password">
+    <button class="btn" id="btn-email" style="width:100%;padding:13px">ANMELDEN</button>
+    <button class="link-btn" id="btn-reset" type="button">Passwort vergessen? Reset-Mail senden</button>
+    <div class="err" id="err"></div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <div class="brand"><b>GRIDLINE SUPPORT</b><small>KUNDENBETREUUNG</small></div>
+    <div id="chip">
+      <span>Angemeldet als <b id="who">—</b><span id="role-badge"></span></span>
+      <a class="btn" href="index.html">← ZUM SPIEL</a>
+      <button class="btn" id="btn-logout">ABMELDEN</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Kunden: neue Anfrage -->
+    <div class="box" id="new-box">
+      <h2>NEUE ANFRAGE</h2>
+      <p class="sub">Beschreib dein Problem so genau wie möglich. Wir melden uns hier im Ticket.</p>
+      <label>BETREFF</label>
+      <input type="text" id="nt-subject" placeholder="z.B. Zeit wird nicht gespeichert" maxlength="120">
+      <label>KATEGORIE</label>
+      <select id="nt-category">
+        <option value="account">Konto / Login</option>
+        <option value="times">Rundenzeiten / Bestenliste</option>
+        <option value="payment">Zahlung / Shop</option>
+        <option value="bug">Fehler / Bug</option>
+        <option value="other">Sonstiges</option>
+      </select>
+      <label>NACHRICHT</label>
+      <textarea id="nt-body" placeholder="Was ist passiert? Was hast du erwartet?"></textarea>
+      <button class="btn primary" id="btn-create" style="width:100%;padding:13px;margin-top:6px">ANFRAGE ABSCHICKEN</button>
+      <div id="status"></div>
+    </div>
+
+    <div class="box">
+      <h2 id="list-title">MEINE ANFRAGEN</h2>
+      <div class="filters" id="filters"></div>
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn" id="btn-reload">↻ AKTUALISIEREN</button>
+        <span class="sub" id="list-hint" style="margin:0 0 0 8px"></span>
+      </div>
+      <div id="list"><div class="empty">Noch nicht geladen.</div></div>
+    </div>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* MUSS mit firestore.rules (isAdmin / isStaffUid) übereinstimmen. */
+const ADMIN_UIDS = ['qg9FDw4TZWhxX7en6JHuOI6GqZt2', '25Mc4Wuwp4YxFFwNz8gtMkNI2n93'];
+const STAFF_UIDS = ['Q6phygdH4vZxK1Qq9pKcz50tDru1'];
+
+const FB_CONFIG = {
+  apiKey: "AIzaSyDDDE9UVtMn40kGTm4R3-1uSoPQKoOPofk",
+  authDomain: "gridline-bf8c9.firebaseapp.com",
+  projectId: "gridline-bf8c9",
+  storageBucket: "gridline-bf8c9.firebasestorage.app",
+  messagingSenderId: "907704359886",
+  appId: "1:907704359886:web:5f123aa225fa78293f699f"
+};
+
+firebase.initializeApp(FB_CONFIG);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+const $ = id => document.getElementById(id);
+const esc = s => { const d = document.createElement('div'); d.textContent = s==null?'':String(s); return d.innerHTML; };
+const fmtDate = ms => ms ? new Date(ms).toLocaleString('de-DE') : '—';
+
+let isStaff = false, isAdmin = false, me = null, myName = '';
+let filter = 'all';
+
+const CAT = { account:'Konto', times:'Zeiten', payment:'Zahlung', bug:'Bug', other:'Sonstiges' };
+
+$('btn-google').onclick = () => {
+  $('err').textContent = '';
+  auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => $('err').textContent = e.message);
+};
+$('btn-email').onclick = () => {
+  $('err').textContent = '';
+  const em = $('in-email').value.trim(), pw = $('in-pw').value;
+  if(!em || !pw){ $('err').textContent = 'E-Mail und Passwort eingeben.'; return; }
+  auth.signInWithEmailAndPassword(em, pw).catch(e => $('err').textContent = e.message);
+};
+$('btn-reset').onclick = () => {
+  $('err').textContent = '';
+  const em = $('in-email').value.trim();
+  if(!em){ $('err').textContent = 'Bitte zuerst die E-Mail-Adresse eingeben.'; return; }
+  auth.sendPasswordResetEmail(em)
+    .then(() => { $('err').className = 'err ok'; $('err').textContent = 'Reset-Mail wurde verschickt. Bitte auch den Spam-Ordner prüfen.'; })
+    .catch(e => { $('err').className = 'err'; $('err').textContent = e.message; });
+};
+$('btn-logout').onclick = () => auth.signOut();
+
+auth.onAuthStateChanged(async user => {
+  if(!user){
+    $('gate').classList.remove('hidden');
+    $('app').classList.add('hidden');
+    return;
+  }
+  me = user.uid;
+  isAdmin = ADMIN_UIDS.includes(me);
+  isStaff = isAdmin || STAFF_UIDS.includes(me);
+  myName = user.displayName || user.email || me;
+  try {
+    const u = await db.collection('users').doc(me).get();
+    if(u.exists && u.data().username) myName = u.data().username;
+  } catch(e){}
+
+  $('gate').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  $('who').textContent = myName;
+  const rb = $('role-badge');
+  rb.textContent = isStaff ? 'TEAM' : 'SPIELER';
+  rb.className = isStaff ? 'staff' : 'user';
+
+  // Team sieht die Konsole (alle Tickets), keine "neue Anfrage"-Box
+  $('new-box').classList.toggle('hidden', isStaff);
+  $('list-title').textContent = isStaff ? 'ALLE TICKETS' : 'MEINE ANFRAGEN';
+  buildFilters();
+  loadTickets();
+});
+
+function buildFilters(){
+  const opts = isStaff
+    ? [['all','ALLE'],['open','OFFEN'],['pending','WARTET AUF KUNDE'],['closed','GESCHLOSSEN']]
+    : [['all','ALLE'],['open','OFFEN'],['closed','GESCHLOSSEN']];
+  const box = $('filters'); box.innerHTML = '';
+  opts.forEach(([v,l]) => {
+    const b = document.createElement('button');
+    b.className = 'btn' + (v === filter ? ' primary' : '');
+    b.textContent = l;
+    b.onclick = () => { filter = v; buildFilters(); render(); };
+    box.appendChild(b);
+  });
+}
+
+$('btn-reload').onclick = loadTickets;
+
+$('btn-create').onclick = async () => {
+  const subject = $('nt-subject').value.trim();
+  const body = $('nt-body').value.trim();
+  const category = $('nt-category').value;
+  const st = $('status');
+  if(!subject || !body){ st.style.color = '#ff6b6b'; st.textContent = '❌ Betreff und Nachricht ausfüllen.'; return; }
+  st.style.color = '#8b95a1'; st.textContent = '⏳ Sende…';
+  const now = Date.now();
+  try {
+    await db.collection('support_tickets').add({
+      uid: me, userName: myName, subject, category,
+      status: 'open', createdAt: now, updatedAt: now,
+      lastFrom: 'user',
+      messages: [{ from: 'user', uid: me, name: myName, body, at: now }]
+    });
+    $('nt-subject').value = ''; $('nt-body').value = '';
+    st.style.color = '#4eff8a'; st.textContent = '✓ Anfrage abgeschickt.';
+    loadTickets();
+  } catch(e){ st.style.color = '#ff6b6b'; st.textContent = '❌ ' + e.message; }
+};
+
+let _tickets = [];
+async function loadTickets(){
+  const list = $('list');
+  list.innerHTML = '<div class="empty">⏳ Laden…</div>';
+  try {
+    let q = db.collection('support_tickets');
+    if(!isStaff) q = q.where('uid', '==', me);
+    const snap = await q.get();
+    _tickets = [];
+    snap.forEach(d => _tickets.push(Object.assign({ _id: d.id }, d.data())));
+    _tickets.sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
+    render();
+  } catch(e){ list.innerHTML = `<div class="empty">Fehler: ${esc(e.message)}</div>`; }
+}
+
+function render(){
+  const list = $('list');
+  let items = _tickets;
+  if(filter !== 'all') items = items.filter(t => (t.status||'open') === filter);
+  $('list-hint').textContent = `${items.length} Ticket(s)`;
+  if(!items.length){ list.innerHTML = '<div class="empty">Keine Tickets.</div>'; return; }
+  list.innerHTML = '';
+  items.forEach(t => list.appendChild(renderTicket(t)));
+}
+
+function renderTicket(t){
+  const el = document.createElement('div');
+  el.className = 'ticket';
+  const status = t.status || 'open';
+  const msgs = Array.isArray(t.messages) ? t.messages : [];
+  el.innerHTML =
+    `<div class="thead">
+       <span class="subj">${esc(t.subject || '(ohne Betreff)')}</span>
+       <span class="pill ${status}">${status.toUpperCase()}</span>
+     </div>
+     <div class="meta">${esc(CAT[t.category] || t.category || '—')} · ${isStaff ? esc(t.userName || t.uid) + ' · ' : ''}${msgs.length} Nachricht(en) · zuletzt ${fmtDate(t.updatedAt)}</div>
+     <div class="thread hidden"></div>`;
+  const thread = el.querySelector('.thread');
+  el.querySelector('.thead').onclick = () => {
+    thread.classList.toggle('hidden');
+    if(!thread._built){ thread._built = true; buildThread(thread, t); }
+  };
+  return el;
+}
+
+function buildThread(thread, t){
+  const msgs = Array.isArray(t.messages) ? t.messages : [];
+  const status = t.status || 'open';
+  thread.innerHTML = msgs.map(m => `
+    <div class="msg ${m.from === 'staff' ? 'staff' : ''}">
+      <div class="who">${m.from === 'staff' ? '🎧 Team' : '👤 ' + esc(m.name || 'Spieler')} · ${fmtDate(m.at)}</div>
+      <div class="body">${esc(m.body)}</div>
+    </div>`).join('');
+
+  const canReply = isStaff || (t.uid === me && status !== 'closed');
+  if(canReply){
+    const ta = document.createElement('textarea');
+    ta.placeholder = isStaff ? 'Antwort an den Kunden…' : 'Nachricht hinzufügen…';
+    thread.appendChild(ta);
+    const bar = document.createElement('div');
+    bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
+    const send = document.createElement('button');
+    send.className = 'btn primary'; send.textContent = 'SENDEN';
+    send.onclick = () => postReply(t, ta.value.trim(), thread, send);
+    bar.appendChild(send);
+    if(isStaff){
+      const close = document.createElement('button');
+      close.className = 'btn';
+      close.textContent = status === 'closed' ? 'WIEDER ÖFFNEN' : 'SCHLIESSEN';
+      close.onclick = () => setStatus(t, status === 'closed' ? 'open' : 'closed', thread);
+      bar.appendChild(close);
+    }
+    thread.appendChild(bar);
+  } else if(status === 'closed'){
+    const p = document.createElement('div');
+    p.className = 'sub'; p.style.marginTop = '10px';
+    p.textContent = 'Dieses Ticket ist geschlossen. Stell bei Bedarf eine neue Anfrage.';
+    thread.appendChild(p);
+  }
+}
+
+async function postReply(t, body, thread, btn){
+  if(!body) return;
+  btn.disabled = true;
+  const now = Date.now();
+  const from = isStaff ? 'staff' : 'user';
+  const msg = { from, uid: me, name: myName, body, at: now };
+  try {
+    await db.collection('support_tickets').doc(t._id).update({
+      messages: firebase.firestore.FieldValue.arrayUnion(msg),
+      updatedAt: now,
+      lastFrom: from,
+      status: isStaff ? 'pending' : 'open'
+    });
+    t.messages = (t.messages || []).concat(msg);
+    t.updatedAt = now;
+    t.status = isStaff ? 'pending' : 'open';
+    thread._built = false; thread.innerHTML = '';
+    buildThread(thread, t);
+    loadTickets();
+  } catch(e){ btn.disabled = false; alert('Fehler: ' + e.message); }
+}
+
+async function setStatus(t, status, thread){
+  try {
+    await db.collection('support_tickets').doc(t._id).update({ status, updatedAt: Date.now() });
+    t.status = status; t.updatedAt = Date.now();
+    thread._built = false; thread.innerHTML = '';
+    buildThread(thread, t);
+    loadTickets();
+  } catch(e){ alert('Fehler: ' + e.message); }
+}
+
+})();
+</script>
+</body>
+</html>
