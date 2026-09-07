@@ -9,6 +9,15 @@ service cloud.firestore {
       );
     }
 
+    // Mitarbeiter (Support + Löschungs-Anträge). Darf Zeiten ansehen und eine
+    // Löschung BEANTRAGEN — entscheiden/streichen/Einsprüche prüfen kann nur isAdmin().
+    function isStaffUid() {
+      return request.auth != null && (
+        request.auth.uid == 'Q6phygdH4vZxK1Qq9pKcz50tDru1'
+      );
+    }
+    function isStaff() { return isAdmin() || isStaffUid(); }
+
     match /times/{docId} {
       allow read: if true;
       allow create: if request.auth != null
@@ -93,6 +102,27 @@ service cloud.firestore {
       // Der Fahrer liest seine eigene Nachricht; der Steward liest jede (Fahrerakte).
       allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
       allow write: if isAdmin();
+    }
+
+    // Löschungs-Anträge: der Mitarbeiter beantragt die Streichung einer Runde,
+    // ENTSCHEIDEN (genehmigen/ablehnen) darf nur isAdmin().
+    match /deletion_requests/{reqId} {
+      allow read:   if isStaff();
+      allow create: if isStaff()
+        && request.resource.data.requestedBy == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update, delete: if isAdmin();
+    }
+
+    // Kundensupport-Tickets. Jeder eingeloggte Nutzer legt eigene an und liest sie;
+    // Mitarbeiter + Admin lesen/bearbeiten alle. Nachrichten liegen als Array im Doc.
+    match /support_tickets/{ticketId} {
+      allow read:   if isStaff() || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'open';
+      allow update: if isStaff() || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow delete: if isAdmin();
     }
 
     // Shop: Guthaben/Freischaltungen/Kaufhistorie dürfen NIEMALS vom Client geschrieben

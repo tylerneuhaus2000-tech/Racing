@@ -73,6 +73,30 @@
   .empty{color:var(--dim);font-size:11px;padding:16px 4px;text-align:center}
 
   #playerHint{color:#556;font-size:10px;margin-top:4px}
+
+  /* ── Rollen-Badge ── */
+  #role-badge{display:inline-block;padding:2px 8px;border-radius:999px;font:700 9px var(--mono);letter-spacing:.12em;margin-left:8px}
+  #role-badge.admin{background:#12243d;border:1px solid #3b82f6;color:#dbeafe}
+  #role-badge.staff{background:#1c2b12;border:1px solid #5b9d2f;color:#d7f5c0}
+  .admin-only.role-hidden{display:none !important}
+
+  /* ── iPad / Touch: größere Ziele, eine Spalte, scrollbare Tabellen ── */
+  html{-webkit-text-size-adjust:100%}
+  #tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+  #tabs .tab-btn{white-space:nowrap;flex:0 0 auto}
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  @media (max-width:1024px){ .grid{grid-template-columns:1fr} main{padding:18px 16px 60px} }
+  @media (pointer:coarse){
+    html,body{font-size:15px}
+    .btn{padding:12px 18px;font-size:12px;border-radius:9px}
+    .iconbtn{padding:11px 15px;font-size:14px;min-width:44px;text-align:center}
+    .tab-btn{padding:13px 18px}
+    input[type=text],input[type=search],select,#gate input{padding:13px 14px;font-size:16px;border-radius:9px}
+    table.times td{padding:14px 10px}
+    #pen-presets .btn,#class-filter .btn{padding:10px 14px;font-size:11px}
+    header{padding:14px 16px}
+    label{font-size:11px}
+  }
 </style>
 </head>
 <body>
@@ -80,14 +104,14 @@
 <div id="gate">
   <div class="card">
     <h1>🏁 FIA Stewards</h1>
-    <p>Nur für autorisierte Steward-Konten. Anmeldung mit demselben Konto wie im Spiel.</p>
+    <p>Nur für autorisierte Steward- und Mitarbeiter-Konten. Anmeldung mit demselben Konto wie im Spiel.</p>
     <button class="btn primary" id="btn-google" style="width:100%;padding:11px">MIT GOOGLE ANMELDEN</button>
     <div class="or">— oder —</div>
     <input type="text" id="in-email" placeholder="E-Mail" autocomplete="username">
     <input type="password" id="in-pw" placeholder="Passwort" autocomplete="current-password">
     <button class="btn" id="btn-email" style="width:100%;padding:11px">ANMELDEN</button>
     <div class="err" id="err"></div>
-    <div id="denied">⛔ Dieses Konto ist kein Steward-Konto.</div>
+    <div id="denied">⛔ Dieses Konto hat keinen Zugriff auf das Panel.</div>
   </div>
 </div>
 
@@ -98,7 +122,8 @@
       <div><b>FIA STEWARDS</b><small>GRIDLINE RACE CONTROL</small></div>
     </div>
     <div id="user-chip">
-      <span>Angemeldet als <b id="who">—</b></span>
+      <span>Angemeldet als <b id="who">—</b><span id="role-badge"></span></span>
+      <a class="btn" href="support.html" target="_blank" rel="noopener">🎧 SUPPORT</a>
       <button class="btn" id="btn-logout">ABMELDEN</button>
     </div>
   </header>
@@ -107,7 +132,8 @@
     <nav id="tabs" style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
       <button class="btn tab-btn tab-on" data-tab="times">RUNDENZEITEN</button>
       <button class="btn tab-btn" data-tab="drivers">ALLE FAHRER</button>
-      <button class="btn tab-btn" data-tab="appeals">EINSPRÜCHE <span id="appeals-badge" style="display:none;background:#ffcc00;color:#111;border-radius:999px;padding:1px 7px;font-size:11px;margin-left:4px">0</span></button>
+      <button class="btn tab-btn" data-tab="delreq">LÖSCHANTRÄGE <span id="delreq-badge" style="display:none;background:#ff2e3d;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;margin-left:4px">0</span></button>
+      <button class="btn tab-btn admin-only" data-tab="appeals">EINSPRÜCHE <span id="appeals-badge" style="display:none;background:#ffcc00;color:#111;border-radius:999px;padding:1px 7px;font-size:11px;margin-left:4px">0</span></button>
       <button class="btn tab-btn" data-tab="log">PROTOKOLL</button>
     </nav>
 
@@ -128,7 +154,7 @@
           <div id="driver-record"></div>
         </div>
 
-        <div class="box">
+        <div class="box admin-only" id="msg-box">
           <h2>NACHRICHT SENDEN</h2>
           <p class="sub">An den oben eingetragenen Spieler.</p>
           <label>SCHNELLVORLAGE</label>
@@ -163,6 +189,18 @@
     </div>
     </div><!-- /view-times -->
 
+    <div id="view-delreq" style="display:none">
+      <div class="box">
+        <h2>LÖSCHANTRÄGE</h2>
+        <p class="sub" id="delreq-sub">Vom Mitarbeiter beantragte Streichungen. <b>Genehmigen</b> = Runde wird gestrichen (Fahrer hat danach 2 Monate für einen Einspruch, den nur der Renndirektor prüft). <b>Ablehnen</b> = kein Eingriff.</p>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" id="btn-load-delreq">↻ ANTRÄGE LADEN</button>
+          <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="delreq-show-all"> auch erledigte zeigen</label>
+        </div>
+        <div id="delreq-wrap" style="margin-top:14px"><div class="empty">Noch nicht geladen.</div></div>
+      </div>
+    </div>
+
     <div id="view-drivers" style="display:none">
       <div class="box">
         <h2>ALLE FAHRER</h2>
@@ -178,7 +216,7 @@
     <div id="view-appeals" style="display:none">
       <div class="box">
         <h2>EINSPRÜCHE</h2>
-        <p class="sub">Fahrer legen binnen 30 Tagen ab Streichung Einspruch ein. Prüfe die Beweise und entscheide: <b>WIEDERHERSTELLEN</b> (Runde wird wieder gültig, rückt ggf. als Bestzeit nach) oder <b>ENDGÜLTIG LÖSCHEN</b> (Runde + Beweise werden gelöscht).</p>
+        <p class="sub">Fahrer legen binnen 2 Monaten ab Streichung Einspruch ein. Prüfe die Beweise und entscheide: <b>WIEDERHERSTELLEN</b> (Runde wird wieder gültig, rückt ggf. als Bestzeit nach) oder <b>ENDGÜLTIG LÖSCHEN</b> (Runde + Beweise werden gelöscht).</p>
         <div class="row" style="margin-top:10px">
           <button class="btn primary" id="btn-load-appeals">↻ EINSPRÜCHE LADEN</button>
           <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="appeals-show-all"> auch erledigte zeigen</label>
@@ -214,6 +252,10 @@
    aber jeder Schreibzugriff (Streichen, Nachricht) wird von Firestore
    trotzdem abgelehnt. */
 const ADMIN_UIDS = ['qg9FDw4TZWhxX7en6JHuOI6GqZt2', '25Mc4Wuwp4YxFFwNz8gtMkNI2n93'];
+/* Mitarbeiter — darf Zeiten ansehen und eine Löschung BEANTRAGEN, aber nicht
+   selbst streichen, keine Nachrichten senden und keine Einsprüche prüfen.
+   MUSS mit isStaffUid() in firestore.rules übereinstimmen. */
+const STAFF_UIDS = ['Q6phygdH4vZxK1Qq9pKcz50tDru1'];
 
 const FB_CONFIG = {
   apiKey: "AIzaSyDDDE9UVtMn40kGTm4R3-1uSoPQKoOPofk",
@@ -245,7 +287,9 @@ function boot(){
     catch(e){ return id||'?'; }
   }
 
-  let isAdmin = false;
+  let isAdmin = false;   // Renndirektor — volle Rechte
+  let isStaff = false;   // eingeloggt & berechtigt (Mitarbeiter ODER Admin)
+  let role = null;       // 'admin' | 'staff'
 
   /* ── Auth ── */
   $('btn-google').onclick = () => {
@@ -262,14 +306,16 @@ function boot(){
 
   auth.onAuthStateChanged(user => {
     if(!user){
-      isAdmin = false;
+      isAdmin = false; isStaff = false; role = null;
       $('gate').style.display = 'flex';
       $('app').style.display = 'none';
       $('denied').style.display = 'none';
       return;
     }
     isAdmin = ADMIN_UIDS.includes(user.uid);
-    if(!isAdmin){
+    isStaff = isAdmin || STAFF_UIDS.includes(user.uid);
+    role = isAdmin ? 'admin' : (isStaff ? 'staff' : null);
+    if(!isStaff){
       $('denied').style.display = 'block';
       $('gate').style.display = 'flex';
       $('app').style.display = 'none';
@@ -280,6 +326,17 @@ function boot(){
     $('app').style.display = 'block';
     $('main').style.display = 'block';
     $('who').textContent = user.displayName || user.email || user.uid;
+    const rb = $('role-badge');
+    rb.textContent = isAdmin ? 'RENNDIREKTOR' : 'MITARBEITER';
+    rb.className = isAdmin ? 'admin' : 'staff';
+    // Admin-only-Elemente für den Mitarbeiter ausblenden
+    document.querySelectorAll('.admin-only').forEach(el => el.classList.toggle('role-hidden', !isAdmin));
+    // Für Mitarbeiter: Nachricht-Senden-Box + Fahrer-Nachrichtenbereich sperren
+    if(!isAdmin){
+      $('delreq-sub').textContent = 'Beantrage hier die Streichung einer Runde — der Renndirektor entscheidet. Über den Reiter RUNDENZEITEN wählst du die konkrete Runde aus.';
+    }
+    // Löschantrag-Badge live
+    watchDelreqBadge();
   });
 
   /* ── Spieler-Liste (Datalist) ── */
@@ -369,7 +426,7 @@ function boot(){
   let timesRows = [], timesUsername = '', timesTargetUid = '';
 
   $('btn-load-times').onclick = async () => {
-    if(!isAdmin) return;
+    if(!isStaff) return;
     const username = $('in-username').value.trim().toLowerCase();
     const status = $('status');
     const wrap = $('times-wrap');
@@ -531,9 +588,13 @@ function boot(){
       `<td class="time">${fmtLap(l.timeMs)}</td>`+
       `<td><div class="rowbtns">`+
         (lhasRep ? `<a class="iconbtn" href="${replayLink(l._pid, l._id)}" target="_blank" rel="noopener" title="Replay dieser Runde">▶</a>` : `<span class="iconbtn off">▶</span>`)+
-        (struck
-          ? `<button class="iconbtn" data-a="restore" title="Streichung rückgängig machen" style="border-color:#39d98a;color:#39d98a">↩</button>`
-          : `<button class="iconbtn del" data-a="strike" title="Runde streichen">✕</button>`)+
+        (isAdmin
+          ? (struck
+              ? `<button class="iconbtn" data-a="restore" title="Streichung rückgängig machen" style="border-color:#39d98a;color:#39d98a">↩</button>`
+              : `<button class="iconbtn del" data-a="strike" title="Runde streichen">✕</button>`)
+          : (struck
+              ? `<span class="iconbtn off" title="bereits gestrichen">—</span>`
+              : `<button class="iconbtn del" data-a="reqdel" title="Löschung dieser Runde beantragen">🗑</button>`))+
       `</div></td>`;
     tb.appendChild(tr);
 
@@ -574,6 +635,8 @@ function boot(){
     if(sb) sb.onclick = () => strikeLap(l, trackId, tr);
     const rb = tr.querySelector('[data-a="restore"]');
     if(rb) rb.onclick = () => restoreLap(l, trackId, tr);
+    const qb = tr.querySelector('[data-a="reqdel"]');
+    if(qb) qb.onclick = () => requestDeletion(l, trackId, tr);
   }
 
   /* Streichung rückgängig machen (z.B. versehentlich gestrichen). Spiegelt die
@@ -691,7 +754,7 @@ function boot(){
           trackId:r.trackId || null, carId:r.carId || null, timeMs:l.timeMs || null,
           reason:rsn, evidenceCount:evCount,
           struckBy:auth.currentUser.uid, struckByName:(auth.currentUser.displayName || auth.currentUser.email || ''),
-          struckAt:now, appealDeadline: now + 30 * 24 * 60 * 60 * 1000,
+          struckAt:now, appealDeadline: now + 60 * 24 * 60 * 60 * 1000,
           status:'active', restored:false, finalDeleted:false
         });
       } catch(e){ errs.push('Strike-Ledger: ' + e.message); }
@@ -719,12 +782,13 @@ function boot(){
   }
 
   /* ══════════════ REITER-UMSCHALTUNG ══════════════ */
-  const _views = { times:'view-times', drivers:'view-drivers', appeals:'view-appeals', log:'view-log' };
+  const _views = { times:'view-times', delreq:'view-delreq', drivers:'view-drivers', appeals:'view-appeals', log:'view-log' };
   document.querySelectorAll('.tab-btn').forEach(b => {
     b.onclick = () => {
       const t = b.getAttribute('data-tab');
       document.querySelectorAll('.tab-btn').forEach(x => x.classList.toggle('tab-on', x === b));
       Object.entries(_views).forEach(([k, id]) => { $(id).style.display = (k === t) ? 'block' : 'none'; });
+      if(t === 'delreq' && !_delreqLoaded) loadDelreq();
       if(t === 'drivers' && !_driversLoaded) loadDrivers();
       if(t === 'appeals' && !_appealsLoaded) loadAppeals();
       if(t === 'log' && !_logLoaded) loadLog();
@@ -733,7 +797,7 @@ function boot(){
   // Tastenkürzel 1–4 für die Reiter (nicht während Texteingabe)
   document.addEventListener('keydown', e => {
     if(/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement && document.activeElement.tagName)) return;
-    const map = { '1':'times', '2':'drivers', '3':'appeals', '4':'log' };
+    const map = { '1':'times', '2':'delreq', '3':'drivers', '4':'appeals', '5':'log' };
     const t = map[e.key];
     if(t){ const btn = document.querySelector(`.tab-btn[data-tab="${t}"]`); if(btn) btn.click(); }
   });
@@ -1102,6 +1166,161 @@ function boot(){
       statusEl.textContent = '❌ ' + e.message;
       actBox.querySelectorAll('button').forEach(b => b.disabled = false);
     }
+  }
+
+  /* ══════════════ LÖSCHANTRÄGE (Mitarbeiter → Renndirektor) ══════════════ */
+  const APPEAL_WINDOW_MS = 60 * 24 * 60 * 60 * 1000; // 2 Monate
+
+  async function requestDeletion(l, trackId, tr){
+    if(!isStaff || isAdmin) return; // Admin streicht direkt
+    const r = l._meta || {};
+    const reason = prompt(`Löschung dieser Runde BEANTRAGEN?\n\n${trackName(r.trackId || trackId)} · ${r.carName || r.carId || ''} · ${fmtLap(l.timeMs)}\n\nGrund (der Renndirektor entscheidet):`);
+    if(reason == null || !reason.trim()) return;
+    if(tr) tr.style.opacity = '0.5';
+    const status = $('status');
+    try {
+      await db.collection('deletion_requests').add({
+        status:'pending',
+        requestedBy: auth.currentUser.uid,
+        requestedByName: auth.currentUser.displayName || auth.currentUser.email || auth.currentUser.uid,
+        requestedAt: Date.now(),
+        uid: timesTargetUid, username: timesUsername,
+        docId: l._pid, lapId: l._id,
+        trackId: r.trackId || trackId || null, carId: r.carId || null,
+        carName: r.carName || r.carId || null, classType: r.classType || null,
+        driverName: r.name || timesUsername || null,
+        timeMs: l.timeMs || null,
+        reason: reason.trim()
+      });
+      status.style.color = '#4eff8a';
+      status.textContent = '✓ Löschantrag gestellt — der Renndirektor entscheidet.';
+      _delreqLoaded = false;
+    } catch(e){
+      if(tr) tr.style.opacity = '1';
+      status.style.color = '#ff6b6b';
+      status.textContent = '❌ ' + e.message;
+    }
+  }
+
+  let _delreqLoaded = false;
+  function watchDelreqBadge(){
+    try {
+      db.collection('deletion_requests').where('status','==','pending').onSnapshot(snap => {
+        const b = $('delreq-badge');
+        if(!b) return;
+        if(snap.size){ b.style.display = 'inline-block'; b.textContent = snap.size; }
+        else b.style.display = 'none';
+      }, () => {});
+    } catch(e){}
+  }
+
+  async function loadDelreq(){
+    const wrap = $('delreq-wrap');
+    const showAll = $('delreq-show-all').checked;
+    wrap.innerHTML = '<div class="empty">⏳ Laden…</div>';
+    try {
+      const snap = await db.collection('deletion_requests').get();
+      let items = [];
+      snap.forEach(d => items.push(Object.assign({ _id:d.id }, d.data())));
+      if(!showAll) items = items.filter(x => x.status === 'pending');
+      items.sort((a,b) => (b.requestedAt||0) - (a.requestedAt||0));
+      _delreqLoaded = true;
+      if(!items.length){ wrap.innerHTML = '<div class="empty">Keine offenen Löschanträge.</div>'; return; }
+      wrap.innerHTML = '';
+      const _S = { pending:['⏳ OFFEN','#ffb020'], approved:['✓ GENEHMIGT','#4eff8a'], rejected:['✕ ABGELEHNT','#ff6b6b'] };
+      items.forEach(a => {
+        const s = _S[a.status] || [a.status, '#8b95a1'];
+        const box = document.createElement('div');
+        box.className = 'box'; box.style.margin = '0 0 12px';
+        box.innerHTML =
+          `<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">`+
+            `<b>${esc(a.driverName || a.username || a.uid)}</b>`+
+            `<span style="color:${s[1]};font-weight:700">${s[0]}</span>`+
+          `</div>`+
+          `<div class="sub" style="margin:6px 0">${esc(trackName(a.trackId))} · ${esc(a.carName||'?')} · <span class="time">${fmtLap(a.timeMs)}</span></div>`+
+          `<div style="margin:6px 0"><b class="sub" style="margin:0">Grund:</b> ${esc(a.reason || '—')}</div>`+
+          `<div class="sub" style="margin:0">beantragt von ${esc(a.requestedByName || '?')} · ${new Date(a.requestedAt||0).toLocaleString('de-DE')}</div>`+
+          (a.decisionNote ? `<div class="sub" style="margin:6px 0 0">Notiz: ${esc(a.decisionNote)}</div>` : '')+
+          `<div class="rowbtns admin-only" style="margin-top:12px;justify-content:flex-start;gap:8px"></div>`;
+        const btns = box.querySelector('.rowbtns');
+        if(isAdmin && a.status === 'pending'){
+          const yes = document.createElement('button');
+          yes.className = 'btn primary'; yes.textContent = 'GENEHMIGEN & STREICHEN';
+          yes.onclick = () => decideDelreq(a, true, box);
+          const no = document.createElement('button');
+          no.className = 'btn danger'; no.textContent = 'ABLEHNEN';
+          no.onclick = () => decideDelreq(a, false, box);
+          btns.appendChild(yes); btns.appendChild(no);
+        } else { btns.remove(); }
+        wrap.appendChild(box);
+      });
+      document.querySelectorAll('#view-delreq .admin-only').forEach(el => el.classList.toggle('role-hidden', !isAdmin));
+    } catch(e){ wrap.innerHTML = `<div class="empty">Fehler: ${esc(e.message)}</div>`; }
+  }
+  $('btn-load-delreq').onclick = loadDelreq;
+  $('delreq-show-all').onchange = loadDelreq;
+
+  async function decideDelreq(a, approve, box){
+    if(!isAdmin) return;
+    box.querySelectorAll('button').forEach(b => b.disabled = true);
+    const errs = [];
+    if(approve){
+      const lapsRef = db.collection('times').doc(a.docId).collection('laps');
+      const now = Date.now();
+      try {
+        await lapsRef.doc(a.lapId).update({ struck:true, struckReason:a.reason, struckBy:auth.currentUser.uid, struckAt:now });
+      } catch(e){ errs.push('Streichen: ' + e.message); }
+      let newBest = null;
+      try {
+        newBest = await recomputeParentTime(a.docId, {
+          name:a.driverName, uid:a.uid, carName:a.carName || a.carId,
+          classType:a.classType, trackId:a.trackId, carId:a.carId
+        });
+      } catch(e){ errs.push('Neuberechnung: ' + e.message); }
+      try {
+        let evCount = 0;
+        try { const ev = await lapsRef.doc(a.lapId).collection('evidence').get(); evCount = ev.size; } catch(e){}
+        await db.collection('strikes').add({
+          uid:a.uid, username:a.username, docId:a.docId, lapId:a.lapId,
+          trackId:a.trackId || null, carId:a.carId || null, timeMs:a.timeMs || null,
+          reason:a.reason, evidenceCount:evCount,
+          struckBy:auth.currentUser.uid, struckByName:(auth.currentUser.displayName || auth.currentUser.email || ''),
+          struckAt:now, appealDeadline: now + APPEAL_WINDOW_MS,
+          status:'active', restored:false, finalDeleted:false,
+          fromRequest:a._id, requestedBy:a.requestedBy
+        });
+      } catch(e){ errs.push('Strike-Ledger: ' + e.message); }
+      try {
+        await db.collection('steward_actions').add({
+          type:'lap_struck', targetUid:a.uid, username:a.username, docId:a.docId, lapId:a.lapId,
+          trackId:a.trackId || null, carId:a.carId || null, timeMs:a.timeMs || null,
+          reason:a.reason + ' (Antrag ' + (a.requestedByName||'Mitarbeiter') + ')',
+          by:auth.currentUser.uid, at:now
+        });
+      } catch(e){ errs.push('Protokoll: ' + e.message); }
+      try {
+        await db.collection('steward_msgs').doc(a.uid).set({
+          type:'penalty',
+          reason: `Rundenzeit gestrichen · ${trackName(a.trackId)}: ${a.reason}. ` + (newBest ? `Neue Bestzeit: ${fmtLap(newBest.timeMs)}` : 'Keine gültige Zeit mehr in dieser Kombination.') + ' Einspruch binnen 2 Monaten möglich.',
+          penalty:'Zeit annulliert', lpDelta:0, ts:now
+        });
+      } catch(e){ errs.push('Benachrichtigung: ' + e.message); }
+    }
+    const note = approve
+      ? (prompt('Optionale Notiz zur Genehmigung:') || '')
+      : (prompt('Grund der Ablehnung (für das Protokoll):') || '');
+    try {
+      await db.collection('deletion_requests').doc(a._id).update({
+        status: approve ? 'approved' : 'rejected',
+        decidedBy: auth.currentUser.uid,
+        decidedByName: auth.currentUser.displayName || auth.currentUser.email || '',
+        decidedAt: Date.now(),
+        decisionNote: note.trim() || null
+      });
+    } catch(e){ errs.push('Antrag-Status: ' + e.message); }
+    _delreqLoaded = false; _logLoaded = false; _driversLoaded = false;
+    if(errs.length) alert('Mit Warnungen abgeschlossen:\n' + errs.join('\n'));
+    loadDelreq();
   }
 }
 
