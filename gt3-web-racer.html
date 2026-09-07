@@ -2789,6 +2789,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
      gebraucht, THREE und TRACKS werden ausschliesslich in Funktionen benutzt. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
 <script src="assets/GLTFLoader.js" defer></script>
+<script src="assets/vehicle-animation.js?v=1" defer></script>
 <script src="assets/meshopt_decoder.js" defer></script>
 <script src="assets/tracks.js?v=20260907c" defer></script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
@@ -3028,6 +3029,10 @@ const CARS = [
   {
     id:'amg', name:'Mercedes-AMG GT3', classType:'gt3',
     color:0x15171a, accent:0xbfc6cc, rim:0x222222,
+    liveries:[
+      {id:'classic', name:'Classic', desc:'Bisheriger AMG', model:{url:'assets/models/amg.glb',scale:1,targetLength:4.6,yOffset:0,rotY:0}},
+      {id:'vecarz', name:'Vecarz', desc:'Neue AMG-Modellvariante', model:{url:'assets/models/amg_gt3_vecarz.glb',scale:1,targetLength:4.6,yOffset:0,rotY:0}}
+    ],
     model:{
       url:'assets/models/amg.glb',
       scale:1,
@@ -3059,7 +3064,7 @@ const CARS = [
     id:'lamborghini', name:'Lamborghini Huracán GT3', classType:'gt3',
     color:0xf5a800, accent:0x111111, rim:0x222222,
     model:{
-      url:'assets/models/lamborghini_essenza_scv12.glb',
+      url:'assets/models/lamborghini_huracan_gt3_evo.glb',
       scale:1,
       targetLength:4.6,
       yOffset:0,
@@ -3069,6 +3074,22 @@ const CARS = [
     gripF:1.34, gripR:1.36, yawDamp:0.72, tractionBoost:0.07, liftOversteer:0.08,
     desc:'GT3 · Mittelmotor. Aggressiv, viel Grip, leichtes Übersteuern.',
     stats:{speed:0.89, grip:0.92, stab:0.82}
+  },
+  {
+    id:'mustang', name:'Ford Mustang GT3', classType:'gt3',
+    color:0x173c76, accent:0xffffff, rim:0x222222,
+    model:{url:'assets/models/ford_mustang_gt3.glb',scale:1,targetLength:4.8,yOffset:0,rotY:0},
+    mass:1335,power:425000,maxForce:8950,topSpeed:291/3.6,brakeForce:14900,
+    gripF:1.30,gripR:1.34,yawDamp:0.87,tractionBoost:0.05,liftOversteer:0.05,
+    desc:'GT3 · Frontmotor. Ausgewogene Spielabstimmung.',stats:{speed:0.90,grip:0.87,stab:0.91}
+  },
+  {
+    id:'bentley', name:'Bentley Continental GT3', classType:'gt3',
+    color:0x24452e,accent:0xd4bd78,rim:0x222222,
+    model:{url:'assets/models/bentley_continental_gt3.glb',scale:1,targetLength:4.95,yOffset:0,rotY:0},
+    mass:1340,power:425000,maxForce:8850,topSpeed:290/3.6,brakeForce:14850,
+    gripF:1.29,gripR:1.35,yawDamp:0.92,tractionBoost:0.05,liftOversteer:0.04,
+    desc:'GT3 · Centenary-Lackierung. Stabile Spielabstimmung.',stats:{speed:0.89,grip:0.87,stab:0.94}
   },
   {
     id:'bmw', name:'BMW M4 GT3', classType:'gt3',
@@ -6237,30 +6258,14 @@ class Car {
       this._usingExternalModel = true;
       this.setProceduralShellVisible(false);
 
-      /* Audi: Lenkrad im GLB-Modell suchen und animieren (Cockpit-Cam). Beim
-         Kart ist das Lenkrad Teil des Modells und dreht nicht mit — die
-         Cockpit-Cam zeigt es trotzdem, nur eben statisch. */
-      if(this.def?.id === 'audi'){
-        let found = null;
-        const steerNames = ['steer','wheel','lenkrad','volant','steering','cockpit_wheel','handwheel'];
-        model.traverse(o => {
-          if(found || !o.isMesh) return;
-          const n = (o.name||'').toLowerCase();
-          if(steerNames.some(k => n.includes(k))) found = o;
-        });
-        this._glbSteeringWheel = found;
-        if(found) console.log('[GT3] Audi Lenkrad gefunden:', found.name);
-      }
+      this._vehicleAnimation = VehicleAnimation.attach(THREE,model,this.body,cfg);
       if(Array.isArray(this.wheels)){
         for(const w of this.wheels){
           if(w?.outer) w.outer.visible = false;
         }
       }
 
-      /* Rad-Pivots wurden bewusst wieder entfernt (Wunsch): die Rad-Meshes
-         bleiben im Original-Baum des GLB, es wird nichts umgehängt und nichts
-         nach Lenkeinschlag/Tempo gedreht. */
-      this._glbWheels = null; this._glbFrontWheels = null;
+      this._glbWheels = this._vehicleAnimation.wheels;
 
       /* --- DRS-Klappe im Modell suchen (Formel): hinterstes oberes Flügel-Mesh
          mit "flap"/"drs" im Namen, ersatzweise das am weitesten hinten liegende
@@ -7291,9 +7296,7 @@ class Car {
     if(this._cockpitWheelGrp){
       this._cockpitWheelGrp.rotation.z = -this.steer * 2.5;   // visuell verstärkt (~450° Lenkrad)
     }
-    if(this._glbSteeringWheel){
-      this._glbSteeringWheel.rotation.z = -this.steer * 2.5;
-    }
+    if(this._vehicleAnimation) this._vehicleAnimation.update(dt,this.vx,this.steer,!!this.wheelSpin);
     /* DRS-Klappe hochklappen wenn DRS offen */
     if(this._glbDrsFlap){
       this._glbDrsFlap.rotation.x = -(this.drsOpen || 0) * 0.6;
@@ -15979,6 +15982,7 @@ const Game = {
     if(car._externalModelRoot && car.body) {
       car.body.remove(car._externalModelRoot);
       car._externalModelRoot = null;
+      car._vehicleAnimation = null;
       car._usingExternalModel = false;
       car._glbWheels = null; car._glbFrontWheels = null; car._glbSteeringWheel = null; car._glbDrsFlap = null;
       car.setProceduralShellVisible(true);
