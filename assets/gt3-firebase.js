@@ -125,7 +125,9 @@ function _handleStewardReplayDeepLink(){
   }).catch(e => { console.error('[FB] Deep-Link:', e); alert(e.message || 'Replay konnte nicht geladen werden.'); });
 }
 
-function _stewardOnline(){ return !!(fbUser && ADMIN_UIDS.includes(fbUser.uid)); }
+function _stewardOnline(){
+  return !!(fbUser && (ADMIN_UIDS.includes(fbUser.uid) || STAFF_UIDS.includes(fbUser.uid)));
+}
 
 function _evToast(msg){
   const el = document.getElementById('rpl-ev-toast');
@@ -622,6 +624,7 @@ const Shop = {
 // STEWARDS SYSTEM
 // ═══════════════════════════════════════════════
 const ADMIN_UIDS = ['qg9FDw4TZWhxX7en6JHuOI6GqZt2', '25Mc4Wuwp4YxFFwNz8gtMkNI2n93'];
+const STAFF_UIDS = ['Q6phygdH4vZxK1Qq9pKcz50tDru1'];
 const ADMIN_UID = ADMIN_UIDS[0]; // kept for compat
 let _stewardsUnsub = null;
 
