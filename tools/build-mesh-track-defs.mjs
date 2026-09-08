@@ -19,7 +19,7 @@ write('assets/tracks/redbull-ring.js', {
   id: 'redbullring-custom',
   name: 'Red Bull Ring',
   sub: 'Spielberg · Grand-Prix-Kurs · echtes 3D-Streckenmesh',
-  meshUrl: 'assets/tracks/redbull_ring.glb',
+  meshUrl: 'assets/tracks/redbull_ring_2025_layout.glb',
   mesh: { offset: [0, 0, 0], rawSurface: true, light: { sun: 0.95, hemi: 0.82, exposure: 1 } },
   halfWidth: 8.5,
   wallDist: 12,
