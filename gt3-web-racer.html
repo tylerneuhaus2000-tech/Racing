@@ -8240,13 +8240,6 @@ class AIDriver {
       if(curvHere*cMaxSign < -1e-5) baseLine *= 0.2;
     }
 
-    /* Nur die zwei Silverstone-Auslaufstellen aus dem Fahrtest brauchen mehr
-       Randreserve. Der restliche WR-Pfad bleibt unveraendert, damit die
-       1:54-Pace erhalten bleibt. */
-    if(this.fieldSize>=20 && track.def.id==='silverstone-gp'
-       && ((q.idx>=80&&q.idx<=155)||(q.idx>=230&&q.idx<=320)))
-      baseLine=clamp(baseLine,-7.8,7.8);
-
     // Niedrigere Skill-AIs weichen stärker von der Ideallinie ab
     const styleOff = this.lineOff * (1.0 - this.skill * 0.65) * 0.6;
     // Persönliche Liniencharakteristik: NUR tief im Apex, niemals auf Geraden
