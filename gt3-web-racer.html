@@ -6229,10 +6229,9 @@ class Car {
     this.body=g;
     this.scene.add(g);
 
-    // Alle Fahrzeuge laden ihr echtes GLB-Modell. Die Geometrie und Texturen
-    // werden über loadGltfTemplate() pro URL geteilt; jede Instanz bekommt nur
-    // ihren eigenen Scene-Graph und eigene Materialien für Lack/Schäden.
-    this._modelLoadPromise = this.tryAttachExternalModel();
+    // Das Spielerauto bleibt immer detailliert. Gegner-GLBs werden vom Game
+    // dynamisch nur fuer die fuenf raeumlich naechsten Fahrzeuge geladen.
+    this._modelLoadPromise = this.isPlayer ? this.tryAttachExternalModel() : null;
   }
 
   static loadGltfTemplate(url){
@@ -6275,6 +6274,24 @@ class Car {
     for(const n of this._proceduralShell) n.visible = !!vis;
   }
 
+  detachExternalModel(){
+    const root=this._externalModelRoot;
+    if(root){
+      root.traverse(o=>{
+        if(!o.isMesh||!o.material)return;
+        const mats=Array.isArray(o.material)?o.material:[o.material];
+        for(const mat of mats) mat?.dispose?.();
+      });
+      if(root.parent)root.parent.remove(root);
+    }
+    this._externalModelRoot=null;
+    this._vehicleAnimation=null;
+    this._usingExternalModel=false;
+    this._glbWheels=null;this._glbFrontWheels=null;this._glbSteeringWheel=null;this._glbDrsFlap=null;
+    this.setProceduralShellVisible(true);
+    if(Array.isArray(this.wheels))for(const w of this.wheels)if(w?.outer)w.outer.visible=true;
+  }
+
   async tryAttachExternalModel(){
     const cfg = this.def._modelOverride || this.def.model || {};
     if(!cfg.url || !THREE.GLTFLoader) return;
@@ -6288,6 +6305,7 @@ class Car {
     try{
       const template = await Car.loadGltfTemplate(url);
       if(!template || !this.body) return;
+      if(!this.isPlayer && this._nearModelWanted===false)return;
       const model = template.clone(true);
       const tuneMaterial = (mat)=>{
         if(!mat) return mat;
@@ -14637,6 +14655,35 @@ const Game = {
     }
   },
 
+  syncNearbyOpponentModels(force=false){
+    if(!this.car||!Array.isArray(this.aiCars)||!this.aiCars.length)return;
+    const now=performance.now();
+    if(!force&&now-(this._nearModelSyncAt||0)<500)return;
+    this._nearModelSyncAt=now;
+    const nearest=this.aiCars
+      .filter(c=>!c.retired&&c.group?.visible!==false)
+      .map(c=>({c,d:(c.pos.x-this.car.pos.x)**2+(c.pos.z-this.car.pos.z)**2}))
+      .sort((a,b)=>a.d-b.d)
+      .slice(0,5);
+    const wanted=new Set(nearest.map(x=>x.c));
+    for(const c of this.aiCars){
+      const shouldLoad=wanted.has(c);
+      c._nearModelWanted=shouldLoad;
+      if(!shouldLoad){
+        if(c._externalModelRoot)c.detachExternalModel();
+        continue;
+      }
+      if(c._usingExternalModel||c._nearModelLoading||now<(c._nearModelRetryAt||0))continue;
+      c._nearModelLoading=true;
+      c._modelLoadPromise=Promise.resolve(c.tryAttachExternalModel())
+        .catch(()=>{})
+        .finally(()=>{
+          c._nearModelLoading=false;
+          if(!c._usingExternalModel)c._nearModelRetryAt=performance.now()+5000;
+        });
+    }
+  },
+
   async startRace(){
     // Werbung während dem Rennen deaktivieren
     (window.adsbygoogle = window.adsbygoogle || []).pauseAdRequests = 1;
@@ -14819,6 +14866,8 @@ const Game = {
       c._frozen = false; if(c.group) c.group.visible = true;
       if(typeof c.penaltySec !== 'number') c.penaltySec = 0;        // ausstehende Strafsekunden für nächsten Pitstop
     }
+    this._nearModelSyncAt=0;
+    this.syncNearbyOpponentModels(true);
     document.getElementById('menus').classList.add('hidden');
     document.getElementById('results').classList.add('hidden');
 
@@ -15710,6 +15759,8 @@ const Game = {
       if(el){ el.textContent = fps + ' FPS'; el.style.color = fps>=50?'#22c463':fps>=30?'#ffd400':'#ff2e3d'; }
       this._fpsFrames = 0; this._fpsAccum = 0;
     }
+    if(this.state==='race'||this.state==='countdown'||this.state==='finished')
+      this.syncNearbyOpponentModels();
     this._padFrame = (this._padFrame||0)+1;
     const pads = (this._padFrame%3===0) && navigator.getGamepads ? navigator.getGamepads() : (this._lastPads||[]);
     if(this._padFrame%3===0) this._lastPads=pads;
