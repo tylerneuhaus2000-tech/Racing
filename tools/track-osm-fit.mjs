@@ -29,10 +29,30 @@ const MATNOT = opt.matnot ? new RegExp(opt.matnot, 'i') : null;
 
 /* ── OSM: lat/lon → lokale Meter ──────────────────────────────────────── */
 const osm = JSON.parse(fs.readFileSync(inOsm, 'utf8'));
-const ways = osm.elements.filter(e => e.type === 'way' && e.geometry && e.geometry.length > 20);
-const circuit = ways.find(w => (w.tags && w.tags.highway === 'raceway') &&
-  (!opt.way || String(w.id) === String(opt.way)) &&
-  w.geometry.length === Math.max(...ways.filter(x => x.tags && x.tags.highway === 'raceway').map(x => x.geometry.length)));
+const ways = osm.elements.filter(e => e.type === 'way' && e.geometry && e.geometry.length > 1);
+let circuit;
+if (opt.ways) {
+  const ids = String(opt.ways).split(',').map(Number);
+  const selected = ids.map(id => ways.find(w => w.id === id));
+  if (selected.some(w => !w)) { console.error('Mindestens ein --ways-Abschnitt fehlt in der OSM-Datei.'); process.exit(1); }
+  const geometry = [];
+  for (const w of selected) {
+    const segment = w.geometry.slice();
+    if (geometry.length) {
+      const prev = geometry[geometry.length - 1];
+      const dFirst = Math.hypot(prev.lat - segment[0].lat, prev.lon - segment[0].lon);
+      const dLast = Math.hypot(prev.lat - segment[segment.length - 1].lat, prev.lon - segment[segment.length - 1].lon);
+      if (dLast < dFirst) segment.reverse();
+      segment.shift();
+    }
+    geometry.push(...segment);
+  }
+  circuit = { id: ids.join('-'), tags: { name: 'Autodromo Nazionale Monza GP' }, geometry };
+} else {
+  const candidates = ways.filter(x => x.tags && x.tags.highway === 'raceway');
+  circuit = candidates.find(w => (!opt.way || String(w.id) === String(opt.way)) &&
+    w.geometry.length === Math.max(...candidates.map(x => x.geometry.length)));
+}
 if (!circuit) { console.error('Keine raceway-Linie gefunden.'); process.exit(1); }
 const pit = opt.pit ? ways.find(w => w.tags && (w.tags.name || '').toLowerCase().includes(String(opt.pit).toLowerCase())) : null;
 const lat0 = circuit.geometry.reduce((s, g) => s + g.lat, 0) / circuit.geometry.length;
@@ -164,7 +184,7 @@ for (const mirror of opt.fixed ? [] : [1,-1]) {
 }
 console.log(`Grobsuche: scale ${best.sc.toFixed(4)} · rot ${(best.ang*180/Math.PI).toFixed(1)}° · gespiegelt ${best.mirror<0?'ja':'nein'} · Ø ${best.cost.toFixed(2)} m · auf Asphalt ${(best.frac*100).toFixed(1)}%`);
 let cur = best;
-for (let round=0; round<(opt.fixed?0:8); round++) {
+for (let round=0; round<(opt.fixed && !opt.refine ? 0 : 8); round++) {
   const dS=0.05/(round+1), dA=0.18/(round+1), dT=90/(round+1);
   for (let i=0;i<900;i++) {
     let sc=cur.sc*(1+(Math.random()-0.5)*dS);

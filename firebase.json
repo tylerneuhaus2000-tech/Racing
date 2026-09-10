@@ -8,6 +8,9 @@
   },
   "hosting": {
     "public": ".",
+    "predeploy": [
+      "npm run audit:gt3"
+    ],
     "rewrites": [
       {
         "source": "/api/rewarded-video",
@@ -16,6 +19,12 @@
     ],
     "ignore": [
       "firebase.json",
+      ".git/**",
+      ".firebase/**",
+      "firebase-debug.log",
+      "assets/tracks/monza_2020_layout.glb",
+      "ai-bench.js",
+      "usage-dashboard.js",
       "**/.*",
       "**/node_modules/**",
       "tools/**",

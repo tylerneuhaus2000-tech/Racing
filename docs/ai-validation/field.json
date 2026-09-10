@@ -1,0 +1,968 @@
+[
+  {
+    "track": "custom_1782743640261",
+    "seconds": 698,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 227,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 226,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 225,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 227,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "custom_1782746264191",
+    "seconds": 562,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 235,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 235,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 234,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 235,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "bahrain-custom",
+    "seconds": 561,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0.9,
+        "maxKmh": 235,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 1.2,
+        "maxKmh": 235,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 1.3,
+        "maxKmh": 233,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 1.4,
+        "maxKmh": 233,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "veloce",
+    "seconds": 390,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 237,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 237,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 236,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 237,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "alpen",
+    "seconds": 315,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 195,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 194,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 193,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 194,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "flat",
+    "seconds": 267,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 247,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 247,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 247,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 247,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "hockenheim-alt",
+    "seconds": 584,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 251,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 251,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 251,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 251,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "lemans-long",
+    "seconds": 632,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 250,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 250,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 250,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 250,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "silberpfeil",
+    "seconds": 357,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 248,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 247,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 247,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 247,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "superspeedway",
+    "seconds": 251,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 243,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 242,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 242,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 242,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "inselring",
+    "seconds": 363,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 244,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 243,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 243,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 243,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "highspeed-pro",
+    "seconds": 287,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 248,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 248,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 248,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 247,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "oasis",
+    "seconds": 413,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0.5,
+        "maxKmh": 250,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0.5,
+        "maxKmh": 250,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0.7,
+        "maxKmh": 250,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0.5,
+        "maxKmh": 250,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "bergkristall",
+    "seconds": 417,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0.6,
+        "maxKmh": 255,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0.6,
+        "maxKmh": 255,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0.6,
+        "maxKmh": 254,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0.6,
+        "maxKmh": 255,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "riviera",
+    "seconds": 436,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 206,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 206,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 206,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 206,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "norisring",
+    "seconds": 249,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 222,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 221,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 219,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 222,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "stadtring",
+    "seconds": 181,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 199,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 198,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 195,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 189,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "custom_1782749661475",
+    "seconds": 594,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 200,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 199,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 198,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 200,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "kartbahn-lider",
+    "seconds": 181,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 48,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 47,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 46,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 46,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "silverstone-gp",
+    "seconds": 677,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 222,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 221,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 220,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 221,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "redbullring-custom",
+    "seconds": 454,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 240,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 240,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 240,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 240,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "monza",
+    "seconds": 492,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 241,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 241,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 240,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 241,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "sachsenring",
+    "seconds": 432,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 202,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 202,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 200,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 201,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  }
+]

@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* Einspruchs-Frist ab Streichung */
-const STRIKE_APPEAL_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+const STRIKE_APPEAL_WINDOW_MS = 60 * 24 * 60 * 60 * 1000; // 2 Monate ab Streichung
 
 function _trackNm(id){
   try { const t = (typeof TRACKS !== 'undefined') ? TRACKS.find(x => x.id === id) : null; return t ? t.name : (id || '?'); }
@@ -189,7 +189,7 @@ function _captureStewardShot(){
 
 /* Strike-Ledger-Zeile schreiben (eine pro gestrichener Runde) — vom Panel
    aufgerufen, damit der Fahrer die Streichung in "Meine Streichungen" sieht
-   und binnen 30 Tagen Einspruch einlegen kann. */
+   und binnen 2 Monaten Einspruch einlegen kann. */
 async function _writeStrikeLedger(o){
   let evidenceCount = 0;
   try {
@@ -1262,7 +1262,7 @@ function _fileAppeal(strikeId){
   const s = _myStrikesData.strikes.find(x => x._id === strikeId);
   if(!s || !fbUser) return;
   const deadline = s.appealDeadline || ((s.struckAt || 0) + STRIKE_APPEAL_WINDOW_MS);
-  if(Date.now() > deadline){ alert('Die Einspruchsfrist (30 Tage ab Streichung) ist abgelaufen.'); return; }
+  if(Date.now() > deadline){ alert('Die Einspruchsfrist (2 Monate ab Streichung) ist abgelaufen.'); return; }
   if(_myStrikesData.appeals[strikeId]){ alert('Für diese Streichung liegt bereits ein Einspruch vor.'); return; }
   const why = (prompt('Warum sollte diese Zeit wiederhergestellt werden? Begründe deinen Einspruch — ein Steward prüft ihn erneut:') || '').trim();
   if(!why){ return; }
@@ -1345,6 +1345,7 @@ async function _recomputeParentTime(docId, meta){
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
     };
     if(best.replay) doc.replay = best.replay;
+    if(Array.isArray(best.sectorsMs) && best.sectorsMs.length === 3) doc.sectorsMs = best.sectorsMs;
     await parentRef.set(doc);
   }
   // Prune
@@ -1356,7 +1357,7 @@ async function _recomputeParentTime(docId, meta){
 }
 
 /* ── Save best lap to Firestore (mit Runden-Historie) ── */
-window.FB_saveBestLap = async function(trackId, carId, timeMs, carName, classType, replayFrames){
+window.FB_saveBestLap = async function(trackId, carId, timeMs, carName, classType, replayFrames, sectorsSec){
   if(!fbUser){ console.log('[FB] saveBestLap skip: nicht eingeloggt'); return; }
   if(!timeMs || timeMs <= 0){ console.log('[FB] saveBestLap skip: ungültige Zeit', timeMs); return; }
 
@@ -1385,6 +1386,8 @@ window.FB_saveBestLap = async function(trackId, carId, timeMs, carName, classTyp
     // Neue Runde ablegen
     const lap = { timeMs, at: firebase.firestore.FieldValue.serverTimestamp(), struck: false };
     if(replayData) lap.replay = replayData;
+    if(Array.isArray(sectorsSec) && sectorsSec.length === 3 && sectorsSec.every(Number.isFinite))
+      lap.sectorsMs = sectorsSec.map(s => Math.round(s * 1000));
     await lapsRef.add(lap);
 
     // Parent neu berechnen (schnellste gültige = i.d.R. die neue) + prunen
@@ -1411,6 +1414,17 @@ window.FB_saveBestLap = async function(trackId, carId, timeMs, carName, classTyp
   } catch(e){
     console.error('[FB] saveBestLap Fehler:', e);
   }
+};
+
+/* Schnellster Cloud-Eintrag fuer genau diese Strecke und Fahrzeugklasse.
+   Das Boxen-Timing nutzt diese kleine API, ohne Firebase-Interna zu kennen. */
+window.FB_getTrackClassRecord = async function(trackId, classType){
+  if(!trackId || !classType) return null;
+  const cls=String(classType).toLowerCase();
+  const entries=await _lbFetch(trackId);
+  return entries
+    .filter(e=>String(e.classType||'unknown').toLowerCase()===cls && Number.isFinite(e.timeMs))
+    .sort((a,b)=>a.timeMs-b.timeMs)[0] || null;
 };
 
 /* ── Jede GÜLTIGE Runde (nicht nur Bestzeiten) in die Cloud-Historie legen.
@@ -2619,9 +2633,10 @@ Store.set = function(key, val){
       const trackId = parts.slice(0,-1).join('_');
       const carDef   = (typeof CARS !== 'undefined') ? CARS.find(c=>c.id===carId) : null;
       const carName  = carDef ? carDef.name : carId;
-      const classType = carDef ? carDef.classType : 'unknown';
+      const classType = carDef ? String(carDef.classBadge || carDef.classType || 'unknown').toLowerCase() : 'unknown';
       const replayFrames = (typeof Game !== 'undefined' && Game.bestLapReplay) ? Game.bestLapReplay.frames : null;
-      window.FB_saveBestLap(trackId, carId, parseFloat(val)*1000, carName, classType, replayFrames);
+      const sectors = (typeof Game !== 'undefined' && Game.race) ? Game.race.bestLapSectors : null;
+      window.FB_saveBestLap(trackId, carId, parseFloat(val)*1000, carName, classType, replayFrames, sectors);
     }
   }
 };

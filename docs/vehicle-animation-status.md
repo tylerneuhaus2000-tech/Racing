@@ -17,6 +17,10 @@ Mustang and Bentley physics values are game balancing values, not verified
 manufacturer specifications. New entries are available through the ordinary
 vehicle catalog; career contract progression has not been changed.
 
+The Bentley now has a dedicated cockpit camera. Because its source GLB has no
+separate steering-wheel mesh, the cockpit uses the game's animated GT wheel,
+aligned with the Bentley driver position and synchronized to steering input.
+
 ## Animation implementation
 
 `assets/vehicle-animation.js` splits recognized wheel triangles into four

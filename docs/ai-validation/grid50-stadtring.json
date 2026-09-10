@@ -1,0 +1,458 @@
+[
+  {
+    "track": "stadtring",
+    "seconds": 217,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 199,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 197,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 189,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 188,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 186,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 183,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 182,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 179,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 182,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 179,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 181,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 178,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 180,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 177,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 178,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 177,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 178,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 178,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 177,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 179,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 178,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 180,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 180,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 178,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 179,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 178,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 178,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 177,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 177,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 176,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 175,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0.8,
+        "maxKmh": 176,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 174,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 1.4,
+        "maxKmh": 174,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 176,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 2.1,
+        "maxKmh": 175,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 1.1,
+        "maxKmh": 178,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 2.8,
+        "maxKmh": 177,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 1.9,
+        "maxKmh": 175,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 2.6,
+        "maxKmh": 174,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 3.5,
+        "maxKmh": 174,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 4.2,
+        "maxKmh": 172,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 4.9,
+        "maxKmh": 174,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 3.3,
+        "maxKmh": 175,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 5.6,
+        "maxKmh": 179,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 4,
+        "maxKmh": 174,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 5.5,
+        "maxKmh": 181,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 4.6,
+        "maxKmh": 179,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 4.6,
+        "maxKmh": 183,
+        "walls": 0,
+        "contacts": 0
+      },
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 4.7,
+        "maxKmh": 181,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  }
+]

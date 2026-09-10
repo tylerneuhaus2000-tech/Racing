@@ -1,0 +1,23 @@
+{
+  "date": "2026-09-09",
+  "physicsHz": 120,
+  "lapsPerCar": 3,
+  "difficulty": 92,
+  "seed": 12345,
+  "weather": "dry",
+  "pitStopsEnabled": false,
+  "fieldCars": [4, 50],
+  "fieldPersonalities": [
+    "AGGRESSIVE",
+    "DEFENSIVE",
+    "ROOKIE",
+    "PRO"
+  ],
+  "sha256": {
+    "gt3-web-racer.html": "d6f46bd6f84d5041253910c4ecadbfc283735fe4d3e5c8b919f35313fa739a04",
+    "assets/tracks.js": "2e011e139e5138500a64bb7bb239821100fa4a77039c7719ef3910765b6c9051",
+    "assets/tracks/redbull-ring.js": "db973124156ece727c81d7829d9168644ba422549dbd1e1f62c4a864818f87bd",
+    "assets/tracks/monza-mesh.js": "f9417bf1d2f19acc003fedfe4e5faa8ab7c58f61c0bed5d4713b768abc87b9b1",
+    "assets/tracks/sachsenring.js": "b54483e2a4b74abaa14343e00738761c761d5b9c9203b879a09258f4de6a7e69"
+  }
+}

@@ -1,0 +1,17 @@
+[
+  {
+    "track": "custom_1782746264191",
+    "seconds": 543,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 235,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  }
+]

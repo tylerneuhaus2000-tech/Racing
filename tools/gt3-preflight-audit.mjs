@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 const root = process.cwd();
 const gt3Path = path.join(root, 'gt3-web-racer.html');
 const tracksDir = path.join(root, 'assets', 'tracks');
+const assetBudgetBytes = 50 * 1024 * 1024;
 
 const warnings = [];
 const errors = [];
@@ -40,6 +41,38 @@ function checkGt3InlineScripts() {
   }
 
   if (idx === 0) warn('No inline scripts found in gt3-web-racer.html.');
+
+  const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+  const criticalIds = [
+    'pit-interact-hint', 'pit-interact-key', 'pit-setup-overlay',
+    'pso-pb-s1', 'pso-pb-s2', 'pso-pb-s3', 'pso-wr-lap', 'pso-wr-gap'
+  ];
+  criticalIds.forEach((id) => {
+    const count = ids.filter((candidate) => candidate === id).length;
+    if (count !== 1) fail(`Critical UI id ${id} occurs ${count} times; expected exactly once.`);
+  });
+
+  const defaultBlock = html.match(/const defaultKeybinds\s*=\s*\{([\s\S]*?)\};/);
+  if (!defaultBlock) {
+    fail('Could not find defaultKeybinds.');
+  } else {
+    const assignments = [...defaultBlock[1].matchAll(/(\w+)\s*:\s*'([^']+)'/g)];
+    const byCode = new Map();
+    assignments.forEach(([, action, code]) => {
+      if (!byCode.has(code)) byCode.set(code, []);
+      byCode.get(code).push(action);
+    });
+    for (const [code, actions] of byCode) {
+      if (actions.length > 1) fail(`Default key conflict on ${code}: ${actions.join(', ')}`);
+    }
+  }
+
+  for (const match of html.matchAll(/<script[^>]+src="([^"]+)"/gi)) {
+    const src = match[1].split('?')[0];
+    if (/^(?:https?:)?\/\//i.test(src)) continue;
+    const localPath = path.join(root, src.replace(/^\//, ''));
+    if (!fs.existsSync(localPath)) fail(`Missing local script asset: ${src}`);
+  }
 }
 
 function closureDistance(track) {
@@ -63,8 +96,25 @@ function checkTrackFile(filePath) {
     return;
   }
 
+  /* JSON files in assets/tracks are either playable track bundles, generated
+     centerlines, or raw OSM source data. Validate each schema on its own. */
+  if (Array.isArray(parsed?.elements) || (parsed?.osm3s && Number(parsed?.version) > 0)) {
+    if (!Array.isArray(parsed.elements) || parsed.elements.length === 0)
+      fail(`OSM source has no elements: ${path.relative(root, filePath)}`);
+    return;
+  }
+
+  if (Array.isArray(parsed?.pts)) {
+    const label = path.basename(filePath);
+    if (parsed.pts.length < 120) warn(`Low centerline point count (${parsed.pts.length}) in ${label}.`);
+    const invalidPt = parsed.pts.find((p) => !Array.isArray(p) || p.length < 2 || !Number.isFinite(Number(p[0])) || !Number.isFinite(Number(p[1])));
+    if (invalidPt) fail(`Invalid centerline point tuple in ${label}`);
+    if (!parsed.name) warn(`Centerline has no name: ${label}`);
+    return;
+  }
+
   if (!parsed || !Array.isArray(parsed.tracks) || parsed.tracks.length === 0) {
-    fail(`Track file has no tracks array: ${path.relative(root, filePath)}`);
+    warn(`Unknown track JSON schema: ${path.relative(root, filePath)}`);
     return;
   }
 
@@ -94,6 +144,27 @@ function checkTrackFile(filePath) {
   });
 }
 
+function walkFiles(dir, out = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === '.firebase') continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) walkFiles(full, out);
+    else out.push(full);
+  }
+  return out;
+}
+
+function checkAssetBudgets() {
+  const assets = path.join(root, 'assets');
+  if (!fs.existsSync(assets)) return;
+  for (const file of walkFiles(assets)) {
+    const size = fs.statSync(file).size;
+    if (size > assetBudgetBytes) {
+      warn(`Large web asset ${(size / 1024 / 1024).toFixed(1)} MiB: ${path.relative(root, file)}`);
+    }
+  }
+}
+
 function checkTracks() {
   if (!fs.existsSync(tracksDir)) {
     fail('Missing assets/tracks directory');
@@ -115,6 +186,7 @@ function checkTracks() {
 
 checkGt3InlineScripts();
 checkTracks();
+checkAssetBudgets();
 
 console.log('GT3 preflight audit finished.');
 if (warnings.length) {

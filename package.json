@@ -8,7 +8,9 @@
     "build:mac": "electron-builder --mac",
     "build:win": "electron-builder --win",
     "build:all": "electron-builder --mac --win",
-    "audit:gt3": "node tools/gt3-preflight-audit.mjs"
+    "test": "npm run audit:gt3",
+    "audit:gt3": "node tools/gt3-preflight-audit.mjs",
+    "test:ai": "node tools/ai-drive-audit.cjs"
   },
   "build": {
     "appId": "com.racing.gridline",
@@ -27,8 +29,12 @@
     }
   },
   "devDependencies": {
-    "electron": "^31.0.0",
+    "@gltf-transform/core": "^4.5.0",
+    "@gltf-transform/extensions": "^4.5.0",
+    "@gltf-transform/functions": "^4.5.0",
+    "electron": "^44.3.0",
     "electron-builder": "^24.0.0",
+    "meshoptimizer": "^1.2.0",
     "sharp": "^0.35.2"
   }
 }

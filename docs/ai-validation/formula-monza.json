@@ -1,0 +1,17 @@
+[
+  {
+    "track": "monza",
+    "seconds": 408,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 286,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  }
+]

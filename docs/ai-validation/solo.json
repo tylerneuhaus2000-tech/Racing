@@ -1,0 +1,347 @@
+[
+  {
+    "track": "custom_1782743640261",
+    "seconds": 684,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 227,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "custom_1782746264191",
+    "seconds": 550,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 235,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "bahrain-custom",
+    "seconds": 548,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 1.1,
+        "maxKmh": 235,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "veloce",
+    "seconds": 378,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 237,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "alpen",
+    "seconds": 306,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 194,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "flat",
+    "seconds": 259,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 247,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "hockenheim-alt",
+    "seconds": 573,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 251,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "lemans-long",
+    "seconds": 622,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 250,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "silberpfeil",
+    "seconds": 349,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 247,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "superspeedway",
+    "seconds": 247,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 242,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "inselring",
+    "seconds": 350,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 243,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "highspeed-pro",
+    "seconds": 279,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 248,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "oasis",
+    "seconds": 401,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0.5,
+        "maxKmh": 250,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "bergkristall",
+    "seconds": 407,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0.6,
+        "maxKmh": 255,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "riviera",
+    "seconds": 425,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 206,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "norisring",
+    "seconds": 236,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 221,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "stadtring",
+    "seconds": 171,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 198,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "custom_1782749661475",
+    "seconds": 581,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 199,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "kartbahn-lider",
+    "seconds": 175,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 48,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "silverstone-gp",
+    "seconds": 665,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 221,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "redbullring-custom",
+    "seconds": 442,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 240,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "monza",
+    "seconds": 478,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 241,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  },
+  {
+    "track": "sachsenring",
+    "seconds": 421,
+    "cars": [
+      {
+        "laps": 3,
+        "offPct": 0,
+        "grassPct": 0,
+        "stuck": 0,
+        "maxKmh": 202,
+        "walls": 0,
+        "contacts": 0
+      }
+    ]
+  }
+]
