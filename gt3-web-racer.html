@@ -8222,6 +8222,13 @@ class AIDriver {
       if(curvHere*cMaxSign < -1e-5) baseLine *= 0.2;
     }
 
+    /* Nur die zwei Silverstone-Auslaufstellen aus dem Fahrtest brauchen mehr
+       Randreserve. Der restliche WR-Pfad bleibt unveraendert, damit die
+       1:54-Pace erhalten bleibt. */
+    if(this.fieldSize>=20 && track.def.id==='silverstone-gp'
+       && ((q.idx>=80&&q.idx<=155)||(q.idx>=230&&q.idx<=320)))
+      baseLine=clamp(baseLine,-7.8,7.8);
+
     // Niedrigere Skill-AIs weichen stärker von der Ideallinie ab
     const styleOff = this.lineOff * (1.0 - this.skill * 0.65) * 0.6;
     // Persönliche Liniencharakteristik: NUR tief im Apex, niemals auf Geraden
@@ -8945,10 +8952,28 @@ class AIDriver {
     // 3-Punkt-Racingline berechnen
     const line = this.computeLine(track, q, traffic.dodge, weather);
 
+    /* Silverstone hat breite Auslaufzonen, aber hinter schnellen
+       Richtungswechseln nur wenig Reserve bis zum Gras. Sobald ein Auto dem
+       Asphalt-Rand zu nahe kommt, zielt es kurz deutlich zur Streckenmitte
+       und nimmt Gas heraus. Im normalen Korridor greift das nicht ein und
+       beeinflusst daher die 1:55er-Rennpace nicht. */
+    const silverstoneSafetyZone = track.def.id==='silverstone-gp'
+      && ((q.idx>=80&&q.idx<=155)||(q.idx>=230&&q.idx<=320));
+    const silverstoneEdgeLimit = track.def.halfWidth - 2.5;
+    const silverstoneEdgeRisk = silverstoneSafetyZone && Math.abs(q.lat) > silverstoneEdgeLimit;
+    if(silverstoneEdgeRisk){
+      line.target = -Math.sign(q.lat) * Math.min(2.0, line.maxOff);
+      tgtV = Math.min(tgtV, Math.max(24, speed - 5));
+    }
+
     // Pedale, Lenkung, Traktionskontrolle
     this.applyPedals(v, tgtV);
     this.applySteering(car, track, q, line, dt);
     this.applyTractionControl(car, v, kAero);
+    if(silverstoneEdgeRisk){
+      this.input.throttle = 0;
+      this.input.brake = Math.max(this.input.brake, clamp((Math.abs(q.lat)-silverstoneEdgeLimit)*0.34,0.16,0.75));
+    }
 
     // Fehler-Effekte aufsetzen
     // Driver variation costs time, but must not disable steering or add unsafe throttle.
