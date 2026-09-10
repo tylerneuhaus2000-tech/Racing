@@ -1639,6 +1639,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
   <div class="panel">
     <div class="eyebrow">RENNEN UNTERBROCHEN</div>
     <h2>PAUSE</h2>
+    <div id="pause-ai-status" style="display:none;margin:-4px 0 14px;padding:9px 11px;border:1px solid #22c46366;background:#102419;color:#3dff7a;font:700 10px var(--mono);letter-spacing:.1em">KI FÄHRT DEIN AUTO WEITER</div>
     <button class="btn primary" id="btn-resume">Weiterfahren</button>
     <button class="btn" id="btn-pause-replay" style="background:#0d1a2a;border:1px solid #60b4ff;color:#60b4ff">&#9654; REPLAY</button>
     <button class="btn" id="btn-restart">Rennen neu starten</button>
@@ -2479,6 +2480,10 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
         </div>
         <div class="lob-section">
           <label class="lob-check"><input type="checkbox" id="lob-collisions" checked><span>Fahrzeugkollisionen</span></label>
+          <label class="lob-check"><input type="checkbox" id="lob-late-join" checked><span>Beitritt während des Rennens erlauben</span></label>
+          <label class="lob-check"><input type="checkbox" id="lob-away-ai" checked><span>KI übernimmt bei Pause / Tabwechsel</span></label>
+          <div class="lobby-section-label" style="margin-top:10px">MAX. SPIELER</div>
+          <div class="lob-slider-row"><input type="range" id="lob-max-players" min="2" max="16" value="8"><span class="lob-slider-val" id="lob-max-players-val">8</span></div>
         </div>
       </div>
 
@@ -10261,7 +10266,7 @@ class LobbyManager {
     return {
       mode:'race', trackIdx:0, carClass:'gt3',
       raceType:'laps', raceLaps:5, raceMins:30,
-      collisions:true,
+      collisions:true, allowLateJoin:true, awayAI:true, maxPlayers:8,
       practiceMins:20, qualiMins:15,
       wkndRaceType:'laps', wkndRaceLaps:5, wkndRaceMins:30,
       wkndCarClass:'gt3',
@@ -10387,6 +10392,9 @@ class LobbyManager {
     if($('lob-laps')) { $('lob-laps').value = s.raceLaps; $('lob-laps-val').textContent = s.raceLaps+' Runden'; }
     if($('lob-mins')) { $('lob-mins').value = s.raceMins; $('lob-mins-val').textContent = s.raceMins+' Min'; }
     if($('lob-collisions')) $('lob-collisions').checked = s.collisions;
+    if($('lob-late-join')) $('lob-late-join').checked = s.allowLateJoin !== false;
+    if($('lob-away-ai')) $('lob-away-ai').checked = s.awayAI !== false;
+    if($('lob-max-players')) { $('lob-max-players').value=s.maxPlayers||8; $('lob-max-players-val').textContent=s.maxPlayers||8; }
     if($('lob-practice-mins')) { $('lob-practice-mins').value = s.practiceMins; $('lob-practice-mins-val').textContent = s.practiceMins+' Min'; }
     if($('lob-quali-mins')) { $('lob-quali-mins').value = s.qualiMins; $('lob-quali-mins-val').textContent = s.qualiMins+' Min'; }
     if($('lob-wknd-laps')) { $('lob-wknd-laps').value = s.wkndRaceLaps; $('lob-wknd-laps-val').textContent = s.wkndRaceLaps+' Runden'; }
@@ -10487,6 +10495,7 @@ class ServerBrowser {
             status:      get('status','stringValue') || 'lobby',
             playerCount: parseInt(get('playerCount','integerValue') || get('playerCount','doubleValue') || 1),
             maxPlayers:  parseInt(get('maxPlayers','integerValue') || get('maxPlayers','doubleValue') || 8),
+            allowLateJoin: get('allowLateJoin','booleanValue') !== false,
           };
         })
         .filter(Boolean);
@@ -10579,7 +10588,8 @@ class MultiplayerManager {
       mode:        lobSettings.mode || 'race',
       status:      this._roomStatus || 'lobby',
       playerCount: 1 + Object.keys(this.conns).length,
-      maxPlayers:  8,
+      maxPlayers:  Math.max(2, Math.min(16, Number(lobSettings.maxPlayers)||8)),
+      allowLateJoin: lobSettings.allowLateJoin !== false,
       lastSeen:    firebase.firestore.FieldValue.serverTimestamp(),
     }).catch(e => console.warn('[Room] heartbeat failed:', e.message));
   }
@@ -10640,11 +10650,17 @@ class MultiplayerManager {
         else { this.remoteCars[conn.peer].name = name; this.remoteCars[conn.peer].carIdx = carIdx; }
         Lobby.addPlayer(conn.peer, {name, carIdx, liveryIdx, isHost: data.iAmHost === true});
         if(this.isHost) {
-          const gameActive = typeof Game !== 'undefined' && Game.state === 'race';
+          const gameActive = typeof Game !== 'undefined' && (Game.state === 'race' || Game.state === 'pause');
           if(gameActive) {
-            // Rennen läuft → Mid-Race-Join: Einstellungen + Signal schicken
-            conn.send({type:'game-running', settings: Lobby.settings,
-              trackIdx: Game.selTrack, carIdx: Game.selCar});
+            const maxPlayers=Math.max(2,Math.min(16,Number(Lobby.settings.maxPlayers)||8));
+            if(Lobby.settings.allowLateJoin===false || 1+Object.keys(this.conns).length>maxPlayers){
+              conn.send({type:'join-rejected',reason:Lobby.settings.allowLateJoin===false?'Nachjoinen ist für diese Session deaktiviert.':'Die Session ist voll.'});
+              setTimeout(()=>conn.close(),250); break;
+            }
+            conn.send({type:'game-running', settings: Lobby.settings, trackIdx:Game.selTrack, raceTime:Game._raceTimeS||0,
+              spawn:Game.car?{x:Game.car.pos.x-Math.sin(Game.car.heading)*14,y:Game.car.pos.y,z:Game.car.pos.z-Math.cos(Game.car.heading)*14,h:Game.car.heading,lap:Game.car.rd?.lap||1}:null,
+              peers:Object.entries(this.remoteCars).filter(([pid])=>pid!==conn.peer).map(([peerId,rc])=>({peerId,name:rc.name,carIdx:rc.carIdx||0,liveryIdx:rc.liveryIdx||0}))});
+            this.broadcast({type:'peer-join',peerId:conn.peer,name,carIdx,liveryIdx,ready:true},conn.peer);
           } else {
             // Lobby läuft normal
             conn.send({type:'settings', ...Lobby.settings});
@@ -10717,9 +10733,16 @@ class MultiplayerManager {
           const settings = data.settings || {};
           Object.assign(Lobby.settings, settings);
           Game._mpApplySettings(settings);
+          for(const p of (data.peers||[])) if(!this.remoteCars[p.peerId])
+            this.remoteCars[p.peerId]={name:p.name||p.peerId,carIdx:p.carIdx||0,liveryIdx:p.liveryIdx||0,px:0,py:0,pz:0,ph:0,tx:0,ty:0,tz:0,th:0,lerp:0};
 
           Game._showMidRaceJoinOverlay(() => {
             Game.startRace().then(() => {
+              if(data.spawn && Game.car){
+                Game.car.pos.set(data.spawn.x,data.spawn.y,data.spawn.z); Game.car.heading=data.spawn.h;
+                Game.car.vx=0; Game.car.vy=0; if(Game.car.rd) Game.car.rd.lap=data.spawn.lap||1; Game.car.updateMesh(0);
+              }
+              Game._raceTimeS=Math.max(Game._raceTimeS||0,Number(data.raceTime)||0);
               // Bereits fahrende Autos der anderen Spieler spawnen
               MP.spawnRemoteCars(Game.scene, Game.envMap);
               this.broadcast({type:'loaded'});
@@ -10731,6 +10754,13 @@ class MultiplayerManager {
             }).catch(e => console.error('[MP] mid-race join failed:', e));
           });
         }
+        break;
+      }
+      case 'join-rejected': {
+        const s=document.getElementById('mp-join-status');
+        if(s){s.textContent='❌ '+(data.reason||'Beitritt nicht möglich');s.className='mp-status err';}
+        const ov=document.getElementById('_midRaceJoin'); if(ov) ov.style.display='none';
+        document.getElementById('mp-modal')?.classList.remove('hidden');
         break;
       }
       case 'start-loading': {
@@ -10821,7 +10851,7 @@ class MultiplayerManager {
         if(this.isHost && this.isPublic) {
           conn.send({type:'room-info', hostName:this.myName, mode:Lobby.settings.mode,
             trackIdx:Lobby.settings.trackIdx, playerCount:1+Object.keys(this.conns).length,
-            maxPlayers:8, isPublic:true});
+            maxPlayers:Lobby.settings.maxPlayers||8, isPublic:true});
         }
         break;
     }
@@ -11680,7 +11710,8 @@ const Game = {
     }
     /* Physik-Akkumulator bei Tab-Wechsel zurücksetzen */
     document.addEventListener('visibilitychange', () => {
-      if(!document.hidden) this.acc = 0;
+      if(document.hidden) this._setAwayAutopilot(true,'TABWECHSEL');
+      else { this.acc=0; if(this._awayReason==='TABWECHSEL') this._setAwayAutopilot(false); }
     });
     this.wireMenus();
     this.renderEditor();
@@ -11960,7 +11991,7 @@ const Game = {
         <div style="background:#0d1116;border:1px solid #2a313a;border-top:3px solid var(--red);padding:36px 48px;text-align:center;max-width:420px">
           <div style="font:700 10px var(--mono);letter-spacing:.35em;color:var(--red);margin-bottom:12px">RENNEN AKTIV</div>
           <div style="font:800 24px 'Rajdhani',sans-serif;letter-spacing:.12em;color:#fff;margin-bottom:8px">SESSION BEITRETEN</div>
-          <div style="font:11px var(--mono);color:#8b95a1;margin-bottom:28px;line-height:1.6">Das Rennen läuft bereits.<br>Du wirst auf der Startlinie gespawnt.</div>
+          <div style="font:11px var(--mono);color:#8b95a1;margin-bottom:28px;line-height:1.6">Das Rennen läuft bereits.<br>Du steigst sicher hinter einem fahrenden Auto ein.</div>
           <button id="_midRaceJoinBtn" style="background:var(--red);border:none;color:#fff;padding:14px 44px;font:800 13px 'Rajdhani',sans-serif;letter-spacing:.3em;cursor:pointer;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));width:100%">▶ &nbsp;BEITRETEN</button>
         </div>`;
       document.body.appendChild(ov);
@@ -15409,9 +15440,21 @@ const Game = {
     if(lbl){ lbl.textContent = 'IDEALLINIE: '+(v?'AN':'AUS'); lbl.style.opacity=1; clearTimeout(this._ilLblT); this._ilLblT=setTimeout(()=>lbl.style.opacity=0,2000); }
   },
   togglePause(){
+    if(this._awayAutopilot && !document.getElementById('pause').classList.contains('hidden')){
+      document.getElementById('pause').classList.add('hidden');
+      const st=document.getElementById('pause-ai-status'); if(st) st.style.display='none';
+      this._setAwayAutopilot(false); return;
+    }
     if(this.state==='race'){
+      if(this._isMultiplayerRace() && Lobby.settings.awayAI!==false){
+        this._setAwayAutopilot(true,'PAUSE');
+        document.getElementById('pause').classList.remove('hidden');
+        const st=document.getElementById('pause-ai-status'); if(st) st.style.display='block';
+        return;
+      }
       this.state='pause';
       document.getElementById('pause').classList.remove('hidden');
+      const st=document.getElementById('pause-ai-status'); if(st) st.style.display='none';
       this.sound.suspend();
     } else if(this.state==='pause'){
       this.state='race';
@@ -15420,7 +15463,21 @@ const Game = {
       this.clock.getDelta();
     }
   },
+  _isMultiplayerRace(){ return !!(MP.peer && (MP.roomCode || Object.keys(MP.conns||{}).length)); },
+  _setAwayAutopilot(active,reason=''){
+    if(!this._isMultiplayerRace() || Lobby.settings.awayAI===false) active=false;
+    if(this._awayAutopilot===active) return;
+    this._awayAutopilot=active;
+    this._awayReason=active?reason:'';
+    if(active){
+      if(!this._awayAI){this._awayAI=new AIDriver(this.aiDifficulty||60,0,1);this._awayAI.setupForRace(this.totalLaps,this.mandatoryPitStop);}
+      if(this.input)this.input.locked=true; this._showRadioMsg('AUTOPILOT AKTIV · '+reason);
+    } else {
+      if(this.input)this.input.locked=false; this._showRadioMsg('AUTOPILOT AUS · DU HAST DIE KONTROLLE');
+    }
+  },
   toMenu(){
+    this._awayAutopilot=false;
     this.state='menu';
     document.getElementById('pause').classList.add('hidden');
     document.getElementById('hud').classList.add('hidden');
@@ -15739,7 +15796,7 @@ const Game = {
     try{
     /* Tab im Hintergrund: Clock-Delta konsumieren aber Physik nicht akkumulieren */
     const rawDt = this.clock.getDelta();
-    if(document.hidden){ return; }
+    if(document.hidden && !this._awayAutopilot){ return; }
     if(this._replayMode){ this._tickReplay(Math.min(rawDt,0.05)); return; }
     if(this.state==='pause') return;
     const dt=Math.min(rawDt, 0.1);
@@ -15773,7 +15830,9 @@ const Game = {
       while(this.acc>=PHYS_DT && steps<4){
         /* Spieler-Input: eigener Input oder KI (Zuschauen-Modus) */
         let playerInput;
-        if(this.spectateMode || this._formationPhase){
+        if(this._awayAutopilot){
+          playerInput=this._awayAI.control(this.car,this.track,PHYS_DT,running,this.allCars,{lap:this.car.rd?.lap||1});
+        } else if(this.spectateMode || this._formationPhase){
           /* KI steuert das Spielerauto (Zuschauen-Modus ODER Formation) */
           if(!this._spectateAI){
             this._spectateAI = new AIDriver(this.aiDifficulty || 60, 0, 1);
@@ -16569,7 +16628,7 @@ const Game = {
       if(readyBtn){ readyBtn.style.display=''; readyBtn.textContent='BEREIT'; readyBtn.style.background=''; }
       this._enableLobbySettings(false);
       // Disable host-only controls
-      document.querySelectorAll('.lob-tab, .lob-select, #lob-laps, #lob-mins, #lob-collisions, #lob-practice-mins, #lob-quali-mins, #lob-wknd-laps, #lob-wknd-mins').forEach(el => el.disabled=true);
+      document.querySelectorAll('.lob-tab, .lob-select, #lob-laps, #lob-mins, #lob-collisions, #lob-late-join, #lob-away-ai, #lob-max-players, #lob-practice-mins, #lob-quali-mins, #lob-wknd-laps, #lob-wknd-mins').forEach(el => el.disabled=true);
     }
     // Show code bar for host
     const bar = document.getElementById('lobby-host-code-bar');
@@ -16656,9 +16715,12 @@ const Game = {
     mkSlider('lob-quali-mins','lob-quali-mins-val',' Min','qualiMins');
     mkSlider('lob-wknd-laps','lob-wknd-laps-val',' Runden','wkndRaceLaps');
     mkSlider('lob-wknd-mins','lob-wknd-mins-val',' Min','wkndRaceMins');
+    mkSlider('lob-max-players','lob-max-players-val','','maxPlayers');
     // Collisions
     const colCb = $('lob-collisions');
     if(colCb){ colCb.disabled=false; colCb.onchange=()=>{ Lobby.settings.collisions=colCb.checked; MP.sendSettings(); }; }
+    const lateJoin=$('lob-late-join'); if(lateJoin){lateJoin.disabled=false;lateJoin.onchange=()=>{Lobby.settings.allowLateJoin=lateJoin.checked;MP.sendSettings();MP._heartbeat();};}
+    const awayAI=$('lob-away-ai'); if(awayAI){awayAI.disabled=false;awayAI.onchange=()=>{Lobby.settings.awayAI=awayAI.checked;MP.sendSettings();};}
     const wkndCb = $('lob-wknd-collisions');
     if(wkndCb){ wkndCb.disabled=false; wkndCb.onchange=()=>{ Lobby.settings.collisions=wkndCb.checked; MP.sendSettings(); }; }
     // Weekend race-type tabs
@@ -16689,6 +16751,7 @@ const Game = {
 
     rooms.forEach(room => {
       const isRacing = room.status === 'racing';
+      const joinBlocked = isRacing && room.allowLateJoin === false;
       const entry = document.createElement('div');
       entry.className = 'srv-entry';
       entry.innerHTML = `
@@ -16701,9 +16764,10 @@ const Game = {
             ${isRacing ? 'RENNEN LÄUFT' : 'LOBBY'}
           </span>
           <div class="srv-players">${room.playerCount}/${room.maxPlayers}</div>
-          <button class="srv-join-btn">BEITRETEN</button>
+          <button class="srv-join-btn" ${joinBlocked?'disabled title="Nachjoinen deaktiviert"':''}>${joinBlocked?'GESCHLOSSEN':'BEITRETEN'}</button>
         </div>`;
       entry.querySelector('.srv-join-btn').onclick = () => {
+        if(joinBlocked) return;
         document.getElementById('mp-join-input').value = room.code;
         document.getElementById('mp-tab-join').click();
         setTimeout(() => document.getElementById('mp-join-btn').click(), 100);
