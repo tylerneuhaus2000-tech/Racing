@@ -22,7 +22,6 @@
       ".git/**",
       ".firebase/**",
       "firebase-debug.log",
-      "assets/tracks/monza_2020_layout.glb",
       "ai-bench.js",
       "usage-dashboard.js",
       "**/.*",
