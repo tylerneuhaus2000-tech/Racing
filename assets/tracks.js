@@ -34,18 +34,7 @@ const TRACKS = [
       [-723,  62, 0],[-691,  16, 0],[-648,  -6, 0],[-620, -10, 0]
     ],
   },
-  {
-    id:'alpen', name:'Bergring Alpental', sub:'Fiktiver Alpenkurs · fließende Kombinationen · 72 m Anstieg',
-    halfWidth:6.0, sky:0x7fb0e6, hill:0x3f6e35, grass:[0x35702c,0x2c6124],
-    pts:[
-      [   0,   0,  0],[ 250, -30,  8],[ 450, -20, 20],[ 562,  82, 32],
-      [ 542, 222, 44],[ 432, 332, 54],[ 302, 422, 62],[ 152, 502, 70],
-      [ -20, 522, 72],[-182, 462, 66],[-262, 332, 56],[-232, 192, 46],
-      [-322,  82, 38],[-462,  42, 30],[-562, -82, 20],[-522,-222, 12],
-      [-382,-302,  6],[-202,-282,  2],[ -82,-162,  0]
-    ],
-    pitLane: { side: -1, idxStart: 8, idxEnd: 100, innerOff: 8.5, outerOff: 17.5 }
-  },
+
   {
     id:'flat', name:'Flugfeld Nord', sub:'Breite Fahrbahn · komplett flach · große Auslaufzonen · mit Boxengasse',
     halfWidth:10.0, sky:0xa8c8e8, hill:0x5a8a4a, grass:[0x4a8a3d,0x3a7530],
@@ -225,17 +214,7 @@ const TRACKS = [
     heading:0, startX:0, startZ:0, startY:0,
     pitLane:{ side:-1, startPct:0.5, endPct:12, innerOff:8.0, outerOff:16.5 }
   },
-  {
-    id:'highspeed-pro', name:'Nordstern High Speed', sub:'High Speed Track · lange Vollgas-Sektoren · harte Bremspunkte',
-    halfWidth:10.5, sky:0x9fc3eb, hill:0x5e8a42, grass:[0x4e8b3a,0x407531],
-    wallDist:64, vergeW:36,
-    pts:[
-      [-960,-180,2],[-620,-180,2],[-260,-170,2],[120,-150,3],[460,-130,4],[760,-70,4],
-      [900,40,5],[930,220,5],[870,400,5],[720,520,6],[500,590,7],[260,620,8],
-      [20,620,8],[-220,580,8],[-420,500,8],[-610,430,7],[-790,320,6],[-920,180,5],[-980,10,3],[-980,-120,2]
-    ],
-    pitLane:{ side:-1, idxStart:16, idxEnd:180, innerOff:12, outerOff:23 }
-  },
+
   /* Oasis Desert Circuit · ~5.8km · Startlinie Mitte der 2000m-Geraden
      N-Gerade 2000m geteilt in 2×1000m. T1=T3 (R=250), T2=T4 (R=80). */
   {

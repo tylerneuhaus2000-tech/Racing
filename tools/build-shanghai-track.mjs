@@ -36,7 +36,7 @@ const track={
 track.aiFullGridPace=true;
 track.aiWorldPace=true;
 const js='/* Generated from the Shanghai GLB raceline mesh. Track-Lab only. */\n'
-  +'for (let i = TRACKS.length - 1; i >= 0; i--) if (TRACKS[i].id === "shanghai-2018") TRACKS.splice(i, 1);\n'
+  +'for (let i = TRACKS.length - 1; i >= 0; i--) if (TRACKS[i].id === "shanghai-2018" || /shanghai/i.test(TRACKS[i].name || "")) TRACKS.splice(i, 1);\n'
   +'TRACKS.push('+JSON.stringify(track)+');\n';
 fs.writeFileSync(trackPath,js);
 const a=pts[0],b=pts[1],heading=Math.atan2(b[0]-a[0],b[1]-a[1])*180/Math.PI;
