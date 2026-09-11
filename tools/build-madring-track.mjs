@@ -56,7 +56,9 @@ const track = {
   mesh: {
     offset: meshOffset,
     rawSurface: true,
-    hideMaterialsAlways: '^rubber\\.001$',
+    // Both decal meshes sit essentially coplanar with the asphalt in the
+    // source GLB. At racing-camera distances that produces severe z-fighting.
+    hideMaterialsAlways: '^(rubber|tyre_skids1)\\.001$',
     fixAlphaMaterials: 'tree|bush|fence|grass|cypress|maple',
     light: { sun: 0.98, hemi: 0.84, exposure: 1 }
   },
