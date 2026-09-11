@@ -5,10 +5,15 @@
  "closed": true,
  "lengthKm": 5.419,
  "halfWidth": 10.5,
- "meshOffset": [
+ "sourceCentroid": [
   -249.81,
   0.81,
   64.37
+ ],
+ "meshOffset": [
+  249.81,
+  -0.81,
+  -64.37
  ],
  "startWorld": [
   83.82,

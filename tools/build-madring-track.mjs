@@ -13,6 +13,7 @@ if (line.lengthKm < 5.35 || line.lengthKm > 5.65) throw new Error(`Implausible M
    that leaves the grid to the west, as marked in the supplied layout. */
 const target = [89, 783];
 const [ox, , oz] = line.meshOffset;
+const meshOffset = line.meshOffset.map(value => -value);
 let start = 0;
 let best = Infinity;
 for (let i = 0; i < line.pts.length; i++) {
@@ -38,7 +39,8 @@ const centerline = {
   closed: true,
   lengthKm: +(measuredLength / 1000).toFixed(3),
   halfWidth: 10.5,
-  meshOffset: line.meshOffset,
+  sourceCentroid: line.meshOffset,
+  meshOffset,
   startWorld: [+(pts[0][0] + ox).toFixed(2), +(pts[0][2] + line.meshOffset[1]).toFixed(2), +(pts[0][1] + oz).toFixed(2)],
   direction: 'west from start/finish',
   n: pts.length,
@@ -50,7 +52,7 @@ const track = {
   name: 'Circuito de Madring',
   sub: 'Madrid · F1-Layout 2026 · 5,47 km · TRACK-LAB',
   meshUrl: 'assets/tracks/madring_2026.glb',
-  mesh: { offset: line.meshOffset, rawSurface: true, light: { sun: 0.98, hemi: 0.84, exposure: 1 } },
+  mesh: { offset: meshOffset, rawSurface: true, light: { sun: 0.98, hemi: 0.84, exposure: 1 } },
   halfWidth: 10.5,
   wallDist: 24,
   kerbW: 3,
