@@ -9,11 +9,17 @@ const line = JSON.parse(fs.readFileSync(candidatePath, 'utf8'));
 if (!Array.isArray(line.pts) || line.pts.length < 300) throw new Error('Madring centerline is incomplete.');
 if (line.lengthKm < 5.35 || line.lengthKm > 5.65) throw new Error(`Implausible Madring length: ${line.lengthKm} km`);
 
-/* The start gantry sits at roughly x=89/z=783 in the GLB. Keep the direction
-   that leaves the grid to the west, as marked in the supplied layout. */
-const target = [89, 783];
+/* The extracted loop follows the lower pit-lane branch at the start complex.
+   Move that section onto the parallel main straight; both ends already merge
+   back into the circuit. */
+const target = [100, 732];
 const [ox, , oz] = line.meshOffset;
 const meshOffset = line.meshOffset.map(value => -value);
+line.pts = line.pts.map((point, index) => {
+  if (index < 155 || index > 192) return point;
+  const blend = Math.sin(Math.PI * (index - 155) / (192 - 155));
+  return [point[0], point[1] - 65 * blend, point[2]];
+});
 let start = 0;
 let best = Infinity;
 for (let i = 0; i < line.pts.length; i++) {
@@ -42,7 +48,7 @@ const centerline = {
   sourceCentroid: line.meshOffset,
   meshOffset,
   startWorld: [+(pts[0][0] + ox).toFixed(2), +(pts[0][2] + line.meshOffset[1]).toFixed(2), +(pts[0][1] + oz).toFixed(2)],
-  direction: 'west from start/finish',
+  direction: 'west on the main straight from start/finish',
   n: pts.length,
   pts
 };
@@ -52,9 +58,15 @@ const track = {
   name: 'Circuito de Madring',
   sub: 'Madrid · F1-Layout 2026 · 5,47 km · TRACK-LAB',
   meshUrl: 'assets/tracks/madring_2026.glb',
-  mesh: { offset: meshOffset, rawSurface: true, light: { sun: 0.98, hemi: 0.84, exposure: 1 } },
+  mesh: {
+    offset: meshOffset,
+    rawSurface: true,
+    hideMaterialsAlways: '^rubber\\.001$',
+    fixAlphaMaterials: 'tree|bush|fence|grass|cypress|maple',
+    light: { sun: 0.98, hemi: 0.84, exposure: 1 }
+  },
   halfWidth: 10.5,
-  wallDist: 24,
+  wallDist: 14,
   kerbW: 3,
   vergeW: 10,
   sky: 0xa8c4e8,
@@ -63,7 +75,7 @@ const track = {
   startFinishPct: 0,
   startGridPct: 99,
   env: 'city',
-  noWalls: true,
+  noWalls: false,
   containCars: true,
   pts
 };

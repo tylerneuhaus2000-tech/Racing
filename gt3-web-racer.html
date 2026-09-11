@@ -4403,7 +4403,29 @@ class Track {
       const hideMatRe = cfg.hideMaterials
         ? (cfg.hideMaterials instanceof RegExp ? cfg.hideMaterials : new RegExp(cfg.hideMaterials, 'i'))
         : null;
+      const hideAlwaysRe = cfg.hideMaterialsAlways
+        ? (cfg.hideMaterialsAlways instanceof RegExp ? cfg.hideMaterialsAlways : new RegExp(cfg.hideMaterialsAlways, 'i'))
+        : null;
+      const fixAlphaRe = cfg.fixAlphaMaterials
+        ? (cfg.fixAlphaMaterials instanceof RegExp ? cfg.fixAlphaMaterials : new RegExp(cfg.fixAlphaMaterials, 'i'))
+        : null;
       let hiddenGround = 0;
+      if(hideAlwaysRe || fixAlphaRe){
+        root.traverse(o => {
+          if(!o.isMesh) return;
+          const materials = Array.isArray(o.material) ? o.material : [o.material];
+          const label = materials.map(m => (m && m.name) || '').join(' ') + ' ' + (o.name || '');
+          if(hideAlwaysRe && hideAlwaysRe.test(label)){ o.visible = false; hiddenGround++; return; }
+          if(fixAlphaRe && fixAlphaRe.test(label)) materials.forEach(m => {
+            if(!m) return;
+            m.transparent = false;
+            m.alphaTest = 0.35;
+            m.depthWrite = true;
+            m.side = THREE.DoubleSide;
+            m.needsUpdate = true;
+          });
+        });
+      }
       /* rawSurface: nichts ausblenden — die GLB IST die Strecke. */
       if(!cfg.rawSurface && cfg.hideGround !== false){
         root.updateMatrixWorld(true);
