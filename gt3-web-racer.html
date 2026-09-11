@@ -4420,9 +4420,14 @@ class Track {
         root.traverse(o => {
           if(!o.isMesh) return;
           const materials = Array.isArray(o.material) ? o.material : [o.material];
-          const label = materials.map(m => (m && m.name) || '').join(' ') + ' ' + (o.name || '');
-          if(hideAlwaysRe && hideAlwaysRe.test(label)){ o.visible = false; hiddenGround++; return; }
-          if(cleanMatRe && cleanMatRe.test(label)) materials.forEach(m => {
+          const names = materials.map(m => (m && m.name) || '');
+          const objectName = o.name || '';
+          /* Test material and object names separately. Appending the object name
+             broke anchored rules such as ^tarmac$ and ^wall8$: the tested text
+             became e.g. "tarmac Object_42", so Shanghai's cleanup never ran. */
+          const matches = re => names.some(name => re.test(name)) || re.test(objectName);
+          if(hideAlwaysRe && matches(hideAlwaysRe)){ o.visible = false; hiddenGround++; return; }
+          if(cleanMatRe && matches(cleanMatRe)) materials.forEach(m => {
             if(!m) return;
             /* Preserve the imported road geometry and lighting, but discard
                broken UV-driven maps. Used by source assets whose asphalt map
@@ -4434,7 +4439,7 @@ class Track {
             if('metalness' in m) m.metalness = 0;
             m.needsUpdate = true;
           });
-          if(fixAlphaRe && fixAlphaRe.test(label)) materials.forEach(m => {
+          if(fixAlphaRe && matches(fixAlphaRe)) materials.forEach(m => {
             if(!m) return;
             m.transparent = false;
             m.alphaTest = 0.35;
