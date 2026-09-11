@@ -12,13 +12,22 @@ if (line.lengthKm < 5.35 || line.lengthKm > 5.65) throw new Error(`Implausible M
 /* The extracted loop follows the lower pit-lane branch at the start complex.
    Move that section onto the parallel main straight; both ends already merge
    back into the circuit. */
-const target = [100, 732];
+const target = [100, 822];
 const [ox, , oz] = line.meshOffset;
 const meshOffset = line.meshOffset.map(value => -value);
 line.pts = line.pts.map((point, index) => {
   if (index < 155 || index > 192) return point;
-  const blend = Math.sin(Math.PI * (index - 155) / (192 - 155));
-  return [point[0], point[1] - 65 * blend, point[2]];
+  const worldX = point[0] + ox;
+  const anchors = [[-128, 0], [-100, 0], [100, 29], [300, 11], [445, 0]];
+  let shift = 0;
+  for (let i = 1; i < anchors.length; i++) {
+    if (worldX > anchors[i][0]) continue;
+    const [x0, z0] = anchors[i - 1];
+    const [x1, z1] = anchors[i];
+    shift = z0 + (z1 - z0) * (worldX - x0) / (x1 - x0);
+    break;
+  }
+  return [point[0], point[1] + shift, point[2]];
 });
 let start = 0;
 let best = Infinity;
