@@ -4409,13 +4409,28 @@ class Track {
       const fixAlphaRe = cfg.fixAlphaMaterials
         ? (cfg.fixAlphaMaterials instanceof RegExp ? cfg.fixAlphaMaterials : new RegExp(cfg.fixAlphaMaterials, 'i'))
         : null;
+      const cleanMatRe = cfg.cleanMaterials
+        ? (cfg.cleanMaterials instanceof RegExp ? cfg.cleanMaterials : new RegExp(cfg.cleanMaterials, 'i'))
+        : null;
       let hiddenGround = 0;
-      if(hideAlwaysRe || fixAlphaRe){
+      if(hideAlwaysRe || fixAlphaRe || cleanMatRe){
         root.traverse(o => {
           if(!o.isMesh) return;
           const materials = Array.isArray(o.material) ? o.material : [o.material];
           const label = materials.map(m => (m && m.name) || '').join(' ') + ' ' + (o.name || '');
           if(hideAlwaysRe && hideAlwaysRe.test(label)){ o.visible = false; hiddenGround++; return; }
+          if(cleanMatRe && cleanMatRe.test(label)) materials.forEach(m => {
+            if(!m) return;
+            /* Preserve the imported road geometry and lighting, but discard
+               broken UV-driven maps. Used by source assets whose asphalt map
+               renders as solid black or stretches across whole sectors. */
+            m.map = null; m.normalMap = null; m.roughnessMap = null;
+            m.metalnessMap = null; m.aoMap = null; m.emissiveMap = null;
+            if(m.color) m.color.setHex(Number.isFinite(cfg.cleanMaterialColor) ? cfg.cleanMaterialColor : 0x383c40);
+            if('roughness' in m) m.roughness = 0.9;
+            if('metalness' in m) m.metalness = 0;
+            m.needsUpdate = true;
+          });
           if(fixAlphaRe && fixAlphaRe.test(label)) materials.forEach(m => {
             if(!m) return;
             m.transparent = false;

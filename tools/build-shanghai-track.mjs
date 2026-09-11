@@ -26,9 +26,9 @@ fs.writeFileSync(centerlinePath,JSON.stringify(centerline,null,1)+'\n');
 
 const track={
   id:'shanghai-2018',name:'Shanghai International Circuit',
-  sub:'Shanghai · Grand-Prix-Layout · 5,45 km · TRACK-LAB',
+  sub:'Shanghai · Grand-Prix-Layout · 5,45 km',
   meshUrl:'assets/tracks/shanghai_2018.glb',
-  mesh:{offset:source.meshOffset,scale:source.modelScale,rawSurface:true,hideMaterialsAlways:'^(raceline|skid)$',fixAlphaMaterials:'tree|treeline',light:{sun:0.95,hemi:0.82,exposure:1}},
+  mesh:{offset:source.meshOffset,scale:source.modelScale,rawSurface:true,hideMaterialsAlways:'^(raceline|skid|wall8)$',cleanMaterials:'^tarmac$',cleanMaterialColor:0x3b3f43,fixAlphaMaterials:'tree|treeline',light:{sun:0.95,hemi:0.82,exposure:1}},
   halfWidth:7.3,wallDist:14,kerbW:1.6,vergeW:16,
   sky:0x9fc3eb,hill:0x5e8a42,grass:[0x4e8b3a,0x407531],
   startFinishPct:0,startGridPct:99,env:'stadium',noWalls:false,containCars:true,pts
