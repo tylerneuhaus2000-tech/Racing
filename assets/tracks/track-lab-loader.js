@@ -1,5 +1,5 @@
-/* Shanghai is released. Madring and Spa remain isolated in Track-Lab. */
-document.write('<script src="assets/tracks/shanghai_2018.js?v=20260911d" defer><' + '/script>');
+/* Unfinished circuits stay isolated in Track-Lab. Shanghai is loaded directly
+   by gt3-web-racer.html because it is a released production track. */
 if (new URLSearchParams(location.search).get('trackLab') === '1') {
   for (const src of [
     'assets/tracks/madring_2026.js?v=20260911i',

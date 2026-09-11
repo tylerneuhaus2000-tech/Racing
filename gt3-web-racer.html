@@ -2831,7 +2831,10 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 <script src="assets/tracks/monza-mesh.js?v=20260910h" defer></script>
 <script src="assets/tracks/sachsenring.js?v=20260908a" defer></script>
 <script src="assets/tracks/silverstone-gp-ai.js?v=1" defer></script>
-<script src="assets/tracks/track-lab-loader.js?v=20260911b"></script>
+<!-- Shanghai is a released production track. Load it directly after the base
+     track registry so it is always present on the normal game page. -->
+<script src="assets/tracks/shanghai_2018.js?v=20260911e" defer></script>
+<script src="assets/tracks/track-lab-loader.js?v=20260911c"></script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
 <script>
 /* Alle Fahrzeugmodelle sind mit EXT_meshopt_compression gepackt (ca. 8x kleiner
