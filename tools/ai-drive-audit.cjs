@@ -20,7 +20,16 @@ vm.runInContext([
    Car.prototype.buildMesh = function(){this.group=new THREE.Group();this.parts={};};
    Car.prototype.updateMesh = function(){};`
 ].join('\n'),ctx);
-for (const file of ['assets/tracks.js','assets/tracks/redbull-ring.js','assets/tracks/monza-mesh.js','assets/tracks/sachsenring.js','assets/tracks/silverstone-gp-ai.js'])
+for (const file of [
+  'assets/tracks.js',
+  'assets/tracks/redbull-ring.js',
+  'assets/tracks/monza-mesh.js',
+  'assets/tracks/sachsenring.js',
+  'assets/tracks/silverstone-gp-ai.js',
+  'assets/tracks/shanghai_2018.js',
+  'assets/tracks/madring_2026.js',
+  'assets/tracks/spa_francorchamps_2022.js',
+])
   vm.runInContext(fs.readFileSync(file,'utf8'),ctx);
 if(process.env.AI_GRIP)vm.runInContext('AI_GRIP_CALIBRATION='+Number(process.env.AI_GRIP),ctx);
 if(process.env.AI_DISABLE_LEARNED_LINE)ctx.AI_DISABLE_LEARNED_LINE=true;
