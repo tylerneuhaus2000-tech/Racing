@@ -40,16 +40,17 @@ for (const node of doc.getRoot().listNodes()) {
       if (MATRE && !MATRE.test(mn)) continue;
       if (MATNOT && MATNOT.test(mn)) continue; }
     const pa = prim.getAttribute('POSITION'); if (!pa) continue;
-    const pos = pa.getArray();
     const ia = prim.getIndices(); const idx = ia ? ia.getArray() : null;
-    const nTri = idx ? idx.length / 3 : pos.length / 9;
+    const nTri = idx ? idx.length / 3 : pa.getCount() / 3;
     for (let t = 0; t < nTri; t++) {
       let a, b, c;
-      if (idx) { a = idx[t*3]*3; b = idx[t*3+1]*3; c = idx[t*3+2]*3; }
-      else { a = t*9; b = t*9+3; c = t*9+6; }
-      const A = mvp(M, [pos[a], pos[a+1], pos[a+2]]);
-      const B = mvp(M, [pos[b], pos[b+1], pos[b+2]]);
-      const D = mvp(M, [pos[c], pos[c+1], pos[c+2]]);
+      if (idx) { a = idx[t*3]; b = idx[t*3+1]; c = idx[t*3+2]; }
+      else { a = t*3; b = t*3+1; c = t*3+2; }
+      /* getElement decodiert quantisierte Accessors. getArray liefert bei
+         komprimierten Downloads Rohwerte und vervielfacht die Koordinaten. */
+      const A = mvp(M, pa.getElement(a, []));
+      const B = mvp(M, pa.getElement(b, []));
+      const D = mvp(M, pa.getElement(c, []));
       const u = [B[0]-A[0], B[1]-A[1], B[2]-A[2]], v = [D[0]-A[0], D[1]-A[1], D[2]-A[2]];
       const n = [u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0]];
       const nl = Math.hypot(n[0], n[1], n[2]) || 1;
