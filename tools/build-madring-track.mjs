@@ -9,26 +9,12 @@ const line = JSON.parse(fs.readFileSync(candidatePath, 'utf8'));
 if (!Array.isArray(line.pts) || line.pts.length < 300) throw new Error('Madring centerline is incomplete.');
 if (line.lengthKm < 5.35 || line.lengthKm > 5.65) throw new Error(`Implausible Madring length: ${line.lengthKm} km`);
 
-/* The extracted loop follows the lower pit-lane branch at the start complex.
-   Move that section onto the parallel main straight; both ends already merge
-   back into the circuit. */
-const target = [100, 822];
+/* Until the pit/start complex is rebuilt, place the grid on the broad, open
+   racing surface shown around 49% of the original lap. This point has asphalt
+   and open vertical clearance in the supplied in-game reference. */
+const target = [-360, -805];
 const [ox, , oz] = line.meshOffset;
 const meshOffset = line.meshOffset.map(value => -value);
-line.pts = line.pts.map((point, index) => {
-  if (index < 155 || index > 192) return point;
-  const worldX = point[0] + ox;
-  const anchors = [[-128, 0], [-100, 0], [100, 29], [300, 11], [445, 0]];
-  let shift = 0;
-  for (let i = 1; i < anchors.length; i++) {
-    if (worldX > anchors[i][0]) continue;
-    const [x0, z0] = anchors[i - 1];
-    const [x1, z1] = anchors[i];
-    shift = z0 + (z1 - z0) * (worldX - x0) / (x1 - x0);
-    break;
-  }
-  return [point[0], point[1] + shift, point[2]];
-});
 let start = 0;
 let best = Infinity;
 for (let i = 0; i < line.pts.length; i++) {
@@ -57,7 +43,7 @@ const centerline = {
   sourceCentroid: line.meshOffset,
   meshOffset,
   startWorld: [+(pts[0][0] + ox).toFixed(2), +(pts[0][2] + line.meshOffset[1]).toFixed(2), +(pts[0][1] + oz).toFixed(2)],
-  direction: 'west on the main straight from start/finish',
+  direction: 'temporary open-track grid near the 49% reference point',
   n: pts.length,
   pts
 };
