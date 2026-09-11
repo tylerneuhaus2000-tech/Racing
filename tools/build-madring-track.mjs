@@ -9,10 +9,10 @@ const line = JSON.parse(fs.readFileSync(candidatePath, 'utf8'));
 if (!Array.isArray(line.pts) || line.pts.length < 300) throw new Error('Madring centerline is incomplete.');
 if (line.lengthKm < 5.35 || line.lengthKm > 5.65) throw new Error(`Implausible Madring length: ${line.lengthKm} km`);
 
-/* Until the pit/start complex is rebuilt, place the grid on the broad, open
-   racing surface shown around 49% of the original lap. This point has asphalt
-   and open vertical clearance in the supplied in-game reference. */
-const target = [-360, -805];
+/* Surveyed in Track-Lab on the real start/finish straight. The driver's
+   lateral offset is intentionally ignored: the centerline supplies the grid
+   center while the measured heading confirms the westbound direction. */
+const target = [94.41, 800.10];
 const [ox, , oz] = line.meshOffset;
 const meshOffset = line.meshOffset.map(value => -value);
 let start = 0;
@@ -43,7 +43,7 @@ const centerline = {
   sourceCentroid: line.meshOffset,
   meshOffset,
   startWorld: [+(pts[0][0] + ox).toFixed(2), +(pts[0][2] + line.meshOffset[1]).toFixed(2), +(pts[0][1] + oz).toFixed(2)],
-  direction: 'temporary open-track grid near the 49% reference point',
+  direction: 'westbound at surveyed start/finish (heading -79.67 degrees)',
   n: pts.length,
   pts
 };
@@ -55,10 +55,12 @@ const track = {
   meshUrl: 'assets/tracks/madring_2026.glb',
   mesh: {
     offset: meshOffset,
-    rawSurface: true,
-    // Both decal meshes sit essentially coplanar with the asphalt in the
-    // source GLB. At racing-camera distances that produces severe z-fighting.
-    hideMaterialsAlways: '^(rubber|tyre_skids1)\\.001$',
+    /* The source road UVs and its separate line/decal layers are damaged.
+       Keep the real scenery and walls, but draw a clean road ribbon along the
+       extracted asphalt centerline and suppress every broken source layer. */
+    rawSurface: false,
+    hideGround: false,
+    hideMaterialsAlways: '^(TarmacDark|rubber|tyre_skids1|Line_White|main_kerbs)\\.001$',
     fixAlphaMaterials: 'tree|bush|fence|grass|cypress|maple',
     light: { sun: 0.98, hemi: 0.84, exposure: 1 }
   },
