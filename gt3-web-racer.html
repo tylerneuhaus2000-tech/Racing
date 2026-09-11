@@ -14746,6 +14746,14 @@ const Game = {
       if(Number.isInteger(champTrackIdx)) this.selTrack = champTrackIdx;
     }
     const trackDef = this.getSelectedTrack();
+    /* Track-Lab can persist a manually surveyed grid position without changing
+       production track data. This is applied before Track builds its samples. */
+    if(new URLSearchParams(location.search).get('trackLab') === '1'){
+      try{
+        const saved = JSON.parse(localStorage.getItem('gridline-tracklab-start:'+trackDef.id) || 'null');
+        if(saved && Number.isFinite(saved.percent)) trackDef.startGridPct = clamp(saved.percent, 0, 100);
+      }catch(e){}
+    }
     this.trackDef = trackDef;
     this.buildScene(trackDef);
     // Pre-compute minimum-curvature racing line while loading screen is visible
@@ -17299,6 +17307,72 @@ const Game = {
     g.fillRect(ox+(pts[0][0]-minX)*sc-3, oy+(pts[0][1]-minZ)*sc-3, 6, 6);
   }
 };
+
+/* ======================= TRACK-LAB VERMESSUNG =======================
+   Intentionally unavailable on the normal production URL. It lets a tester
+   drive to a real-world reference, record the exact position and reproduce it
+   on the next restart instead of guessing coordinates from the GLB. */
+if(new URLSearchParams(location.search).get('trackLab') === '1'){
+  const requireCar = () => {
+    if(!Game.car || !Game.track) throw new Error('Zuerst eine Track-Lab-Fahrt starten.');
+    return Game.car;
+  };
+  const readPosition = () => {
+    const car = requireCar();
+    const q = Game.track.query(car.pos, car.sampleIdx);
+    const idx = q.idx;
+    const percent = idx / Math.max(1, Game.track.N - 1) * 100;
+    const off = Game.track.def.mesh?.offset || [0,0,0];
+    const data = {
+      track: Game.track.def.id,
+      game: {x:+car.pos.x.toFixed(2), y:+car.pos.y.toFixed(2), z:+car.pos.z.toFixed(2)},
+      glb: {x:+(car.pos.x-off[0]).toFixed(2), y:+(car.pos.y-off[1]).toFixed(2), z:+(car.pos.z-off[2]).toFixed(2)},
+      headingDeg:+(car.heading*180/Math.PI).toFixed(2),
+      centerlineIndex:idx,
+      percent:+percent.toFixed(4),
+      lateral:+q.lat.toFixed(2)
+    };
+    console.table(data);
+    console.log('TRACK-LAB STARTDATEN:', JSON.stringify(data));
+    return data;
+  };
+  window.TrackLab = Object.freeze({
+    help(){
+      console.log('TrackLab.pos()  – aktuelle Koordinaten anzeigen');
+      console.log('TrackLab.start() – aktuelle Position als Test-Start speichern und kopieren');
+      console.log('TrackLab.goto(x, z, richtungGrad) – Auto versetzen');
+    },
+    pos: readPosition,
+    start(){
+      const data = readPosition();
+      localStorage.setItem('gridline-tracklab-start:'+data.track, JSON.stringify(data));
+      Game.track.def.startGridPct = data.percent;
+      if(navigator.clipboard?.writeText) navigator.clipboard.writeText(JSON.stringify(data)).catch(()=>{});
+      if(Game._showFlash) Game._showFlash('TRACK-LAB START GESPEICHERT', '#20e080', 2600);
+      console.log('Gespeichert. Rennen neu starten; anschließend diese STARTDATEN im Chat einfügen.');
+      return data;
+    },
+    goto(x,z,headingDeg){
+      const car = requireCar();
+      x=Number(x); z=Number(z); headingDeg=Number(headingDeg);
+      if(!Number.isFinite(x)||!Number.isFinite(z)) throw new Error('Beispiel: TrackLab.goto(-110, -869, 180)');
+      const probe = new THREE.Vector3(x,car.pos.y,z);
+      const q = Game.track.query(probe, car.sampleIdx);
+      const s = Game.track.samples[q.idx];
+      car.pos.set(x,s.pos.y,z);
+      car.heading = Number.isFinite(headingDeg) ? headingDeg*Math.PI/180 : Math.atan2(s.tan.x,s.tan.z);
+      car.sampleIdx=q.idx; car.vx=0; car.vy=0; car.yawRate=0;
+      if(car.updateMesh) car.updateMesh(0);
+      return readPosition();
+    },
+    clear(){
+      const id=Game.track?.def?.id;
+      if(id) localStorage.removeItem('gridline-tracklab-start:'+id);
+      console.log('Gespeicherten Track-Lab-Start gelöscht.');
+    }
+  });
+  console.log('[Track-Lab] Vermessung bereit. Hilfe: TrackLab.help()');
+}
 
 addEventListener('DOMContentLoaded',()=>Game.boot());
 </script>
