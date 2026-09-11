@@ -8049,7 +8049,7 @@ class AIDriver {
       /* Volle Silverstone-Felder bekommen nach der Startformation ebenfalls
          Rennpace. Die frühere 0.42-Kappe erzeugte Runden um 3:30 und hielt
          selbst Hypercars im GT3-Verkehr fest. */
-      if(track?.def?.id==='silverstone-gp') return AI_GRIP_CALIBRATION;
+      if(track?.def?.id==='silverstone-gp' || track?.def?.aiFullGridPace) return AI_GRIP_CALIBRATION;
       return 0.42;
     }
     const blend=clamp((this.skill-0.90)/0.10,0,1);
@@ -8825,11 +8825,12 @@ class AIDriver {
     const speed = Math.abs(v);
     this._carClass=car.def.classType;
     const raceTime=typeof Game!=='undefined' ? (Game._raceTimeS||0) : 999;
-    const skillBoost=this.fieldSize>=20 && track.def.id==='silverstone-gp'
+    const worldPaceTrack=track.def.id==='silverstone-gp' || !!track.def.aiWorldPace;
+    const skillBoost=this.fieldSize>=20 && worldPaceTrack
       ? 1 : clamp((this.skill-0.90)/0.10,0,1);
     const formationFade=this.fieldSize>=20 && typeof Game!=='undefined' && Game._formationPhase ? 0 : 1;
     const enduranceClass=['gt3','lmp2','hypercar'].includes(car.def.classType);
-    const wrBoost=track.def.id==='silverstone-gp' && enduranceClass
+    const wrBoost=worldPaceTrack && enduranceClass
       ? skillBoost*formationFade : 0;
     const maxPowerBoost=car.def.classType==='gt3' ? 1.45 : 1.25;
     car._aiPaceBoost=wrBoost>0 ? {grip:lerp(1,1.62,wrBoost),power:lerp(1,maxPowerBoost,wrBoost)} : null;
