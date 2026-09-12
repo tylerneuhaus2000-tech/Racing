@@ -6781,9 +6781,15 @@ class Car {
         /* Ausfall-Wurf: NUR beim Einlenken (nicht beim Bremsen), wenn die
            Klappe eben noch offen war und man mit Tempo reindreht. Selten,
            mit Cooldown, damit es nicht kettet. */
-        /* Ein normales Einlenken darf keinen zufälligen Totalausfall erzeugen.
-           DRS schließt mechanisch; Schäden entstehen ausschließlich durch
-           echte Kontakte im Schadensmodell. */
+        if(input.brake <= 0.04 && drsWasOpen > 0.6 && Math.abs(input.steer) > 0.15
+           && speed > 55 && (this._drsJamCD || 0) <= 0){
+          this._drsJamCD = 12;
+          if(Math.random() < 0.02){
+            this.drsJammed = true;
+            if(typeof Game !== 'undefined' && typeof Game._showFlash === 'function')
+              Game._showFlash('DRS KLEMMT — HECK WEG!', '#ff2e3d', 2600);
+          }
+        }
       } else {
         /* Manuell: DRS öffnet nur solange die Taste (F) gehalten wird und
            man schnell genug ist, nicht bremst und fast geradeaus fährt. */
