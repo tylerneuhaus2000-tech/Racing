@@ -2833,7 +2833,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 <!-- Shanghai is a released production track. Load it directly after the base
      track registry so it is always present on the normal game page. -->
 <script src="assets/tracks/shanghai_2018.js?v=20260911e" defer></script>
-<script src="assets/tracks/track-lab-loader.js?v=20260912a"></script>
+<script src="assets/tracks/track-lab-loader.js?v=20260912b"></script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
 <script>
 /* Alle Fahrzeugmodelle sind mit EXT_meshopt_compression gepackt (ca. 8x kleiner
@@ -6848,6 +6848,32 @@ class Car {
     muF *= (dmgMods.gripFL + dmgMods.gripFR) / 2;
     muR *= (dmgMods.gripRL + dmgMods.gripRR) / 2;
 
+    /* Kuppenentlastung für Strecken mit starkem Höhenprofil. Die Wirkung wird
+       nur in einem explizit markierten Abschnitt aktiv und hängt sowohl vom
+       Tempo als auch von der tatsächlich gemessenen konvexen Kuppe ab. */
+    const crestDef = track.def.crestTraction;
+    if(crestDef && q && track.samples?.length){
+      const pct = ((q.idx / track.N) * 100 + 100) % 100;
+      const inRange = crestDef.startPct <= crestDef.endPct
+        ? pct >= crestDef.startPct && pct <= crestDef.endPct
+        : pct >= crestDef.startPct || pct <= crestDef.endPct;
+      if(inRange){
+        const span = Math.max(2, Math.round(25 / Math.max(track.segLen, 1)));
+        const prev = track.samples[(q.idx - span + track.N) % track.N].pos;
+        const here = track.samples[q.idx].pos;
+        const next = track.samples[(q.idx + span) % track.N].pos;
+        const gradeIn = (here.y - prev.y) / Math.max(1, here.distanceTo(prev));
+        const gradeOut = (next.y - here.y) / Math.max(1, next.distanceTo(here));
+        const crestShape = clamp((gradeIn - gradeOut) / 0.075, 0, 1);
+        const speedRisk = clamp((this.speedKmh - crestDef.minKmh) /
+          Math.max(1, crestDef.maxKmh - crestDef.minKmh), 0, 1);
+        const unload = crestShape * speedRisk * (crestDef.maxUnload ?? .5);
+        muF *= 1 - unload * .72;
+        muR *= 1 - unload;
+        this._crestUnload = unload;
+      } else this._crestUnload = 0;
+    } else this._crestUnload = 0;
+
     /* --- DRS-Defekt: Klappe klemmt offen -> Heckflügel stallt.
        Sobald man lenkt bricht das Heck weg (muR ~1/5), das löst den Dreher
        aus; während sich das Auto dreht bleibt praktisch kein Grip, bis es
@@ -7505,7 +7531,7 @@ class Car {
     this.bodyRoll = lerp(this.bodyRoll||0, rollTgt, 1-Math.exp(-dt*6));
     this.group.rotation.x = this.bodyPitch;
     this.group.rotation.z = this.bodyRoll;
-    this.group.position.y = this.pos.y + serviceLift;
+    this.group.position.y = this.pos.y + serviceLift + (this._track?.def?.visualCarYOffset || 0);
 
     /* Räder: Spin im inneren, Lenkwinkel im äußeren Group + Aufhängungs-Höhe pro Rad
        Aufhängung: vorne+hinten reagieren auf Pitch (Lastverlagerung längs),

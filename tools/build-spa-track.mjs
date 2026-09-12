@@ -12,7 +12,10 @@ const track={
   halfWidth:7.6,wallDist:14,kerbW:1.8,vergeW:14,
   sky:0x9fc3eb,hill:0x5e8a42,grass:[0x4e8b3a,0x407531],
   startFinishPct:0,startGridPct:99,env:'forest',noWalls:false,containCars:true,
-  pitLane:{side:-1,startPct:94,endPct:8,innerOff:10,outerOff:24},
+  // The imported GLB already contains the real pit complex. A generated lane
+  // cuts through its buildings and must not be layered over the raw surface.
+  visualCarYOffset:.16,
+  crestTraction:{startPct:14.35,endPct:16.95,minKmh:205,maxKmh:255,maxUnload:.58},
   pts:source.pts,aiFullGridPace:true,aiWorldPace:true
 };
 const js='/* Generated from the Spa GLB road geometry and complete GP route. Track-Lab only. */\n'
