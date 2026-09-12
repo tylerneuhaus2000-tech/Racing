@@ -2827,7 +2827,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 <script src="assets/vehicle-animation.js?v=1" defer></script>
 <script src="assets/meshopt_decoder.js" defer></script>
 <script src="assets/tracks.js?v=20260911d" defer></script>
-<script src="assets/tracks/redbull-ring.js?v=20260908b" defer></script>
+<script src="assets/tracks/redbull-ring.js?v=20260912a" defer></script>
 <script src="assets/tracks/monza-mesh.js?v=20260910h" defer></script>
 <script src="assets/tracks/silverstone-gp-ai.js?v=1" defer></script>
 <!-- Shanghai is a released production track. Load it directly after the base
@@ -4504,7 +4504,9 @@ class Track {
 
       const off = cfg.offset || [0,0,0];
       root.position.set(off[0] || 0, off[1] || 0, off[2] || 0);
+      if(Number.isFinite(cfg.rotX))  root.rotation.x = cfg.rotX;
       if(Number.isFinite(cfg.rotY))  root.rotation.y = cfg.rotY;
+      if(Number.isFinite(cfg.rotZ))  root.rotation.z = cfg.rotZ;
       if(Number.isFinite(cfg.scale)) root.scale.setScalar(cfg.scale);
 
       this.group.add(root);
