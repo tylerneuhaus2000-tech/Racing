@@ -2828,7 +2828,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 <script src="assets/meshopt_decoder.js" defer></script>
 <script src="assets/tracks.js?v=20260911d" defer></script>
 <script src="assets/tracks/redbull-ring.js?v=20260913b" defer></script>
-<script src="assets/tracks/spa_francorchamps_2022.js?v=20260913a" defer></script>
+<script src="assets/tracks/spa_francorchamps_2022.js?v=20260913b" defer></script>
 <script src="assets/tracks/monza-mesh.js?v=20260910h" defer></script>
 <script src="assets/tracks/silverstone-gp-ai.js?v=1" defer></script>
 <!-- Shanghai is a released production track. Load it directly after the base
@@ -5852,9 +5852,13 @@ class Track {
   query(pos, lastIdx){
     const S=this.samples,N=this.N;
     let best=lastIdx, bd=Infinity;
-    // Window scales with segment density; covers at least ±150m to handle
-    // tracks that loop close to themselves (e.g. Nürburgring pit straight).
-    const K = Math.max(60, Math.ceil(150 / this.segLen));
+    /* Follow the current branch of the circuit locally. A 150 m search window
+       could jump to a nearby return leg in hairpins (La Source in Spa), which
+       made the lateral distance spike and created a wall straight across the
+       visible road. Cars move only a few metres per physics tick, so 45 m in
+       either direction leaves ample recovery room without crossing branches. */
+    const queryWindowM = Number.isFinite(this.def.queryWindowM) ? this.def.queryWindowM : 45;
+    const K = Math.max(12, Math.ceil(queryWindowM / this.segLen));
     for(let k=-K;k<=K;k++){
       const i=((lastIdx+k)%N+N)%N;
       const dx=pos.x-S[i].pos.x, dz=pos.z-S[i].pos.z;
@@ -7547,7 +7551,12 @@ class Car {
     /* Roll beim Kurvenfahren */
     const rollTgt = clamp(ay*0.005, -0.08, 0.08);
     this.bodyRoll = lerp(this.bodyRoll||0, rollTgt, 1-Math.exp(-dt*6));
-    this.group.rotation.x = this.bodyPitch;
+    /* Align the whole car with the road gradient. Previously only suspension
+       pitch was rendered, leaving cars horizontal on Eau Rouge and Spielberg
+       and making one axle visibly float above the asphalt. */
+    const roadPitch = -Math.atan(this.query?.slope || 0);
+    this.trackPitch = lerp(this.trackPitch || roadPitch, roadPitch, 1-Math.exp(-dt*12));
+    this.group.rotation.x = this.trackPitch + this.bodyPitch;
     this.group.rotation.z = this.bodyRoll;
     this.group.position.y = this.pos.y + serviceLift + (this._track?.def?.visualCarYOffset || 0);
 
