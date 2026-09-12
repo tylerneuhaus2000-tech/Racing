@@ -18,8 +18,8 @@ const track={
   crestTraction:{startPct:14.35,endPct:16.95,minKmh:205,maxKmh:255,maxUnload:.58},
   pts:source.pts,aiFullGridPace:true,aiWorldPace:true
 };
-const js='/* Generated from the Spa GLB road geometry and complete GP route. Track-Lab only. */\n'
- +'for (let i = TRACKS.length - 1; i >= 0; i--) if (TRACKS[i].id === "spa-francorchamps-2022") TRACKS.splice(i, 1);\n'
+const js='/* Generated from the Spa GLB road geometry and complete GP route. */\n'
+ +'for (let i = TRACKS.length - 1; i >= 0; i--) if (TRACKS[i].id === "spa-francorchamps-2022" || TRACKS[i].id === "custom_1782743640261") TRACKS.splice(i, 1);\n'
  +'TRACKS.push('+JSON.stringify(track)+');\n';
 fs.writeFileSync(outputPath,js);
 console.log(`Spa: ${source.pts.length} points, ${source.lengthKm.toFixed(3)} km`);

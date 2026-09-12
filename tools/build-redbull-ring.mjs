@@ -7,7 +7,7 @@ const cut=Math.round(source.pts.length*.96)%source.pts.length;
 const pts=source.pts.slice(cut).concat(source.pts.slice(0,cut));
 const track={id:'redbullring-custom',name:'Red Bull Ring',sub:'Spielberg · Grand-Prix-Kurs · echtes Höhenprofil',
   meshUrl:'assets/tracks/redbull_ring_2025_layout.glb',
-  mesh:{offset:source.meshOffset,rawSurface:true,fixAlphaMaterials:'fence|tree|glass',light:{sun:.95,hemi:.82,exposure:1}},
+  mesh:{offset:source.meshOffset,rawSurface:true,fixAlphaMaterials:'fence|tree|glass',fixAllBlendMaterials:true,light:{sun:.95,hemi:.82,exposure:1}},
   halfWidth:8.2,wallDist:12,kerbW:2.5,vergeW:12,sky:0x9fc3eb,hill:0x5e8a42,grass:[0x4e8b3a,0x407531],
   startFinishPct:0,startGridPct:99,env:'forest',noWalls:true,containCars:true,visualCarYOffset:.12,
   pts,aiFullGridPace:true,aiWorldPace:true};

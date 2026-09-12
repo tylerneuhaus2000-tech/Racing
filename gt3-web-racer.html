@@ -2827,7 +2827,8 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 <script src="assets/vehicle-animation.js?v=1" defer></script>
 <script src="assets/meshopt_decoder.js" defer></script>
 <script src="assets/tracks.js?v=20260911d" defer></script>
-<script src="assets/tracks/redbull-ring.js?v=20260912a" defer></script>
+<script src="assets/tracks/redbull-ring.js?v=20260913b" defer></script>
+<script src="assets/tracks/spa_francorchamps_2022.js?v=20260913a" defer></script>
 <script src="assets/tracks/monza-mesh.js?v=20260910h" defer></script>
 <script src="assets/tracks/silverstone-gp-ai.js?v=1" defer></script>
 <!-- Shanghai is a released production track. Load it directly after the base
@@ -4411,11 +4412,12 @@ class Track {
       const fixAlphaRe = cfg.fixAlphaMaterials
         ? (cfg.fixAlphaMaterials instanceof RegExp ? cfg.fixAlphaMaterials : new RegExp(cfg.fixAlphaMaterials, 'i'))
         : null;
+      const fixAllBlendMaterials = cfg.fixAllBlendMaterials === true;
       const cleanMatRe = cfg.cleanMaterials
         ? (cfg.cleanMaterials instanceof RegExp ? cfg.cleanMaterials : new RegExp(cfg.cleanMaterials, 'i'))
         : null;
       let hiddenGround = 0;
-      if(hideAlwaysRe || fixAlphaRe || cleanMatRe){
+      if(hideAlwaysRe || fixAlphaRe || fixAllBlendMaterials || cleanMatRe){
         root.traverse(o => {
           if(!o.isMesh) return;
           const materials = Array.isArray(o.material) ? o.material : [o.material];
@@ -4438,7 +4440,7 @@ class Track {
             if('metalness' in m) m.metalness = 0;
             m.needsUpdate = true;
           });
-          if(fixAlphaRe && matches(fixAlphaRe)) materials.forEach(m => {
+          if((fixAlphaRe && matches(fixAlphaRe)) || (fixAllBlendMaterials && materials.some(m => m?.transparent))) materials.forEach(m => {
             if(!m) return;
             m.transparent = false;
             m.alphaTest = 0.35;
@@ -7156,6 +7158,13 @@ class Car {
     const Fdrag = -cDrag * slipDragMul * this.vx * Math.abs(this.vx);
     const Froll = -0.013 * Fz * Math.sign(this.vx);
     let Fslope = -d.mass * G * q.slope * 0.9;
+    /* Hill-hold at a standing start. On steep grids (especially Spielberg)
+       gravity otherwise rolls the car backwards before the driver touches a
+       pedal and the HUD immediately shows reverse gear. */
+    if(Math.abs(this.vx) < 0.35 && input.throttle < 0.02 && input.brake < 0.02){
+      this.vx = 0;
+      Fslope = 0;
+    }
     let Fgrass = 0;
     if(q.surf===SURF.GRASS) Fgrass = -600 * Math.sign(this.vx) * clamp(speed,0,1);
 
