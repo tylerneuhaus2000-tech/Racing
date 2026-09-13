@@ -2828,7 +2828,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 <script src="assets/meshopt_decoder.js" defer></script>
 <script src="assets/tracks.js?v=20260911d" defer></script>
 <script src="assets/tracks/redbull-ring.js?v=20260913c" defer></script>
-<script src="assets/tracks/spa_francorchamps_2022.js?v=20260913c" defer></script>
+<script src="assets/tracks/spa_francorchamps_2022.js?v=20260913d" defer></script>
 <script src="assets/tracks/monza-mesh.js?v=20260910h" defer></script>
 <script src="assets/tracks/silverstone-gp-ai.js?v=1" defer></script>
 <!-- Shanghai is a released production track. Load it directly after the base
@@ -6532,6 +6532,7 @@ class Car {
     this.pos.copy(s.pos).addScaledVector(s.side,latOff); this.pos.y=s.pos.y;
     this.heading=Math.atan2(s.tan.x,s.tan.z);
     this.vx=this.vy=this.yawRate=0; this.gear=0; this.rpmRatio=0.12;
+    this._gridHillHold=true;
     this.sampleIdx=((idx%track.N)+track.N)%track.N;
     this.updateMesh(0);
   }
@@ -6545,6 +6546,7 @@ class Car {
     const q=track.query(this.pos,this.sampleIdx);
     this.sampleIdx=q.idx; this.surf=q.surf; this.query=q;
     this._track = track;
+    if(input.throttle > 0.02 || input.brake > 0.02) this._gridHillHold=false;
 
     /* --- Pit-Limiter ---
        Bei aktiviertem Pitlimiter wird Topspeed hart auf 60 km/h gedeckelt.
@@ -7165,7 +7167,7 @@ class Car {
     /* Hill-hold at a standing start. On steep grids (especially Spielberg)
        gravity otherwise rolls the car backwards before the driver touches a
        pedal and the HUD immediately shows reverse gear. */
-    if(Math.abs(this.vx) < 0.35 && input.throttle < 0.02 && input.brake < 0.02){
+    if(this._gridHillHold || (Math.abs(this.vx) < 0.35 && input.throttle < 0.02 && input.brake < 0.02)){
       this.vx = 0;
       Fslope = 0;
     }

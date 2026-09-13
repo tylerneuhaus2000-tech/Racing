@@ -14,7 +14,10 @@ const track={
   startFinishPct:0,startGridPct:99,env:'forest',noWalls:false,containCars:true,
   // The imported GLB already contains the real pit complex. A generated lane
   // cuts through its buildings and must not be layered over the raw surface.
-  visualCarYOffset:.16,
+  // The visible asphalt in this conversion sits above the GLB collision
+  // reference used by the centreline. Keep physics on the measured line and
+  // lift only the rendered cars so wheels/body sit on the visible surface.
+  visualCarYOffset:.62,
   crestTraction:{startPct:14.35,endPct:16.95,minKmh:205,maxKmh:255,maxUnload:.58},
   pts:source.pts,aiFullGridPace:true,aiWorldPace:true
 };
