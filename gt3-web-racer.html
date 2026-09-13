@@ -7343,13 +7343,22 @@ class Car {
       let wz = cos*this.vx - sin*this.vy;
       const into = (wx*q2.side.x + wz*q2.side.z) * sgn;
       if(into > 0){
-        wx -= q2.side.x * sgn * into * 1.25;
-        wz -= q2.side.z * sgn * into * 1.25;
-        wx *= 0.85;
-        wz *= 0.85;
+        const nx=q2.side.x*sgn, nz=q2.side.z*sgn;
+        /* Geschwindigkeitsabhängige Rückfederung: ein langsamer Rempler bleibt
+           ruhig, ein harter Einschlag prallt sichtbar ab. Nur die Bewegung
+           normal zur Wand wird umgekehrt; entlang der Wand wirkt Reibung. */
+        const restitution=lerp(0.12,0.34,clamp((into-1.5)/18,0,1));
+        wx -= nx*into*(1+restitution);
+        wz -= nz*into*(1+restitution);
+        const tangentLoss=clamp(0.025+into*0.006,0.025,0.16);
+        const tangent=wx*(-nz)+wz*nx;
+        wx -= (-nz)*tangent*tangentLoss;
+        wz -= nx*tangent*tangentLoss;
         this.vx = sin*wx + cos*wz;
         this.vy = cos*wx - sin*wz;
-        this.yawRate *= 0.55;
+        const sideInCarX = nx*sin + nz*cos;
+        const sideInCarZ = nx*cos - nz*sin;
+        this.yawRate = clamp(this.yawRate*0.72-sideInCarX*sideInCarZ*into*0.035,-2.8,2.8);
         if(into > 2.2 && sound) sound.impact(into);
         if(typeof Game !== 'undefined') Game.shake = Math.min(1, into*0.08);
         /* --- Schadensanwendung ---
@@ -7358,8 +7367,6 @@ class Car {
         if(into > 1.5){
           const _wn=typeof performance!=='undefined'?performance.now():0;
           if(!this._wcCD||_wn-this._wcCD>500){this.wallContacts=(this.wallContacts||0)+1;this._wcCD=_wn;}
-          const sideInCarX = sgn * (q2.side.x*sin + q2.side.z*cos);   // lateral component (auto-x)
-          const sideInCarZ = sgn * (q2.side.x*cos - q2.side.z*sin);   // longitudinal (auto-z)
           this.applyDamageFromImpact(sideInCarX, sideInCarZ, into);
         }
       }
@@ -9141,8 +9148,17 @@ function setCarWorldVel(c,wx,wz){
   const sin=Math.sin(c.heading), cos=Math.cos(c.heading);
   c.vx=sin*wx+cos*wz; c.vy=cos*wx-sin*wz;
 }
+function carCollisionShape(c,nx,nz){
+  const forwardX=Math.sin(c.heading), forwardZ=Math.cos(c.heading);
+  const sideX=Math.cos(c.heading), sideZ=-Math.sin(c.heading);
+  const cls=c.def?.classType;
+  const halfL=cls==='kart'?0.95:cls==='formula'?2.75:2.35;
+  const halfW=cls==='kart'?0.72:cls==='formula'?1.02:1.04;
+  const along=nx*forwardX+nz*forwardZ;
+  const across=nx*sideX+nz*sideZ;
+  return Math.sqrt((halfL*along)**2+(halfW*across)**2);
+}
 function collideCars(cars){
-  const R=1.8;                                   // Wirkungsradius pro Auto
   for(let i=0;i<cars.length;i++) for(let j=i+1;j<cars.length;j++){
     const a=cars[i], b=cars[j];
     if(a._frozen||b._frozen) continue;
@@ -9152,25 +9168,42 @@ function collideCars(cars){
        && !a.isPlayer && !b.isPlayer) continue;
     let dx=b.pos.x-a.pos.x, dz=b.pos.z-a.pos.z;
     const d=Math.hypot(dx,dz);
-    if(d>=R*2||d<0.001) continue;
-    dx/=d; dz/=d;
-    const push=(R*2-d)/2;
-    a.pos.x-=dx*push; a.pos.z-=dz*push;
-    b.pos.x+=dx*push; b.pos.z+=dz*push;
+    if(d<0.001){ dx=1; dz=0; }
+    else { dx/=d; dz/=d; }
+    const minDist=carCollisionShape(a,dx,dz)+carCollisionShape(b,dx,dz);
+    if(d>=minDist) continue;
+    const invA=1/Math.max(1,a.def?.mass||1300), invB=1/Math.max(1,b.def?.mass||1300);
+    const invSum=invA+invB;
+    /* Leichtes Slop verhindert Zittern bei dauerhaftem Karosseriekontakt. */
+    const correction=Math.max(0,minDist-d-0.025)*0.82/invSum;
+    a.pos.x-=dx*correction*invA; a.pos.z-=dz*correction*invA;
+    b.pos.x+=dx*correction*invB; b.pos.z+=dz*correction*invB;
     const [ax,az]=carWorldVel(a), [bx,bz]=carWorldVel(b);
     const rel=(bx-ax)*dx+(bz-az)*dz;
     if(rel<0){                                    // bewegen sich aufeinander zu
-      const imp=-rel*0.45;
-      setCarWorldVel(a, ax-dx*imp, az-dz*imp);
-      setCarWorldVel(b, bx+dx*imp, bz+dz*imp);
-      a.yawRate*=0.92; b.yawRate*=0.92;
+      const impactSpeed=-rel;
+      const restitution=lerp(0.08,0.30,clamp((impactSpeed-1.5)/18,0,1));
+      const normalImpulse=-(1+restitution)*rel/invSum;
+      const tx=-dz,tz=dx;
+      const relT=(bx-ax)*tx+(bz-az)*tz;
+      const rawFriction=-relT/invSum;
+      const frictionImpulse=clamp(rawFriction,-normalImpulse*0.38,normalImpulse*0.38);
+      const ix=dx*normalImpulse+tx*frictionImpulse;
+      const iz=dz*normalImpulse+tz*frictionImpulse;
+      setCarWorldVel(a,ax-ix*invA,az-iz*invA);
+      setCarWorldVel(b,bx+ix*invB,bz+iz*invB);
+      /* Außermittige Treffer drehen die Autos, frontale Kontakte bleiben stabil. */
+      const aSide=dx*Math.cos(a.heading)-dz*Math.sin(a.heading);
+      const bSide=-dx*Math.cos(b.heading)+dz*Math.sin(b.heading);
+      a.yawRate=clamp(a.yawRate*0.94-aSide*impactSpeed*0.045,-2.8,2.8);
+      b.yawRate=clamp(b.yawRate*0.94-bSide*impactSpeed*0.045,-2.8,2.8);
       /* Contact Counter */
       const _now=typeof performance!=='undefined'?performance.now():0;
       if(!a._ccCD)a._ccCD={};if(!b._ccCD)b._ccCD={};
       const _idA=b._uid||'b',_idB=a._uid||'a';
       if(!a._ccCD[_idA]||_now-a._ccCD[_idA]>500){a.carContacts=(a.carContacts||0)+1;a._ccCD[_idA]=_now;}
       if(!b._ccCD[_idB]||_now-b._ccCD[_idB]>500){b.carContacts=(b.carContacts||0)+1;b._ccCD[_idB]=_now;}
-      const impMag = Math.abs(rel);
+      const impMag = impactSpeed;
       if(impMag>5 && typeof Game!=='undefined' && Game.sound) Game.sound.impact(Math.min(1,impMag/14));
       /* Schadensanwendung nur bei harten Berührungen */
       if(impMag > 4.0){
@@ -10557,36 +10590,35 @@ class LobbyManager {
 class CollisionManager {
   constructor() {
     this.enabled = true;
-    this.RADIUS  = 2.1;  // ~halbe Fahrzeugbreite (GT3: ~2m breit)
-    this.IMPULSE = 6;
   }
   check(localCar, remoteCarsMap) {
     if(!this.enabled || !localCar) return;
-    const sin = Math.sin(localCar.heading), cos = Math.cos(localCar.heading);
     for(const rc of Object.values(remoteCarsMap)) {
       if(!rc.car) continue;
-      const dx = localCar.pos.x - rc.car.pos.x;
-      const dz = localCar.pos.z - rc.car.pos.z;
+      let dx = rc.car.pos.x-localCar.pos.x;
+      let dz = rc.car.pos.z-localCar.pos.z;
       const distSq = dx*dx + dz*dz;
-      if(distSq < this.RADIUS*this.RADIUS && distSq > 0.01) {
-        const dist = Math.sqrt(distSq);
-        const pen = this.RADIUS - dist;
-        const nx = dx/dist, nz = dz/dist;
-        // Positionen separieren
-        localCar.pos.x += nx * pen * 0.5;
-        localCar.pos.z += nz * pen * 0.5;
-        // Weltgeschwindigkeit berechnen (identisch mit Car-Physik-Code)
-        const wx = sin*localCar.vx + cos*localCar.vy;
-        const wz = cos*localCar.vx - sin*localCar.vy;
-        // Nur Impuls anwenden wenn Auto sich auf Gegner zu bewegt
-        const into = wx*nx + wz*nz;
-        if(into < 0) {
-          const imp = -into * 1.5;
-          const nwx = wx + nx*imp;
-          const nwz = wz + nz*imp;
-          localCar.vx = sin*nwx + cos*nwz;
-          localCar.vy = cos*nwx - sin*nwz;
-          if(localCar.yawRate !== undefined) localCar.yawRate *= 0.7;
+      const dist=Math.sqrt(distSq);
+      if(dist<0.001){ dx=1; dz=0; } else { dx/=dist; dz/=dist; }
+      const minDist=carCollisionShape(localCar,dx,dz)+carCollisionShape(rc.car,dx,dz);
+      if(distSq < minDist*minDist) {
+        const pen=Math.max(0,minDist-dist-0.025);
+        localCar.pos.x-=dx*pen*0.55;
+        localCar.pos.z-=dz*pen*0.55;
+        const [lwx,lwz]=carWorldVel(localCar);
+        const remoteProxy={heading:rc.car.heading||0,vx:rc.vx||0,vy:rc.vy||0};
+        const [rwx,rwz]=carWorldVel(remoteProxy);
+        const rel=(rwx-lwx)*dx+(rwz-lwz)*dz;
+        if(rel < 0) {
+          const impactSpeed=-rel;
+          const restitution=lerp(0.08,0.26,clamp((impactSpeed-1.5)/18,0,1));
+          const normalDelta=(1+restitution)*impactSpeed*0.5;
+          const tx=-dz,tz=dx;
+          const relT=(rwx-lwx)*tx+(rwz-lwz)*tz;
+          const frictionDelta=clamp(relT*0.5,-normalDelta*0.38,normalDelta*0.38);
+          setCarWorldVel(localCar,lwx-dx*normalDelta+tx*frictionDelta,lwz-dz*normalDelta+tz*frictionDelta);
+          const side=dx*Math.cos(localCar.heading)-dz*Math.sin(localCar.heading);
+          localCar.yawRate=clamp((localCar.yawRate||0)*0.94-side*impactSpeed*0.045,-2.8,2.8);
           // carContacts für LP-System zählen (500ms Cooldown pro Gegner)
           const _now = performance.now();
           if(!localCar._ccCD) localCar._ccCD = {};
