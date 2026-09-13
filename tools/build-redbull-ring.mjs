@@ -9,7 +9,7 @@ const track={id:'redbullring-custom',name:'Red Bull Ring',sub:'Spielberg · Gran
   meshUrl:'assets/tracks/redbull_ring_2025_layout.glb',
   mesh:{offset:source.meshOffset,rawSurface:true,overlayKerbs:true,anisotropy:16,fixAlphaMaterials:'fence|tree|glass',fixAllBlendMaterials:true,light:{sun:.95,hemi:.82,exposure:1}},
   halfWidth:8.2,wallDist:12,kerbW:2.5,vergeW:12,sky:0x9fc3eb,hill:0x5e8a42,grass:[0x4e8b3a,0x407531],
-  startFinishPct:0,startGridPct:99,env:'forest',noWalls:true,containCars:true,visualCarYOffset:.58,
+  startFinishPct:0,startGridPct:99,env:'forest',noWalls:true,containCars:true,visualCarYOffset:0,
   pts,aiFullGridPace:true,aiWorldPace:true};
 const js=`/* Generated from the Red Bull Ring GP route fitted to the GLB asphalt. */\nfor (let i=TRACKS.length-1;i>=0;i--) if(TRACKS[i].id==='redbullring-custom') TRACKS.splice(i,1);\nTRACKS.push(${JSON.stringify(track)});\n`;
 fs.writeFileSync('assets/tracks/redbull-ring.js',js);
