@@ -72,13 +72,13 @@ const track = {
     // visible asphalt and the car's ground height are always identical.
     hideMaterials:'^(?:Bahrainv3001791Mtl_(?:2|6|7|10|11|22|26|27|28|37|39|63|67|72|73|74|77|81|87|88|89|90|92|93)|Material_(?:2\\.001|17\\.003|24\\.002|41\\.001)|Merged_materials)$',
     hideGround:true,
-    fixAlphaMaterials:'fence|glass|tree|bush|flag', fixAllBlendMaterials:true,
+    fixAlphaMaterials:'fence|glass|tree|bush|flag',
     light:{sun:1.04,hemi:0.9,exposure:1.04},
   },
   halfWidth:8.5, wallDist:20, kerbW:2.2, vergeW:16,
   sky:0x9fc3eb, hill:0xb69b63, grass:[0x9a854e,0x887542],
   startFinishPct:0, startGridPct:99.7, env:'desert', noWalls:true,
-  containCars:false, visualCarYOffset:0,
+  containCars:false, visualCarYOffset:0, proceduralStartFinish:false,
   pts, aiFullGridPace:true, aiWorldPace:true,
 };
 fs.writeFileSync('assets/tracks/bahrain-gp.js',
