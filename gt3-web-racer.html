@@ -2827,7 +2827,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 <script src="assets/vehicle-animation.js?v=1" defer></script>
 <script src="assets/meshopt_decoder.js" defer></script>
 <script src="assets/tracks.js?v=20260911d" defer></script>
-<script src="assets/tracks/redbull-ring.js?v=20260913c" defer></script>
+<script src="assets/tracks/redbull-ring.js?v=20260913d" defer></script>
 <script src="assets/tracks/spa_francorchamps_2022.js?v=20260913d" defer></script>
 <script src="assets/tracks/monza-mesh.js?v=20260910h" defer></script>
 <script src="assets/tracks/silverstone-gp-ai.js?v=1" defer></script>
@@ -4316,6 +4316,10 @@ class Track {
          begehbare Fläche fürs Boxenstopp-System). */
       if(def.pitLane){ try { this.buildPitLane(); } catch(e){ console.warn('[Track] buildPitLane (raw):', e); } }
       this.buildMeshTrack();
+      /* Some converted circuits omit or bury one side of their kerbs below
+         the asphalt. Rebuild just these narrow edge strips from the measured
+         spline; the imported road and scenery remain untouched. */
+      if(def.mesh.overlayKerbs) this.buildKerbs();
     } else if(def.meshUrl){
       /* Ältere GLB-Strecken (Kartbahn): die FBX-Konvertierung hat Fahrbahn und
          Terrain so verzogen, dass sie nur den Hintergrund durchschreiben.
