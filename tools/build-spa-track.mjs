@@ -8,13 +8,20 @@ const track={
   id:'spa-francorchamps-2022',name:'Circuit de Spa-Francorchamps',
   sub:'Belgien · Grand-Prix-Kurs · 7,00 km · starkes Höhenprofil',
   meshUrl:'assets/tracks/spa_francorchamps_2022.glb',
-  mesh:{offset:source.meshOffset,rawSurface:true,fixAlphaMaterials:'tree|bush|fence|hedge|glass',light:{sun:.94,hemi:.82,exposure:1}},
+  mesh:{offset:source.meshOffset,rawSurface:true,
+    // CURB_B and the joint strip are stray batched ribbons crossing the GP
+    // surface. Keep the proper red/yellow kerb_new geometry from the GLB.
+    hideMaterialsAlways:'^(CURB_B|asph_patch_joint)',
+    fixAlphaMaterials:'tree|bush|fence|hedge|glass',light:{sun:.94,hemi:.82,exposure:1}},
   halfWidth:7.6,wallDist:19,kerbW:1.8,vergeW:14,queryWindowM:42,
   sky:0x9fc3eb,hill:0x5e8a42,grass:[0x4e8b3a,0x407531],
   startFinishPct:0,startGridPct:99,env:'forest',noWalls:false,containCars:true,
   // The imported GLB already contains the real pit complex. A generated lane
   // cuts through its buildings and must not be layered over the raw surface.
   visualCarYOffset:.16,
+  // From Fagnes through Stavelot, Blanchimont and the Bus Stop the imported
+  // runoff is wider than the physical ribbon. Do not invalidate laps there.
+  trackLimitFreeRanges:[[.52,1]],
   crestTraction:{startPct:14.35,endPct:16.95,minKmh:205,maxKmh:255,maxUnload:.58},
   pts:source.pts,aiFullGridPace:true,aiWorldPace:true
 };

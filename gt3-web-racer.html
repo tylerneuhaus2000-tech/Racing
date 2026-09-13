@@ -2828,7 +2828,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 <script src="assets/meshopt_decoder.js" defer></script>
 <script src="assets/tracks.js?v=20260911d" defer></script>
 <script src="assets/tracks/redbull-ring.js?v=20260913f" defer></script>
-<script src="assets/tracks/spa_francorchamps_2022.js?v=20260913f" defer></script>
+<script src="assets/tracks/spa_francorchamps_2022.js?v=20260913g" defer></script>
 <script src="assets/tracks/monza-mesh.js?v=20260910h" defer></script>
 <script src="assets/tracks/silverstone-gp-ai.js?v=1" defer></script>
 <!-- Shanghai is a released production track. Load it directly after the base
@@ -15632,6 +15632,18 @@ const Game = {
     if(this.car.def?.classType === 'kart' && !this.track.def?.kartOnly) return;
     const q = this.car.query;
     const race = this.race;
+    const progress = clamp(q.progress || 0, 0, 1);
+    const freeRanges = this.track.def?.trackLimitFreeRanges;
+    if(Array.isArray(freeRanges) && freeRanges.some(range => {
+      if(!Array.isArray(range) || range.length < 2) return false;
+      const a=clamp(Number(range[0])||0,0,1), b=clamp(Number(range[1])||0,0,1);
+      return a<=b ? progress>=a&&progress<=b : progress>=a||progress<=b;
+    })){
+      race.offTrackTime = 0;
+      race.hardCutScore = 0;
+      race.prevProgForLimits = progress;
+      return;
+    }
     const edge = this.track.halfW + this.track.kerbW + 0.6;
     const latExcess = Math.max(0, Math.abs(q.lat) - edge);
     const speed = this.car.speedKmh;
@@ -15643,7 +15655,7 @@ const Game = {
       race.offTrackTime = Math.max(0, (race.offTrackTime || 0) - dt * 1.3);
       race.hardCutScore = Math.max(0, (race.hardCutScore || 0) - dt * 0.8);
     }
-    const p = clamp(q.progress || 0, 0, 1);
+    const p = progress;
     const prev = race.prevProgForLimits == null ? p : race.prevProgForLimits;
     let dProg = p - prev;
     if(dProg < -0.5) dProg += 1;
