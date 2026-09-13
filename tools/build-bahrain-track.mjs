@@ -8,47 +8,24 @@ vm.runInContext(fs.readFileSync('assets/tracks.js', 'utf8') + '\nglobalThis.__tr
 const base = context.__tracks.find(track => track.id === 'bahrain-custom');
 if (!base) throw new Error('Legacy Bahrain centerline is missing');
 const fit = JSON.parse(fs.readFileSync('tools/data/bahrain-gp.fit.json', 'utf8'));
-if (fit.ptsY.length !== base.pts.length) throw new Error('Bahrain height sample count does not match centerline');
-
-const circular = (arr, i) => arr[(i + arr.length) % arr.length];
-let heights = fit.ptsY.map((_, i) => {
-  const window = [];
-  for (let d = -7; d <= 7; d++) window.push(circular(fit.ptsY, i + d));
-  window.sort((a, b) => a - b);
-  return window[window.length >> 1];
-});
-for (let pass = 0; pass < 2; pass++) {
-  heights = heights.map((v, i) =>
-    (circular(heights, i - 2) + 2*circular(heights, i - 1) + 4*v +
-     2*circular(heights, i + 1) + circular(heights, i + 2)) / 10);
-}
-
-// Bahrain's GP surface has gradual elevation changes. Limit remaining local
-// jumps from elevated scenery to a plausible road grade in both directions.
-for (let pass = 0; pass < 500; pass++) {
-  for (let i = 0; i < heights.length; i++) {
-    const j = (i + 1) % heights.length;
-    const ds = Math.hypot(base.pts[j][0]-base.pts[i][0], base.pts[j][1]-base.pts[i][1]);
-    if (ds < 0.1) continue;
-    const maxDelta = ds * 0.085 / fit.mesh.scale;
-    const delta = heights[j] - heights[i];
-    if (Math.abs(delta) > maxDelta) {
-      const correction = (Math.abs(delta)-maxDelta) * 0.5 * Math.sign(delta);
-      heights[i] += correction;
-      heights[j] -= correction;
-    }
-  }
-}
-
+const exact = JSON.parse(fs.readFileSync('tools/data/bahrain-exact-heights.json', 'utf8'));
 const scale = fit.mesh.scale;
-let pts = base.pts.map((point, i) => [
-  +point[0].toFixed(3), +point[1].toFixed(3), +(heights[i] * scale).toFixed(3),
-]);
-// The legacy line repeats its first X/Z point at the end, while the surface
-// fitter may pick a different overlapping mesh layer for that duplicate. A
-// zero-length closing segment with two Y values creates a vertical seam at
-// start/finish. Remove the duplicate and grade-limit the real closing segment.
-if(Math.hypot(pts.at(-1)[0]-pts[0][0],pts.at(-1)[1]-pts[0][1])<0.05) pts.pop();
+const circular = (arr, i) => arr[(i + arr.length) % arr.length];
+let sourcePts = base.pts.slice();
+if(Math.hypot(sourcePts.at(-1)[0]-sourcePts[0][0],sourcePts.at(-1)[1]-sourcePts[0][1])<0.05) sourcePts.pop();
+if(exact.length !== sourcePts.length) throw new Error('Exact Bahrain surface sample count does not match centerline');
+
+// Exact triangle intersections contain occasional scenery/underlay layers.
+// A circular median rejects those isolated layers, then a light five-tap
+// filter removes triangle-edge noise without flattening Bahrain's elevation.
+let heights=exact.map((_,i)=>{
+  const w=[];for(let d=-4;d<=4;d++)w.push(circular(exact,i+d));
+  w.sort((a,b)=>a-b);return w[w.length>>1];
+});
+for(let pass=0;pass<2;pass++)heights=heights.map((v,i)=>(
+  circular(heights,i-2)+2*circular(heights,i-1)+4*v+
+  2*circular(heights,i+1)+circular(heights,i+2))/10);
+let pts=sourcePts.map((point,i)=>[+point[0].toFixed(3),+point[1].toFixed(3),+heights[i].toFixed(3)]);
 for(let pass=0;pass<700;pass++){
   for(let i=0;i<pts.length;i++){
     const j=(i+1)%pts.length;
@@ -71,6 +48,17 @@ for(let pass=0;pass<700;pass++){
     }
   }
 }
+// The checked start-line texture in the GLB crosses the long straight between
+// old samples 9 and 10. Insert that physical crossing as an explicit point and
+// rotate the loop there, so timing, containment and the grid share one seam.
+const startAt=9,startT=.272;
+const a=pts[startAt],b=pts[startAt+1];
+const startPoint=[
+  +(a[0]+(b[0]-a[0])*startT).toFixed(3),
+  +(a[1]+(b[1]-a[1])*startT).toFixed(3),
+  +exact[startAt].toFixed(3),
+];
+pts=[startPoint,...pts.slice(startAt+1),...pts.slice(0,startAt+1)];
 const sourceMeanY = -fit.mesh.offset[1];
 const track = {
   id:'bahrain-custom', name:'Bahrain International Circuit',
@@ -84,9 +72,9 @@ const track = {
   },
   halfWidth:8.5, wallDist:20, kerbW:2.2, vergeW:16,
   sky:0x9fc3eb, hill:0xb69b63, grass:[0x9a854e,0x887542],
-  startFinishPct:0, startGridPct:99, env:'desert', noWalls:true,
-  containCars:true, containmentOpenAtFinish:8, visualCarYOffset:0.03,
-  pitLane:{side:-1,idxStart:49,idxEnd:111,innerOff:10,outerOff:20,
+  startFinishPct:0, startGridPct:99.7, env:'desert', noWalls:true,
+  containCars:true, containmentOpenAtFinish:10, visualCarYOffset:0,
+  pitLane:{side:-1,idxStart:40,idxEnd:102,innerOff:10,outerOff:20,
     slowInnerOff:20,slowOuterOff:31,boxStopOff:25,pathHalfWidth:6.5},
   pts, aiFullGridPace:true, aiWorldPace:true,
 };
