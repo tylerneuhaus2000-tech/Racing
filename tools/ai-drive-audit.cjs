@@ -22,6 +22,7 @@ vm.runInContext([
 ].join('\n'),ctx);
 for (const file of [
   'assets/tracks.js',
+  'assets/tracks/bahrain-gp.js',
   'assets/tracks/redbull-ring.js',
   'assets/tracks/monza-mesh.js',
   'assets/tracks/sachsenring.js',
