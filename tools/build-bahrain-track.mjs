@@ -18,13 +18,9 @@ if(exact.length !== sourcePts.length) throw new Error('Exact Bahrain surface sam
 // Exact triangle intersections contain occasional scenery/underlay layers.
 // A circular median rejects those isolated layers, then a light five-tap
 // filter removes triangle-edge noise without flattening Bahrain's elevation.
-let heights=exact.map((_,i)=>{
-  const w=[];for(let d=-4;d<=4;d++)w.push(circular(exact,i+d));
-  w.sort((a,b)=>a-b);return w[w.length>>1];
-});
+let heights=exact.slice();
 for(let pass=0;pass<2;pass++)heights=heights.map((v,i)=>(
-  circular(heights,i-2)+2*circular(heights,i-1)+4*v+
-  2*circular(heights,i+1)+circular(heights,i+2))/10);
+  circular(heights,i-1)+4*v+circular(heights,i+1))/6);
 let pts=sourcePts.map((point,i)=>[+point[0].toFixed(3),+point[1].toFixed(3),+heights[i].toFixed(3)]);
 for(let pass=0;pass<700;pass++){
   for(let i=0;i<pts.length;i++){
@@ -33,7 +29,7 @@ for(let pass=0;pass<700;pass++){
     if(ds<0.1) continue;
     // Leave rounding headroom so the serialized three-decimal points stay
     // below the intended 5% road-grade ceiling.
-    const maxDelta=ds*0.05;
+    const maxDelta=ds*0.045;
     const delta=pts[j][2]-pts[i][2];
     if(Math.abs(delta)>maxDelta){
       const excess=(Math.abs(delta)-maxDelta)*Math.sign(delta);
@@ -56,9 +52,25 @@ const a=pts[startAt],b=pts[startAt+1];
 const startPoint=[
   +(a[0]+(b[0]-a[0])*startT).toFixed(3),
   +(a[1]+(b[1]-a[1])*startT).toFixed(3),
-  +exact[startAt].toFixed(3),
+  +(a[2]+(b[2]-a[2])*startT).toFixed(3),
 ];
 pts=[startPoint,...pts.slice(startAt+1),...pts.slice(0,startAt+1)];
+// Inserting and rotating the physical start-line point creates two new
+// neighbour pairs. Relax those pairs as well so the loop seam cannot become a
+// launch ramp even though the pre-rotation profile already passed the limit.
+for(let pass=0;pass<700;pass++){
+  for(let i=0;i<pts.length;i++){
+    const j=(i+1)%pts.length;
+    const ds=Math.hypot(pts[j][0]-pts[i][0],pts[j][1]-pts[i][1]);
+    if(ds<0.1) continue;
+    const limit=ds*0.045, delta=pts[j][2]-pts[i][2];
+    if(Math.abs(delta)>limit){
+      const correction=(Math.abs(delta)-limit)*0.5*Math.sign(delta);
+      pts[i][2]=+(pts[i][2]+correction).toFixed(3);
+      pts[j][2]=+(pts[j][2]-correction).toFixed(3);
+    }
+  }
+}
 const sourceMeanY = -fit.mesh.offset[1];
 const track = {
   id:'bahrain-custom', name:'Bahrain International Circuit',
@@ -66,19 +78,14 @@ const track = {
   meshUrl:'assets/tracks/bahrain_2026.glb',
   mesh:{
     offset:[fit.mesh.offset[0], +(sourceMeanY * -scale).toFixed(3), -87.308],
-    rotY:+(-fit.mesh.rotY).toFixed(6), scale, rawSurface:false,
-    // The source contains overlapping road-like layers at different heights.
-    // Remove them and draw one road ribbon from the physics spline, so the
-    // visible asphalt and the car's ground height are always identical.
-    hideMaterials:'^(?:Bahrainv3001791Mtl_(?:2|6|7|10|11|22|26|27|28|37|39|63|67|72|73|74|77|81|87|88|89|90|92|93)|Material_(?:2\\.001|17\\.003|24\\.002|41\\.001)|Merged_materials)$',
-    hideGround:true,
+    rotY:+(-fit.mesh.rotY).toFixed(6), scale, rawSurface:true,
     fixAlphaMaterials:'fence|glass|tree|bush|flag',
     light:{sun:1.04,hemi:0.9,exposure:1.04},
   },
   halfWidth:8.5, wallDist:20, kerbW:2.2, vergeW:16,
   sky:0x9fc3eb, hill:0xb69b63, grass:[0x9a854e,0x887542],
   startFinishPct:0, startGridPct:99.7, env:'desert', noWalls:true,
-  containCars:false, visualCarYOffset:0, proceduralStartFinish:false,
+  containCars:false, visualCarYOffset:0,
   pts, aiFullGridPace:true, aiWorldPace:true,
 };
 fs.writeFileSync('assets/tracks/bahrain-gp.js',
