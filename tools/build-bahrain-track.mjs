@@ -32,8 +32,8 @@ for(let pass=0;pass<700;pass++){
     const ds=Math.hypot(pts[j][0]-pts[i][0],pts[j][1]-pts[i][1]);
     if(ds<0.1) continue;
     // Leave rounding headroom so the serialized three-decimal points stay
-    // below the intended 8.5% road-grade ceiling.
-    const maxDelta=ds*0.075;
+    // below the intended 5% road-grade ceiling.
+    const maxDelta=ds*0.05;
     const delta=pts[j][2]-pts[i][2];
     if(Math.abs(delta)>maxDelta){
       const excess=(Math.abs(delta)-maxDelta)*Math.sign(delta);
@@ -66,7 +66,12 @@ const track = {
   meshUrl:'assets/tracks/bahrain_2026.glb',
   mesh:{
     offset:[fit.mesh.offset[0], +(sourceMeanY * -scale).toFixed(3), -87.308],
-    rotY:+(-fit.mesh.rotY).toFixed(6), scale, rawSurface:true,
+    rotY:+(-fit.mesh.rotY).toFixed(6), scale, rawSurface:false,
+    // The source contains overlapping road-like layers at different heights.
+    // Remove them and draw one road ribbon from the physics spline, so the
+    // visible asphalt and the car's ground height are always identical.
+    hideMaterials:'^(?:Bahrainv3001791Mtl_(?:2|6|7|10|11|22|26|27|28|37|39|63|67|72|73|74|77|81|87|88|89|90|92|93)|Material_(?:2\\.001|17\\.003|24\\.002|41\\.001)|Merged_materials)$',
+    hideGround:true,
     fixAlphaMaterials:'fence|glass|tree|bush|flag', fixAllBlendMaterials:true,
     light:{sun:1.04,hemi:0.9,exposure:1.04},
   },
