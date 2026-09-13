@@ -10,7 +10,10 @@ vm.runInContext(fs.readFileSync('assets/tracks.js','utf8')+'\nglobalThis.track=T
 const fit=JSON.parse(fs.readFileSync('tools/data/bahrain-gp.fit.json','utf8'));
 const track=context.track;
 if(Math.hypot(track.pts.at(-1)[0]-track.pts[0][0],track.pts.at(-1)[1]-track.pts[0][1])<.05)track.pts.pop();
-const cfg={scale:fit.mesh.scale,rotY:-fit.mesh.rotY,offset:[fit.mesh.offset[0],+(-fit.mesh.offset[1]*-fit.mesh.scale).toFixed(3),fit.mesh.offset[2]]};
+// The broad-surface fit was 22.96 m across the pit complex. Material 79 is
+// the actual circuit ribbon; aligning its centre on the main straight gives
+// this corrected Z translation.
+const cfg={scale:fit.mesh.scale,rotY:-fit.mesh.rotY,offset:[fit.mesh.offset[0],+(-fit.mesh.offset[1]*-fit.mesh.scale).toFixed(3),-87.308]};
 const cell=20, grid=new Map();
 const c=Math.cos(cfg.rotY),s=Math.sin(cfg.rotY),sc=cfg.scale,off=cfg.offset;
 const xf=p=>[sc*(c*p[0]+s*p[2])+off[0],sc*p[1]+off[1],sc*(-s*p[0]+c*p[2])+off[2]];
@@ -20,6 +23,7 @@ let nt=0;
 for(const node of doc.getRoot().listNodes()){
   const mesh=node.getMesh(); if(!mesh)continue; const M=node.getWorldMatrix();
   for(const prim of mesh.listPrimitives()){
+    if(doc.getRoot().listMaterials().indexOf(prim.getMaterial())!==79)continue;
     const pos=prim.getAttribute('POSITION'),ind=prim.getIndices();if(!pos)continue;
     const count=(ind?ind.getCount():pos.getCount())/3;
     for(let i=0;i<count;i++){
@@ -39,7 +43,7 @@ let exact=0; const out=[];
 for(let pi=0;pi<track.pts.length;pi++){
   const p=track.pts[pi], referenceY=fit.ptsY[pi]*cfg.scale;
   const arr=grid.get(Math.floor(p[0]/cell)+','+Math.floor(p[1]/cell))||[],hits=[];
-  for(const t of arr){if(p[0]<t.minx-.01||p[0]>t.maxx+.01||p[1]<t.minz-.01||p[1]>t.maxz+.01)continue;const y=height(t,p[0],p[1]);if(y!=null&&Math.abs(y-referenceY)<4)hits.push(y);}
+  for(const t of arr){if(p[0]<t.minx-.01||p[0]>t.maxx+.01||p[1]<t.minz-.01||p[1]>t.maxz+.01)continue;const y=height(t,p[0],p[1]);if(y!=null)hits.push(y);}
   if(hits.length){hits.sort((a,b)=>Math.abs(a-referenceY)-Math.abs(b-referenceY));out.push(hits[0]);exact++;}else out.push(null);
 }
 // Fill short gaps circularly between the nearest exact road intersections.

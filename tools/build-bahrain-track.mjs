@@ -65,7 +65,7 @@ const track = {
   sub:'Sakhir · Grand-Prix-Kurs · 5,41 km · echtes Höhenprofil',
   meshUrl:'assets/tracks/bahrain_2026.glb',
   mesh:{
-    offset:[fit.mesh.offset[0], +(sourceMeanY * -scale).toFixed(3), fit.mesh.offset[2]],
+    offset:[fit.mesh.offset[0], +(sourceMeanY * -scale).toFixed(3), -87.308],
     rotY:+(-fit.mesh.rotY).toFixed(6), scale, rawSurface:true,
     fixAlphaMaterials:'fence|glass|tree|bush|flag', fixAllBlendMaterials:true,
     light:{sun:1.04,hemi:0.9,exposure:1.04},
@@ -73,9 +73,7 @@ const track = {
   halfWidth:8.5, wallDist:20, kerbW:2.2, vergeW:16,
   sky:0x9fc3eb, hill:0xb69b63, grass:[0x9a854e,0x887542],
   startFinishPct:0, startGridPct:99.7, env:'desert', noWalls:true,
-  containCars:true, containmentOpenAtFinish:10, visualCarYOffset:0,
-  pitLane:{side:-1,idxStart:40,idxEnd:102,innerOff:10,outerOff:20,
-    slowInnerOff:20,slowOuterOff:31,boxStopOff:25,pathHalfWidth:6.5},
+  containCars:false, visualCarYOffset:0,
   pts, aiFullGridPace:true, aiWorldPace:true,
 };
 fs.writeFileSync('assets/tracks/bahrain-gp.js',
