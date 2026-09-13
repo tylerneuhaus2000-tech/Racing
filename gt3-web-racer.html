@@ -3059,7 +3059,7 @@ const CARS = [
     id:'porsche', name:'Porsche 911 GT3 R', classType:'gt3',
     color:0xe8e8e8, accent:0xd5001c, rim:0xc8a44a,
     liveries:[
-      {id:'classic', name:'Classic', desc:'Porsche 911 GT3 R — Klassisches Cup-Design', model:{url:'assets/models/porsche-gt3.glb',scale:1,targetLength:4.6,yOffset:0,rotY:Math.PI}},
+      {id:'classic', name:'Classic', desc:'Porsche 911 GT3 R — Klassisches Cup-Design', model:{url:'assets/models/porsche-gt3.glb',scale:1,targetLength:4.6,yOffset:0,rotY:0}},
       {id:'992gt3r', name:'992 GT3 R', desc:'Porsche 992 GT3 R — Modernes Werkslook', model:{url:'assets/models/porsche_992_gt3_r.glb',scale:1,targetLength:4.6,yOffset:0,rotY:0}}
     ],
     model:{
@@ -3116,7 +3116,7 @@ const CARS = [
       scale:1,
       targetLength:4.6,
       yOffset:0,
-      rotY:Math.PI
+      rotY:0
     },
     mass:1280, power:425000, maxForce:9100, topSpeed:289/3.6, brakeForce:15020,
     gripF:1.34, gripR:1.36, yawDamp:0.72, tractionBoost:0.07, liftOversteer:0.08,
@@ -3126,7 +3126,7 @@ const CARS = [
   {
     id:'mustang', name:'Ford Mustang GT3', classType:'gt3',
     color:0x173c76, accent:0xffffff, rim:0x222222,
-    model:{url:'assets/models/ford_mustang_gt3.glb',scale:1,targetLength:4.8,yOffset:0,rotY:0},
+    model:{url:'assets/models/ford_mustang_gt3.glb',scale:1,targetLength:4.8,yOffset:-0.22,rotY:0,forceOpaqueTexturedMaterials:true},
     mass:1335,power:425000,maxForce:8950,topSpeed:291/3.6,brakeForce:14900,
     gripF:1.30,gripR:1.34,yawDamp:0.87,tractionBoost:0.05,liftOversteer:0.05,
     desc:'GT3 · Frontmotor. Ausgewogene Spielabstimmung.',stats:{speed:0.90,grip:0.87,stab:0.91}
@@ -6385,6 +6385,15 @@ class Car {
         // Sortierfehler. Voll deckende Nicht-Glas-Materialien opak erzwingen.
         const matName=(mat.name||'').toLowerCase();
         const isGlassLike=/glass|window|windshield|scheibe|lens|light/.test(matName);
+        // Einige Sketchfab-Fahrzeuge speichern den Alpha-Faktor ihrer lackierten,
+        // texturierten Karosserie fälschlich als 0. Die Textur ist vorhanden, würde
+        // durch diesen Faktor im Browser aber vollständig unsichtbar bleiben.
+        if(cfg.forceOpaqueTexturedMaterials && mat.map && !isGlassLike && mat.opacity < 0.98){
+          mat.opacity=1;
+          mat.transparent=false;
+          mat.alphaTest=0;
+          mat.depthWrite=true;
+        }
         if(mat.transparent && !isGlassLike && (mat.opacity===undefined || mat.opacity>=0.98)){
           mat.transparent=false;
           mat.depthWrite=true;
