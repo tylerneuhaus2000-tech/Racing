@@ -14,7 +14,7 @@ const track={
   startFinishPct:0,startGridPct:99,env:'forest',noWalls:false,containCars:true,
   // The imported GLB already contains the real pit complex. A generated lane
   // cuts through its buildings and must not be layered over the raw surface.
-  visualCarYOffset:0,
+  visualCarYOffset:.16,
   crestTraction:{startPct:14.35,endPct:16.95,minKmh:205,maxKmh:255,maxUnload:.58},
   pts:source.pts,aiFullGridPace:true,aiWorldPace:true
 };
