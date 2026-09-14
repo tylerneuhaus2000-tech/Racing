@@ -16,9 +16,9 @@ const DEG=Math.PI/180;
 const KT=1.94384, FT=3.28084;
 
 const aircraftDefs={
-  trainer:{name:'Skytrainer', model:'assets/airplane/models/crj900_cityjet.glb', scale:0.18, mass:4700, wing:28, thrust:18500, drag:0.030, roll:1.7, pitch:1.25, yaw:.72, stall:34, vmax:145, color:0xe8f1f6},
-  cargo:{name:'Cargo Twin', model:'assets/airplane/models/lowpoly_ac130.glb', scale:0.95, mass:9500, wing:48, thrust:27500, drag:0.040, roll:1.0, pitch:.9, yaw:.55, stall:40, vmax:130, color:0x8aa0a0},
-  sport:{name:'SportJet', model:'assets/airplane/models/air_force_one.glb', scale:0.12, mass:7200, wing:34, thrust:34000, drag:0.027, roll:2.2, pitch:1.45, yaw:.78, stall:44, vmax:190, color:0xffffff}
+  trainer:{name:'Skytrainer', model:'assets/airplane/models/crj900_cityjet.glb', length:13.5, mass:4700, wing:28, thrust:18500, drag:0.030, roll:1.7, pitch:1.25, yaw:.72, stall:34, vmax:145, color:0xe8f1f6},
+  cargo:{name:'Cargo Twin', model:'assets/airplane/models/lowpoly_ac130.glb', length:18.5, mass:9500, wing:48, thrust:27500, drag:0.040, roll:1.0, pitch:.9, yaw:.55, stall:40, vmax:130, color:0x8aa0a0},
+  sport:{name:'SportJet', model:'assets/airplane/models/air_force_one.glb', length:16.5, mass:7200, wing:34, thrust:34000, drag:0.027, roll:2.2, pitch:1.45, yaw:.78, stall:44, vmax:190, color:0xffffff}
 };
 let selected='trainer';
 
@@ -107,7 +107,26 @@ function loadModels(){
   loader.load('assets/airplane/models/low_poly_airport.glb',g=>{airportModel=g.scene; airportModel.scale.setScalar(.46); airportModel.position.set(-520,0,1180); airportModel.rotation.y=Math.PI; airportModel.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true}}); scene.add(airportModel)},undefined,()=>{});
   loadPlaneModel();
 }
-function loadPlaneModel(){const loader=THREE.GLTFLoader ? new THREE.GLTFLoader() : null; if(!loader) return; const def=flight.def; loader.load(def.model,g=>{const model=g.scene; model.scale.setScalar(def.scale); const box=new THREE.Box3().setFromObject(model), center=box.getCenter(new THREE.Vector3()); model.position.sub(center); model.rotation.y=Math.PI; model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}}); while(plane.children.length)plane.remove(plane.children[0]); plane.add(model); buildGearVisual();},undefined,()=>{});}
+function loadPlaneModel(){
+  const loader=THREE.GLTFLoader ? new THREE.GLTFLoader() : null; if(!loader) return;
+  const def=flight.def;
+  loader.load(def.model,g=>{
+    const model=g.scene;
+    model.updateMatrixWorld(true);
+    const rawBox=new THREE.Box3().setFromObject(model);
+    const rawSize=rawBox.getSize(new THREE.Vector3());
+    const longest=Math.max(rawSize.x,rawSize.y,rawSize.z)||1;
+    model.scale.setScalar((def.length||14)/longest);
+    model.updateMatrixWorld(true);
+    const box=new THREE.Box3().setFromObject(model), center=box.getCenter(new THREE.Vector3());
+    model.position.sub(center);
+    model.rotation.y=Math.PI;
+    model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
+    while(plane.children.length)plane.remove(plane.children[0]);
+    flight.wheels=[];
+    plane.add(model);
+  },undefined,()=>{});
+}
 function buildGearVisual(){flight.wheels=[]; const dark=mat(0x111111); for(const [x,z] of [[-2.4,2.2],[2.4,2.2],[0,-3.3]]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.24,14),dark);w.rotation.z=Math.PI/2;w.position.set(x,-1.3,z);w.castShadow=true;plane.add(w);flight.wheels.push(w)}}
 
 function buildCheckpoints(){const geo=new THREE.TorusGeometry(1,0.035,8,64); checkpoints.forEach((cp,i)=>{const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:i===checkpoints.length-1?0x37d488:0x58d7ff,transparent:true,opacity:.75}));m.position.copy(cp.p);m.scale.setScalar(cp.r);m.rotation.x=Math.PI/2;scene.add(m);checkpointMeshes.push(m)})}
@@ -164,8 +183,14 @@ function updateMissionText(){const cp=checkpoints[state.checkpoint]; ui.missionT
 function updateCamera(dt){
   const mode=state.camera; forward.set(0,0,-1).applyQuaternion(flight.quat); right.set(1,0,0).applyQuaternion(flight.quat); up.set(0,1,0).applyQuaternion(flight.quat);
   let target=flight.pos.clone(), camPos;
-  if(mode===0) camPos=flight.pos.clone().addScaledVector(forward,24).addScaledVector(up,8);
-  else if(mode===1) camPos=flight.pos.clone().addScaledVector(forward,-.8).addScaledVector(up,1.2), target=flight.pos.clone().addScaledVector(forward,-120).addScaledVector(up,6);
+  if(mode===0){
+    camPos=flight.pos.clone().addScaledVector(forward,-28).addScaledVector(up,8);
+    target=flight.pos.clone().addScaledVector(forward,60).addScaledVector(up,2.5);
+  }
+  else if(mode===1){
+    camPos=flight.pos.clone().addScaledVector(forward,2.2).addScaledVector(up,1.45);
+    target=flight.pos.clone().addScaledVector(forward,140).addScaledVector(up,4);
+  }
   else camPos=flight.pos.clone().add(new THREE.Vector3(0,55,80)), target=flight.pos.clone();
   camera.position.lerp(camPos,1-Math.exp(-dt*4.2)); camera.lookAt(target);
 }
