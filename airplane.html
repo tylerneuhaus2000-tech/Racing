@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gridline Flight Ops</title>
+<meta name="description" content="Ein kleines Browser-Flugspiel mit Start, Landung, Missionen, Flugphysik und Flughafenbetrieb.">
+<meta name="theme-color" content="#07111f">
+<link rel="stylesheet" href="assets/gridline-site.css">
+<link rel="stylesheet" href="assets/airplane/airplane.css?v=20260914a">
+</head>
+<body class="flight-page">
+<div id="game-root">
+  <canvas id="flight-canvas"></canvas>
+
+  <div class="top-hud">
+    <a class="home-link" href="index.html">← Gridline</a>
+    <div class="hud-tape"><span>IAS</span><strong id="hud-speed">0</strong><small>kt</small></div>
+    <div class="hud-tape"><span>ALT</span><strong id="hud-alt">0</strong><small>ft</small></div>
+    <div class="hud-tape"><span>HDG</span><strong id="hud-heading">000</strong><small>°</small></div>
+    <div class="hud-tape"><span>VS</span><strong id="hud-vs">0</strong><small>ft/min</small></div>
+    <div class="hud-tape warn" id="hud-warning">READY</div>
+  </div>
+
+  <div class="left-panel glass">
+    <div class="panel-title">FLIGHT OPS</div>
+    <div class="mission" id="mission-title">Mission</div>
+    <div class="mission-text" id="mission-text">Starte vom Runway und fliege durch die Checkpoints.</div>
+    <div class="progress"><div id="mission-progress"></div></div>
+    <div class="score-row"><span>Punkte</span><strong id="hud-score">0</strong></div>
+    <div class="score-row"><span>Fuel</span><strong id="hud-fuel">100%</strong></div>
+    <div class="score-row"><span>Damage</span><strong id="hud-damage">0%</strong></div>
+  </div>
+
+  <div class="right-panel glass">
+    <div class="panel-title">SYSTEME</div>
+    <div class="sys"><span>Schub</span><div><i id="bar-throttle"></i></div><b id="txt-throttle">0%</b></div>
+    <div class="sys"><span>Auftrieb</span><div><i id="bar-lift"></i></div><b id="txt-lift">0%</b></div>
+    <div class="sys"><span>Stall</span><div><i id="bar-stall"></i></div><b id="txt-stall">OK</b></div>
+    <div class="gear" id="gear-state">GEAR DOWN</div>
+  </div>
+
+  <div class="bottom-help glass">
+    <b>W/S</b> Pitch · <b>A/D</b> Roll · <b>Q/E</b> Rudder · <b>Shift/Ctrl</b> Schub · <b>B</b> Bremse · <b>G</b> Fahrwerk · <b>C</b> Kamera · <b>P/Esc</b> Pause · <b>R</b> Restart
+  </div>
+
+  <div class="overlay open" id="main-menu">
+    <div class="menu-card">
+      <div class="eyebrow"><span class="dot"></span> GRIDLINE AIR DIVISION</div>
+      <h1>Flight Ops</h1>
+      <p>Starte von einem beleuchteten Flughafen, fliege Checkpoints, meistere Wind und Turbulenzen und lande sauber für Bonuspunkte.</p>
+      <div class="menu-grid">
+        <button data-aircraft="trainer" class="plane-choice active"><strong>Skytrainer</strong><span>leicht, gutmütig</span></button>
+        <button data-aircraft="cargo" class="plane-choice"><strong>Cargo Twin</strong><span>träge, stabil</span></button>
+        <button data-aircraft="sport" class="plane-choice"><strong>SportJet</strong><span>schnell, nervös</span></button>
+      </div>
+      <div class="menu-actions">
+        <button class="primary" id="start-game">Mission starten</button>
+        <button id="free-flight">Freiflug</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="pause-menu">
+    <div class="menu-card small">
+      <h2>Pause</h2>
+      <p id="pause-summary">Flug angehalten.</p>
+      <div class="menu-actions"><button class="primary" id="resume-game">Weiter</button><button id="restart-game">Restart</button></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">ATC: Cleared for takeoff.</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+<script src="assets/GLTFLoader.js" defer></script>
+<script src="assets/airplane/airplane.js?v=20260914a" defer></script>
+</body>
+</html>

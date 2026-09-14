@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gridline – Browserspiele von Tyler</title>
-<meta name="description" content="Rennsimulation, 21 Casino-Minigames und Länder-Quiz. Kostenlos im Browser, ein Account für alle Spiele.">
+<meta name="description" content="Rennsimulation, Flugspiel, 21 Casino-Minigames und Länder-Quiz. Kostenlos im Browser, ein Account für alle Spiele.">
 <meta name="theme-color" content="#070f18">
 <meta property="og:title" content="Gridline – Browserspiele">
-<meta property="og:description" content="Kostenlose Browserspiele: Rennsimulation, Casino und Geo-Quiz.">
+<meta property="og:description" content="Kostenlose Browserspiele: Rennsimulation, Flugspiel, Casino und Geo-Quiz.">
 <meta property="og:type" content="website">
 
 <link rel="stylesheet" href="assets/gridline-site.css">
@@ -395,7 +395,7 @@
 		<span class="eyebrow"><span class="dot"></span> Kostenlos im Browser</span>
 		<h1>Spiele von Tyler.<br><span>Ohne Download.</span></h1>
 		<p class="lead">
-			Rennsimulation mit echten Strecken, Casino-Minigames und ein Länder-Quiz.
+			Rennsimulation, Flugmissionen, Casino-Minigames und ein Länder-Quiz.
 			Ein Account genügt für alles – Bestzeiten, Multiplayer und Fortschritt
 			wandern automatisch mit.
 		</p>
@@ -513,6 +513,16 @@ const GAMES = [
 		badges: [{ t: 'Ab 18', c: 'age' }],
 		ageGate: true,
 		cover: 'casino'
+	},
+	{
+		id: 'flight',
+		title: 'Gridline Flight Ops',
+		description: 'Flugzeugspiel mit Start, Landung, Checkpoints, Wind, Stall-Verhalten, Fahrwerk und Missionen.',
+		file: 'airplane.html',
+		category: 'racing',
+		tags: ['Flugsimulation', 'Missionen', '3D'],
+		badges: [{ t: 'Neu', c: 'new' }],
+		cover: 'flight'
 	},
 	{
 		id: 'geo',
@@ -727,6 +737,43 @@ const COVERS = {
 
 			<text x="160" y="170" font-family="sans-serif" font-size="9.5" font-weight="700"
 				fill="#c3b0e0" text-anchor="middle" letter-spacing="1.8">NUR VIRTUELLE CHIPS · KEIN ECHTGELD</text>
+		</svg>`,
+	flight: `
+		<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+			<defs>
+				<linearGradient id="fsky" x1="0" y1="0" x2="0" y2="1">
+					<stop offset="0" stop-color="#11365b"/><stop offset="55%" stop-color="#2d6f9a"/><stop offset="100%" stop-color="#132235"/>
+				</linearGradient>
+				<radialGradient id="fsun" cx="78%" cy="18%">
+					<stop offset="0" stop-color="#fff3b0" stop-opacity=".85"/><stop offset="1" stop-color="#fff3b0" stop-opacity="0"/>
+				</radialGradient>
+			</defs>
+			<rect width="320" height="180" fill="url(#fsky)"/>
+			<rect width="320" height="180" fill="url(#fsun)"/>
+			<g fill="#ffffff" opacity=".35">
+				<ellipse cx="58" cy="45" rx="34" ry="10"/><ellipse cx="86" cy="47" rx="26" ry="8"/>
+				<ellipse cx="220" cy="64" rx="44" ry="12"/><ellipse cx="258" cy="66" rx="28" ry="9"/>
+			</g>
+			<g transform="translate(160 121) perspective(240)">
+				<path d="M-130 48 L-22 -18 L22 -18 L130 48 Z" fill="#202a31"/>
+				<path d="M-4 48 L-1 -18 L1 -18 L4 48 Z" fill="#eaf4ff" opacity=".8"/>
+				<g stroke="#58d7ff" stroke-width="2" opacity=".9">
+					<line x1="-64" y1="24" x2="-89" y2="38"/><line x1="64" y1="24" x2="89" y2="38"/>
+				</g>
+			</g>
+			<g transform="translate(152 78) rotate(-8)">
+				<path d="M-54 8 L-8 -5 L44 5 L58 12 L38 15 L-6 9 L-50 17 Z" fill="#eaf4ff"/>
+				<path d="M-8 -5 L6 -12 L34 -3 L44 5 Z" fill="#9edfff" opacity=".85"/>
+				<path d="M-18 6 L-46 -15 L-38 -18 L10 2 Z" fill="#d4e6f2"/>
+				<path d="M20 8 L45 -10 L52 -6 L38 15 Z" fill="#d4e6f2"/>
+				<path d="M44 5 L65 -2 L62 8 L58 12 Z" fill="#ff596b"/>
+				<animateTransform attributeName="transform" type="translate" values="152 78;156 74;152 78" dur="3.2s" repeatCount="indefinite" additive="sum"/>
+			</g>
+			<g font-family="ui-monospace,monospace" font-weight="900" letter-spacing="1.4">
+				<text x="18" y="26" fill="#9fdcff" font-size="9">FLIGHT OPS</text>
+				<text x="18" y="45" fill="#ffffff" font-size="17">IAS 142 kt</text>
+				<text x="18" y="62" fill="#b5d4eb" font-size="10">ALT 1,240 ft</text>
+			</g>
 		</svg>`,
 	geo: `
 		<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
