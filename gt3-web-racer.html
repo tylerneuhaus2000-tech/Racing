@@ -2831,7 +2831,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 <!-- Production replacements: each file removes the legacy track entry before
      registering the corrected mesh, centerline and elevation profile. -->
 <script src="assets/tracks/redbull-ring.js?v=20260913h" defer></script>
-<script src="assets/tracks/spa_francorchamps_2022.js?v=20260913h" defer></script>
+<script src="assets/tracks/spa_francorchamps_2022.js?v=20260914a" defer></script>
 <script src="assets/tracks/monza-mesh.js?v=20260910h" defer></script>
 <script src="assets/tracks/silverstone-gp-ai.js?v=1" defer></script>
 <!-- Shanghai is a released production track. Load it directly after the base
@@ -6889,15 +6889,24 @@ class Car {
         const next = track.samples[(q.idx + span) % track.N].pos;
         const gradeIn = (here.y - prev.y) / Math.max(1, here.distanceTo(prev));
         const gradeOut = (next.y - here.y) / Math.max(1, next.distanceTo(here));
-        const crestShape = clamp((gradeIn - gradeOut) / 0.075, 0, 1);
+        /* Raidillon flacht im Fahr-Spline ueber rund 80 m ab. Der alte
+           7,5%-Grenzwert wurde dort nie erreicht und machte die konfigurierte
+           Kuppenphysik praktisch unsichtbar. 3,5% entspricht dem gemessenen
+           Wechsel von etwa 13% Steigung auf 9% und bildet die Entlastung am
+           Uebergang zur Kemmel-Gerade ab. */
+        const crestShape = clamp((gradeIn - gradeOut) / (crestDef.gradeDropFull ?? 0.035), 0, 1);
         const speedRisk = clamp((this.speedKmh - crestDef.minKmh) /
           Math.max(1, crestDef.maxKmh - crestDef.minKmh), 0, 1);
         const unload = crestShape * speedRisk * (crestDef.maxUnload ?? .5);
         muF *= 1 - unload * .72;
         muR *= 1 - unload;
         this._crestUnload = unload;
-      } else this._crestUnload = 0;
-    } else this._crestUnload = 0;
+        if(unload > 0.08 && !this._crestKickDir){
+          const driverBias = input.steer * 4 + q.lat / Math.max(4, track.def.halfWidth || 8);
+          this._crestKickDir = Math.sign(driverBias || Math.sin(this.heading * 3.17) || 1);
+        }
+      } else { this._crestUnload = 0; this._crestKickDir = 0; }
+    } else { this._crestUnload = 0; this._crestKickDir = 0; }
 
     /* --- DRS-Defekt: Klappe klemmt offen -> Heckflügel stallt.
        Sobald man lenkt bricht das Heck weg (muR ~1/5), das löst den Dreher
@@ -7277,6 +7286,15 @@ class Car {
     /* Korrektur stärker im Grip-Bereich, deutlich weniger im Drift */
     this.yawRate += (yawKin - this.yawRate) * Math.min(1, dt*5.4*sideDampGrip*assistFactor*drsFailMul);
     this.vy *= Math.max(0, 1 - dt*3.2*sideDampGrip*assistFactor*drsFailMul);
+    /* Am Raidillon-Scheitel verliert ein zu schnelles Spielerauto durch die
+       entlastete Hinterachse seine Richtungsstabilitaet. Der Impuls wirkt
+       seitlich und um die Hochachse; die Fahrzeughoehe bleibt unangetastet. */
+    if(this.isPlayer && this._crestUnload > 0.08){
+      const kick = this._crestUnload * this._crestUnload;
+      const dir = this._crestKickDir || 1;
+      this.yawRate += dir * kick * (crestDef?.yawKick ?? 2.4) * dt;
+      this.vy += dir * kick * speed * (crestDef?.lateralKick ?? 0.13) * dt;
+    }
     const vyCap = 0.46*Math.abs(this.vx) + 1.4;
     this.vy = clamp(this.vy, -vyCap, vyCap);
 

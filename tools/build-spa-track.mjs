@@ -22,7 +22,10 @@ const track={
   // From Fagnes through Stavelot, Blanchimont and the Bus Stop the imported
   // runoff is wider than the physical ribbon. Do not invalidate laps there.
   trackLimitFreeRanges:[[.52,1]],
-  crestTraction:{startPct:14.35,endPct:16.95,minKmh:205,maxKmh:255,maxUnload:.58},
+  // Eau Rouge/Raidillon: the rear axle unloads where the steep climb becomes
+  // the flat Kemmel straight. Below 215 km/h the transition stays benign.
+  crestTraction:{startPct:15.25,endPct:17.05,minKmh:215,maxKmh:270,maxUnload:.72,
+    gradeDropFull:.035,yawKick:2.4,lateralKick:.13},
   pts:source.pts,aiFullGridPace:true,aiWorldPace:true
 };
 const js='/* Generated from the Spa GLB road geometry and complete GP route. */\n'
