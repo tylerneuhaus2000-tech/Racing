@@ -8,19 +8,62 @@ vm.runInContext(fs.readFileSync('assets/tracks.js', 'utf8') + '\nglobalThis.__tr
 const base = context.__tracks.find(track => track.id === 'bahrain-custom');
 if (!base) throw new Error('Legacy Bahrain centerline is missing');
 const fit = JSON.parse(fs.readFileSync('tools/data/bahrain-gp.fit.json', 'utf8'));
-const exact = JSON.parse(fs.readFileSync('tools/data/bahrain-exact-heights.json', 'utf8'));
 const scale = fit.mesh.scale;
 const circular = (arr, i) => arr[(i + arr.length) % arr.length];
 let sourcePts = base.pts.slice();
 if(Math.hypot(sourcePts.at(-1)[0]-sourcePts[0][0],sourcePts.at(-1)[1]-sourcePts[0][1])<0.05) sourcePts.pop();
-if(exact.length !== sourcePts.length) throw new Error('Exact Bahrain surface sample count does not match centerline');
 
-// Exact triangle intersections contain occasional scenery/underlay layers.
-// A circular median rejects those isolated layers, then a light five-tap
-// filter removes triangle-edge noise without flattening Bahrain's elevation.
-let heights=exact.slice();
-for(let pass=0;pass<2;pass++)heights=heights.map((v,i)=>(
-  circular(heights,i-1)+4*v+circular(heights,i+1))/6);
+function lapDistances(points){
+  const out=[0];
+  let total=0;
+  for(let i=0;i<points.length;i++){
+    const a=points[i],b=points[(i+1)%points.length];
+    total+=Math.hypot(b[0]-a[0],b[1]-a[1]);
+    out.push(total);
+  }
+  return {out,total};
+}
+
+const {out:distance,total:lapLength}=lapDistances(sourcePts);
+function smoothstep(t){return t*t*(3-2*t);}
+function lerp(a,b,t){return a+(b-a)*t;}
+
+// Bahrain has only about 17 m total elevation change. Public circuit data lists
+// max gradients of 3.6% uphill and 5.6% downhill; the opening complex is mostly
+// flat, with the climb happening after T3 towards T4 and the notable downhill
+// section later around T9/T10. Sampling the downloaded GLB directly hits hidden
+// slabs/bridges in a few places, so drive physics uses this constrained profile.
+const profile=[
+  [0.00,-4.15],
+  [0.07,-4.18],
+  [0.12,-4.08],
+  [0.17,-3.85],
+  [0.24,2.80],
+  [0.31,8.20],
+  [0.41,1.70],
+  [0.49,-5.40],
+  [0.57,-5.15],
+  [0.64,-1.80],
+  [0.73,5.40],
+  [0.80,8.85],
+  [0.86,4.20],
+  [0.93,-2.40],
+  [1.00,-4.15],
+];
+
+function profileHeight(pct){
+  for(let i=0;i<profile.length-1;i++){
+    const a=profile[i],b=profile[i+1];
+    if(pct>=a[0]&&pct<=b[0]){
+      return lerp(a[1],b[1],smoothstep((pct-a[0])/(b[0]-a[0])));
+    }
+  }
+  return profile.at(-1)[1];
+}
+
+let heights=sourcePts.map((_,i)=>profileHeight(distance[i]/lapLength));
+for(let pass=0;pass<10;pass++)heights=heights.map((v,i)=>(
+  circular(heights,i-1)+6*v+circular(heights,i+1))/8);
 let pts=sourcePts.map((point,i)=>[+point[0].toFixed(3),+point[1].toFixed(3),+heights[i].toFixed(3)]);
 for(let pass=0;pass<700;pass++){
   for(let i=0;i<pts.length;i++){
@@ -29,8 +72,8 @@ for(let pass=0;pass<700;pass++){
     if(ds<0.1) continue;
     // Leave rounding headroom so the serialized three-decimal points stay
     // below the intended 5% road-grade ceiling.
-    const maxDelta=ds*0.045;
     const delta=pts[j][2]-pts[i][2];
+    const maxDelta=delta>0 ? ds*0.036 : ds*0.056;
     if(Math.abs(delta)>maxDelta){
       const excess=(Math.abs(delta)-maxDelta)*Math.sign(delta);
       // Point 0 is the verified start/finish road layer. Keep that height
@@ -63,7 +106,8 @@ for(let pass=0;pass<700;pass++){
     const j=(i+1)%pts.length;
     const ds=Math.hypot(pts[j][0]-pts[i][0],pts[j][1]-pts[i][1]);
     if(ds<0.1) continue;
-    const limit=ds*0.045, delta=pts[j][2]-pts[i][2];
+    const delta=pts[j][2]-pts[i][2];
+    const limit=delta>0 ? ds*0.036 : ds*0.056;
     if(Math.abs(delta)>limit){
       const correction=(Math.abs(delta)-limit)*0.5*Math.sign(delta);
       pts[i][2]=+(pts[i][2]+correction).toFixed(3);
