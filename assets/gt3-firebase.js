@@ -2471,10 +2471,16 @@ const LicenseSystem = {
     const licIcon  = document.getElementById('ms-lic-icon');
     const statLp   = document.getElementById('ms-stat-lp');
     const statKm   = document.getElementById('ms-stat-km');
+    const statSafety = document.getElementById('ms-stat-safety');
     if(licLabel) licLabel.textContent = `${tier.label.toUpperCase()} RANK`;
     if(licIcon)  licIcon.textContent  = tier.icon;
     if(statLp)   statLp.textContent   = `${(this._data.licensePoints||0).toFixed(1)} / ${LICENSE_TIERS[Math.min(LICENSE_TIERS.findIndex(t=>t.id===this._data.license)+1, LICENSE_TIERS.length-1)]?.req?.pts || '∞'}`;
     if(statKm)   statKm.textContent   = `${Math.round(this._data.kmDriven||0)} km`;
+    if(statSafety){
+      const sr = this._data.safetyRating ?? 100;
+      statSafety.textContent = sr.toFixed(1);
+      statSafety.style.color = sr >= 85 ? '#22c463' : sr >= 65 ? '#ffd400' : '#ff2e3d';
+    }
     // HUD LP display
     const hudLp = document.getElementById('stat-lp');
     if(hudLp){
