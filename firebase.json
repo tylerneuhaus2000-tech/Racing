@@ -22,6 +22,8 @@
       ".git/**",
       ".firebase/**",
       "firebase-debug.log",
+      ".claude/**",
+      "literatur-im-exil/**",
       "ai-bench.js",
       "usage-dashboard.js",
       "**/.*",
