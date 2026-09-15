@@ -11,8 +11,9 @@
     "build:mac": "electron-builder --mac",
     "build:win": "electron-builder --win",
     "build:all": "electron-builder --mac --win",
-    "test": "npm run audit:gt3",
+    "test": "npm run audit:gt3 && npm run test:native",
     "audit:gt3": "node tools/gt3-preflight-audit.mjs",
+    "test:native": "node tools/validate-native-project.mjs",
     "test:ai": "node tools/ai-drive-audit.cjs"
   },
   "build": {

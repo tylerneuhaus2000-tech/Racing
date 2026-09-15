@@ -1,6 +1,27 @@
 .DS_Store
+*.log
+.firebase/
 node_modules/
 dist/
 assets/tracks/nurburgring_data.js
 assets/tracks/nurburgring_gp_2016_layout.glb
 preload.js
+
+# Unity native rebuild
+native/**/[Ll]ibrary/
+native/**/[Tt]emp/
+native/**/[Oo]bj/
+native/**/[Bb]uild/
+native/**/[Bb]uilds/
+native/**/[Ll]ogs/
+native/**/[Uu]ser[Ss]ettings/
+native/**/*.csproj
+native/**/*.sln
+native/**/*.user
+native/**/*.pidb
+native/**/*.booproj
+native/**/*.svd
+native/**/*.pdb
+native/**/*.mdb
+native/**/*.opendb
+native/**/*.VC.db
