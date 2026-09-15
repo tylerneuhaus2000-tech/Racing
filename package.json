@@ -4,7 +4,10 @@
   "description": "Gridline Racing Game",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "node tools/run-electron.cjs",
+    "desktop": "node tools/run-electron.cjs",
+    "build:dir": "electron-builder --dir",
+    "build:dir:unsigned": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --dir",
     "build:mac": "electron-builder --mac",
     "build:win": "electron-builder --win",
     "build:all": "electron-builder --mac --win",
@@ -17,7 +20,14 @@
     "productName": "Gridline",
     "files": [
       "main.js",
+      "preload.js",
       "gt3-web-racer.html",
+      "index.html",
+      "datenschutz.html",
+      "impressum.html",
+      "agb.html",
+      "support.html",
+      "jugendschutz.html",
       "assets/**/*"
     ],
     "mac": {
