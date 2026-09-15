@@ -299,8 +299,8 @@ const TRACKS = [
   {
     id:'norisring', name:'Norisring', env:'city',
     sub:'Straßenkurs · Nürnberg · Dutzendteich-Kehre · Schöller-S · Grundig-Kehre · 2.16 km · ~48s',
-    halfWidth:6.0, sky:0x8fb4de, hill:0x4a6a3c, grass:[0x3d7233,0x32602a],
-    wallDist:10, vergeW:5,
+    halfWidth:6.0, sky:0x8fb4de, hill:0x48505a, grass:[0x33383f,0x272c33],
+    wallDist:10, vergeW:5, vergeSurface:'asphalt',
     pts:[
       [0.0,    0.0, 0],[166.3,    1.4, 0],[310.8,    3.6, 0],[426.5,    9.4, 0], // S/F → T1
       [527.7,   20.2, 0],[592.8,   26.0, 0],                                        // Anfahrt T2
@@ -423,3 +423,39 @@ const TRACKS = [
   }
 
 ];
+
+const RELEASE_TRACK_IDS = new Set([
+  'monza',
+  'silverstone-gp',
+  'flat',
+  'hockenheim-alt',
+  'lemans-long',
+  'veloce',
+  'silberpfeil',
+  'custom_1782743640261',
+  'shanghai-2018',
+  'shanghai_2018',
+  'superspeedway',
+  'inselring',
+  'norisring',
+  'stadtring',
+  'kartbahn-lider',
+  'nuerburgring',
+  'nurburgring',
+  'redbullring-custom',
+  'redbull-ring',
+  'redbullring'
+]);
+
+for(const t of TRACKS){
+  if(t?.id === 'custom_1782749661475'){
+    t.id = 'nuerburgring';
+    t.name = 'Nürburgring GP';
+    t.sub = 'GP-Strecke · technisch · Höhenprofil · aus Custom-Daten normalisiert';
+    t.custom = false;
+  }
+}
+
+for(let i = TRACKS.length - 1; i >= 0; i--){
+  if(!RELEASE_TRACK_IDS.has(TRACKS[i]?.id)) TRACKS.splice(i, 1);
+}

@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "notes": "Register only licensed or self-recorded engine loops here. Empty layers intentionally keep the procedural fallback active.",
+  "profiles": {
+    "gt3-generic": { "layers": [] },
+    "gt3-flat6": { "layers": [] },
+    "gt3-v6-turbo": { "layers": [] },
+    "gt3-v8": { "layers": [] },
+    "gt3-v10-v12": { "layers": [] },
+    "lmp2": { "layers": [] },
+    "hypercar-hybrid": { "layers": [] },
+    "formula": { "layers": [] },
+    "formula-f1": { "layers": [] },
+    "kart-rental": { "layers": [] },
+    "kart-rental-bumper": { "layers": [] }
+  },
+  "exampleLayer": {
+    "url": "assets/sounds/engine/gt3-v8-mid.ogg",
+    "baseRpm": 5200,
+    "minRpm": 2800,
+    "maxRpm": 7600,
+    "gain": 0.75
+  }
+}

@@ -2274,6 +2274,9 @@ const LicenseSystem = {
       invalidLaps: 0,
       wins: 0, p2: 0, p3: 0,
       wallHits: 0, carHits: 0,
+      safetyRating: 100,
+      safetyIncidents: 0,
+      cleanLaps: 0,
       tracksVisited: [],
       racesCompleted: 0,
     };
@@ -2296,10 +2299,14 @@ const LicenseSystem = {
         p3:             d.p3             || 0,
         wallHits:       d.wallHits       || 0,
         carHits:        d.carHits        || 0,
+        safetyRating:   Number.isFinite(d.safetyRating) ? d.safetyRating : 100,
+        safetyIncidents:d.safetyIncidents|| 0,
+        cleanLaps:      d.cleanLaps      || 0,
         tracksVisited:  d.tracksVisited  || [],
         racesCompleted: d.racesCompleted || 0,
       });
       this._updateBadge();
+      if(typeof Game !== 'undefined' && Game._refreshShopLocks) Game._refreshShopLocks();
       const s = document.getElementById('screen-license');
       if(s && !s.classList.contains('hidden')) this.renderCard();
       // Popup anzeigen wenn schon beim Laden upgrade-bereit
@@ -2312,7 +2319,8 @@ const LicenseSystem = {
     if(!fbUser || !this._data) return;
     const couldUpgradeBefore = this._canUpgrade();
     Object.keys(delta).forEach(k => {
-      if(typeof delta[k] === 'number') this._data[k] = (this._data[k]||0) + delta[k];
+      if(k === 'safetyRating') this._data[k] = Math.max(0, Math.min(100, Number(delta[k]) || 0));
+      else if(typeof delta[k] === 'number') this._data[k] = (this._data[k]||0) + delta[k];
       else this._data[k] = delta[k];
     });
     this._data.licensePoints = Math.max(0, this._data.licensePoints);
@@ -2365,6 +2373,13 @@ const LicenseSystem = {
     delta.licensePoints -= wallNew * 0.05;
     delta.wallHits = wallNew;
     delta.carHits  = carNew;
+    const incidents = wallNew + carNew;
+    const safetyDelta = valid
+      ? (incidents === 0 ? 0.18 : -incidents * 0.85)
+      : (-0.55 - incidents * 0.85);
+    delta.safetyRating = Math.max(0, Math.min(100, (this._data.safetyRating ?? 100) + safetyDelta));
+    if(incidents > 0 || !valid) delta.safetyIncidents = incidents + (valid ? 0 : 1);
+    if(valid && incidents === 0) delta.cleanLaps = 1;
 
     this._save(delta);
   },
@@ -2377,12 +2392,17 @@ const LicenseSystem = {
     this._lastWall = 0; this._lastCar = 0; // reset for next race
 
     const pts = pos===1 ? 0.10 : pos===2 ? 0.06 : pos===3 ? 0.03 : 0;
+    const incidents = wallNew + carNew;
+    const finishSafetyDelta = incidents === 0 ? 0.35 : -incidents * 0.7;
     const delta = {
       licensePoints: pts - wallNew*0.05,
       racesCompleted: 1,
       wallHits: wallNew,
       carHits: carNew,
+      safetyRating: Math.max(0, Math.min(100, (this._data.safetyRating ?? 100) + finishSafetyDelta)),
     };
+    if(incidents > 0) delta.safetyIncidents = incidents;
+    else delta.cleanLaps = 1;
     if(pos===1) delta.wins = 1;
     if(pos===2) delta.p2 = 1;
     if(pos===3) delta.p3 = 1;
@@ -2431,6 +2451,7 @@ const LicenseSystem = {
     this._data.license = next.id;
     db.collection('users').doc(fbUser.uid).set({license: next.id}, {merge:true}).catch(console.error);
     this._updateBadge();
+    if(typeof Game !== 'undefined' && Game._refreshShopLocks) Game._refreshShopLocks();
     this.renderCard();
     // Celebration
     const btn = document.getElementById('btn-lic-upgrade');
@@ -2509,6 +2530,14 @@ const LicenseSystem = {
           <div class="lic-stat-label">Strecken besucht</div>
           <div class="lic-stat-value">${visited.length} / ${allTrackIds.length}</div>
         </div>
+        <div class="lic-stat">
+          <div class="lic-stat-label">Safety Rating</div>
+          <div class="lic-stat-value ${(d.safetyRating||100)>=85?'green':(d.safetyRating||100)>=65?'amber':'red'}">${(d.safetyRating ?? 100).toFixed(1)}</div>
+        </div>
+        <div class="lic-stat">
+          <div class="lic-stat-label">Saubere Runden</div>
+          <div class="lic-stat-value green">${d.cleanLaps||0}</div>
+        </div>
       </div>
       <div class="lic-penalties">
         <div class="lic-pen">
@@ -2522,6 +2551,10 @@ const LicenseSystem = {
         <div class="lic-pen">
           <div class="lic-pen-label">Ungültige Runden</div>
           <div class="lic-pen-value">${d.invalidLaps||0}</div>
+        </div>
+        <div class="lic-pen">
+          <div class="lic-pen-label">Safety Incidents</div>
+          <div class="lic-pen-value">${d.safetyIncidents||0}</div>
         </div>
       </div>
     `;

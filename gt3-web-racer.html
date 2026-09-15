@@ -424,6 +424,16 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 .im-steer-wrap{position:relative;height:8px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
 .im-steer-center{position:absolute;left:50%;top:0;width:1px;height:100%;background:rgba(255,255,255,.25)}
 .im-steer-bar{position:absolute;top:0;height:100%;background:var(--blue);border-radius:2px;transition:left .04s linear,width .04s linear}
+#gforce{position:absolute;right:278px;bottom:24px;width:138px;background:rgba(7,10,14,.82);border:var(--glass-border);border-left:3px solid var(--blue);border-radius:var(--rad-sm);padding:10px 11px 9px;backdrop-filter:blur(10px);box-shadow:var(--glass-shadow);font-family:var(--mono)}
+#gforce .gf-title{font-size:8px;font-weight:800;letter-spacing:.22em;color:#7fc3ff;margin-bottom:7px}
+#gforce .gf-pad{position:relative;width:82px;height:82px;margin:0 auto;border:1px solid rgba(255,255,255,.18);border-radius:50%;background:radial-gradient(circle at center,rgba(255,255,255,.08) 0 2px,transparent 3px),radial-gradient(circle at center,transparent 0 38px,rgba(79,168,255,.12) 39px 40px,transparent 41px)}
+#gforce .gf-pad::before,#gforce .gf-pad::after{content:'';position:absolute;background:rgba(255,255,255,.13)}
+#gforce .gf-pad::before{left:50%;top:7px;bottom:7px;width:1px}
+#gforce .gf-pad::after{top:50%;left:7px;right:7px;height:1px}
+#gforce #gf-dot{position:absolute;left:50%;top:50%;width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 10px rgba(61,255,122,.75);transform:translate(-50%,-50%);transition:left .05s linear,top .05s linear,background .12s}
+#gforce .gf-read{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;font-size:9px;color:var(--dim)}
+#gforce .gf-read b{display:block;font-size:12px;color:#e8ecef;font-variant-numeric:tabular-nums;margin-top:1px}
+#gforce .gf-peak{margin-top:5px;font-size:8px;letter-spacing:.12em;color:var(--amber);text-align:center}
 /* Timing-Tower (Broadcast-Stil, oben links) */
 #pit-car-select{position:fixed;bottom:170px;left:50%;transform:translateX(-50%);padding:12px 16px;font-family:var(--mono);z-index:30;display:none;min-width:340px;max-width:600px}
 #pit-car-select .pcs-title{font:700 9px var(--mono);letter-spacing:.3em;color:var(--red);margin-bottom:10px}
@@ -555,21 +565,30 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 .lh-row .lh-t{font-weight:700}
 .lh-best .lh-t{color:#c090ff}.lh-ok .lh-t{color:#e8ecef}.lh-inv .lh-t{color:#ff4444}
 #minimap{position:absolute;top:290px;right:18px;background:rgba(6,8,12,0.78);border:1px solid rgba(255,255,255,0.13);border-radius:6px;box-shadow:0 2px 16px rgba(0,0,0,0.55)}
-/* Dashboard unten rechts — Signatur: GT3-Schaltblitzleiste */
-#dash{position:absolute;right:24px;bottom:24px;background:var(--panel);border:var(--glass-border);
-  padding:14px 22px 16px;text-align:right;min-width:230px;border-radius:var(--rad-sm);backdrop-filter:blur(10px);box-shadow:var(--glass-shadow)}
-#rpmbar{display:flex;gap:4px;justify-content:flex-end;margin-bottom:10px}
-#rpmbar i{width:13px;height:9px;background:#1d242d;transition:background .03s}
-#rpmbar i.on{background:var(--green);box-shadow:0 0 7px #3dff7a66}
-#rpmbar i.on:nth-child(n+7){background:var(--amber);box-shadow:0 0 7px #ffb02e66}
-#rpmbar i.on:nth-child(n+11){background:var(--red);box-shadow:0 0 8px #ff2e3d88}
+/* Dashboard unten mittig — F1-inspiriertes Race-Cluster */
+#dash{position:absolute;left:50%;right:auto;bottom:22px;transform:translateX(-50%);width:390px;background:linear-gradient(180deg,rgba(12,16,22,.94),rgba(5,7,10,.90));border:1px solid rgba(255,255,255,.16);
+  border-top:2px solid rgba(255,255,255,.34);border-radius:7px;padding:12px 14px 11px;text-align:left;backdrop-filter:blur(18px);box-shadow:0 18px 46px rgba(0,0,0,.52),inset 0 1px 0 rgba(255,255,255,.08);overflow:hidden;clip-path:polygon(18px 0,calc(100% - 18px) 0,100% 18px,100% 100%,0 100%,0 18px)}
+#dash::before{content:'F1 MODE';position:absolute;left:14px;top:31px;color:#566272;font:800 7px var(--mono);letter-spacing:.20em}
+#dash::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,46,61,.12),transparent 22%,transparent 78%,rgba(79,168,255,.10));pointer-events:none}
+#rpmbar{position:relative;z-index:1;display:grid;grid-template-columns:repeat(14,1fr);gap:3px;margin-bottom:11px}
+#rpmbar i{height:9px;background:#1b232d;border-radius:1px;transition:background .03s,box-shadow .03s,transform .03s}
+#rpmbar i.on{background:#25e878;box-shadow:0 0 9px #25e87866;transform:translateY(-1px)}
+#rpmbar i.on:nth-child(n+7){background:#ffb02e;box-shadow:0 0 9px #ffb02e66}
+#rpmbar i.on:nth-child(n+11){background:#ff2e3d;box-shadow:0 0 10px #ff2e3d88}
 #dash.limit #rpmbar i.on{animation:flash .12s infinite alternate}
 @keyframes flash{to{opacity:.25}}
-#dash .main{display:flex;align-items:baseline;justify-content:flex-end;gap:16px}
-#gear{font-size:52px;font-weight:800;color:var(--red);line-height:1}
-#speed{font-size:44px;font-weight:700;line-height:1}
-#dash .unit{font-size:11px;color:var(--dim);letter-spacing:.2em}
-#carname{font-size:10px;letter-spacing:.22em;color:var(--dim);margin-top:8px}
+@keyframes limiterGearPulse{0%,100%{background:rgba(6,9,13,.88);border-color:rgba(255,255,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}50%{background:rgba(255,46,61,.30);border-color:rgba(255,46,61,.72);box-shadow:0 0 20px rgba(255,46,61,.45),inset 0 1px 0 rgba(255,255,255,.12)}}
+#dash .main{position:relative;z-index:1;display:grid;grid-template-columns:1fr 86px 1fr;align-items:center;gap:14px}
+#gear{grid-column:2;grid-row:1;display:flex;align-items:center;justify-content:center;width:86px;height:70px;background:rgba(6,9,13,.88);border:1px solid rgba(255,255,255,.18);border-radius:6px;font-size:56px;font-weight:900;color:#fff;line-height:1;text-shadow:0 0 14px rgba(255,255,255,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+#dash.limit #gear{animation:limiterGearPulse .42s ease-in-out infinite}
+#dash .speed-wrap{grid-column:3;grid-row:1;display:flex;align-items:baseline;justify-content:flex-start;gap:7px}
+#speed{font-size:42px;font-weight:900;line-height:.9;color:#f5f8fb;font-variant-numeric:tabular-nums}
+#dash .unit{font-size:10px;color:#6f7d8d;letter-spacing:.22em}
+#carname{position:relative;z-index:1;font-size:9px;letter-spacing:.24em;color:#8a98a8;margin-top:9px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.dash-strip{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.dash-chip{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);border-radius:3px;padding:6px 7px;min-width:0;text-align:center}
+.dash-chip span{display:block;font-size:7px;font-weight:800;letter-spacing:.18em;color:#586575;margin-bottom:3px}
+.dash-chip b{display:block;font-size:12px;color:#dce6f0;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #tyrebox{position:absolute;right:24px;bottom:132px;background:var(--panel);border:var(--glass-border);
   padding:12px 14px 10px;min-width:230px;font-family:var(--mono);backdrop-filter:blur(10px);border-radius:var(--rad-sm);box-shadow:var(--glass-shadow)}
 #tyrebox .tb-title{font-size:9px;letter-spacing:.24em;color:var(--red);margin-bottom:8px;font-weight:700}
@@ -612,8 +631,14 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 #touch-controls.hidden{display:none}
 /* ===== Nur iPhone/iPad (deviceMode=mobile) ===== */
 body.mobile-touch-layout #minimap{top:10px;right:10px;width:128px;height:128px}
-body.mobile-touch-layout #dash{left:50%;right:auto;bottom:108px;transform:translateX(-50%);min-width:210px;padding:10px 14px 12px;text-align:center}
-body.mobile-touch-layout #dash .main{justify-content:center}
+body.mobile-touch-layout #dash{left:50%;right:auto;bottom:108px;transform:translateX(-50%);width:min(360px,calc(100vw - 148px));padding:10px 12px 11px;text-align:left}
+body.mobile-touch-layout #dash .main{grid-template-columns:1fr 62px 1fr;gap:9px}
+body.mobile-touch-layout #gear{width:62px;height:52px;font-size:38px}
+body.mobile-touch-layout #speed{font-size:32px}
+body.mobile-touch-layout .dash-strip{grid-template-columns:repeat(2,1fr)}
+body.mobile-touch-layout #gforce{right:10px;bottom:108px;width:118px;padding:8px}
+body.mobile-touch-layout #gforce .gf-pad{width:64px;height:64px}
+body.mobile-touch-layout #gforce .gf-read b{font-size:10px}
 body.mobile-touch-layout #camlabel{left:50%;bottom:76px;transform:translateX(-50%)}
 body.mobile-touch-layout #tyrebox{right:10px;bottom:188px;min-width:0}
 body.mobile-touch-layout #touch-controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end;padding:8px 10px 10px}
@@ -631,9 +656,9 @@ body.mobile-touch-layout #touch-controls .tc-group:nth-child(3) .tc-btn,
 body.mobile-touch-layout #touch-controls .tc-group:nth-child(4) .tc-btn{min-width:46px;min-height:36px;padding:6px 6px;font-size:9px;border-radius:9px}
 #flash-notif{position:fixed;right:20px;top:50%;transform:translateY(-50%);background:rgba(8,10,14,0.95);border:1px solid #ffd04a;border-left:4px solid #ffd04a;padding:10px 14px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;color:#fff6cc;pointer-events:none;z-index:29;opacity:0;transition:opacity .25s;min-width:180px;max-width:240px}
 #flash-notif.show{opacity:1}
-#flash-screen{position:fixed;inset:0;pointer-events:none;z-index:50;box-sizing:border-box;border:0px solid rgba(255,255,240,0);box-shadow:inset 0 0 0px rgba(255,255,210,0);transition:border-width .04s,box-shadow .04s,border-color .04s}
-#flash-screen.on{border-width:28px;border-color:rgba(255,255,230,0.88);box-shadow:inset 0 0 60px rgba(255,255,200,0.35);transition:border-width .03s,box-shadow .03s,border-color .03s}
-#flash-screen.off{border-width:0px;border-color:rgba(255,255,230,0);box-shadow:inset 0 0 0px rgba(255,255,210,0);transition:border-width .28s,box-shadow .28s,border-color .28s}
+#flash-screen{position:fixed;inset:0;pointer-events:none;z-index:50;box-sizing:border-box;border:0 solid rgba(255,255,230,0);opacity:0;transition:opacity .04s,border-width .04s,border-color .04s}
+#flash-screen.on{opacity:1;border-width:18px;border-color:rgba(255,255,230,.72);box-shadow:inset 0 0 26px rgba(255,255,210,.18);transition:opacity .03s,border-width .03s,border-color .03s}
+#flash-screen.off{opacity:0;border-width:0;border-color:rgba(255,255,230,0);box-shadow:none;transition:opacity .20s,border-width .20s,border-color .20s}
 @keyframes flag-yellow-pulse{0%,100%{border-color:rgba(255,210,0,0.85)}50%{border-color:rgba(255,210,0,0.25)}}
 @keyframes flag-blue-pulse{0%,49%{border-color:rgba(20,80,255,0.9)}50%,100%{border-color:rgba(180,200,255,0.75)}}
 @keyframes flag-white-pulse{0%,100%{border-color:rgba(255,255,255,0.75)}50%{border-color:rgba(255,255,255,0.2)}}
@@ -698,7 +723,7 @@ body.mobile-touch-layout #touch-controls .tc-group:nth-child(4) .tc-btn{min-widt
 /* HUD-Vereinheitlichung: gemeinsamer Grundton/-blur/-radius für alle Telemetrie-Panels.
    Bewusst OHNE die "border"-Shorthand, damit die individuellen Akzent-Farben
    (border-left/border-top je Panel-Typ) erhalten bleiben und nicht überschrieben werden. */
-#tower,#dmg-panel,#leaderboard,#stats-bar,#dash,#tyrebox,#minimap,
+#tower,#dmg-panel,#leaderboard,#stats-bar,#dash,#gforce,#tyrebox,#minimap,
 #camlabel,#tt-laphist,#input-meter,#ers-popup,#fl-notif,#flash-notif{
   background:var(--panel);
   border-radius:var(--rad-sm);
@@ -709,6 +734,7 @@ body.hud-edit #hud{pointer-events:auto}
 .hud-draggable{cursor:default}
 body.hud-edit .hud-draggable{outline:1px dashed #22c4ff;outline-offset:2px;cursor:move}
 body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;left:0;background:#22c4ff;color:#07131f;font-size:9px;padding:1px 5px;letter-spacing:.1em;font-weight:700}
+body.hud-edit #input-meter{pointer-events:auto;z-index:85}
 .editor-panel{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;margin-top:18px}
 .editor-box{border:1px solid var(--line);background:#0f1419;padding:14px}
 .editor-box h3{font-size:16px;letter-spacing:.12em;margin-bottom:10px}
@@ -776,7 +802,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
   border:2px solid #ff2e3d;box-shadow:0 0 8px rgba(255,46,61,.5);cursor:pointer}
 /* ═══════════════ RENN-INGENIEUR ═══════════════ */
 #eng-widget{
-  position:fixed;bottom:18px;right:340px;
+  position:fixed;bottom:18px;right:24px;
   z-index:60;display:flex;flex-direction:column;align-items:stretch;gap:6px;
   font-family:var(--mono);width:280px;
   opacity:.72;transition:opacity .2s;
@@ -803,7 +829,7 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 .eng-log-entry:last-child{border-bottom:none;color:#fff}
 .eng-log-entry .eng-log-time{color:var(--red);margin-right:6px;font-size:9px}
 .eng-log-entry.eng-log-player{color:var(--blue)}
-/* Unterzeile: Radio + Eingabe */
+/* Unterzeile: automatischer Funkstatus */
 #eng-bottom-row{display:flex;gap:6px;align-items:center}
 #eng-radio-btn{
   flex-shrink:0;width:40px;height:40px;background:#070a0d;border:1px solid #1e2530;
@@ -939,9 +965,9 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:720px){
   h1{font-size:30px}.screen{padding:26px 22px}
-  #dash{right:10px;bottom:10px;min-width:0;padding:10px 14px}
+  #dash{left:50%;right:auto;bottom:10px;transform:translateX(-50%);width:min(360px,calc(100vw - 20px));padding:10px 12px}
   #tyrebox{right:10px;bottom:110px;min-width:0;padding:10px 12px}
-  #gear{font-size:36px}#speed{font-size:30px}
+  #gear{width:62px;height:52px;font-size:36px}#speed{font-size:32px}
   #tower{top:10px;left:10px;min-width:0}
   #minimap{top:156px;right:10px;width:120px;height:120px}
   .editor-panel{grid-template-columns:1fr}
@@ -1355,9 +1381,26 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
     <div id="rpmbar"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="main">
       <span id="gear">1</span>
-      <span><span id="speed">0</span> <span class="unit">KM/H</span></span>
+      <span class="speed-wrap"><span id="speed">0</span> <span class="unit">KM/H</span></span>
+    </div>
+    <div class="dash-strip">
+      <div class="dash-chip"><span>RPM</span><b id="dash-rpm">0%</b></div>
+      <div class="dash-chip"><span>FUEL</span><b id="dash-fuel">-- kg</b></div>
+      <div class="dash-chip"><span>ERS</span><b id="dash-ers">--</b></div>
+      <div class="dash-chip"><span>TYRE</span><b id="dash-tyre">100%</b></div>
     </div>
     <div id="carname">—</div>
+  </div>
+  <div id="gforce">
+    <div class="gf-title">G-FORCE</div>
+    <div class="gf-pad">
+      <i id="gf-dot"></i>
+    </div>
+    <div class="gf-read">
+      <span>LAT<b id="gf-lat">0.00g</b></span>
+      <span>LONG<b id="gf-long">0.00g</b></span>
+    </div>
+    <div class="gf-peak">PEAK <span id="gf-peak">0.00g</span></div>
   </div>
   <div id="tyrebox" class="hidden">
     <div class="tb-title">REIFEN &nbsp;<span id="tyre-compound-lbl" style="color:#ffd400;font-size:8px;letter-spacing:.2em">MEDIUM</span></div>
@@ -1411,15 +1454,11 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
     <div id="eng-log-entries"></div>
   </div>
   <div id="eng-bottom-row">
-    <div id="eng-radio-btn" title="Ingenieur fragen (Enter)">
+    <div id="eng-radio-btn" title="Renn-Ingenieur">
       <div id="eng-icon">📻</div>
       <div id="eng-waves" class="hidden">
         <span></span><span></span><span></span><span></span>
       </div>
-    </div>
-    <div id="eng-ask-box">
-      <input id="eng-ask-input" type="text" placeholder="Frage an Ingenieur... (Enter)" maxlength="120">
-      <button id="eng-ask-send">→</button>
     </div>
   </div>
   <div id="eng-bubble" class="hidden">
@@ -2838,6 +2877,22 @@ body.hud-edit .hud-draggable::after{content:'HUD';position:absolute;top:-10px;le
 <!-- Shanghai is a released production track. Load it directly after the base
      track registry so it is always present on the normal game page. -->
 <script src="assets/tracks/shanghai_2018.js?v=20260911e" defer></script>
+<script defer>
+window.addEventListener('DOMContentLoaded', () => {
+  if(!Array.isArray(window.TRACKS) && typeof TRACKS === 'undefined') return;
+  const list = window.TRACKS || TRACKS;
+  const allowed = new Set([
+    'monza','silverstone-gp','flat','hockenheim-alt','lemans-long','veloce',
+    'silberpfeil','custom_1782743640261','spa-francorchamps-2022',
+    'spa_francorchamps_2022','shanghai-2018','shanghai_2018',
+    'superspeedway','inselring','norisring','stadtring','kartbahn-lider','nuerburgring',
+    'nurburgring','redbullring-custom','redbull-ring','redbullring'
+  ]);
+  for(let i=list.length-1;i>=0;i--){
+    if(!allowed.has(list[i]?.id)) list.splice(i,1);
+  }
+});
+</script>
 <script src="assets/tracks/track-lab-loader.js?v=20260912b"></script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
 <script>
@@ -4009,7 +4064,15 @@ class Input {
 
 /* ============================ AUDIO (Web Audio, prozedural) ============================ */
 class SoundManager {
-  constructor(){ this.ready=false; }
+  constructor(){
+    this.ready=false;
+    this.sampleManifest=null;
+    this.sampleManifestLoading=false;
+    this.sampleActiveKey=null;
+    this.sampleLoadingKey=null;
+    this.sampleLoops=[];
+    this.sampleUnavailable=new Set();
+  }
   init(){
     if(this.ready) return;
     const AC = window.AudioContext||window.webkitAudioContext;
@@ -4057,34 +4120,157 @@ class SoundManager {
     this.shaper.connect(this.engineLP).connect(this.engineGain).connect(this.master);
     this.osc1.start(); this.osc2.start(); this.osc3.start(); this.osc4.start();
 
+    this.sampleEngineGain = ctx.createGain(); this.sampleEngineGain.gain.value=0;
+    this.sampleEngineLP = ctx.createBiquadFilter(); this.sampleEngineLP.type='lowpass'; this.sampleEngineLP.frequency.value=7200;
+    this.sampleEngineHP = ctx.createBiquadFilter(); this.sampleEngineHP.type='highpass'; this.sampleEngineHP.frequency.value=38;
+    this.sampleEngineHP.connect(this.sampleEngineLP).connect(this.sampleEngineGain).connect(this.master);
+
     this.squeal = noiseSrc('bandpass', 1050, 9);   // Reifenquietschen
     this.wind   = noiseSrc('lowpass', 380);        // Windgeräusch
     this.grass  = noiseSrc('lowpass', 750);        // Gras/Kies-Rumpeln
     this.crowd  = noiseSrc('bandpass', 480, 0.6);  // Zuschaueratmosphäre
     this.crowd.g.gain.value = 0.012;
     this.ready=true;
+    this.loadSampleManifest();
   }
   setVolume(v){ if(this.master) this.master.gain.value=v; }
   resume(){ if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume(); }
   suspend(){ if(this.ctx&&this.ctx.state==='running') this.ctx.suspend(); }
   /** Pro Frame: rpm 0..1, throttle 0..1, speed m/s, slip 0..1, onGrass bool */
-  update(rpmRatio, throttle, speed, slip, onGrass, shiftCut){
+  engineSignature(def){
+    const id = String(def?.id || def?.name || '').toLowerCase();
+    const cls = def?.classType || 'gt3';
+    if(def?.classBadge === 'F1') return {base:72, span:720, sub:.10, overtone:.70, drive:1.55, lp:6200, pulse:1.18};
+    if(cls === 'hypercar') return {base:48, span:470, sub:.22, overtone:.42, drive:1.05, lp:4600, pulse:.82, hybrid:.018};
+    if(cls === 'lmp2') return {base:55, span:540, sub:.18, overtone:.50, drive:1.22, lp:5200, pulse:1.00};
+    if(id.includes('lamborghini') || id.includes('scv12')) return {base:50, span:650, sub:.16, overtone:.64, drive:1.28, lp:5600, pulse:1.10};
+    if(id.includes('ferrari') || id.includes('296')) return {base:58, span:560, sub:.15, overtone:.58, drive:1.16, lp:5400, pulse:1.06, turbo:.012};
+    if(id.includes('mustang') || id.includes('bentley') || id.includes('amg')) return {base:38, span:390, sub:.38, overtone:.30, drive:1.02, lp:4200, pulse:.72};
+    if(id.includes('porsche')) return {base:46, span:520, sub:.20, overtone:.48, drive:1.14, lp:5000, pulse:.96};
+    if(cls === 'gt3') return {base:44, span:455, sub:.30, overtone:.36, drive:1.05, lp:4500, pulse:.86, turbo:.008};
+    return {base:42, span:390, sub:.30, overtone:.36, drive:1.0, lp:4200, pulse:.85};
+  }
+  engineSampleKey(def){
+    const id = String(def?.id || def?.name || '').toLowerCase();
+    const cls = def?.classType || 'gt3';
+    if(cls === 'kart') return id.includes('bumper') ? 'kart-rental-bumper' : 'kart-rental';
+    if(def?.classBadge === 'F1') return 'formula-f1';
+    if(cls === 'formula') return 'formula';
+    if(cls === 'hypercar') return 'hypercar-hybrid';
+    if(cls === 'lmp2') return 'lmp2';
+    if(id.includes('porsche')) return 'gt3-flat6';
+    if(id.includes('lamborghini') || id.includes('scv12')) return 'gt3-v10-v12';
+    if(id.includes('ferrari') || id.includes('296')) return 'gt3-v6-turbo';
+    if(id.includes('mustang') || id.includes('bentley') || id.includes('amg')) return 'gt3-v8';
+    return 'gt3-generic';
+  }
+  async loadSampleManifest(){
+    if(this.sampleManifest || this.sampleManifestLoading) return;
+    this.sampleManifestLoading=true;
+    try{
+      const res = await fetch('assets/sounds/engine/manifest.json?v=20260915a', {cache:'no-store'});
+      if(res.ok) this.sampleManifest = await res.json();
+    }catch(e){
+      this.sampleManifest = null;
+    }finally{
+      this.sampleManifestLoading=false;
+    }
+  }
+  stopSampleLoops(){
+    for(const l of this.sampleLoops){
+      try{ l.src.stop(); }catch(e){}
+      try{ l.src.disconnect(); l.gain.disconnect(); }catch(e){}
+    }
+    this.sampleLoops=[];
+    this.sampleActiveKey=null;
+    if(this.sampleEngineGain && this.ctx){
+      this.sampleEngineGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
+    }
+  }
+  async ensureSampleProfile(def){
+    if(!this.ready) return;
+    if(!this.sampleManifest && !this.sampleManifestLoading) this.loadSampleManifest();
+    if(!this.sampleManifest) return;
+    const key = this.engineSampleKey(def);
+    if(this.sampleActiveKey === key || this.sampleLoadingKey === key || this.sampleUnavailable.has(key)) return;
+    const profiles = this.sampleManifest.profiles || {};
+    const profile = profiles[key] || profiles[this.engineSampleKey({classType:def?.classType || 'gt3'})] || profiles['gt3-generic'];
+    if(!profile || !Array.isArray(profile.layers) || !profile.layers.length){
+      this.sampleUnavailable.add(key);
+      this.stopSampleLoops();
+      return;
+    }
+    this.sampleLoadingKey=key;
+    try{
+      const loaded=[];
+      for(const layer of profile.layers){
+        if(!layer.url) continue;
+        const res = await fetch(layer.url);
+        if(!res.ok) throw new Error(`Sound fehlt: ${layer.url}`);
+        const arr = await res.arrayBuffer();
+        const buffer = await this.ctx.decodeAudioData(arr);
+        loaded.push({...layer, buffer});
+      }
+      if(!loaded.length) throw new Error('Keine Engine-Sound-Layer geladen');
+      if(this.sampleLoadingKey !== key) return;
+      this.stopSampleLoops();
+      for(const layer of loaded){
+        const src=this.ctx.createBufferSource();
+        const gain=this.ctx.createGain();
+        src.buffer=layer.buffer;
+        src.loop=true;
+        gain.gain.value=0;
+        src.connect(gain).connect(this.sampleEngineHP);
+        src.start();
+        this.sampleLoops.push({
+          src, gain,
+          baseRpm: layer.baseRpm || 4500,
+          minRpm: layer.minRpm || 0,
+          maxRpm: layer.maxRpm || 12000,
+          gainMul: layer.gain ?? 1
+        });
+      }
+      this.sampleActiveKey=key;
+    }catch(e){
+      console.warn('[Audio] Engine-Samples nicht geladen, Synth-Fallback bleibt aktiv:', e.message || e);
+      this.sampleUnavailable.add(key);
+      this.stopSampleLoops();
+    }finally{
+      if(this.sampleLoadingKey === key) this.sampleLoadingKey=null;
+    }
+  }
+  update(rpmRatio, throttle, speed, slip, onGrass, shiftCut, carDef){
     if(!this.ready) return;
     const t=this.ctx.currentTime;
-    const f = 42 + rpmRatio*390;
-    this.osc1.frequency.setTargetAtTime(f, t, 0.02);
-    this.osc2.frequency.setTargetAtTime(f*0.5, t, 0.02);
-    this.osc3.frequency.setTargetAtTime(f*0.25, t, 0.02);
-    this.osc4.frequency.setTargetAtTime(f*2, t, 0.02);
-    // Sub-Harmonische füllt den Leerlauf/niedrige Drehzahl auf, tritt bei hoher Drehzahl zurück
-    this.oscGain3.gain.setTargetAtTime(clamp(0.34-rpmRatio*0.30, 0, 0.34), t, 0.08);
-    // Oberton kommt erst bei hoher Drehzahl dazu — sorgt für den "Schrei" nahe der Drehzahlgrenze
-    this.oscGain4.gain.setTargetAtTime(Math.max(0,rpmRatio-0.55)*0.36, t, 0.06);
-    // Unter Last (viel Gas + hohe Drehzahl) mehr Eingangspegel vor dem Softclip → aggressiverer Klangcharakter
-    this.driveGain.gain.setTargetAtTime(1 + throttle*rpmRatio*0.9, t, 0.05);
-    this.engineLP.frequency.setTargetAtTime(260+throttle*4200+rpmRatio*1200, t, 0.04);
-    const cut = shiftCut?0.25:1;
-    this.engineGain.gain.setTargetAtTime((0.10+throttle*0.16+rpmRatio*0.05)*cut, t, 0.05);
+    const sig=this.engineSignature(carDef);
+    this.ensureSampleProfile(carDef);
+    const pulse = 1 + Math.sin(t*35*sig.pulse + rpmRatio*8) * (0.006 + throttle*0.014);
+    const f = (sig.base + rpmRatio*sig.span) * pulse;
+    this.osc1.frequency.setTargetAtTime(f, t, 0.018);
+    this.osc2.frequency.setTargetAtTime(f*(0.5 + (sig.turbo||0)), t, 0.02);
+    this.osc3.frequency.setTargetAtTime(f*0.25, t, 0.025);
+    this.osc4.frequency.setTargetAtTime(f*(2.0 + (sig.hybrid||0)), t, 0.018);
+    this.oscGain2.gain.setTargetAtTime(0.22 + sig.sub*0.55, t, 0.06);
+    this.oscGain3.gain.setTargetAtTime(clamp(sig.sub-rpmRatio*0.24, 0, 0.42), t, 0.08);
+    this.oscGain4.gain.setTargetAtTime(Math.max(0,rpmRatio-0.48)*sig.overtone, t, 0.05);
+    this.driveGain.gain.setTargetAtTime(0.85 + throttle*rpmRatio*sig.drive, t, 0.045);
+    this.engineLP.frequency.setTargetAtTime(240+throttle*sig.lp+rpmRatio*1500, t, 0.035);
+    const cut = shiftCut?0.18:(throttle<0.04&&rpmRatio>0.55?0.72:1);
+    const sampleOn = this.sampleLoops.length > 0 && this.sampleActiveKey;
+    this.engineGain.gain.setTargetAtTime((0.095+throttle*0.17+rpmRatio*0.045)*cut*(sampleOn?0.36:1), t, 0.045);
+    if(sampleOn){
+      const rpm = 900 + rpmRatio*8200;
+      this.sampleEngineGain.gain.setTargetAtTime((0.02+throttle*0.18+rpmRatio*0.07)*cut, t, 0.04);
+      this.sampleEngineLP.frequency.setTargetAtTime(1200 + throttle*5600 + rpmRatio*1800, t, 0.05);
+      for(const l of this.sampleLoops){
+        const inBand = rpm >= l.minRpm && rpm <= l.maxRpm;
+        const edge = Math.min(Math.abs(rpm-l.minRpm), Math.abs(l.maxRpm-rpm));
+        const feather = clamp(edge / 900, 0, 1);
+        const bandGain = inBand ? feather : 0;
+        l.src.playbackRate.setTargetAtTime(clamp(rpm / Math.max(500, l.baseRpm), 0.45, 2.2), t, 0.045);
+        l.gain.gain.setTargetAtTime(bandGain * l.gainMul, t, 0.055);
+      }
+    }
     this.squeal.g.gain.setTargetAtTime(clamp(slip,0,1)*0.16, t, 0.05);
     this.squeal.f.frequency.setTargetAtTime(900+slip*500, t, 0.1);
     this.wind.g.gain.setTargetAtTime(Math.min(0.09,(speed/85)**2*0.09), t, 0.15);
@@ -4803,8 +4989,9 @@ class Track {
   }
 
   buildVerge(){
+    const useAsphaltRunoff = this.def.vergeSurface === 'asphalt' || this.def.env === 'city';
     const g=this.def.grass.map(c=>'#'+c.toString(16).padStart(6,'0'));
-    const t=Tex.grass(g[0],g[1]); t.repeat.set(3,1);
+    const t=useAsphaltRunoff ? Tex.asphalt() : Tex.grass(g[0],g[1]); t.repeat.set(3,1);
     const mat=new THREE.MeshLambertMaterial({map:t});
     this.ribbon(this.halfW+this.kerbW+this.vergeW, this.halfW+this.kerbW-0.05, -0.02, mat, 9);
     this.ribbon(-(this.halfW+this.kerbW)+0.05, -(this.halfW+this.kerbW+this.vergeW), -0.02, mat, 9);
@@ -5623,16 +5810,143 @@ class Track {
       this.blimp=zg; this._blimpAngle=Math.random()*Math.PI*2;
       this.group.add(zg);
     }
+    if(this.def?.id === 'flat') this._buildAirfieldTraffic();
   }
 
   /** Lässt den Zeppelin langsam über der Strecke kreisen. */
   updateAmbient(dt){
-    if(!this.blimp) return;
-    this._blimpAngle+=dt*0.012;
-    const r=(this._trackR||400)*0.55;
-    const a=this._blimpAngle;
-    this.blimp.position.set(Math.cos(a)*r, 185, Math.sin(a)*r);
-    this.blimp.rotation.y=-a; // Nase in Flugrichtung (tangential)
+    if(this.blimp){
+      this._blimpAngle+=dt*0.012;
+      const r=(this._trackR||400)*0.55;
+      const a=this._blimpAngle;
+      this.blimp.position.set(Math.cos(a)*r, 185, Math.sin(a)*r);
+      this.blimp.rotation.y=-a; // Nase in Flugrichtung (tangential)
+    }
+    this._updateAirfieldTraffic?.(dt);
+  }
+
+  _buildAirfieldTraffic(){
+    this.airfieldPlanes = [];
+    this._airfieldTemplates = [];
+    const fallback = () => {
+      const g = new THREE.Group();
+      const mat = new THREE.MeshLambertMaterial({color:0xd7dde5});
+      const body = new THREE.Mesh(new THREE.BoxGeometry(5.8,0.7,0.55), mat);
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(1.0,0.08,7.2), mat);
+      const tail = new THREE.Mesh(new THREE.BoxGeometry(0.8,1.0,1.6), mat);
+      tail.position.set(-2.4,0.55,0);
+      g.add(body, wing, tail);
+      return g;
+    };
+    const addTemplate = obj => {
+      obj.traverse?.(o => {
+        if(o.isMesh){
+          o.castShadow=false;
+          o.frustumCulled=true;
+        }
+      });
+      this._airfieldTemplates.push(obj);
+      if(this.airfieldPlanes.length < 3) this._spawnAirfieldPlane();
+    };
+    addTemplate(fallback());
+    if(THREE.GLTFLoader){
+      const loader = _makeGLTFLoader();
+      ['assets/airplane/models/lowpoly_ac130.glb','assets/airplane/models/crj900_cityjet.glb'].forEach(url => {
+        loader.load(url, gltf => addTemplate(gltf.scene), undefined, () => {});
+      });
+    }
+    this._airfieldSpawnT = 18 + Math.random()*18;
+  }
+
+  _spawnAirfieldPlane(){
+    if(!this._airfieldTemplates?.length || this.airfieldPlanes.length >= 4) return;
+    const tpl = this._airfieldTemplates[Math.floor(Math.random()*this._airfieldTemplates.length)];
+    const plane = tpl.clone(true);
+    const isFallback = tpl === this._airfieldTemplates[0];
+    const lowPass = Array.isArray(this.samples) && this.samples.length > 40 && Math.random() < 0.34;
+    const scale = tpl === this._airfieldTemplates[0] ? 3.2 : 7.5;
+    plane.scale.setScalar(lowPass ? scale*0.92 : scale);
+    this.group.add(plane);
+    if(lowPass){
+      const sample = this.samples[Math.floor(this.samples.length * (0.12 + Math.random()*0.76))];
+      const tangent = sample.dir.clone().multiplyScalar(Math.random() < 0.5 ? 1 : -1).normalize();
+      const cross = sample.side.clone().multiplyScalar((Math.random()-0.5) * this.halfW * 1.2);
+      const center = sample.pos.clone().add(cross);
+      const run = 760 + Math.random()*260;
+      const start = center.clone().addScaledVector(tangent, -run);
+      const speed = 95 + Math.random()*42;
+      const minAlt = 18 + Math.random()*13;
+      plane.position.set(start.x, minAlt + 95, start.z);
+      plane.rotation.y = Math.atan2(tangent.x, tangent.z);
+      plane.rotation.x = -0.035;
+      this.airfieldPlanes.push({
+        obj:plane,
+        type:'lowpass',
+        dir:tangent,
+        center,
+        dist:-run,
+        run,
+        speed,
+        minAlt,
+        cruiseAlt:minAlt + 95 + Math.random()*35,
+        bob:Math.random()*Math.PI*2,
+        isFallback
+      });
+    } else {
+      const r = 760 + Math.random()*460;
+      const side = Math.random() < 0.5 ? -1 : 1;
+      const z = -360 + Math.random()*720;
+      const alt = 75 + Math.random()*95;
+      const vx = -side*(48 + Math.random()*42);
+      const vz = (Math.random()-0.5)*16;
+      plane.position.set(side*r, alt, z);
+      plane.rotation.y = Math.atan2(vx, vz);
+      this.airfieldPlanes.push({
+        obj:plane,
+        type:'cruise',
+        vx,
+        vz,
+        bob:Math.random()*Math.PI*2,
+        maxX:r + 220
+      });
+    }
+  }
+
+  _updateAirfieldTraffic(dt){
+    if(!this.airfieldPlanes) return;
+    this._airfieldSpawnT = (this._airfieldSpawnT || 0) - dt;
+    if(this._airfieldSpawnT <= 0){
+      this._spawnAirfieldPlane();
+      this._airfieldSpawnT = 24 + Math.random()*42;
+    }
+    for(let i=this.airfieldPlanes.length-1;i>=0;i--){
+      const p=this.airfieldPlanes[i];
+      p.bob += dt;
+      if(p.type === 'lowpass'){
+        p.dist += p.speed * dt;
+        const t = clamp(Math.abs(p.dist) / p.run, 0, 1);
+        const alt = p.minAlt + (1 - Math.cos(t*Math.PI/2)) * (p.cruiseAlt - p.minAlt);
+        const pos = p.center.clone().addScaledVector(p.dir, p.dist);
+        p.obj.position.set(pos.x, alt + Math.sin(p.bob*1.7)*0.8, pos.z);
+        p.obj.rotation.y = Math.atan2(p.dir.x, p.dir.z);
+        p.obj.rotation.x = p.dist < 0 ? -0.055 : 0.045;
+        p.obj.rotation.z = Math.sin(p.bob*1.1)*0.05;
+        if(p.dist > p.run){
+          this.group.remove(p.obj);
+          this.airfieldPlanes.splice(i,1);
+        }
+      } else {
+        p.obj.position.x += p.vx*dt;
+        p.obj.position.z += p.vz*dt;
+        p.obj.position.y += Math.sin(p.bob*0.9)*dt*0.9;
+        p.obj.rotation.y = Math.atan2(p.vx, p.vz);
+        p.obj.rotation.z = Math.sin(p.bob*0.7)*0.035;
+        if(Math.abs(p.obj.position.x) > p.maxX){
+          this.group.remove(p.obj);
+          this.airfieldPlanes.splice(i,1);
+        }
+      }
+    }
   }
 
   _buildTrackBuildings(){
@@ -6035,6 +6349,55 @@ class Car {
       overtakeCooldown:0,   // Cooldown-Sekunden
     };
     this.buildMesh(envMap);
+  }
+
+  resetRuntimeState({keepKm=false}={}){
+    this.vx=0; this.vy=0; this.yawRate=0; this.steer=0;
+    this.gear=0; this.rpmRatio=0.12; this.accLong=0; this.shiftCut=0;
+    this.drsOpen=0; this.drsJammed=false; this._drsJamCD=0;
+    this.slipFront=0; this.slipRear=0; this.wheelSpin=0; this.brakeLight=false;
+    this.alphaFs=0; this.alphaRs=0; this.lastAy=0; this._crestUnload=0; this._crestKickDir=0;
+    this.damage = {front:0, rear:0, left:0, right:0, engine:0, susp:{FL:0,FR:0,RL:0,RR:0}};
+    this.smokeT=0; this.retired=false; this.lastImpact=null; this.lastTirePop=null;
+    this.tireWear = {front:1, rear:1, FL:1, FR:1, RL:1, RR:1};
+    this.pitLimiterActive=false; this.pitStopState='idle'; this.pitStopT=0; this.pitStopsDone=0;
+    this.penaltySec=0; this.penaltySecConsumed=0; this._pitSpeedingPenaltyGiven=false;
+    this.driveThroughPenaltyPending=false; this.driveThroughInPit=false; this.driveThroughNoticeUntil=0;
+    this._driveThroughAutoLimiter=false; this._overtakeState={};
+    this.totalDistance=0; if(!keepKm) this.totalKm=0;
+    this.wallContacts=0; this.carContacts=0; this._ccCD={}; this._wcCD=0;
+    this._stuckT=0; this._everMoved=false; this._prevDmg=0; this.slipstreamFactor=0;
+    this.engineState = {tempC:90, throttleFiltered:0, mapIdx:this.engineState?.mapIdx ?? 2, rpmCutActive:false};
+    this.tireTemp = {FL:70, FR:70, RL:70, RR:70};
+    if(this.hasERS){
+      this.ers = {enabled:true, charge:0.42, active:false, regenActive:false, depleted:false, modeKey:'RACE', deployKw:0, regenKw:0, tempC:ERS_PARAMS.ambientTempC, energyGainedKwh:0, energyUsedKwh:0, overtakeT:0, overtakeCooldown:0};
+    } else if(this.ers){
+      this.ers = {enabled:false, charge:0, active:false, regenActive:false, depleted:false, modeKey:'OFF', deployKw:0, regenKw:0, tempC:ERS_PARAMS.ambientTempC, energyGainedKwh:0, energyUsedKwh:0, overtakeT:0, overtakeCooldown:0};
+    }
+    for(const tag in this.lostParts){
+      const mountSpec = this.partMounts && this.partMounts[tag];
+      const partMesh = this.parts && this.parts[tag];
+      if(partMesh && mountSpec){
+        partMesh.position.copy(mountSpec.pos); partMesh.quaternion.copy(mountSpec.quat);
+        partMesh.visible = true; partMesh.scale.set(1,1,1);
+        if(partMesh.material){ partMesh.material.opacity = 1; partMesh.material.transparent = false; }
+        if(partMesh.parent && partMesh.parent !== this.group) partMesh.parent.remove(partMesh);
+        this.group.add(partMesh);
+      }
+    }
+    this.lostParts={};
+    for(const m of (this._proceduralShell||[])){
+      if(m && m.scale) m.scale.set(1,1,1);
+    }
+    for(const tag in (this.parts||{})){
+      const mountSpec = this.partMounts && this.partMounts[tag];
+      const partMesh = this.parts[tag];
+      if(partMesh && mountSpec){
+        partMesh.position.copy(mountSpec.pos);
+        partMesh.quaternion.copy(mountSpec.quat);
+      }
+    }
+    if(this.group) this.group.visible=true;
   }
 
   /* --------- Prozedurales GT3-Modell (Karosserie, Flügel, Räder, Lichter) --------- */
@@ -7230,6 +7593,25 @@ class Car {
 
     this.wheelSpin = (Math.abs(Fdrive) > muMaxR*0.93 && input.throttle>0.5) ? 1 : 0;
 
+    const rearSlipDemand = clamp(Math.abs(Fxr) / Math.max(muMaxR, 1), 0, 1);
+    const rearLatDemand = clamp(Math.abs(Fyr_pure) / Math.max(muMaxR, 1), 0, 1);
+    const cornerSpeedRisk = clamp((Math.abs(ayPrev) / Math.max(G * 0.95, 1) - 0.55) / 0.65, 0, 1);
+    const rearAngleRisk = clamp((Math.abs(this.alphaRs) - 0.095) / 0.13, 0, 1);
+    const powerDestab = clamp((rearSlipDemand - 0.88) / 0.12, 0, 1) * Math.max(cornerSpeedRisk, rearAngleRisk) * 0.35;
+    const rearOverLimit = clamp((rearLatDemand - 0.78) / 0.20, 0, 1) * Math.max(cornerSpeedRisk, rearAngleRisk) + powerDestab;
+    if(rearOverLimit > 0 && speed > 12){
+      const slipDir = Math.sign(this.alphaRs || this.yawRate || this.steer || 0);
+      if(slipDir){
+        const counterSteer = clamp(-this.steer * slipDir / 0.34, 0, 1);
+        const throttleCatch = input.throttle > 0.18 ? 0.96 : 0.82;
+        const catchMul = (1 - counterSteer * 0.58) * throttleCatch;
+        const brakeDestab = input.brake > 0.12 ? input.brake * 0.48 : 0;
+        const spinRamp = clamp((speed - 16) / 30, 0.12, 1.20);
+        this.yawRate += slipDir * rearOverLimit * (0.85 + brakeDestab) * spinRamp * catchMul * dt;
+        this.vy += slipDir * rearOverLimit * speed * 0.052 * spinRamp * catchMul * dt;
+      }
+    }
+
     /* --- Bewegungsgleichungen Bicycle-Modell --- */
     const m = d.mass;
     /* Längskraft = Antrieb hinten + Bremse beide + Widerstände */
@@ -7267,8 +7649,8 @@ class Car {
        Reifen saturierten, das Auto brach aus. */
     const sideDampGrip = baseMu/1.30 * bumpMul;
     const maxAlpha = Math.max(this.slipFront, this.slipRear);
-    const overLimit = clamp((maxAlpha-0.30)*3.8, 0, 1);
-    const assistFactor = 1 - overLimit*0.28;
+    const overLimit = clamp((maxAlpha-0.22)*4.2, 0, 1);
+    const assistFactor = clamp(1 - overLimit*0.42 - rearOverLimit*0.58, 0.16, 1);
     /* Physikalisches Limit für stationäre Querbeschleunigung */
     const aeroLoad = 1 + 0.55*(d.classType==='formula' ? (d.aeroMul||1) : 1)
       *(speed*speed)/(d.topSpeed*d.topSpeed);
@@ -7682,6 +8064,7 @@ class Car {
       }
     }
     this.lastImpact = {x: hitX, z: hitZ, mag: into};
+    this.applyVisualDamage(hitX, hitZ, sev);
     /* Reifenplatzer NUR bei extremen Wandeinschlägen (>20 = ~70 km/h closing) */
     if(into > 20 && !this._noTirePop){
       const sideR = hitX > 0;
@@ -7695,6 +8078,25 @@ class Car {
       }
     }
     this.checkPartDetachment();
+  }
+
+  applyVisualDamage(hitX, hitZ, sev){
+    if(!this.group || sev < 2.5) return;
+    const absX=Math.abs(hitX), absZ=Math.abs(hitZ);
+    const front = absZ >= absX && hitZ > 0;
+    const rear  = absZ >= absX && hitZ < 0;
+    const side  = absX > absZ ? Math.sign(hitX) : 0;
+    const dent = clamp(sev / 38, 0.025, 0.22);
+    for(const m of (this._proceduralShell||[])){
+      if(!m || !m.scale) continue;
+      const z=m.position.z, x=m.position.x;
+      const inZone = (front && z > 0.9) || (rear && z < -0.9) || (side && Math.sign(x || side) === side && Math.abs(x) > 0.45);
+      if(!inZone) continue;
+      m.scale.x = Math.max(0.72, m.scale.x * (1 - dent*0.35));
+      m.scale.y = Math.max(0.68, m.scale.y * (1 - dent*0.22));
+      if(front || rear) m.scale.z = Math.max(0.70, m.scale.z * (1 - dent));
+      if(side) m.position.x -= side * dent * 0.12;
+    }
   }
 
   /** Prüft Schadensschwellen und löst Teile ab */
@@ -9612,11 +10014,12 @@ class CameraRig {
 const HUD = {
   els:{},
   init(){
-    for(const id of ['speed','gear','lap','laptime','lastlap','bestlap','delta','carname','prog','camlabel','pos','stat-weather','stat-ghost','modeldbg','stat-drs'])
+    for(const id of ['speed','gear','lap','laptime','lastlap','bestlap','delta','carname','prog','camlabel','pos','stat-weather','stat-ghost','modeldbg','stat-drs','dash-rpm','dash-fuel','dash-ers','dash-tyre'])
       this.els[id]=document.getElementById(id);
     this.leds=[...document.querySelectorAll('#rpmbar i')];
     this.mapC=document.getElementById('minimap');
     this.mapG=this.mapC.getContext('2d');
+    this.gfPeak=0;
   },
   fmt(sec){
     if(sec==null||!isFinite(sec)) return '--:--.---';
@@ -9716,6 +10119,52 @@ const HUD = {
   update(car, race, totalLaps, aiCars){
     this.els.speed.textContent=Math.round(car.speedKmh);
     this.els.gear.textContent=car.vx<-0.3?'R':(car.gear+1);
+    if(this.els['dash-rpm']) this.els['dash-rpm'].textContent = Math.round(clamp(car.rpmRatio || 0, 0, 1.05) * 100) + '%';
+    if(this.els['dash-fuel']) this.els['dash-fuel'].textContent = (car.fuelKg ?? 0).toFixed(1) + ' kg';
+    if(this.els['dash-ers']){
+      this.els['dash-ers'].textContent = car.hasERS ? Math.round((car.ers?.charge ?? 0) * 100) + '%' : 'OFF';
+      this.els['dash-ers'].style.color = car.hasERS && car.ers?.active ? '#22e87a' : '#dce6f0';
+    }
+    if(this.els['dash-tyre']){
+      const tw = car.tireWear ? (car.tireWear.FL + car.tireWear.FR + car.tireWear.RL + car.tireWear.RR) / 4 : 1;
+      this.els['dash-tyre'].textContent = Math.round(tw * 100) + '%';
+      this.els['dash-tyre'].style.color = tw < 0.25 ? '#ff2e3d' : tw < 0.5 ? '#ffb02e' : '#dce6f0';
+    }
+    if(this._gfDot === undefined){
+      this._gfDot = document.getElementById('gf-dot');
+      this._gfLat = document.getElementById('gf-lat');
+      this._gfLong = document.getElementById('gf-long');
+      this._gfPeak = document.getElementById('gf-peak');
+    }
+    if(this._gfDot){
+      const nowG = performance.now();
+      let measuredLongG = null;
+      if(this._gfPrevT && nowG > this._gfPrevT){
+        const dtG = (nowG - this._gfPrevT) / 1000;
+        if(dtG > 0.004 && dtG < 0.12 && Number.isFinite(this._gfPrevVx)){
+          measuredLongG = clamp(((car.vx || 0) - this._gfPrevVx) / dtG / G, -4.5, 4.5);
+        }
+      }
+      this._gfPrevT = nowG;
+      this._gfPrevVx = car.vx || 0;
+      const latG = clamp((car.lastAy || 0) / G, -3.2, 3.2);
+      const forceLongG = clamp((car.accLong || 0) / G, -4.5, 4.5);
+      const longRaw = measuredLongG == null || Math.abs(forceLongG) > Math.abs(measuredLongG)
+        ? forceLongG
+        : measuredLongG;
+      const longG = clamp(longRaw, -3.2, 3.2);
+      const magG = Math.hypot(latG, longG);
+      this.gfPeak = Math.max(this.gfPeak || 0, magG);
+      const scale = 3.2;
+      const x = 50 + clamp(latG / scale, -1, 1) * 42;
+      const y = 50 - clamp(longG / scale, -1, 1) * 42;
+      this._gfDot.style.left = x.toFixed(1) + '%';
+      this._gfDot.style.top = y.toFixed(1) + '%';
+      this._gfDot.style.background = magG > 2.4 ? '#ff2e3d' : magG > 1.4 ? '#ffb02e' : '#3dff7a';
+      if(this._gfLat) this._gfLat.textContent = latG.toFixed(2) + 'g';
+      if(this._gfLong) this._gfLong.textContent = longG.toFixed(2) + 'g';
+      if(this._gfPeak) this._gfPeak.textContent = this.gfPeak.toFixed(2) + 'g';
+    }
     if(this.els['stat-drs']){
       const isF = car?.def?.classType === 'formula';
       const el = this.els['stat-drs'];
@@ -11178,6 +11627,9 @@ const RaceEngineer = {
   _sectorHistory: [[], [], []],  // last 5 per sector
   _askOpen: false,
   _groqHistory: [],  // conversation context
+  _lastAutoBrief: 0,
+  _lastDamageWarn: 0,
+  _lastPaceWarn: 0,
 
   /* ── Sprechen ──────────────────────────────────── */
   speak(text, priority = 1, category = 'misc') {
@@ -11271,18 +11723,68 @@ const RaceEngineer = {
       else if(avg < 0.25) this.speak('Reifen bei ' + pct + '%. Box vorbereiten.', 2, 'tyre-low');
     }
 
+    // Reifen-Warnung (aktuelles Modell nutzt tireWear pro Ecke)
+    if(car.tireWear) {
+      const vals = ['FL','FR','RL','RR'].map(k => car.tireWear[k] ?? 1);
+      const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
+      const rear = ((car.tireWear.RL ?? 1) + (car.tireWear.RR ?? 1)) / 2;
+      const pct = Math.round(avg * 100);
+      if(avg < 0.12) this.speak('Reifen kritisch, Schnitt ' + pct + ' Prozent. Boxenstopp jetzt.', 3, 'tyre-crit');
+      else if(avg < 0.28) this.speak('Reifen fallen ab, Schnitt ' + pct + ' Prozent. Plan die Box.', 2, 'tyre-low');
+      else if(rear < avg - 0.10) this.speak('Hinterreifen bauen stärker ab. Traktion am Ausgang schonen.', 1, 'tyre-rear');
+    }
+
+    const dmg = car.totalDamage || 0;
+    if(dmg > 65 && now - this._lastDamageWarn > 15000){
+      this._lastDamageWarn = now;
+      this.speak('Schaden hoch, ungefähr ' + Math.round(dmg) + ' Prozent. Auto wird instabil.', 3, 'damage-high');
+    } else if(dmg > 35 && now - this._lastDamageWarn > 24000){
+      this._lastDamageWarn = now;
+      this.speak('Schaden bei ' + Math.round(dmg) + ' Prozent. Bremsen und Kerbs vorsichtig.', 2, 'damage-mid');
+    }
+
+    const slip = Math.max(car.slipFront || 0, car.slipRear || 0);
+    if(slip > 0.18 && Math.abs(car.speedKmh || 0) > 80 && now - this._lastPaceWarn > 14000){
+      this._lastPaceWarn = now;
+      const rearHeavy = (car.slipRear || 0) > (car.slipFront || 0) * 1.15;
+      this.speak(rearHeavy ? 'Heck arbeitet stark. Früher geradestellen, dann Gas.' : 'Vorderachse rutscht. Eingang etwas ruhiger fahren.', 1, 'slip-advice');
+    }
+
+    if(now - this._lastAutoBrief > 28000){
+      this._lastAutoBrief = now;
+      this._autoBrief(car);
+    }
+
     // ERS leer
     if(car.hasERS && car.ers) {
-      const ersPct = car.ers.stored / (car.ers.maxStored || 4000000);
+      const ersPct = car.ers.charge ?? 0;
       if(ersPct < 0.08 && car.ers.modeKey !== 'CHARGE' && car.ers.modeKey !== 'OFF') {
         this.speak('ERS fast leer. Auf Laden schalten.', 2, 'ers-low');
       }
     }
   },
 
+  _autoBrief(car){
+    const r = Game.race || {};
+    const fuelKg = car.fuelKg ?? 0;
+    const avgCons = this._fuelPerLap.length ? this._fuelPerLap.reduce((a,b)=>a+b,0)/this._fuelPerLap.length : null;
+    const fuelLaps = avgCons ? fuelKg / avgCons : null;
+    const ersPct = car.hasERS ? Math.round((car.ers?.charge ?? 0) * 100) : null;
+    const tireAvg = car.tireWear ? Math.round((['FL','FR','RL','RR'].reduce((s,k)=>s+(car.tireWear[k]??1),0)/4)*100) : null;
+    const dmg = Math.round(car.totalDamage || 0);
+    const speed = Math.round(car.speedKmh || 0);
+    const pos = Game.totalLaps ? `Position ${r.pos || '?'} von ${r.total || '?'}. ` : '';
+    const fuelText = fuelLaps ? `Sprit reicht fuer etwa ${fuelLaps.toFixed(1)} Runden. ` : `Sprit ${fuelKg.toFixed(1)} Kilo. `;
+    const ersText = ersPct !== null ? `ERS ${ersPct} Prozent. ` : '';
+    const tyreText = tireAvg !== null ? `Reifen ${tireAvg} Prozent. ` : '';
+    const dmgText = dmg > 5 ? `Schaden ${dmg} Prozent. ` : '';
+    const vscText = Game.vsc?.active ? `VSC-Delta ${Game.vsc.deltaSec >= 0 ? 'plus' : 'minus'} ${Math.abs(Game.vsc.deltaSec).toFixed(1)}. ` : '';
+    this.speak(pos + fuelText + ersText + tyreText + dmgText + vscText + `Tempo aktuell ${speed}.`, 1, 'auto-brief');
+  },
+
   _adviseERS(car) {
     const ers = car.ers;
-    const ersPct = ers.stored / (ers.maxStored || 4000000);
+    const ersPct = ers.charge ?? 0;
     const ersPctRound = Math.round(ersPct * 100);
     const speed = Math.abs(car.vx ?? 0); // m/s
     const throttle = car.throttle ?? 0;
@@ -11364,7 +11866,7 @@ const RaceEngineer = {
     // Wenn Groq-Key vorhanden: LLM-Briefing
     if(this._groqKey) {
       const ctx = this._buildContext();
-      this._askGroq(`Gib ein kurzes Runden-Briefing (max 2 Sätze). Rundenzeit: ${fmt(lapTime)}. ${sectorMsg} Sprit: ${Game.car?.fuelKg?.toFixed(1)}kg. ERS: ${Math.round((Game.car?.ers?.stored||0)/(Game.car?.ers?.maxStored||4000000)*100)}%.`, ctx)
+      this._askGroq(`Gib ein kurzes Runden-Briefing (max 2 Sätze). Rundenzeit: ${fmt(lapTime)}. ${sectorMsg} Sprit: ${Game.car?.fuelKg?.toFixed(1)}kg. ERS: ${Math.round((Game.car?.ers?.charge||0)*100)}%.`, ctx)
         .then(reply => this.speak(reply, 2, 'lap-brief'))
         .catch(() => this.speak(msg, 2, 'lap-brief'));
     } else {
@@ -11411,8 +11913,8 @@ const RaceEngineer = {
     const r = Game.race;
     if(!car || !r) return '';
     const fuelPct = Math.round((car.fuelKg ?? 0) / (car.def?.tankSize ?? 120) * 100);
-    const ersPct = car.hasERS ? Math.round((car.ers?.stored||0)/(car.ers?.maxStored||4000000)*100) : null;
-    const tyreAvg = car.tyres?.length ? Math.round(car.tyres.reduce((s,t)=>s+(t.wear??1),0)/car.tyres.length*100) : null;
+    const ersPct = car.hasERS ? Math.round((car.ers?.charge||0)*100) : null;
+    const tyreAvg = car.tireWear ? Math.round((['FL','FR','RL','RR'].reduce((s,k)=>s+(car.tireWear[k]??1),0)/4)*100) : null;
     const avgCons = this._fuelPerLap.length ? (this._fuelPerLap.reduce((a,b)=>a+b,0)/this._fuelPerLap.length).toFixed(2) : '?';
     return [
       `Runde ${r.lap}/${Game.raceLaps||'?'}`,
@@ -11450,8 +11952,8 @@ const RaceEngineer = {
     const fuelKg = car.fuelKg ?? 0;
     const avgCons = this._fuelPerLap.length ? this._fuelPerLap.reduce((a,b)=>a+b,0)/this._fuelPerLap.length : 2;
     const lapsLeft = avgCons > 0 ? Math.floor(fuelKg / avgCons) : '?';
-    const ersPct = car.hasERS ? Math.round((car.ers?.stored||0)/(car.ers?.maxStored||4000000)*100) : null;
-    const tyreAvg = car.tyres?.length ? Math.round(car.tyres.reduce((s,t)=>s+(t.wear??1),0)/car.tyres.length*100) : null;
+    const ersPct = car.hasERS ? Math.round((car.ers?.charge||0)*100) : null;
+    const tyreAvg = car.tireWear ? Math.round((['FL','FR','RL','RR'].reduce((s,k)=>s+(car.tireWear[k]??1),0)/4)*100) : null;
 
     if(/sprit|fuel|kraftstoff/.test(t)) return `Kraftstoff: ${fuelKg.toFixed(1)} kg, reicht für ~${lapsLeft} Runden.`;
     if(/ers|energie|deploy/.test(t)) return ersPct !== null ? `ERS bei ${ersPct}%, Modus: ${car.ers?.modeKey||'?'}.` : 'Kein ERS-System im Fahrzeug.';
@@ -11543,11 +12045,11 @@ const RaceEngineer = {
     // Radio button
     const radioBtn = document.getElementById('eng-radio-btn');
     if(radioBtn) radioBtn.onclick = () => {
-      const inp = document.getElementById('eng-ask-input');
-      if(inp) inp.focus();
+      const log = document.getElementById('eng-log');
+      if(log) log.style.display = log.style.display === 'none' ? 'flex' : 'none';
     };
 
-    // Ask input — Enter schickt ab
+    // Frage-Interface bleibt intern verfügbar, ist in der HUD-UI aber vorerst ausgeblendet.
     const askInput = document.getElementById('eng-ask-input');
     const askSend = document.getElementById('eng-ask-send');
     if(askInput) askInput.onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); this.handleQuestion(askInput.value); } };
@@ -11581,7 +12083,10 @@ const RaceEngineer = {
     }
   },
 
-  showWidget() { document.getElementById('eng-widget')?.classList.remove('hidden'); },
+  showWidget() {
+    if(typeof Game !== 'undefined' && !(Game.state === 'race' || Game.state === 'countdown' || Game.state === 'finished')) return;
+    document.getElementById('eng-widget')?.classList.remove('hidden');
+  },
   hideWidget() { document.getElementById('eng-widget')?.classList.add('hidden'); this._queue = []; speechSynthesis?.cancel(); },
 };
 
@@ -12189,6 +12694,7 @@ const Game = {
   },
 
   _showRadioMsg(msg){
+    if(!(this.state === 'race' || this.state === 'finished') || this._replayMode) return;
     let el = document.getElementById('_radioToast');
     if(!el){
       el = document.createElement('div');
@@ -12733,7 +13239,7 @@ const Game = {
     }
     this.ghostCar.group.visible = true;
     const lapTime = Math.max(1, this._ghostLapTime || this.race.bestLap || samples[samples.length - 1]?.time || 1);
-    const elapsed = (performance.now() - this.race.lapStart) / 1000;
+    const elapsed = Math.max(0, (this._raceTimeS || 0) - (this.race.lapStartRaceT || 0));
     const time = elapsed % lapTime;
     // Opponent ghost: direct position interpolation (samples have x,z,y,h)
     if(this.ghostLapRef && samples[0]?.x != null){
@@ -12958,7 +13464,7 @@ const Game = {
     this.setDeviceMode(this.deviceMode);
   },
   initHudEditor(){
-    const ids = ['tower','dash','tyrebox','leaderboard','dmg-panel','minimap','input-meter'];
+    const ids = ['tower','dash','gforce','tyrebox','leaderboard','dmg-panel','minimap','input-meter'];
     const layout = this.loadHudLayout();
     ids.forEach(id=>{
       const el = document.getElementById(id);
@@ -13217,6 +13723,42 @@ const Game = {
       this.showLiveryModal(this._liveryModalCarIdx);
     }
   },
+  isF1Car(car){
+    return !!(car && car.classType === 'formula' && car.classBadge === 'F1');
+  },
+  hasPlatinumLicense(){
+    const lic = (typeof LicenseSystem !== 'undefined' && LicenseSystem._data && LicenseSystem._data.license)
+      ? LicenseSystem._data.license
+      : '';
+    return lic === 'platinum';
+  },
+  isGameMaster(){
+    try{
+      if(typeof fbUser !== 'undefined' && typeof ADMIN_UIDS !== 'undefined' && Array.isArray(ADMIN_UIDS) && fbUser){
+        return ADMIN_UIDS.includes(fbUser.uid);
+      }
+    }catch(e){}
+    return !!window.GRIDLINE_GAME_MASTER;
+  },
+  hasCarEntitlement(car){
+    return !!(car && typeof Shop !== 'undefined' && Array.isArray(Shop.entitlements?.unlockedCars)
+      && Shop.entitlements.unlockedCars.includes(car.id));
+  },
+  isCarLocked(car){
+    if(!car) return true;
+    const shopLocked = typeof Shop !== 'undefined' && !Shop.isUnlocked('car', car.id);
+    const f1Locked = this.isF1Car(car) && !this.hasPlatinumLicense() && !this.isGameMaster() && !this.hasCarEntitlement(car);
+    return shopLocked || f1Locked;
+  },
+  selectFirstUnlockedCar(cat=this.garageCat || 'race'){
+    const idx = CARS.findIndex(c => carMatchesGarageCat(c, cat) && !this.isCarLocked(c));
+    if(idx >= 0){
+      this.selCar = idx;
+      this.selLivery = 0;
+      return true;
+    }
+    return false;
+  },
   /** Zwischen Rennwagen und Go-Karts umschalten.
       Karts und Rennwagen teilen sich keine Strecken, deshalb muessen bei
       jedem Wechsel BEIDE Auswahlen mitgezogen werden: selCar und selTrack
@@ -13228,9 +13770,8 @@ const Game = {
     Store.set('garage_cat', cat);
 
     // Auto: nur wechseln wenn das aktuelle nicht mehr zur Kategorie passt
-    if(!carMatchesGarageCat(CARS[this.selCar], cat)){
-      const idx = CARS.findIndex(c => carMatchesGarageCat(c, cat));
-      if(idx >= 0){ this.selCar = idx; this.selLivery = 0; }
+    if(!carMatchesGarageCat(CARS[this.selCar], cat) || this.isCarLocked(CARS[this.selCar])){
+      this.selectFirstUnlockedCar(cat);
     }
     // Strecke: nur zwingend wechseln, wenn ein Rennwagen/Formel-Auto auf einer
     // Kartbahn landen wuerde. Karts duerfen auf jeder Strecke bleiben.
@@ -13261,16 +13802,30 @@ const Game = {
     CARS.forEach((c,i)=>{
       if(!carMatchesGarageCat(c, cat)) return;
       const b=document.createElement('button');
-      const locked = typeof Shop !== 'undefined' && !Shop.isUnlocked('car', c.id);
+      const locked = this.isCarLocked(c);
+      const f1Locked = this.isF1Car(c) && !this.hasPlatinumLicense() && !this.isGameMaster() && !this.hasCarEntitlement(c);
+      const shopLocked = typeof Shop !== 'undefined' && !Shop.isUnlocked('car', c.id);
       b.className='card carcard' + (locked ? ' locked' : '');
       const bar=k=>`<em><i style="width:${c.stats[k]*100}%"></i></em>`;
       const livTag = c.liveries?.length > 1 ? `<span style="color:var(--red);font-size:10px;letter-spacing:.1em">● ${c.liveries.length} LIVERIES</span>` : '';
-      const lockBadge = locked ? `<div class="lock-badge">🔒 Kaufen</div>` : '';
+      const lockBadge = locked ? `<div class="lock-badge">🔒 ${f1Locked ? 'PLATIN' : 'Kaufen'}</div>` : '';
       b.innerHTML=`${lockBadge}<div class="swatch" style="background:#${c.color.toString(16).padStart(6,'0')};border-color:#${c.accent.toString(16).padStart(6,'0')}"></div>
         <div><b>${c.name}</b>${livTag}<span>${c.desc}</span>
         <div class="stats"><label>SPEED${bar('speed')}</label><label>GRIP${bar('grip')}</label><label>STABILITÄT${bar('stab')}</label></div></div>`;
       b.onclick=()=>{
-        if(locked){ this.showScreen('screen-shop'); const it=Shop.findItemFor('car',c.id); if(it) Shop.openCheckout(it.id); return; }
+        if(locked){
+          if(f1Locked){
+            this._toast?.('F1 ist nur mit Platin-Lizenz oder Game-Master-Freischaltung verfügbar.');
+            if(typeof LicenseSystem !== 'undefined') LicenseSystem.open();
+            return;
+          }
+          if(shopLocked && typeof Shop !== 'undefined'){
+            this.showScreen('screen-shop');
+            const it=Shop.findItemFor('car',c.id);
+            if(it) Shop.openCheckout(it.id);
+          }
+          return;
+        }
         this.selCar=i; this.selLivery=0;
         if(c.liveries?.length > 1) this.showLiveryModal(i);
         else this._afterCarSelect();
@@ -14898,6 +15453,16 @@ const Game = {
   async startRace(){
     // Werbung während dem Rennen deaktivieren
     (window.adsbygoogle = window.adsbygoogle || []).pauseAdRequests = 1;
+    this.cleanupSessionState();
+    if(this.isCarLocked(CARS[this.selCar])){
+      const oldCar = CARS[this.selCar];
+      const fallbackCat = carMatchesGarageCat(oldCar, this.garageCat || 'race') ? (this.garageCat || 'race') : 'race';
+      this.selectFirstUnlockedCar(fallbackCat) || this.selectFirstUnlockedCar('race') || this.selectFirstUnlockedCar('kart');
+      this.showScreen('screen-car');
+      if(typeof LicenseSystem !== 'undefined' && this.isF1Car(oldCar)) LicenseSystem.open();
+      return;
+    }
+    if(typeof HUD !== 'undefined'){ HUD.gfPeak = 0; HUD._gfPrevT = 0; HUD._gfPrevVx = 0; }
     this.bestLapReplay = null;
     this._playerFinishAt = null;
     const blBtn = document.getElementById('btn-watch-bestlap');
@@ -15063,7 +15628,7 @@ const Game = {
     this.replay = new ReplayRecorder();
     this.replay.start();
     // AI Laptimer initialisieren
-    if(this.aiCars) this.aiCars.forEach(c=>{ if(c.rd){ c.rd._lapStart = performance.now(); c.rd.bestLap=null; c.rd.lastLap=null; }});
+    if(this.aiCars) this.aiCars.forEach(c=>{ if(c.rd){ c.rd._lapStart = performance.now(); c.rd._lapStartRaceT = 0; c.rd.bestLap=null; c.rd.lastLap=null; }});
     this.race={lap:1, curLapTime:0, lapStart:performance.now(), lapStartRaceT:0, lastLap:null,
       bestLap, bestLapSectors,
       bestLapRef:this.loadBestLapProfile(trackDef.id, CARS[this.selCar].id),
@@ -15119,6 +15684,7 @@ const Game = {
     document.getElementById('hud').classList.remove('hidden');
     document.getElementById('input-meter').classList.remove('hidden');
     document.getElementById('vignette')?.classList.remove('hidden');
+    this.state='countdown';
     MFD.init();
     MFD._pitCalled = false;
     RaceEngineer.showWidget();
@@ -15146,7 +15712,6 @@ const Game = {
     this.setDeviceMode(this.deviceMode);
     if(this.hudEditMode) this.toggleHudEditMode();
     this.sound.init(); this.sound.resume();
-    this.state='countdown';
     /* Multiplayer: startRace() stopped here.
        - Solo:  runCountdown() sofort.
        - MP:    startRaceSequence() (Host) bzw. _onData 'start-loading' (Guest)
@@ -15205,7 +15770,7 @@ const Game = {
   updateTTDelta(race, progress, now){
     if(this.mode !== 'tt' || !race) return;
     /* Aktuelle Rundenzeit in Sekunden */
-    const current = (now - race.lapStart) / 1000;
+    const current = Math.max(0, (this._raceTimeS || 0) - (race.lapStartRaceT || 0));
     /* Nicht im Start/Zielbereich */
     if(progress < 0.02 || progress > 0.98){ race.bestLapDelta = null; return; }
     const refTime = this.bestLapRefTime(race.bestLapRef, progress, race.bestLap);
@@ -15223,7 +15788,29 @@ const Game = {
       race._hasRef = false;
     }
   },
+  _clearCountdownTimers(){
+    if(this._countdownTimers){
+      this._countdownTimers.forEach(id => clearTimeout(id));
+      this._countdownTimers.clear();
+    }
+    if(this._countdownInterval){
+      clearInterval(this._countdownInterval);
+      this._countdownInterval = null;
+    }
+    this._countdownToken = (this._countdownToken || 0) + 1;
+  },
+  _countdownTimeout(token, fn, ms){
+    if(!this._countdownTimers) this._countdownTimers = new Set();
+    const id = setTimeout(() => {
+      this._countdownTimers.delete(id);
+      if(token === this._countdownToken) fn();
+    }, ms);
+    this._countdownTimers.add(id);
+    return id;
+  },
   runCountdown(){
+    this._clearCountdownTimers();
+    const countdownToken = this._countdownToken;
     const lights=[...document.querySelectorAll('#lights i')];
     const box=document.getElementById('lights');
 
@@ -15233,7 +15820,7 @@ const Game = {
       box.classList.add('hidden');
       this.input.locked = false;
       this.state = 'race';
-      this.race.lapStart = performance.now();
+      this.race.lapStart = performance.now(); this.race.lapStartRaceT = this._raceTimeS || 0;
       return;
     }
 
@@ -15253,14 +15840,14 @@ const Game = {
         c._frozen = false;
       }
       lights.forEach(l=>l.classList.add('on'));
-      setTimeout(()=>{
+      this._countdownTimeout(countdownToken, ()=>{
         this._formationPhase = false;
         this._greenBoostUntil = performance.now() + 3000;
         lights.forEach(l=>l.classList.add('green'));
         const greenAt=performance.now();
-        this.race.lapStart = greenAt;
+        this.race.lapStart = greenAt; this.race.lapStartRaceT = this._raceTimeS || 0;
         if(this.aiCars)this.aiCars.forEach(c=>{if(c.rd)c.rd._lapStart=greenAt;});
-        setTimeout(()=>box.classList.add('hidden'), 900);
+        this._countdownTimeout(countdownToken, ()=>box.classList.add('hidden'), 900);
       }, 5000);
     } else {
       /* === STEHENDER START: 5 Lichter + zufällige Lights-Out-Verzögerung (wie echte F1) === */
@@ -15270,34 +15857,38 @@ const Game = {
       // Frühstart-Erkennung: Gas gedrückt während Ampelphase (ab 2. Licht)
       const kb = this.keybinds || defaultKeybinds;
       const jumpCheck = setInterval(() => {
+        if(countdownToken !== this._countdownToken){ clearInterval(jumpCheck); return; }
         if(this.state !== 'countdown' && this.state !== 'race'){ clearInterval(jumpCheck); return; }
         if(!this.input.locked){ clearInterval(jumpCheck); return; }
         if(i >= 2 && this.input.keys && (this.input.keys[kb.throttle] || this.input.keys['KeyW'] || this.input.keys['ArrowUp'])){
           this._jumpStart = true;
         }
       }, 50);
+      this._countdownInterval = jumpCheck;
       const go = () => {
+        if(countdownToken !== this._countdownToken) return;
         lights.forEach(l=>l.classList.add('green'));
         this.state = 'race';
-        this.race.lapStart = performance.now();
-        setTimeout(()=>box.classList.add('hidden'), 800);
+        this.race.lapStart = performance.now(); this.race.lapStartRaceT = this._raceTimeS || 0;
+        this._countdownTimeout(countdownToken, ()=>box.classList.add('hidden'), 800);
         if(this._jumpStart){
           // Frühstart: Input bleibt 2.5s gesperrt als Strafe
           this._showFlash('FRÜHSTART! 2.5s STRAFE', '#ff2e3d', 2600);
-          setTimeout(() => { this.input.locked = false; }, 2500);
+          this._countdownTimeout(countdownToken, () => { this.input.locked = false; }, 2500);
         } else {
           this.input.locked = false;
         }
       };
       const tick = () => {
+        if(countdownToken !== this._countdownToken) return;
         if(this.state!=='countdown' && this.state!=='race') return;
-        if(i < 5){ lights[i].classList.add('on'); i++; setTimeout(tick, 380); }
+        if(i < 5){ lights[i].classList.add('on'); i++; this._countdownTimeout(countdownToken, tick, 380); }
         else {
           // Zufällige Verzögerung bis Lights-Out: 0.5–2.2s — niemand kennt den Moment
-          setTimeout(go, 500 + Math.random()*1700);
+          this._countdownTimeout(countdownToken, go, 500 + Math.random()*1700);
         }
       };
-      setTimeout(tick, 300);
+      this._countdownTimeout(countdownToken, tick, 300);
     }
   },
   _ttInvalidateLap(){
@@ -15355,8 +15946,7 @@ const Game = {
     if(this.race){
       this.race.lapValid = false;
       this.race.invalidReason = 'reset';
-      this.race.lapStart = performance.now();
-      this.race.lapStartRaceT = this._raceTimeS || 0;
+      this.race.lapStart = performance.now(); this.race.lapStartRaceT = this._raceTimeS || 0;
       this.race.offTrackTime = 0;
       this.race.hardCutScore = 0;
       this.race.maxLatExcess = 0;
@@ -15367,6 +15957,7 @@ const Game = {
     /* Auto komplett zurücksetzen ("entfernt und neu an den Start gesetzt") */
     car.placeAtStart(this.track);
     car.rd = this.freshRD();
+    if(car.resetRuntimeState) car.resetRuntimeState({keepKm:true});
     car.damage = {front:0, rear:0, left:0, right:0, engine:0, susp:{FL:0,FR:0,RL:0,RR:0}};
     car.smokeT = 0;
     for(const tag in car.lostParts){
@@ -15408,6 +15999,7 @@ const Game = {
   restartRace(force=false){
     if(!(this.state === 'race' || this.state === 'finished' || this.state === 'pause' || this.state === 'countdown')) return;
     if(this._replayMode) this.stopReplay();
+    this._clearCountdownTimers();
     const ctrl = this._restartCtrl || (this._restartCtrl = { inProgress:false, lastAt:0, armUntil:0, cooldownMs:1200, confirmWindowMs:1800 });
     const now = performance.now();
     if(ctrl.inProgress) return;
@@ -15481,6 +16073,7 @@ const Game = {
 
     /* ========== NUKLEARER RESET ALLER AUTOS ========== */
     for(const c of this.allCars){
+      if(c.resetRuntimeState) c.resetRuntimeState({keepKm:true});
       /* Schaden */
       c.damage = {front:0, rear:0, left:0, right:0, engine:0, susp:{FL:0,FR:0,RL:0,RR:0}};
       c.smokeT = 0;
@@ -15554,9 +16147,20 @@ const Game = {
     }
 
     /* ========== GLOBALER RESET ========== */
+    this.acc = 0;
+    if(this.input){
+      this.input.throttle = 0; this.input.brake = 0; this.input.steer = 0;
+      this.input.locked = true;
+    }
+    if(this.replay){
+      this.replay.stop?.();
+      this.replay = new ReplayRecorder();
+      this.replay.start();
+    }
     this._raceTimeS = 0;
     this.flag = {state:'green', timer:0, crashIntensity:0};
     this.vsc = {active:false, startTime:0, startDist:0, deltaSec:0, totalDist:0};
+    this.setFlagBorder(null);
     this._penaltyNotice = null;
     this._spectateAI = null;
     /* Safety Car zurück in die Box */
@@ -15569,8 +16173,9 @@ const Game = {
 
     this._raceFastestLap = null;
     this._playerFinishAt = null;
+    if(typeof HUD !== 'undefined'){ HUD.gfPeak = 0; HUD._gfPrevT = 0; HUD._gfPrevVx = 0; }
     this._radioTimer = 0; this._radioNextIn = 50 + Math.random() * 40;
-    this.race = {lap:1, curLapTime:0, lapStart:performance.now(), lastLap:null,
+    this.race = {lap:1, curLapTime:0, lapStart:performance.now(), lapStartRaceT:0, lastLap:null,
       bestLap:prevBestLap,
       bestLapRef:prevBestLapRef,
       bestLapDelta:null,
@@ -15659,6 +16264,105 @@ const Game = {
     }
   },
   _isMultiplayerRace(){ return !!(MP.peer && (MP.roomCode || Object.keys(MP.conns||{}).length)); },
+  runFixedStepFpsAudit(seconds=60, rates=[30,60,120,144]){
+    return rates.map(fps => {
+      let acc=0, steps=0, dropped=0;
+      const frames=Math.round(seconds*fps);
+      const dt=1/fps;
+      for(let i=0;i<frames;i++){
+        acc += dt;
+        const before = acc;
+        acc = Math.min(acc, PHYS_DT*4);
+        if(acc < before) dropped += before - acc;
+        let sub=0;
+        while(acc >= PHYS_DT && sub < 4){ acc -= PHYS_DT; steps++; sub++; }
+      }
+      return {fps, seconds, physicsSteps:steps, simulatedRaceTime:+(steps*PHYS_DT).toFixed(6), leftover:+acc.toFixed(6), dropped:+dropped.toFixed(6)};
+    });
+  },
+  async runRestartAudit(count=20){
+    if(!(this.state === 'race' || this.state === 'countdown' || this.state === 'pause' || this.state === 'finished')){
+      return {ok:false, reason:'Start a session before running restart audit.'};
+    }
+    const rows=[];
+    for(let i=0;i<count;i++){
+      this.restartRace(true);
+      await new Promise(resolve => setTimeout(resolve, 35));
+      const c=this.car;
+      rows.push({
+        i:i+1,
+        state:this.state,
+        raceTime:+(this._raceTimeS||0).toFixed(4),
+        speed:+(c?.speedKmh||0).toFixed(3),
+        yawRate:+(c?.yawRate||0).toFixed(5),
+        damage:+(c?.totalDamage||0).toFixed(2),
+        lostParts:Object.keys(c?.lostParts||{}).length,
+        countdownTimers:this._countdownTimers?.size || 0
+      });
+    }
+    return {ok:rows.every(r => r.speed < 0.5 && Math.abs(r.yawRate) < 0.001 && r.damage < 0.1 && r.lostParts === 0), rows};
+  },
+  cleanupSessionState(){
+    this._clearCountdownTimers?.();
+    if(this._replayMode) this.stopReplay();
+    this._awayAutopilot=false;
+    this._formationPhase=false;
+    this._spectateAI=null;
+    this._greenBoostUntil=0;
+    this._jumpStart=false;
+    this._blueFlag=false;
+    this._whiteFlagActive=false;
+    this._prevFlagState=null;
+    this._penaltyNotice=null;
+    this._playerFinishAt=null;
+    this._radioTimer=0;
+    this._radioNextIn=50 + Math.random()*40;
+    clearTimeout(this._flNotifTimer);
+    clearTimeout(this._flashNotifTimer);
+    clearTimeout(this._flashScreenTimer1);
+    clearTimeout(this._flashScreenTimer2);
+    clearTimeout(this._flashScreenTimer3);
+    clearTimeout(this._flashScreenTimer4);
+    this.setFlagBorder(null);
+    const ids = ['fl-notif','flash-notif','ers-popup','eng-bubble','eng-waves','eng-log','replay-bar','replay-overlay','results','lights','pit-car-select'];
+    ids.forEach(id => {
+      const el=document.getElementById(id);
+      if(!el) return;
+      el.classList.remove('show','on','off','yellow','sc','blue','white-flag','green-flash');
+      if(id === 'eng-log') el.classList.add('hidden');
+      if(id === 'replay-bar' || id === 'replay-overlay' || id === 'results' || id === 'lights') el.classList.add('hidden');
+    });
+    document.getElementById('eng-widget')?.classList.add('hidden');
+    document.getElementById('eng-bubble')?.classList.add('hidden');
+    document.getElementById('tyrebox')?.classList.add('hidden');
+    document.getElementById('dmg-panel')?.classList.add('hidden');
+    document.getElementById('mfd')?.classList.add('hidden');
+    const engEntries = document.getElementById('eng-log-entries');
+    if(engEntries) engEntries.innerHTML = '';
+    const radioToast = document.getElementById('_radioToast');
+    if(radioToast) radioToast.style.opacity = '0';
+    if(this.input){
+      this.input.locked=false;
+      this.input.throttle=0; this.input.brake=0; this.input.steer=0;
+    }
+    if(this.replay){
+      this.replay.stop?.();
+      this.replay = new ReplayRecorder();
+    }
+    this.flag = {state:'green', timer:0, crashIntensity:0};
+    this.vsc = {active:false, startTime:0, startDist:0, deltaSec:0, totalDist:0};
+    if(this.safetyCar){
+      this.safetyCar.state='idle';
+      if(this.safetyCar.mesh) this.safetyCar.mesh.visible=false;
+      this.safetyCar.speed=140/3.6;
+      this.safetyCar.distance=0;
+    }
+    if(this.skids) this.skids.reset();
+    if(this.debris) this.debris.reset();
+    if(this.particles?.reset) this.particles.reset();
+    this.acc=0;
+    if(this.clock) this.clock.getDelta();
+  },
   _setAwayAutopilot(active,reason=''){
     if(!this._isMultiplayerRace() || Lobby.settings.awayAI===false) active=false;
     if(this._awayAutopilot===active) return;
@@ -15672,18 +16376,13 @@ const Game = {
     }
   },
   toMenu(){
-    this._awayAutopilot=false;
+    this.cleanupSessionState();
     this.state='menu';
     document.getElementById('pause').classList.add('hidden');
     document.getElementById('hud').classList.add('hidden');
     document.getElementById('input-meter').classList.add('hidden');
     document.getElementById('vignette')?.classList.add('hidden');
     document.getElementById('menus').classList.remove('hidden');
-    // Funk-Log ausblenden und leeren beim Zurück ins Menü
-    const engLog = document.getElementById('eng-log');
-    if(engLog) engLog.classList.add('hidden');
-    const engEntries = document.getElementById('eng-log-entries');
-    if(engEntries) engEntries.innerHTML = '';
     const tc = document.getElementById('touch-controls');
     if(tc) tc.classList.add('hidden');
     document.getElementById('ers-popup').classList.remove('show');
@@ -15739,6 +16438,7 @@ const Game = {
 
   updateLap(){
     const now=performance.now();
+    const raceNow = this._raceTimeS || 0;
     /* Während der fliegenden Formation zählt noch keine Runde. Sonst konnten
        Autos die Ziellinie vor Grün überqueren und bekamen eine falsche erste
        Rundenzeit bzw. bereits eine gezählte Runde. */
@@ -15770,8 +16470,8 @@ const Game = {
           }
           // AI Bestzeit tracken
           if(c !== this.car && c.rd){
-            const aiLapTime = (now - (c.rd._lapStart||now)) / 1000;
-            c.rd._lapStart = now;
+            const aiLapTime = raceNow - (c.rd._lapStartRaceT ?? raceNow);
+            c.rd._lapStartRaceT = raceNow; c.rd._lapStart = now;
             if(aiLapTime > 20 && aiLapTime < 600){
               if(!c.rd.bestLap || aiLapTime < c.rd.bestLap) c.rd.bestLap = aiLapTime;
               c.rd.lastLap = aiLapTime;
@@ -15784,7 +16484,7 @@ const Game = {
           }
           if(c===this.car){
             const r=this.race;
-            r.lastLap = (now - r.lapStart) / 1000;    // in Sekunden
+            r.lastLap = raceNow - (r.lapStartRaceT || 0);    // in Sekunden, FPS-unabhängig
             // Finalize sector 3 (S3 = remaining time after S2)
             {
               const s3 = r.lastLap - (r.curSectors[0]||0) - (r.curSectors[1]||0);
@@ -15865,7 +16565,7 @@ const Game = {
                 carContacts: c.carContacts||0,
               });
             }
-            r.lapStart=now; r.lapStartRaceT=this._raceTimeS||0; r.lap=rd.lap;
+            r.lapStart=now; r.lapStartRaceT=raceNow; r.lap=rd.lap;
             if(this.replay && this.replay.recording) this.replay.markLap(this._raceTimeS||0);
             /* ERS-Energiebilanz für nächste Runde zurücksetzen */
             if(c===this.car && this.car.hasERS){
@@ -15891,7 +16591,7 @@ const Game = {
     }
     if(this.race && this.state==='race'){
       const progress = this.car.query ? clamp(this.car.query.progress || 0, 0, 1) : 0;
-      const currentTime = (now - this.race.lapStart) / 1000;   // in Sekunden
+      const currentTime = Math.max(0, raceNow - (this.race.lapStartRaceT || 0));   // in Sekunden
       /* Nur sammeln wenn wir klar auf der Strecke sind (nicht in der Startzone) */
       if(this.mode==='tt' && progress > 0.02 && progress < 0.98 && currentTime > 0 && currentTime < 600){
         const last = this.race.lapSamples[this.race.lapSamples.length - 1];
@@ -15937,7 +16637,7 @@ const Game = {
         if(everybodyDone || now-this._playerFinishAt>=20000) this.finishRace(order);
       }
     }
-    this.race.curLapTime = (performance.now() - this.race.lapStart) / 1000;
+    this.race.curLapTime = Math.max(0, raceNow - (this.race.lapStartRaceT || 0));
   },
 
   finishRace(order){
@@ -16361,7 +17061,7 @@ const Game = {
       this.sun.target.position.copy(this.car.pos);
       if(this.state==='race'||this.state==='finished') this.updateLap();
       this.sound.update(this.car.rpmRatio,this.input.throttle,Math.abs(this.car.vx),
-                        clamp(sl,0,1),onGrass,this.car.shiftCut>0);
+                        clamp(sl,0,1),onGrass,this.car.shiftCut>0,this.car.def);
       /* Crowd lauter in Tribünennähe */
       if(this.sound.ready&&this.track.mainStandPos){
         const d=this.track.mainStandPos.distanceTo(this.car.pos);
@@ -16422,15 +17122,18 @@ const Game = {
     // Prozedurales Modell: parts.headR / parts.headL
     const mats = ['headR','headL'].map(k => car.parts?.[k]?.material).filter(Boolean);
     if(mats.length) return mats;
-    // GLB-Modell: alle MeshBasicMaterial mit hellem Gelbton (Scheinwerfer)
+    // GLB-Modell: helle/gelbliche Materialien oder Headlight-Namen suchen.
     if(car._externalModelRoot){
       car._externalModelRoot.traverse(o => {
         if(o.isMesh){
-          const m = o.material;
-          if(m?.isMeshBasicMaterial){
+          const list = Array.isArray(o.material) ? o.material : [o.material];
+          for(const m of list){
+            if(!m?.color) continue;
             const c = m.color;
-            // Helle Materialien (near-white/yellow) = Scheinwerfer
-            if(c.r > 0.8 && c.g > 0.7) mats.push(m);
+            const name = `${o.name || ''} ${m.name || ''}`;
+            const byName = /head|light|lamp|scheinwerfer|front/i.test(name) && !/tail|rear|brake/i.test(name);
+            const byColor = c.r > 0.74 && c.g > 0.62 && c.b > 0.38;
+            if(byName || byColor) mats.push(m);
           }
         }
       });
@@ -16439,24 +17142,62 @@ const Game = {
   },
 
   _doFlash(mats) {
-    const origColors = mats.map(m => m.color.getHex());
-    const bright = 0xffffff;
-    mats.forEach(m => m.color.setHex(bright));
-    setTimeout(() => { mats.forEach((m,i) => m.color.setHex(origColors[i])); }, 120);
-    setTimeout(() => { mats.forEach(m => m.color.setHex(bright)); }, 220);
-    setTimeout(() => { mats.forEach((m,i) => m.color.setHex(origColors[i])); }, 380);
+    // Alter Look: Scheinwerfer-Material blinkt doppelt. FPS-Fix: keine echte
+    // PointLight/Shadow-Lichtquelle mehr erzeugen.
+    const origColors = mats.map(m => m.color?.getHex?.() ?? null);
+    if(!origColors.some(v => v != null)) return;
+    const restore = () => mats.forEach((m,i) => { if(origColors[i] != null) m.color?.setHex?.(origColors[i]); });
+    mats.forEach(m => m.color?.setHex?.(0xffffff));
+    setTimeout(restore, 120);
+    setTimeout(() => mats.forEach(m => m.color?.setHex?.(0xffffff)), 220);
+    setTimeout(restore, 380);
   },
 
   _flashCarLight(car) {
     if(!car.body) return;
-    const light = new THREE.PointLight(0xffffff, 0, 30);
-    light.position.set(0, 0.8, -2.2);
-    car.body.add(light);
-    const on = i => { light.intensity = i; };
-    on(12);
-    setTimeout(() => on(0), 110);
-    setTimeout(() => on(12), 210);
-    setTimeout(() => { on(0); car.body.remove(light); light.dispose(); }, 380);
+    if(!this._flashFlareTex){
+      const canvas = document.createElement('canvas');
+      canvas.width = 128; canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      const grd = ctx.createRadialGradient(64, 64, 1, 64, 64, 62);
+      grd.addColorStop(0.00, 'rgba(255,255,255,1)');
+      grd.addColorStop(0.18, 'rgba(255,246,205,.92)');
+      grd.addColorStop(0.46, 'rgba(255,224,120,.34)');
+      grd.addColorStop(1.00, 'rgba(255,224,120,0)');
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, 128, 128);
+      this._flashFlareTex = new THREE.CanvasTexture(canvas);
+      this._flashFlareTex.needsUpdate = true;
+    }
+    const makeFlare = x => {
+      const mat = new THREE.SpriteMaterial({
+        map:this._flashFlareTex,
+        color:0xffffff,
+        transparent:true,
+        opacity:0.0,
+        depthWrite:false,
+        depthTest:false,
+        blending:THREE.AdditiveBlending
+      });
+      const sp = new THREE.Sprite(mat);
+      sp.name = 'headlight-flash-flare';
+      sp.renderOrder = 999;
+      sp.position.set(x, 0.62, 2.72);
+      sp.scale.set(1.25, 1.25, 1);
+      car.body.add(sp);
+      return sp;
+    };
+    const flares = [makeFlare(-0.62), makeFlare(0.62)];
+    const setOpacity = v => flares.forEach(f => { if(f.parent) f.material.opacity = v; });
+    setOpacity(1);
+    setTimeout(() => setOpacity(0.05), 105);
+    setTimeout(() => setOpacity(0.92), 210);
+    setTimeout(() => {
+      for(const f of flares){
+        if(f.parent) f.parent.remove(f);
+        f.material.dispose();
+      }
+    }, 380);
   },
 
   _blueFlag: false,
@@ -16600,6 +17341,7 @@ const Game = {
     if(!car) return;
     const mats = this._collectHeadMats(car);
     if(mats.length) this._doFlash(mats);
+    this._flashScreen();
     this._flashCarLight(car);
     if(typeof MP !== 'undefined' && MP.peer && Object.keys(MP.conns||{}).length) {
       MP.broadcast({type:'flash-lights', name: MP.myName, x: car.pos.x, z: car.pos.z});

@@ -17,6 +17,19 @@
     const steering = [];
     const meshes = [];
     model.traverse(mesh => { if(mesh.isMesh && !mesh.isSkinnedMesh) meshes.push(mesh); });
+    const bodyLikeRe = /body|chassis|karosserie|carros|shell|door|bumper|hood|bonnet|fender|wing|spoiler|diffuser|splitter|floor|cockpit|seat|glass|window|mirror|light|lamp|suspension|axle|arm|spring|damper/i;
+    const wheelLikeRe = /(^|[^a-z])(tire|tyre|rim|wheel|gume|discuri)([^a-z]|$)|frontwheel|rearwheel|wheel[._ -]?\d/i;
+    const wheelRejectRe = /wheelhouse|tyre_cover|rim_blur|rim.*blur/i;
+    const nameFor = mesh => {
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      let name = mesh.name + ' ' + materials.map(m => m?.name || '').join(' ');
+      for(let parent=mesh.parent;parent && parent!==model;parent=parent.parent) name+=' '+parent.name;
+      return name;
+    };
+    const hasNamedWheelMeshes = meshes.some(mesh => {
+      const name = nameFor(mesh);
+      return wheelLikeRe.test(name) && !wheelRejectRe.test(name) && !bodyLikeRe.test(name);
+    });
     const rig = new THREE.Group();
     rig.name = 'vehicle-animation';
     model.updateMatrix();
@@ -25,19 +38,21 @@
     model.add(rig);
     for(const mesh of meshes) {
       const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      let name = mesh.name + ' ' + materials.map(m => m.name || '').join(' ');
-      for(let parent=mesh.parent;parent && parent!==model;parent=parent.parent) name+=' '+parent.name;
+      const name = nameFor(mesh);
       const isSteering = /steer(?:ing)?[_ -]?(?:wheel|hr)|lenkrad|volant|int_steer|sw_decals|int_wheelleather/i.test(name);
-      const namedWheel = !isSteering && /tire|tyre|rim|wheel|gume|discuri|rotor|caliper|calliper/i.test(name)
-        && !/wheelhouse|tyre_cover|rim_blur|rim.*blur/i.test(name);
+      const namedWheel = !isSteering && wheelLikeRe.test(name) && !wheelRejectRe.test(name) && !bodyLikeRe.test(name);
       if(!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
       const transform = inverse.clone().multiply(mesh.matrixWorld);
       const box = mesh.geometry.boundingBox.clone().applyMatrix4(transform);
       const s = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
-      // Conservative geometric fallback for exports with anonymous materials.
-      const geometricWheel = Math.abs(c.x-center.x) > size.x*0.27 && c.y < bounds.min.y+size.y*0.48
-        && Math.abs(c.z-center.z) > size.z*0.18 && s.x < size.x*0.28
-        && s.y > size.z*0.065 && s.y < size.z*0.20 && s.z/s.y > 0.80 && s.z/s.y < 1.25;
+      // Conservative geometric fallback for anonymous exports only. If any
+      // explicit tire/rim/wheel mesh exists, never guess: guessing was able to
+      // catch chassis chunks on detailed imports.
+      const aspect = s.y > 1e-6 ? s.z / s.y : 0;
+      const geometricWheel = !hasNamedWheelMeshes && !bodyLikeRe.test(name)
+        && Math.abs(c.x-center.x) > size.x*0.30 && c.y < bounds.min.y+size.y*0.42
+        && Math.abs(c.z-center.z) > size.z*0.22 && s.x < size.x*0.18
+        && s.y > size.z*0.07 && s.y < size.z*0.18 && aspect > 0.88 && aspect < 1.14;
       if(!isSteering && !namedWheel && !geometricWheel) continue;
       if(/rim.*blur/i.test(name)) continue;
       const geometry = mesh.geometry.clone();
