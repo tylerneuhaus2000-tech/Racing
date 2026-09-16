@@ -14,7 +14,8 @@
     "test": "npm run audit:gt3 && npm run test:native",
     "audit:gt3": "node tools/gt3-preflight-audit.mjs",
     "test:native": "node tools/validate-native-project.mjs",
-    "test:ai": "node tools/ai-drive-audit.cjs"
+    "test:ai": "node tools/ai-drive-audit.cjs",
+    "load:local": "node tools/safe-load-test.mjs --base http://127.0.0.1:8787"
   },
   "build": {
     "appId": "com.racing.gridline",
