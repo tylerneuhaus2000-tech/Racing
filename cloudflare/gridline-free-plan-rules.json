@@ -1,0 +1,61 @@
+{
+  "zone": "grid-line.de",
+  "plan_target": "free",
+  "custom_rules": [
+    {
+      "name": "Gridline block non-static methods",
+      "action": "block",
+      "expression": "(http.request.method ne \"GET\" and http.request.method ne \"HEAD\" and http.request.method ne \"OPTIONS\")"
+    },
+    {
+      "name": "Gridline block common scanner paths",
+      "action": "block",
+      "expression": "(http.request.uri.path eq \"/wp-login.php\" or http.request.uri.path eq \"/xmlrpc.php\" or http.request.uri.path eq \"/.env\" or http.request.uri.path contains \"/.git\" or http.request.uri.path contains \"/phpmyadmin\" or http.request.uri.path contains \"/wp-admin\" or http.request.uri.path contains \"/administrator\")"
+    },
+    {
+      "name": "Gridline managed challenge obvious automation",
+      "action": "managed_challenge",
+      "expression": "(not cf.client.bot and (http.user_agent eq \"\" or http.user_agent contains \"python-requests\" or http.user_agent contains \"Go-http-client\" or http.user_agent contains \"sqlmap\" or http.user_agent contains \"masscan\" or http.user_agent contains \"nikto\"))"
+    }
+  ],
+  "rate_limiting_rules": [
+    {
+      "name": "Gridline broad anti-abuse limit",
+      "expression": "(http.request.uri.path starts_with \"/\")",
+      "characteristics": ["ip.src"],
+      "threshold": {
+        "requests": 150,
+        "period_seconds": 10
+      },
+      "action": "managed_challenge",
+      "mitigation_timeout_seconds": 10,
+      "fallback_if_only_block_is_available": {
+        "requests": 250,
+        "period_seconds": 10,
+        "action": "block",
+        "mitigation_timeout_seconds": 10
+      }
+    }
+  ],
+  "cache_rules": [
+    {
+      "name": "Gridline cache game assets",
+      "expression": "(http.request.uri.path starts_with \"/assets/\")",
+      "settings": {
+        "cache_eligibility": "eligible",
+        "edge_ttl": "7 days",
+        "browser_ttl": "1 day",
+        "cache_deception_armor": true
+      }
+    },
+    {
+      "name": "Gridline cache HTML briefly",
+      "expression": "(http.request.uri.path eq \"/\" or http.request.uri.path ends_with \".html\")",
+      "settings": {
+        "cache_eligibility": "eligible",
+        "edge_ttl": "10 minutes",
+        "browser_ttl": "5 minutes"
+      }
+    }
+  ]
+}
