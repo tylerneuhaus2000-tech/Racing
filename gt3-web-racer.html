@@ -424,13 +424,22 @@ kbd{font-family:var(--mono);background:#1b212a;border:1px solid var(--line);bord
 .im-steer-wrap{position:relative;height:8px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
 .im-steer-center{position:absolute;left:50%;top:0;width:1px;height:100%;background:rgba(255,255,255,.25)}
 .im-steer-bar{position:absolute;top:0;height:100%;background:var(--blue);border-radius:2px;transition:left .04s linear,width .04s linear}
-#gforce{position:absolute;right:278px;bottom:24px;width:138px;background:rgba(7,10,14,.82);border:var(--glass-border);border-left:3px solid var(--blue);border-radius:var(--rad-sm);padding:10px 11px 9px;backdrop-filter:blur(10px);box-shadow:var(--glass-shadow);font-family:var(--mono)}
+#gforce{position:absolute;right:278px;bottom:24px;width:172px;background:rgba(7,10,14,.82);border:var(--glass-border);border-left:3px solid var(--blue);border-radius:var(--rad-sm);padding:10px 11px 9px;backdrop-filter:blur(10px);box-shadow:var(--glass-shadow);font-family:var(--mono)}
 #gforce .gf-title{font-size:8px;font-weight:800;letter-spacing:.22em;color:#7fc3ff;margin-bottom:7px}
-#gforce .gf-pad{position:relative;width:82px;height:82px;margin:0 auto;border:1px solid rgba(255,255,255,.18);border-radius:50%;background:radial-gradient(circle at center,rgba(255,255,255,.08) 0 2px,transparent 3px),radial-gradient(circle at center,transparent 0 38px,rgba(79,168,255,.12) 39px 40px,transparent 41px)}
+#gforce .gf-body{display:flex;align-items:center;gap:9px;justify-content:center}
+#gforce .gf-pedals{display:flex;gap:4px;height:82px}
+#gforce .gf-pedal-wrap{position:relative;width:6px;height:100%;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;display:flex;align-items:flex-end}
+#gforce .gf-pedal-bar{width:100%;height:0%;border-radius:3px;transition:height .04s linear}
+#gforce .gf-pedal-thr{background:var(--green)}
+#gforce .gf-pedal-brk{background:#ff2e3d}
+#gforce .gf-pad{position:relative;width:82px;height:82px;margin:0;border:1px solid rgba(255,255,255,.18);border-radius:50%;background:radial-gradient(circle at center,rgba(255,255,255,.08) 0 2px,transparent 3px),radial-gradient(circle at center,transparent 0 38px,rgba(79,168,255,.12) 39px 40px,transparent 41px)}
 #gforce .gf-pad::before,#gforce .gf-pad::after{content:'';position:absolute;background:rgba(255,255,255,.13)}
 #gforce .gf-pad::before{left:50%;top:7px;bottom:7px;width:1px}
 #gforce .gf-pad::after{top:50%;left:7px;right:7px;height:1px}
-#gforce #gf-dot{position:absolute;left:50%;top:50%;width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 10px rgba(61,255,122,.75);transform:translate(-50%,-50%);transition:left .05s linear,top .05s linear,background .12s}
+#gforce #gf-dot{position:absolute;left:50%;top:50%;width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 10px rgba(61,255,122,.75);transform:translate(-50%,-50%);transition:left .05s linear,top .05s linear,background .12s;z-index:2}
+#gforce .gf-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;font-variant-numeric:tabular-nums;color:#e8ecef;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+#gforce .gf-center b{font-size:15px;font-weight:800}
+#gforce .gf-center small{font-size:8px;opacity:.75;margin-left:1px}
 #gforce .gf-read{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;font-size:9px;color:var(--dim)}
 #gforce .gf-read b{display:block;font-size:12px;color:#e8ecef;font-variant-numeric:tabular-nums;margin-top:1px}
 #gforce .gf-peak{margin-top:5px;font-size:8px;letter-spacing:.12em;color:var(--amber);text-align:center}
@@ -636,8 +645,10 @@ body.mobile-touch-layout #dash .main{grid-template-columns:1fr 62px 1fr;gap:9px}
 body.mobile-touch-layout #gear{width:62px;height:52px;font-size:38px}
 body.mobile-touch-layout #speed{font-size:32px}
 body.mobile-touch-layout .dash-strip{grid-template-columns:repeat(2,1fr)}
-body.mobile-touch-layout #gforce{right:10px;bottom:108px;width:118px;padding:8px}
+body.mobile-touch-layout #gforce{right:10px;bottom:108px;width:132px;padding:8px}
 body.mobile-touch-layout #gforce .gf-pad{width:64px;height:64px}
+body.mobile-touch-layout #gforce .gf-pedals{height:64px}
+body.mobile-touch-layout #gforce .gf-center b{font-size:12px}
 body.mobile-touch-layout #gforce .gf-read b{font-size:10px}
 body.mobile-touch-layout #camlabel{left:50%;bottom:76px;transform:translateX(-50%)}
 body.mobile-touch-layout #tyrebox{right:10px;bottom:188px;min-width:0}
@@ -1393,8 +1404,15 @@ body.hud-edit #input-meter{pointer-events:auto;z-index:85}
   </div>
   <div id="gforce">
     <div class="gf-title">G-FORCE</div>
-    <div class="gf-pad">
-      <i id="gf-dot"></i>
+    <div class="gf-body">
+      <div class="gf-pedals">
+        <div class="gf-pedal-wrap" title="Gas"><i class="gf-pedal-bar gf-pedal-thr" id="gf-thr"></i></div>
+        <div class="gf-pedal-wrap" title="Bremse"><i class="gf-pedal-bar gf-pedal-brk" id="gf-brk"></i></div>
+      </div>
+      <div class="gf-pad">
+        <i id="gf-dot"></i>
+        <div class="gf-center"><b id="gf-center">0.0</b><small>g</small></div>
+      </div>
     </div>
     <div class="gf-read">
       <span>LAT<b id="gf-lat">0.00g</b></span>
@@ -6263,6 +6281,7 @@ class Car {
     this.gear=0;               // 0 = 1. Gang
     this.rpmRatio=0.12;
     this.accLong=0;            // für Gewichtsverlagerung
+    this._accLongPeak=0;       // größter |accLong|-Wert seit dem letzten HUD-Read (siehe HUD.update)
     this.shiftCut=0;
     this.drsOpen=0;            // 0..1 — Formel: Heckflügel-Klappe (Auto-DRS auf Geraden)
     this.drsJammed=false;      // seltener Defekt: Klappe klemmt beim Einlenken offen
@@ -6357,7 +6376,7 @@ class Car {
 
   resetRuntimeState({keepKm=false}={}){
     this.vx=0; this.vy=0; this.yawRate=0; this.steer=0;
-    this.gear=0; this.rpmRatio=0.12; this.accLong=0; this.shiftCut=0;
+    this.gear=0; this.rpmRatio=0.12; this.accLong=0; this._accLongPeak=0; this.shiftCut=0;
     this.drsOpen=0; this.drsJammed=false; this._drsJamCD=0;
     this.slipFront=0; this.slipRear=0; this.wheelSpin=0; this.brakeLight=false;
     this.alphaFs=0; this.alphaRs=0; this.lastAy=0; this._crestUnload=0; this._crestKickDir=0;
@@ -7629,6 +7648,11 @@ class Car {
 
     /* Integration mit Coriolis-Kopplung (Geschwindigkeit in Karosseriekoordinaten) */
     this.accLong = ax;
+    /* HUD läuft nur einmal pro Renderframe, Physik aber mit bis zu 4 Substeps
+       (120Hz) je Frame — ohne diesen Peak-Halter würde z.B. eine ABS-bedingte
+       kurze Bremskraft-Reduktion im letzten Substep die eigentliche Verzögerung
+       verschlucken, und das G-Force-HUD zeigt beim Bremsen fast nichts an. */
+    if(Math.abs(ax) > Math.abs(this._accLongPeak || 0)) this._accLongPeak = ax;
     this.vx += (ax + this.yawRate*this.vy) * dt;
     /* Schaden-Pull: einseitig beschädigtes Auto zieht zur Seite */
     this.vy += (ay - this.yawRate*this.vx + dmgMods.pullX*speed*0.05) * dt;
@@ -10120,7 +10144,7 @@ const HUD = {
     const [cx,cy]=this.toMap(car.pos);
     this._drawMapCar(g,cx,cy,car.heading,5.5,'#ff2e3d','rgba(255,255,255,0.85)',1.5);
   },
-  update(car, race, totalLaps, aiCars){
+  update(car, race, totalLaps, aiCars, input){
     this.els.speed.textContent=Math.round(car.speedKmh);
     this.els.gear.textContent=car.vx<-0.3?'R':(car.gear+1);
     if(this.els['dash-rpm']) this.els['dash-rpm'].textContent = Math.round(clamp(car.rpmRatio || 0, 0, 1.05) * 100) + '%';
@@ -10139,24 +10163,17 @@ const HUD = {
       this._gfLat = document.getElementById('gf-lat');
       this._gfLong = document.getElementById('gf-long');
       this._gfPeak = document.getElementById('gf-peak');
+      this._gfCenter = document.getElementById('gf-center');
+      this._gfThr = document.getElementById('gf-thr');
+      this._gfBrk = document.getElementById('gf-brk');
     }
     if(this._gfDot){
-      const nowG = performance.now();
-      let measuredLongG = null;
-      if(this._gfPrevT && nowG > this._gfPrevT){
-        const dtG = (nowG - this._gfPrevT) / 1000;
-        if(dtG > 0.004 && dtG < 0.12 && Number.isFinite(this._gfPrevVx)){
-          measuredLongG = clamp(((car.vx || 0) - this._gfPrevVx) / dtG / G, -4.5, 4.5);
-        }
-      }
-      this._gfPrevT = nowG;
-      this._gfPrevVx = car.vx || 0;
       const latG = clamp((car.lastAy || 0) / G, -3.2, 3.2);
-      const forceLongG = clamp((car.accLong || 0) / G, -4.5, 4.5);
-      const longRaw = measuredLongG == null || Math.abs(forceLongG) > Math.abs(measuredLongG)
-        ? forceLongG
-        : measuredLongG;
-      const longG = clamp(longRaw, -3.2, 3.2);
+      /* Peak-Halter statt nur des letzten Physik-Substeps auslesen — sonst
+         verschluckt eine kurze ABS-Bremskraft-Reduktion im letzten Substep
+         die eigentliche Verzögerung und das HUD zeigt beim Bremsen fast nichts an. */
+      const longG = clamp((car._accLongPeak || car.accLong || 0) / G, -3.2, 3.2);
+      car._accLongPeak = car.accLong || 0; // für den nächsten Frame zurücksetzen
       const magG = Math.hypot(latG, longG);
       this.gfPeak = Math.max(this.gfPeak || 0, magG);
       const scale = 3.2;
@@ -10164,9 +10181,13 @@ const HUD = {
       const y = 50 - clamp(longG / scale, -1, 1) * 42;
       this._gfDot.style.left = x.toFixed(1) + '%';
       this._gfDot.style.top = y.toFixed(1) + '%';
-      this._gfDot.style.background = magG > 2.4 ? '#ff2e3d' : magG > 1.4 ? '#ffb02e' : '#3dff7a';
+      const dotColor = magG > 2.4 ? '#ff2e3d' : magG > 1.4 ? '#ffb02e' : '#3dff7a';
+      this._gfDot.style.background = dotColor;
       if(this._gfLat) this._gfLat.textContent = latG.toFixed(2) + 'g';
       if(this._gfLong) this._gfLong.textContent = longG.toFixed(2) + 'g';
+      if(this._gfCenter){ this._gfCenter.textContent = magG.toFixed(1); this._gfCenter.style.color = dotColor; }
+      if(this._gfThr) this._gfThr.style.height = Math.round((input?.throttle||0)*100) + '%';
+      if(this._gfBrk) this._gfBrk.style.height = Math.round((input?.brake||0)*100) + '%';
       if(this._gfPeak) this._gfPeak.textContent = this.gfPeak.toFixed(2) + 'g';
     }
     if(this.els['stat-drs']){
@@ -17107,7 +17128,7 @@ const Game = {
         this.sound.crowd.g.gain.setTargetAtTime(clamp(1-d/220,0,1)*0.05+0.008,this.sound.ctx.currentTime,0.3);
       }
       this._updateLocalFlags(dt);
-      HUD.update(this.car,this.race,this.totalLaps,this.aiCars);
+      HUD.update(this.car,this.race,this.totalLaps,this.aiCars,this.input);
       // Input-Meter
       if(this.input){
         const _inp = this.input;
