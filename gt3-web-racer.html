@@ -7590,7 +7590,7 @@ class Car {
        Reifengrips nutzbar -> Autos bremsen gefuehlt "durch". Neu: nahe 100%
        moeglich, ABS-Level regelt nur wie aggressiv modelliert wird.
        Der sqrt(1-lat^2)-Term unten haelt den Kurven-Bremsschutz erhalten. */
-    const absBase  = clamp(1.00 - (setup.absLevel || 4) * 0.025, 0.84, 0.98);
+    const absBase  = clamp(1.00 - (setup.absLevel || 4) * 0.018, 0.88, 0.98);
     const muMaxR   = muR * FzR;
     const muMaxF   = muF * FzF;
 
@@ -7628,7 +7628,7 @@ class Car {
         const counterSteer = clamp(-this.steer * slipDir / 0.34, 0, 1);
         const throttleCatch = input.throttle > 0.18 ? 0.96 : 0.82;
         const catchMul = (1 - counterSteer * 0.58) * throttleCatch;
-        const brakeDestab = input.brake > 0.12 ? input.brake * 0.48 : 0;
+        const brakeDestab = input.brake > 0.12 ? input.brake * 0.22 : 0; // Bremsen destabilisiert weniger stark (weniger Ausbrechen beim Bremsen)
         const spinRamp = clamp((speed - 16) / 30, 0.12, 1.20);
         this.yawRate += slipDir * rearOverLimit * (0.85 + brakeDestab) * spinRamp * catchMul * dt;
         this.vy += slipDir * rearOverLimit * speed * 0.052 * spinRamp * catchMul * dt;
