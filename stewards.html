@@ -270,11 +270,11 @@
    aber jeder Schreibzugriff (Streichen, Nachricht) wird von Firestore
    trotzdem abgelehnt. */
 const ADMIN_UIDS = ['qg9FDw4TZWhxX7en6JHuOI6GqZt2', '25Mc4Wuwp4YxFFwNz8gtMkNI2n93'];
-/* LP-HERKUNFT (lp_audit) darf NUR der allererste angelegte Admin sehen, nicht
-   der zweite Admin/Steward — genau der Verlauf, der auch einen mitschreibenden
-   Admin auffliegen lassen soll. MUSS mit isSuperAdmin() in firestore.rules
+/* LP-HERKUNFT (lp_audit) darf NUR dieser Admin sehen, nicht der andere
+   Admin/Steward — genau der Verlauf, der auch einen mitschreibenden Admin
+   auffliegen lassen soll. MUSS mit isSuperAdmin() in firestore.rules
    übereinstimmen. */
-const SUPER_ADMIN_UID = ADMIN_UIDS[0];
+const SUPER_ADMIN_UID = '25Mc4Wuwp4YxFFwNz8gtMkNI2n93';
 /* Mitarbeiter — darf Zeiten ansehen und eine Löschung BEANTRAGEN, aber nicht
    selbst streichen, keine Nachrichten senden und keine Einsprüche prüfen.
    MUSS mit isStaffUid() in firestore.rules übereinstimmen. */
