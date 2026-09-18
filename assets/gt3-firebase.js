@@ -669,7 +669,7 @@ function _handleStewardsDoc(d){
   _showStewardsBanner(d.type, d.reason||'', d.penalty||'');
   const lpDelta = parseFloat(d.lpDelta);
   if(lpDelta && !isNaN(lpDelta) && typeof LicenseSystem!=='undefined' && LicenseSystem._data){
-    LicenseSystem._save({ licensePoints: lpDelta });
+    LicenseSystem._save({ licensePoints: lpDelta }, 'steward');
     console.log('[Stewards] LP geändert:', lpDelta, '→ neu:', LicenseSystem._data.licensePoints);
   }
 }
@@ -2315,9 +2315,10 @@ const LicenseSystem = {
   },
 
   /* ── Save delta to Firestore ── */
-  _save(delta) {
+  _save(delta, source) {
     if(!fbUser || !this._data) return;
     const couldUpgradeBefore = this._canUpgrade();
+    const lpBefore = this._data.licensePoints || 0;
     Object.keys(delta).forEach(k => {
       if(k === 'safetyRating') this._data[k] = Math.max(0, Math.min(100, Number(delta[k]) || 0));
       else if(typeof delta[k] === 'number') this._data[k] = (this._data[k]||0) + delta[k];
@@ -2331,6 +2332,15 @@ const LicenseSystem = {
     const update = {};
     Object.keys(delta).forEach(k => { update[k] = this._data[k]; });
     db.collection('users').doc(fbUser.uid).set(update, {merge:true}).catch(console.error);
+
+    // Lizenzpunkte-Herkunft protokollieren (nur für stewards.html / LP-HERKUNFT einsehbar).
+    const lpAfter = this._data.licensePoints;
+    if(Math.abs(lpAfter - lpBefore) > 0.0001){
+      db.collection('lp_audit').add({
+        uid: fbUser.uid, before: lpBefore, after: lpAfter, delta: lpAfter - lpBefore,
+        source: source || 'gameplay', ts: Date.now(),
+      }).catch(e => console.warn('[License] LP-Audit fehlgeschlagen:', e.message));
+    }
   },
 
   _showUpgradePopup() {

@@ -151,15 +151,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Lizenzpunkte-Audit: unveränderliches Protokoll jeder licensePoints-Änderung,
-    // geschrieben ausschließlich vom Cloud-Function-Trigger auditLicensePoints
-    // (functions/index.js) über das Admin SDK, das diese Regeln umgeht. So lässt
-    // sich auch eine manuell/per Konsole gesetzte Änderung nachträglich erkennen —
-    // lesen darf hier absichtlich NUR der allererste Admin (isSuperAdmin), damit
-    // auch ein zweiter Admin nicht das eigene Audit-Protokoll einsehen/verschleiern kann.
+    // Lizenzpunkte-Audit: protokolliert jede licensePoints-Änderung als
+    // Herkunftsnachweis (assets/gt3-firebase.js LicenseSystem._save schreibt bei jeder
+    // Änderung einen Eintrag). Append-only — jeder darf für sich selbst einen Eintrag
+    // ANLEGEN, aber niemand darf bestehende Einträge ändern/löschen. Lesen darf hier
+    // absichtlich NUR der allererste Admin (isSuperAdmin), damit auch ein zweiter Admin
+    // nicht das eigene Audit-Protokoll einsehen/verschleiern kann.
     match /lp_audit/{entryId} {
       allow read: if isSuperAdmin();
-      allow write: if false;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
     }
 
   }

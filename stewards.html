@@ -245,12 +245,12 @@
     <div id="view-lpaudit" style="display:none">
       <div class="box">
         <h2>LP-HERKUNFT</h2>
-        <p class="sub">Serverseitiges Protokoll (Cloud Function) jeder Lizenzpunkte-Änderung — erfasst JEDEN Schreibvorgang auf das Fahrerprofil, egal ob er aus normalem Gameplay, einer Steward-Nachricht oder einer manuell/per Konsole gesetzten Änderung stammt. <span style="color:var(--red)">Rot markierte Einträge (&quot;unclear&quot;)</span> passen weder zu einer plausiblen Gameplay-Änderung noch zu einer protokollierten Steward-Nachricht und sollten geprüft werden.</p>
+        <p class="sub">Protokoll jeder Lizenzpunkte-Änderung, geschrieben vom Spielclient bei jedem Speichervorgang (Runde, Rennen, Steward-Nachricht). Fehlt für eine erkannte Differenz ein passender Eintrag, wurde der Wert vermutlich direkt in der Datenbank verändert (z.B. über die Browser-Konsole) — <span style="color:var(--red)">solche Fälle werden unten als Warnung angezeigt</span>.</p>
         <div class="row" style="margin-top:10px">
           <input type="text" id="lpaudit-username" placeholder="Benutzername (leer = alle Fahrer, neueste zuerst)">
           <button class="btn primary" id="btn-load-lpaudit">↻ VERLAUF LADEN</button>
         </div>
-        <label style="display:flex;align-items:center;gap:6px;margin:10px 0 0"><input type="checkbox" id="lpaudit-only-unclear"> nur unklare Änderungen zeigen</label>
+        <label style="display:flex;align-items:center;gap:6px;margin:10px 0 0"><input type="checkbox" id="lpaudit-only-unclear"> nur auffällig große Einzeländerungen zeigen (&gt; 1,0 LP pro Vorgang)</label>
         <div id="lpaudit-wrap" style="margin-top:14px"><div class="empty">Noch nicht geladen.</div></div>
       </div>
     </div>
@@ -1002,10 +1002,10 @@ function boot(){
 
   /* ══════════════ LP-HERKUNFT ══════════════ */
   let _lpAuditLoaded = false;
+  const LP_SUSPICIOUS_DELTA = 1.0; // normale Einzel-Änderung (Runde/Rennen/Steward) liegt weit darunter
   const _lpSourceInfo = {
-    gameplay: { label: '🟢 Gameplay',        color: '#39d98a' },
-    steward:  { label: '🔵 Steward-Aktion',  color: '#8bd3ff' },
-    unclear:  { label: '🔴 UNKLAR',          color: '#ff8a94' },
+    gameplay: { label: '🟢 Gameplay',       color: '#39d98a' },
+    steward:  { label: '🔵 Steward-Aktion', color: '#8bd3ff' },
   };
   $('btn-load-lpaudit').onclick = loadLpAudit;
 
@@ -1021,37 +1021,56 @@ function boot(){
         if(!uSnap.exists){ wrap.innerHTML = '<div class="empty">❌ Spieler nicht gefunden</div>'; return; }
         uid = uSnap.data().uid;
       }
-      let q = db.collection('lp_audit').orderBy('ts', 'desc').limit(200);
-      if(uid) q = db.collection('lp_audit').where('uid', '==', uid).orderBy('ts', 'desc').limit(200);
-      const snap = await q.get();
-      const onlyUnclear = $('lpaudit-only-unclear').checked;
+
+      let banner = '';
+      let items = [];
       // Für Anzeige der Fahrernamen: usernames-Dokumente einmal laden
       const uidToName = {};
-      if(!uid){
+      if(uid){
+        uidToName[uid] = username;
+        // Vollständigen Verlauf laden, um mit dem aktuell gespeicherten Wert abzugleichen —
+        // fehlt Verlauf für einen Teil der Differenz, wurde der Wert vermutlich direkt in
+        // der Datenbank gesetzt (z.B. Browser-Konsole), ohne über den Spielclient zu laufen.
+        const [histSnap, uSnap] = await Promise.all([
+          db.collection('lp_audit').where('uid', '==', uid).orderBy('ts', 'asc').get(),
+          db.collection('users').doc(uid).get(),
+        ]);
+        histSnap.forEach(d => items.push(d.data()));
+        const logSum = items.reduce((s, x) => s + (Number(x.delta) || 0), 0);
+        const current = uSnap.exists ? (Number(uSnap.data().licensePoints) || 0) : 0;
+        const diff = current - logSum;
+        if(Math.abs(diff) > 0.05){
+          banner = `<div style="background:#2a0d12;border:1px solid var(--red);border-radius:8px;padding:10px 12px;margin-bottom:12px;color:#ff8a94;font-size:12px">`+
+            `⚠ <b>Unprotokollierte Änderung erkannt</b> — aktueller Wert ${current.toFixed(2)} LP, aus dem Protokoll ergeben sich aber ${logSum.toFixed(2)} LP `+
+            `(Differenz ${diff>=0?'+':''}${diff.toFixed(2)}). Der Wert wurde vermutlich direkt in der Datenbank verändert, ohne dass dies hier protokolliert wurde.</div>`;
+        }
+        items.reverse(); // neueste zuerst anzeigen
+      } else {
+        const snap = await db.collection('lp_audit').orderBy('ts', 'desc').limit(200).get();
+        snap.forEach(d => items.push(d.data()));
         const usnap = await db.collection('usernames').get();
         usnap.forEach(d => { const u = d.data().uid; if(u) uidToName[u] = d.id; });
-      } else {
-        uidToName[uid] = username;
       }
-      let items = [];
-      snap.forEach(d => items.push(d.data()));
-      if(onlyUnclear) items = items.filter(x => x.source === 'unclear');
-      if(!items.length){ wrap.innerHTML = '<div class="empty">Keine Einträge gefunden.</div>'; _lpAuditLoaded = true; return; }
 
-      wrap.innerHTML = '';
+      const onlySuspicious = $('lpaudit-only-unclear').checked;
+      if(onlySuspicious) items = items.filter(x => Math.abs(Number(x.delta) || 0) > LP_SUSPICIOUS_DELTA);
+
+      if(!items.length && !banner){ wrap.innerHTML = '<div class="empty">Keine Einträge gefunden.</div>'; _lpAuditLoaded = true; return; }
+
+      wrap.innerHTML = banner;
       items.forEach(x => {
         const info = _lpSourceInfo[x.source] || { label: esc(x.source || '?'), color: '#8b95a1' };
         const when = x.ts ? new Date(x.ts).toLocaleString('de-DE') : '—';
         const delta = Number(x.delta) || 0;
+        const suspicious = Math.abs(delta) > LP_SUSPICIOUS_DELTA;
         const who = uidToName[x.uid] || x.uid || '?';
         const row = document.createElement('div');
-        row.style.cssText = `display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #1c2733${x.source==='unclear'?';background:#2a0d12':''}`;
+        row.style.cssText = `display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #1c2733${suspicious?';background:#2a0d12':''}`;
         row.innerHTML =
-          `<span style="color:${info.color};font-weight:700;width:110px;flex-shrink:0">${info.label}</span>`+
+          `<span style="color:${suspicious?'#ff8a94':info.color};font-weight:700;width:110px;flex-shrink:0">${suspicious?'🔴 GROSSER SPRUNG':info.label}</span>`+
           `<div style="flex:1;min-width:0;font-size:12px;color:#c9d1d9">`+
             `<b>${esc(who)}</b> · ${(x.before??0).toFixed(2)} → ${(x.after??0).toFixed(2)} LP `+
             `<span style="color:${delta>=0?'#39d98a':'#ff8a94'}">(${delta>=0?'+':''}${delta.toFixed(2)})</span>`+
-            (x.stewardByName ? `<br><span class="sub" style="margin:0">durch Steward: ${esc(x.stewardByName)}</span>` : '')+
           `</div>`+
           `<span class="sub" style="margin:0;white-space:nowrap;flex-shrink:0">${when}</span>`;
         wrap.appendChild(row);
