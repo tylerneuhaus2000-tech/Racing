@@ -163,5 +163,27 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Login-Ereignisse: Geräte-/Sitzungsmetadaten + IP je Anmeldung, ausschließlich zur
+    // Missbrauchs-/Mehrfachaccount-Erkennung durch den Renndirektor. Append-only für
+    // Clients — löschen (Aufbewahrungsfrist, siehe datenschutz.html) darf nur der
+    // Renndirektor über den Aufräum-Button in stewards.html (kein automatisches
+    // Firestore-TTL, da das Blaze-Abrechnung voraussetzt).
+    match /login_events/{entryId} {
+      allow read: if isSuperAdmin();
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+      allow delete: if isSuperAdmin();
+    }
+
+    // Eingabe-Telemetrie pro Runde (Lenk-/Gas-/Brems-Statistik, keine Rohaufzeichnung) —
+    // zur KI-/Bot-Fahrmuster-Erkennung. Append-only für Clients, Löschung nach
+    // Aufbewahrungsfrist nur durch den Renndirektor (siehe login_events oben).
+    match /lap_telemetry/{entryId} {
+      allow read: if isSuperAdmin();
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+      allow delete: if isSuperAdmin();
+    }
+
   }
 }

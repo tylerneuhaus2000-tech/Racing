@@ -16572,6 +16572,38 @@ const Game = {
                 aiAssisted: !!(this._awayAutopilotUsed || this.spectateMode),
               });
             }
+            // Eingabe-Telemetrie (Lenk-/Gas-/Brems-Statistik, keine Rohaufzeichnung) —
+            // erkennt untypisch glatte/konstante Eingaben (KI/Bot-Fahrverhalten).
+            if(c===this.car && typeof window.onGameLapTelemetry === 'function' && this.replay && this.replay._len){
+              const tS = r.lapStartRaceT||0, tE = raceNow;
+              const lapF = this.replay.frames.filter(f => f.t >= tS && f.t <= tE && f.cars?.[0]?.str !== undefined);
+              if(lapF.length > 5){
+                let sumStr=0, sumStrAbs=0, dirChanges=0, fullThrottleN=0, fullBrakeN=0, prevSign=0;
+                for(const f of lapF){
+                  const s = f.cars[0].str||0, th = f.cars[0].thr||0, br = f.cars[0].brk||0;
+                  sumStr += s; sumStrAbs += Math.abs(s);
+                  const sign = s>0.02?1:s<-0.02?-1:0;
+                  if(sign!==0 && prevSign!==0 && sign!==prevSign) dirChanges++;
+                  if(sign!==0) prevSign=sign;
+                  if(th>=0.98) fullThrottleN++;
+                  if(br>=0.98) fullBrakeN++;
+                }
+                const n = lapF.length;
+                const mean = sumStr/n;
+                const variance = lapF.reduce((s,f)=>s+Math.pow((f.cars[0].str||0)-mean,2),0)/n;
+                window.onGameLapTelemetry({
+                  trackId: this.trackDef?.id,
+                  valid: r.lapValid !== false,
+                  lapTime: r.lastLap,
+                  aiAssisted: !!(this._awayAutopilotUsed || this.spectateMode),
+                  samples: n,
+                  steerStdDev: Math.sqrt(variance),
+                  steerDirChangesPerSec: dirChanges / Math.max(0.1, r.lastLap||1),
+                  fullThrottlePct: fullThrottleN / n,
+                  fullBrakePct: fullBrakeN / n,
+                });
+              }
+            }
             r.lapStart=now; r.lapStartRaceT=raceNow; r.lap=rd.lap;
             if(this.replay && this.replay.recording) this.replay.markLap(this._raceTimeS||0);
             /* ERS-Energiebilanz für nächste Runde zurücksetzen */

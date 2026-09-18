@@ -1067,6 +1067,41 @@ auth.getRedirectResult().then(res => {
   });
 });
 
+/* ── Login-Ereignis protokollieren (Ger\u00e4te-/Sitzungsmetadaten + IP) ──
+   Zweck: Missbrauchs-/Mehrfachaccount-Erkennung durch Admins (nicht f\u00fcr
+   Werbung/Tracking). Nur eigener Eintrag pro Tab-Sitzung, 30 Tage Aufbewahrung
+   (Firestore-TTL auf 'expiresAt', siehe firestore.indexes.json). In
+   datenschutz.html offengelegt. IP kommt vom Drittanbieter api.ipify.org
+   (Zero-Cost-Function, kein Server n\u00f6tig — Spark-Plan-kompatibel). */
+function _logLoginEvent(uid){
+  if(sessionStorage.getItem('gridline_login_logged') === uid) return;
+  sessionStorage.setItem('gridline_login_logged', uid);
+  const base = {
+    uid, ts: Date.now(),
+    userAgent: navigator.userAgent,
+    lang: navigator.language,
+    screenW: screen.width, screenH: screen.height,
+    tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    expiresAt: new Date(Date.now() + 30*24*60*60*1000),
+  };
+  fetch('https://api.ipify.org?format=json').then(r => r.json()).then(j => {
+    db.collection('login_events').add({...base, ip: j.ip || null}).catch(()=>{});
+  }).catch(() => {
+    db.collection('login_events').add(base).catch(()=>{});
+  });
+}
+
+/* ── Kompakte Eingabe-Telemetrie pro Runde (kein Rohaufnahme-Speicher) ──
+   Zweck: KI-/Bot-Fahrmuster erkennen (siehe stewards.html LP-HERKUNFT/AUFFÄLLIGKEITEN).
+   180 Tage Aufbewahrung per Firestore-TTL. */
+window.onGameLapTelemetry = (stats) => {
+  if(!fbUser) return;
+  db.collection('lap_telemetry').add({
+    uid: fbUser.uid, ...stats, ts: Date.now(),
+    expiresAt: new Date(Date.now() + 180*24*60*60*1000),
+  }).catch(()=>{});
+};
+
 auth.onAuthStateChanged(user => {
   fbUser = user;
   if(!user){ _clearUser(); return; }
@@ -1075,6 +1110,7 @@ auth.onAuthStateChanged(user => {
   const fallbackName = user.displayName || user.email?.split('@')[0] || 'Fahrer';
   _applyUser(fallbackName);
   Shop._onAuthChanged(user);
+  _logLoginEvent(user.uid);
 
   // Stewards Listener starten
   _initStewardsListener(user.uid);

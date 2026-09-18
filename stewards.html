@@ -266,6 +266,14 @@
         </div>
         <div id="anomalies-wrap" style="margin-top:14px"><div class="empty">Noch nicht gescannt.</div></div>
       </div>
+      <div class="box">
+        <h2>DATENSCHUTZ · AUFBEWAHRUNG</h2>
+        <p class="sub">Login-Ereignisse (Geräte/IP) und Eingabe-Statistiken sind laut Datenschutzerklärung auf 30 bzw. 180 Tage befristet. Da unser Firebase-Projekt auf dem kostenlosen Spark-Tarif läuft, gibt es dafür keine automatische Firestore-Löschung (TTL) — bitte regelmäßig hier manuell aufräumen.</p>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="btn-purge-retention">🧹 ABGELAUFENE DATEN LÖSCHEN</button>
+          <span id="purge-hint" class="sub" style="margin:0"></span>
+        </div>
+      </div>
     </div>
   </main>
 </div>
@@ -1212,6 +1220,34 @@ function boot(){
       wrap.innerHTML = `<div class="empty">Fehler: ${esc(e.message)}</div>`;
     }
   }
+
+  /* ══════════════ Aufbewahrungsfrist manuell durchsetzen (kein Blaze/TTL) ══════════════ */
+  $('btn-purge-retention').onclick = async () => {
+    if(!isSuperAdmin) return;
+    const hint = $('purge-hint');
+    hint.textContent = '⏳ Lösche…';
+    try {
+      const now = Date.now();
+      const cutoffs = [
+        { coll: 'login_events', maxAgeMs: 30*24*60*60*1000 },
+        { coll: 'lap_telemetry', maxAgeMs: 180*24*60*60*1000 },
+      ];
+      let deleted = 0;
+      for(const {coll, maxAgeMs} of cutoffs){
+        const snap = await db.collection(coll).get();
+        const stale = snap.docs.filter(d => (now - (d.data().ts||0)) > maxAgeMs);
+        for(let i=0;i<stale.length;i+=400){
+          const batch = db.batch();
+          stale.slice(i,i+400).forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        }
+        deleted += stale.length;
+      }
+      hint.textContent = `✓ ${deleted} abgelaufene Einträge gelöscht`;
+    } catch(e){
+      hint.textContent = '❌ ' + e.message;
+    }
+  };
 
   /* ══════════════ ALLE FAHRER ══════════════ */
   let _driversLoaded = false;
