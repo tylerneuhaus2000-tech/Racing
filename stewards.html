@@ -137,6 +137,7 @@
       <button class="btn tab-btn admin-only" data-tab="appeals">EINSPRÜCHE <span id="appeals-badge" style="display:none;background:#ffcc00;color:#111;border-radius:999px;padding:1px 7px;font-size:11px;margin-left:4px">0</span></button>
       <button class="btn tab-btn" data-tab="log">PROTOKOLL</button>
       <button class="btn tab-btn super-admin-only" data-tab="lpaudit">LP-HERKUNFT</button>
+      <button class="btn tab-btn super-admin-only" data-tab="anomalies">AUFFÄLLIGKEITEN <span id="anomalies-badge" style="display:none;background:#ff2e3d;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;margin-left:4px">0</span></button>
     </nav>
 
     <div id="view-times">
@@ -252,6 +253,18 @@
         </div>
         <label style="display:flex;align-items:center;gap:6px;margin:10px 0 0"><input type="checkbox" id="lpaudit-only-unclear"> nur auffällig große Einzeländerungen zeigen (&gt; 1,0 LP pro Vorgang)</label>
         <div id="lpaudit-wrap" style="margin-top:14px"><div class="empty">Noch nicht geladen.</div></div>
+      </div>
+    </div>
+
+    <div id="view-anomalies" style="display:none">
+      <div class="box">
+        <h2>AUFFÄLLIGKEITEN</h2>
+        <p class="sub">Automatischer Scan über ALLE Fahrer und mehrere unabhängige Signale gleichzeitig — kein einzelner Check ist für sich ein Beweis, aber mehrere gleichzeitig bei einem Fahrer sind ein starkes Indiz. Geprüft werden: unprotokollierte LP-Änderungen, versuchte KI-Autopilot-Nutzung, unrealistisch schnelle Rundenzeiten (Ausreißer) und auffällig widersprüchliche Sicherheits-Statistiken.</p>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" id="btn-scan-anomalies">🔎 SCAN STARTEN</button>
+          <span id="anomalies-hint" class="sub" style="margin:0"></span>
+        </div>
+        <div id="anomalies-wrap" style="margin-top:14px"><div class="empty">Noch nicht gescannt.</div></div>
       </div>
     </div>
   </main>
@@ -841,11 +854,11 @@ function boot(){
   }
 
   /* ══════════════ REITER-UMSCHALTUNG ══════════════ */
-  const _views = { times:'view-times', delreq:'view-delreq', drivers:'view-drivers', appeals:'view-appeals', log:'view-log', lpaudit:'view-lpaudit' };
+  const _views = { times:'view-times', delreq:'view-delreq', drivers:'view-drivers', appeals:'view-appeals', log:'view-log', lpaudit:'view-lpaudit', anomalies:'view-anomalies' };
   document.querySelectorAll('.tab-btn').forEach(b => {
     b.onclick = () => {
       const t = b.getAttribute('data-tab');
-      if(t === 'lpaudit' && !isSuperAdmin) return;
+      if((t === 'lpaudit' || t === 'anomalies') && !isSuperAdmin) return;
       document.querySelectorAll('.tab-btn').forEach(x => x.classList.toggle('tab-on', x === b));
       Object.entries(_views).forEach(([k, id]) => { $(id).style.display = (k === t) ? 'block' : 'none'; });
       if(t === 'delreq' && !_delreqLoaded) loadDelreq();
@@ -855,10 +868,10 @@ function boot(){
       if(t === 'lpaudit' && !_lpAuditLoaded) loadLpAudit();
     };
   });
-  // Tastenkürzel 1–6 für die Reiter (nicht während Texteingabe)
+  // Tastenkürzel 1–7 für die Reiter (nicht während Texteingabe)
   document.addEventListener('keydown', e => {
     if(/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement && document.activeElement.tagName)) return;
-    const map = { '1':'times', '2':'delreq', '3':'drivers', '4':'appeals', '5':'log', '6':'lpaudit' };
+    const map = { '1':'times', '2':'delreq', '3':'drivers', '4':'appeals', '5':'log', '6':'lpaudit', '7':'anomalies' };
     const t = map[e.key];
     if(t){ const btn = document.querySelector(`.tab-btn[data-tab="${t}"]`); if(btn) btn.click(); }
   });
@@ -1004,8 +1017,9 @@ function boot(){
   let _lpAuditLoaded = false;
   const LP_SUSPICIOUS_DELTA = 1.0; // normale Einzel-Änderung (Runde/Rennen/Steward) liegt weit darunter
   const _lpSourceInfo = {
-    gameplay: { label: '🟢 Gameplay',       color: '#39d98a' },
-    steward:  { label: '🔵 Steward-Aktion', color: '#8bd3ff' },
+    gameplay:   { label: '🟢 Gameplay',            color: '#39d98a' },
+    steward:    { label: '🔵 Steward-Aktion',      color: '#8bd3ff' },
+    'ai-blocked': { label: '🟠 KI-Autopilot (0 LP)', color: '#ffb020' },
   };
   $('btn-load-lpaudit').onclick = loadLpAudit;
 
@@ -1078,6 +1092,124 @@ function boot(){
       _lpAuditLoaded = true;
     } catch(e){
       wrap.innerHTML = `<div class="empty">Fehler: ${esc(e.message)}${/index/i.test(e.message)?' — evtl. fehlt ein Firestore-Index (Konsole öffnen).':''}</div>`;
+    }
+  }
+
+  /* ══════════════ AUFFÄLLIGKEITEN (Cheat-Scan über alle Fahrer) ══════════════ */
+  $('btn-scan-anomalies').onclick = runAnomalyScan;
+
+  async function runAnomalyScan(){
+    if(!isSuperAdmin) return;
+    const wrap = $('anomalies-wrap');
+    const hint = $('anomalies-hint');
+    wrap.innerHTML = '<div class="empty">⏳ Scanne alle Fahrer und Datenquellen…</div>';
+    hint.textContent = '';
+    try {
+      const [usnap, usersSnap, lpSnap, timesSnap] = await Promise.all([
+        db.collection('usernames').get(),
+        db.collection('users').get(),
+        db.collection('lp_audit').get(),
+        db.collection('times').get(),
+      ]);
+
+      const uidToName = {};
+      usnap.forEach(d => { const u = d.data().uid; if(u) uidToName[u] = d.id; });
+
+      const usersByUid = {};
+      usersSnap.forEach(d => { usersByUid[d.id] = d.data(); });
+
+      // LP-Audit pro Fahrer gruppieren
+      const lpByUid = {};
+      lpSnap.forEach(d => {
+        const x = d.data();
+        if(!x.uid) return;
+        (lpByUid[x.uid] = lpByUid[x.uid] || []).push(x);
+      });
+
+      // Rundenzeiten nach Strecke gruppieren (für Median/Ausreißer) und pro Fahrer
+      const timesByTrack = {};
+      const timesByUid = {};
+      timesSnap.forEach(d => {
+        const x = d.data();
+        if(!x.trackId || !Number.isFinite(x.timeMs)) return;
+        (timesByTrack[x.trackId] = timesByTrack[x.trackId] || []).push(x.timeMs);
+        if(x.uid) (timesByUid[x.uid] = timesByUid[x.uid] || []).push(x);
+      });
+      const medianByTrack = {};
+      Object.entries(timesByTrack).forEach(([trackId, arr]) => {
+        const sorted = [...arr].sort((a,b)=>a-b);
+        medianByTrack[trackId] = sorted[Math.floor(sorted.length/2)];
+      });
+
+      const flagsByUid = {};
+      const addFlag = (uid, severity, text) => { (flagsByUid[uid] = flagsByUid[uid] || []).push({severity, text}); };
+
+      // 1) LP-Diskrepanz — aktueller Wert weicht von der Summe des Protokolls ab
+      //    (nur bewertbar, wenn überhaupt Protokoll-Einträge existieren)
+      Object.keys(usersByUid).forEach(uid => {
+        const entries = lpByUid[uid];
+        if(!entries || !entries.length) return;
+        const logSum = entries.reduce((s,x)=>s+(Number(x.delta)||0),0);
+        const current = Number(usersByUid[uid].licensePoints)||0;
+        const diff = current - logSum;
+        if(Math.abs(diff) > 0.5){
+          addFlag(uid, 'hoch', `LP-Diskrepanz: aktuell ${current.toFixed(2)} LP, aus dem Protokoll ergeben sich ${logSum.toFixed(2)} LP (Differenz ${diff>=0?'+':''}${diff.toFixed(2)}) — möglicherweise direkt in der Datenbank gesetzt.`);
+        }
+      });
+
+      // 2) Versuchte KI-Autopilot-Nutzung ("Zuschauen"-Modus / Weg-Autopilot)
+      Object.entries(lpByUid).forEach(([uid, entries]) => {
+        const aiCount = entries.filter(x => x.source === 'ai-blocked').length;
+        if(aiCount > 0){
+          addFlag(uid, aiCount >= 3 ? 'hoch' : 'mittel', `KI-Autopilot ${aiCount}× verwendet — 0 LP vergeben, aber der Versuch ist protokolliert.`);
+        }
+      });
+
+      // 3) Rundenzeiten-Ausreißer: deutlich schneller als der Median dieser Strecke
+      Object.entries(timesByUid).forEach(([uid, arr]) => {
+        arr.forEach(x => {
+          const med = medianByTrack[x.trackId];
+          if(med && x.timeMs < med * 0.5){
+            addFlag(uid, 'mittel', `Auffällig schnelle Zeit auf ${esc(trackName(x.trackId))}: ${fmtLap(x.timeMs)} (Median dort: ${fmtLap(med)}).`);
+          }
+        });
+      });
+
+      // 4) Widersprüchliche Sicherheitsstatistik: sehr viele Runden, nie ein Kontakt
+      Object.entries(usersByUid).forEach(([uid, u]) => {
+        const validLaps = Number(u.validLaps)||0, wallHits = Number(u.wallHits)||0, carHits = Number(u.carHits)||0;
+        if(validLaps >= 200 && wallHits === 0 && carHits === 0){
+          addFlag(uid, 'niedrig', `${validLaps} gültige Runden ohne einen einzigen Wand-/Auto-Kontakt — ungewöhnlich sauber (kann auch ein sehr guter Fahrer sein).`);
+        }
+      });
+
+      const rows = Object.entries(flagsByUid)
+        .map(([uid, flags]) => ({ uid, username: uidToName[uid] || uid, flags,
+          score: flags.reduce((s,f)=>s+(f.severity==='hoch'?3:f.severity==='mittel'?2:1),0) }))
+        .sort((a,b)=>b.score-a.score);
+
+      const badge = $('anomalies-badge');
+      badge.style.display = rows.length ? 'inline-block' : 'none';
+      badge.textContent = rows.length;
+      hint.textContent = `${rows.length} von ${Object.keys(usersByUid).length} Fahrern mit Auffälligkeiten`;
+
+      if(!rows.length){ wrap.innerHTML = '<div class="empty">Keine Auffälligkeiten gefunden.</div>'; return; }
+
+      wrap.innerHTML = '';
+      const sevColor = { hoch:'#ff8a94', mittel:'#ffb020', niedrig:'#8b95a1' };
+      const sevIcon  = { hoch:'🔴', mittel:'🟠', niedrig:'⚪' };
+      rows.forEach(r => {
+        const box = document.createElement('div');
+        box.style.cssText = 'padding:12px 0;border-bottom:1px solid #1c2733';
+        box.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">`+
+            `<b style="color:#e8edf2">${esc(r.username)}</b>`+
+            `<span class="sub" style="margin:0">Score ${r.score} · ${r.flags.length} Signal${r.flags.length===1?'':'e'}</span>`+
+          `</div>` +
+          r.flags.map(f => `<div style="font-size:12px;color:${sevColor[f.severity]};padding:3px 0 3px 4px">${sevIcon[f.severity]} ${f.text}</div>`).join('');
+        wrap.appendChild(box);
+      });
+    } catch(e){
+      wrap.innerHTML = `<div class="empty">Fehler: ${esc(e.message)}</div>`;
     }
   }
 

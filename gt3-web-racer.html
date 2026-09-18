@@ -16310,6 +16310,7 @@ const Game = {
     this._clearCountdownTimers?.();
     if(this._replayMode) this.stopReplay();
     this._awayAutopilot=false;
+    this._awayAutopilotUsed=false; // pro Rennen: war die KI zwischenzeitlich am Steuer? (LP-Sperre)
     this._formationPhase=false;
     this._spectateAI=null;
     this._greenBoostUntil=0;
@@ -16373,6 +16374,7 @@ const Game = {
     this._awayAutopilot=active;
     this._awayReason=active?reason:'';
     if(active){
+      this._awayAutopilotUsed=true; // markiert das GANZE Rennen als KI-unterstützt, auch wenn später wieder selbst gefahren wird
       if(!this._awayAI){this._awayAI=new AIDriver(this.aiDifficulty||60,0,1);this._awayAI.setupForRace(this.totalLaps,this.mandatoryPitStop);}
       if(this.input)this.input.locked=true; this._showRadioMsg('AUTOPILOT AKTIV · '+reason);
     } else {
@@ -16567,6 +16569,7 @@ const Game = {
                 trackId: this.trackDef?.id,
                 wallContacts: c.wallContacts||0,
                 carContacts: c.carContacts||0,
+                aiAssisted: !!(this._awayAutopilotUsed || this.spectateMode),
               });
             }
             r.lapStart=now; r.lapStartRaceT=raceNow; r.lap=rd.lap;
@@ -16650,7 +16653,7 @@ const Game = {
     // License-System Hook
     if(typeof window.onGameRaceFinish === 'function'){
       const pos = order.indexOf(this.car) + 1;
-      window.onGameRaceFinish({pos, total: order.length, wallContacts: this.car?.wallContacts||0, carContacts: this.car?.carContacts||0, kmDriven: this._globalTotalKm||0});
+      window.onGameRaceFinish({pos, total: order.length, wallContacts: this.car?.wallContacts||0, carContacts: this.car?.carContacts||0, kmDriven: this._globalTotalKm||0, aiAssisted: !!(this._awayAutopilotUsed || this.spectateMode)});
     }
     const champPts = this.championshipEnabled ? this.awardChampionshipPoints(order) : null;
     const fmt = t => { if(!t) return '--:--.---'; const m=Math.floor(t/60),s=t%60; return m+':'+(s<10?'0':'')+s.toFixed(3); };

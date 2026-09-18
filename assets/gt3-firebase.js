@@ -2334,8 +2334,10 @@ const LicenseSystem = {
     db.collection('users').doc(fbUser.uid).set(update, {merge:true}).catch(console.error);
 
     // Lizenzpunkte-Herkunft protokollieren (nur für stewards.html / LP-HERKUNFT einsehbar).
+    // Bei 'ai-blocked' auch ohne LP-Änderung loggen — sichtbar machen, WIE OFT
+    // versucht wurde, per KI-Autopilot Punkte zu farmen (auch wenn 0 LP gutgeschrieben wurden).
     const lpAfter = this._data.licensePoints;
-    if(Math.abs(lpAfter - lpBefore) > 0.0001){
+    if(Math.abs(lpAfter - lpBefore) > 0.0001 || source === 'ai-blocked'){
       db.collection('lp_audit').add({
         uid: fbUser.uid, before: lpBefore, after: lpAfter, delta: lpAfter - lpBefore,
         source: source || 'gameplay', ts: Date.now(),
@@ -2359,7 +2361,7 @@ const LicenseSystem = {
   },
 
   /* ── On lap complete (hooked from game) ── */
-  onLap({valid, trackId, wallContacts, carContacts}) {
+  onLap({valid, trackId, wallContacts, carContacts, aiAssisted}) {
     if(!this._data) return;
     const wallNew = Math.max(0, wallContacts - this._lastWall);
     const carNew  = Math.max(0, carContacts  - this._lastCar);
@@ -2391,11 +2393,15 @@ const LicenseSystem = {
     if(incidents > 0 || !valid) delta.safetyIncidents = incidents + (valid ? 0 : 1);
     if(valid && incidents === 0) delta.cleanLaps = 1;
 
-    this._save(delta);
+    // Runde von der KI (Weg-Autopilot/Zuschauen) gefahren — zählt für Statistik,
+    // darf aber keine Lizenzpunkte einbringen (sonst Farmen durch Zuschauen).
+    if(aiAssisted) delta.licensePoints = 0;
+
+    this._save(delta, aiAssisted ? 'ai-blocked' : 'gameplay');
   },
 
   /* ── On race finish ── */
-  onRaceFinish({pos, total, wallContacts, carContacts, kmDriven}) {
+  onRaceFinish({pos, total, wallContacts, carContacts, kmDriven, aiAssisted}) {
     if(!this._data) return;
     const wallNew = Math.max(0, wallContacts - this._lastWall);
     const carNew  = Math.max(0, carContacts  - this._lastCar);
@@ -2417,13 +2423,17 @@ const LicenseSystem = {
     if(pos===2) delta.p2 = 1;
     if(pos===3) delta.p3 = 1;
 
+    // Rennen (ganz oder teilweise) von der KI gefahren (Weg-Autopilot/Zuschauen)
+    // — keine Lizenzpunkte fürs Zusehen, sonst könnte man Siege einfach farmen.
+    if(aiAssisted) delta.licensePoints = 0;
+
     // Sync km
     const currentKm = parseFloat(Store.get('totalKm')) || kmDriven || 0;
     if(currentKm > (this._data.kmDriven||0)){
       delta.kmDriven = currentKm - (this._data.kmDriven||0);
     }
 
-    this._save(delta);
+    this._save(delta, aiAssisted ? 'ai-blocked' : 'gameplay');
   },
 
   /* ── Sync km (called from Store.set totalKm hook) ── */
