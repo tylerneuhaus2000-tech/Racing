@@ -22,6 +22,7 @@
  */
 
 const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
+const { onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { defineSecret, defineString } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const admin = require('firebase-admin');
@@ -464,4 +465,67 @@ exports.claimRewardedCredits = onCall(async (req) => {
     waitSeconds: txResult.waitSeconds,
     dailyLimit: GT3_REWARDED_DAILY_LIMIT,
   };
+});
+
+/**
+ * Lizenzpunkte-Audit — Fahrer/Client dürfen users/{uid} direkt schreiben (siehe
+ * firestore.rules), daher lässt sich clientseitig nicht zuverlässig belegen, WOHER
+ * eine Änderung der licensePoints kam (normales Gameplay, Steward-Nachricht, oder
+ * ein manuell/per Konsole gesetzter Wert). Dieser Trigger läuft serverseitig über
+ * das Admin SDK und sieht daher JEDEN Schreibvorgang auf users/{uid} — unabhängig
+ * davon, wie er zustande kam. Für jede Änderung an licensePoints wird ein
+ * unveränderlicher Log-Eintrag in lp_audit angelegt:
+ *   - source 'steward'  wenn zeitlich + betragsmäßig eine steward_actions-Nachricht passt
+ *   - source 'gameplay' wenn die Änderung in der üblichen Größenordnung pro Runde/Rennen liegt
+ *   - source 'unclear'  wenn beides nicht zutrifft (verdächtig — z.B. Konsole/manuell gesetzt)
+ * Nur Admins dürfen lp_audit lesen (siehe firestore.rules), Clients dürfen dort nie schreiben.
+ */
+const LP_PLAUSIBLE_MAX_DELTA = 0.5; // größte normale Gameplay-Änderung (Rennsieg/mehrere Wall-Hits)
+
+exports.auditLicensePoints = onDocumentWritten('users/{uid}', async (event) => {
+  const before = event.data.before.exists ? (event.data.before.data() || {}) : null;
+  const after = event.data.after.exists ? (event.data.after.data() || {}) : null;
+  if (!after) return; // Dokument gelöscht — nichts zu auditieren
+
+  const beforeLp = before ? (Number(before.licensePoints) || 0) : 0;
+  const afterLp = Number(after.licensePoints) || 0;
+  const delta = afterLp - beforeLp;
+  if (Math.abs(delta) < 0.001) return; // keine LP-Änderung in diesem Schreibvorgang
+
+  const uid = event.params.uid;
+  const now = Date.now();
+
+  // Passende Steward-Nachricht in den letzten 60s suchen (Admin-Panel schreibt lpDelta
+  // in steward_actions, bevor der Zielspieler-Client die Änderung übernimmt).
+  let matched = null;
+  try {
+    const since = now - 60000;
+    const snap = await db.collection('steward_actions')
+      .where('targetUid', '==', uid)
+      .orderBy('at', 'desc')
+      .limit(10)
+      .get();
+    snap.forEach(d => {
+      if (matched) return;
+      const x = d.data();
+      if ((x.at || 0) >= since && Math.abs((Number(x.lpDelta) || 0) - delta) < 0.05) {
+        matched = { by: x.by || null, byName: x.byName || '', at: x.at || null };
+      }
+    });
+  } catch (e) {
+    logger.warn('auditLicensePoints: steward_actions lookup failed', e.message);
+  }
+
+  const source = matched ? 'steward' : (Math.abs(delta) <= LP_PLAUSIBLE_MAX_DELTA ? 'gameplay' : 'unclear');
+
+  await db.collection('lp_audit').add({
+    uid,
+    before: beforeLp,
+    after: afterLp,
+    delta,
+    source,
+    stewardBy: matched ? matched.by : null,
+    stewardByName: matched ? matched.byName : null,
+    ts: now,
+  });
 });

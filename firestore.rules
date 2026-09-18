@@ -9,6 +9,13 @@ service cloud.firestore {
       );
     }
 
+    // Nur der allererste angelegte Admin (nicht der zweite Admin) darf das
+    // Lizenzpunkte-Audit lesen — bewusst getrennt von isAdmin(), damit ein
+    // mitschreibender zweiter Admin sein eigenes Audit-Protokoll nicht einsehen kann.
+    function isSuperAdmin() {
+      return request.auth != null && request.auth.uid == 'qg9FDw4TZWhxX7en6JHuOI6GqZt2';
+    }
+
     // Mitarbeiter (Support + Löschungs-Anträge). Darf Zeiten ansehen und eine
     // Löschung BEANTRAGEN — entscheiden/streichen/Einsprüche prüfen kann nur isAdmin().
     function isStaffUid() {
@@ -141,6 +148,17 @@ service cloud.firestore {
     }
     match /purchases/{orderId} {
       allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+
+    // Lizenzpunkte-Audit: unveränderliches Protokoll jeder licensePoints-Änderung,
+    // geschrieben ausschließlich vom Cloud-Function-Trigger auditLicensePoints
+    // (functions/index.js) über das Admin SDK, das diese Regeln umgeht. So lässt
+    // sich auch eine manuell/per Konsole gesetzte Änderung nachträglich erkennen —
+    // lesen darf hier absichtlich NUR der allererste Admin (isSuperAdmin), damit
+    // auch ein zweiter Admin nicht das eigene Audit-Protokoll einsehen/verschleiern kann.
+    match /lp_audit/{entryId} {
+      allow read: if isSuperAdmin();
       allow write: if false;
     }
 

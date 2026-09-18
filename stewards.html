@@ -79,6 +79,7 @@
   #role-badge.admin{background:#12243d;border:1px solid #3b82f6;color:#dbeafe}
   #role-badge.staff{background:#1c2b12;border:1px solid #5b9d2f;color:#d7f5c0}
   .admin-only.role-hidden{display:none !important}
+  .super-admin-only.role-hidden{display:none !important}
 
   /* ── iPad / Touch: größere Ziele, eine Spalte, scrollbare Tabellen ── */
   html{-webkit-text-size-adjust:100%}
@@ -135,6 +136,7 @@
       <button class="btn tab-btn" data-tab="delreq">LÖSCHANTRÄGE <span id="delreq-badge" style="display:none;background:#ff2e3d;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;margin-left:4px">0</span></button>
       <button class="btn tab-btn admin-only" data-tab="appeals">EINSPRÜCHE <span id="appeals-badge" style="display:none;background:#ffcc00;color:#111;border-radius:999px;padding:1px 7px;font-size:11px;margin-left:4px">0</span></button>
       <button class="btn tab-btn" data-tab="log">PROTOKOLL</button>
+      <button class="btn tab-btn super-admin-only" data-tab="lpaudit">LP-HERKUNFT</button>
     </nav>
 
     <div id="view-times">
@@ -239,6 +241,19 @@
         <div id="log-wrap" style="margin-top:14px"><div class="empty">Noch nicht geladen.</div></div>
       </div>
     </div>
+
+    <div id="view-lpaudit" style="display:none">
+      <div class="box">
+        <h2>LP-HERKUNFT</h2>
+        <p class="sub">Serverseitiges Protokoll (Cloud Function) jeder Lizenzpunkte-Änderung — erfasst JEDEN Schreibvorgang auf das Fahrerprofil, egal ob er aus normalem Gameplay, einer Steward-Nachricht oder einer manuell/per Konsole gesetzten Änderung stammt. <span style="color:var(--red)">Rot markierte Einträge (&quot;unclear&quot;)</span> passen weder zu einer plausiblen Gameplay-Änderung noch zu einer protokollierten Steward-Nachricht und sollten geprüft werden.</p>
+        <div class="row" style="margin-top:10px">
+          <input type="text" id="lpaudit-username" placeholder="Benutzername (leer = alle Fahrer, neueste zuerst)">
+          <button class="btn primary" id="btn-load-lpaudit">↻ VERLAUF LADEN</button>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;margin:10px 0 0"><input type="checkbox" id="lpaudit-only-unclear"> nur unklare Änderungen zeigen</label>
+        <div id="lpaudit-wrap" style="margin-top:14px"><div class="empty">Noch nicht geladen.</div></div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -255,6 +270,11 @@
    aber jeder Schreibzugriff (Streichen, Nachricht) wird von Firestore
    trotzdem abgelehnt. */
 const ADMIN_UIDS = ['qg9FDw4TZWhxX7en6JHuOI6GqZt2', '25Mc4Wuwp4YxFFwNz8gtMkNI2n93'];
+/* LP-HERKUNFT (lp_audit) darf NUR der allererste angelegte Admin sehen, nicht
+   der zweite Admin/Steward — genau der Verlauf, der auch einen mitschreibenden
+   Admin auffliegen lassen soll. MUSS mit isSuperAdmin() in firestore.rules
+   übereinstimmen. */
+const SUPER_ADMIN_UID = ADMIN_UIDS[0];
 /* Mitarbeiter — darf Zeiten ansehen und eine Löschung BEANTRAGEN, aber nicht
    selbst streichen, keine Nachrichten senden und keine Einsprüche prüfen.
    MUSS mit isStaffUid() in firestore.rules übereinstimmen. */
@@ -290,9 +310,10 @@ function boot(){
     catch(e){ return id||'?'; }
   }
 
-  let isAdmin = false;   // Renndirektor — volle Rechte
-  let isStaff = false;   // eingeloggt & berechtigt (Mitarbeiter ODER Admin)
-  let role = null;       // 'admin' | 'staff'
+  let isAdmin = false;      // Renndirektor — volle Rechte
+  let isStaff = false;      // eingeloggt & berechtigt (Mitarbeiter ODER Admin)
+  let isSuperAdmin = false; // nur der allererste Admin — sieht LP-HERKUNFT
+  let role = null;          // 'admin' | 'staff'
 
   /* ── Auth ── */
   $('btn-google').onclick = () => {
@@ -324,6 +345,7 @@ function boot(){
     }
     isAdmin = ADMIN_UIDS.includes(user.uid);
     isStaff = isAdmin || STAFF_UIDS.includes(user.uid);
+    isSuperAdmin = user.uid === SUPER_ADMIN_UID;
     role = isAdmin ? 'admin' : (isStaff ? 'staff' : null);
     if(!isStaff){
       $('denied').style.display = 'block';
@@ -341,6 +363,8 @@ function boot(){
     rb.className = isAdmin ? 'admin' : 'staff';
     // Admin-only-Elemente für den Mitarbeiter ausblenden
     document.querySelectorAll('.admin-only').forEach(el => el.classList.toggle('role-hidden', !isAdmin));
+    // LP-HERKUNFT nur für den allerersten Admin sichtbar, auch dem zweiten Admin verborgen
+    document.querySelectorAll('.super-admin-only').forEach(el => el.classList.toggle('role-hidden', !isSuperAdmin));
     // Für Mitarbeiter: Nachricht-Senden-Box + Fahrer-Nachrichtenbereich sperren
     if(!isAdmin){
       $('delreq-sub').textContent = 'Beantrage hier die Streichung einer Runde — der Renndirektor entscheidet. Über den Reiter RUNDENZEITEN wählst du die konkrete Runde aus.';
@@ -817,22 +841,24 @@ function boot(){
   }
 
   /* ══════════════ REITER-UMSCHALTUNG ══════════════ */
-  const _views = { times:'view-times', delreq:'view-delreq', drivers:'view-drivers', appeals:'view-appeals', log:'view-log' };
+  const _views = { times:'view-times', delreq:'view-delreq', drivers:'view-drivers', appeals:'view-appeals', log:'view-log', lpaudit:'view-lpaudit' };
   document.querySelectorAll('.tab-btn').forEach(b => {
     b.onclick = () => {
       const t = b.getAttribute('data-tab');
+      if(t === 'lpaudit' && !isSuperAdmin) return;
       document.querySelectorAll('.tab-btn').forEach(x => x.classList.toggle('tab-on', x === b));
       Object.entries(_views).forEach(([k, id]) => { $(id).style.display = (k === t) ? 'block' : 'none'; });
       if(t === 'delreq' && !_delreqLoaded) loadDelreq();
       if(t === 'drivers' && !_driversLoaded) loadDrivers();
       if(t === 'appeals' && !_appealsLoaded) loadAppeals();
       if(t === 'log' && !_logLoaded) loadLog();
+      if(t === 'lpaudit' && !_lpAuditLoaded) loadLpAudit();
     };
   });
-  // Tastenkürzel 1–4 für die Reiter (nicht während Texteingabe)
+  // Tastenkürzel 1–6 für die Reiter (nicht während Texteingabe)
   document.addEventListener('keydown', e => {
     if(/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement && document.activeElement.tagName)) return;
-    const map = { '1':'times', '2':'delreq', '3':'drivers', '4':'appeals', '5':'log' };
+    const map = { '1':'times', '2':'delreq', '3':'drivers', '4':'appeals', '5':'log', '6':'lpaudit' };
     const t = map[e.key];
     if(t){ const btn = document.querySelector(`.tab-btn[data-tab="${t}"]`); if(btn) btn.click(); }
   });
@@ -969,6 +995,68 @@ function boot(){
       });
       $('log-hint').textContent = `${items.length} Einträge`;
       _logLoaded = true;
+    } catch(e){
+      wrap.innerHTML = `<div class="empty">Fehler: ${esc(e.message)}${/index/i.test(e.message)?' — evtl. fehlt ein Firestore-Index (Konsole öffnen).':''}</div>`;
+    }
+  }
+
+  /* ══════════════ LP-HERKUNFT ══════════════ */
+  let _lpAuditLoaded = false;
+  const _lpSourceInfo = {
+    gameplay: { label: '🟢 Gameplay',        color: '#39d98a' },
+    steward:  { label: '🔵 Steward-Aktion',  color: '#8bd3ff' },
+    unclear:  { label: '🔴 UNKLAR',          color: '#ff8a94' },
+  };
+  $('btn-load-lpaudit').onclick = loadLpAudit;
+
+  async function loadLpAudit(){
+    if(!isSuperAdmin) return;
+    const wrap = $('lpaudit-wrap');
+    wrap.innerHTML = '<div class="empty">⏳ Laden…</div>';
+    try {
+      const username = $('lpaudit-username').value.trim().toLowerCase();
+      let uid = null;
+      if(username){
+        const uSnap = await db.collection('usernames').doc(username).get();
+        if(!uSnap.exists){ wrap.innerHTML = '<div class="empty">❌ Spieler nicht gefunden</div>'; return; }
+        uid = uSnap.data().uid;
+      }
+      let q = db.collection('lp_audit').orderBy('ts', 'desc').limit(200);
+      if(uid) q = db.collection('lp_audit').where('uid', '==', uid).orderBy('ts', 'desc').limit(200);
+      const snap = await q.get();
+      const onlyUnclear = $('lpaudit-only-unclear').checked;
+      // Für Anzeige der Fahrernamen: usernames-Dokumente einmal laden
+      const uidToName = {};
+      if(!uid){
+        const usnap = await db.collection('usernames').get();
+        usnap.forEach(d => { const u = d.data().uid; if(u) uidToName[u] = d.id; });
+      } else {
+        uidToName[uid] = username;
+      }
+      let items = [];
+      snap.forEach(d => items.push(d.data()));
+      if(onlyUnclear) items = items.filter(x => x.source === 'unclear');
+      if(!items.length){ wrap.innerHTML = '<div class="empty">Keine Einträge gefunden.</div>'; _lpAuditLoaded = true; return; }
+
+      wrap.innerHTML = '';
+      items.forEach(x => {
+        const info = _lpSourceInfo[x.source] || { label: esc(x.source || '?'), color: '#8b95a1' };
+        const when = x.ts ? new Date(x.ts).toLocaleString('de-DE') : '—';
+        const delta = Number(x.delta) || 0;
+        const who = uidToName[x.uid] || x.uid || '?';
+        const row = document.createElement('div');
+        row.style.cssText = `display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #1c2733${x.source==='unclear'?';background:#2a0d12':''}`;
+        row.innerHTML =
+          `<span style="color:${info.color};font-weight:700;width:110px;flex-shrink:0">${info.label}</span>`+
+          `<div style="flex:1;min-width:0;font-size:12px;color:#c9d1d9">`+
+            `<b>${esc(who)}</b> · ${(x.before??0).toFixed(2)} → ${(x.after??0).toFixed(2)} LP `+
+            `<span style="color:${delta>=0?'#39d98a':'#ff8a94'}">(${delta>=0?'+':''}${delta.toFixed(2)})</span>`+
+            (x.stewardByName ? `<br><span class="sub" style="margin:0">durch Steward: ${esc(x.stewardByName)}</span>` : '')+
+          `</div>`+
+          `<span class="sub" style="margin:0;white-space:nowrap;flex-shrink:0">${when}</span>`;
+        wrap.appendChild(row);
+      });
+      _lpAuditLoaded = true;
     } catch(e){
       wrap.innerHTML = `<div class="empty">Fehler: ${esc(e.message)}${/index/i.test(e.message)?' — evtl. fehlt ein Firestore-Index (Konsole öffnen).':''}</div>`;
     }
