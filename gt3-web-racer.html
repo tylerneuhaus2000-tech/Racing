@@ -2896,6 +2896,7 @@ body.hud-edit #input-meter{pointer-events:auto;z-index:85}
 <script src="assets/tracks/spa_francorchamps_2022.js?v=20260914a" defer></script>
 <script src="assets/tracks/monza-mesh.js?v=20260910h" defer></script>
 <script src="assets/tracks/silverstone-gp-ai.js?v=1" defer></script>
+<script src="assets/tracks/barcelona-catalunya-2023.js?v=20260919a" defer></script>
 <!-- Shanghai is a released production track. Load it directly after the base
      track registry so it is always present on the normal game page. -->
 <script src="assets/tracks/shanghai_2018.js?v=20260911e" defer></script>
@@ -2908,7 +2909,8 @@ window.addEventListener('DOMContentLoaded', () => {
     'silberpfeil','custom_1782743640261','spa-francorchamps-2022',
     'spa_francorchamps_2022','shanghai-2018','shanghai_2018',
     'superspeedway','inselring','norisring','stadtring','kartbahn-lider','nuerburgring',
-    'nurburgring','redbullring-custom','redbull-ring','redbullring'
+    'nurburgring','redbullring-custom','redbull-ring','redbullring',
+    'barcelona-catalunya-2023'
   ]);
   for(let i=list.length-1;i>=0;i--){
     if(!allowed.has(list[i]?.id)) list.splice(i,1);
@@ -5085,6 +5087,21 @@ class Track {
   buildPitLane(){
     const pl = this.def.pitLane;
     if(!pl) return;
+    const resolveBoxRange = (fallbackStart, fallbackEnd) => {
+      if(!Array.isArray(pl.boxRange) || pl.boxRange.length < 2)
+        return [fallbackStart, fallbackEnd];
+      const aRaw = Number(pl.boxRange[0]), bRaw = Number(pl.boxRange[1]);
+      if(!Number.isFinite(aRaw) || !Number.isFinite(bRaw))
+        return [fallbackStart, fallbackEnd];
+      let a = clamp(Math.min(aRaw, bRaw), 0.02, 0.98);
+      let b = clamp(Math.max(aRaw, bRaw), 0.02, 0.98);
+      if(b - a < 0.04){
+        const mid = (a + b) * 0.5;
+        a = clamp(mid - 0.02, 0.02, 0.96);
+        b = clamp(mid + 0.02, 0.04, 0.98);
+      }
+      return [a, b];
+    };
     const S = this.samples, N = this.N;
     const openStart = 5, openEnd = 5;
     const pitMidOff = (pl.innerOff + pl.outerOff) / 2;
@@ -5152,8 +5169,9 @@ class Track {
       this.pitLaneInfo.slowMidOff=pl.side*slowMid;
       this.pitBoxes=[];
       const markerMat=new THREE.MeshBasicMaterial({color:0xffd400,transparent:true,opacity:0.58,side:THREE.DoubleSide});
+      const [boxZoneStart, boxZoneEnd] = resolveBoxRange(0.28, 0.72);
       for(let b=0;b<20;b++){
-        const t=0.28+(b+0.5)/20*0.44;
+        const t=boxZoneStart+(b+0.5)/20*(boxZoneEnd-boxZoneStart);
         const i=(pl.idxStart+Math.round(t*idxLen))%N, s=S[i];
         const stopPos=s.pos.clone().addScaledVector(s.side,pl.side*slowMid);
         const marker=new THREE.Mesh(new THREE.PlaneGeometry(3.1,5.2),markerMat.clone());
@@ -5211,7 +5229,7 @@ class Track {
     const roofMat2 = new THREE.MeshLambertMaterial({color:0x3a3f47});
     const doorFrameMat = new THREE.MeshLambertMaterial({color:0x1a1c20});
     const doorInnerMat = new THREE.MeshLambertMaterial({color:0x0d0f12});
-    const boxZoneStart = 0.10, boxZoneEnd = 0.90;
+    const [boxZoneStart, boxZoneEnd] = resolveBoxRange(0.10, 0.90);
     for(let b=0; b<N_BOXES; b++){
       const tNorm = boxZoneStart + (b+0.5)/N_BOXES * (boxZoneEnd - boxZoneStart);
       const ki = Math.round(tNorm * idxLen);
