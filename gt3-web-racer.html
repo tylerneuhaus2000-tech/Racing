@@ -3515,7 +3515,7 @@ const SHOP_ITEMS = [
 const G = 9.81;
 const PHYS_DT = 1/120;            // Fixe Physik-Schrittweite
 const SURF = { TRACK:0, KERB:1, GRASS:2 };
-const SURF_MU = [1.42, 1.18, 0.71]; // Reifen-Grip pro Untergrund (Asphalt/Kerb/Gras) — angehoben, da Autos vorher zu leicht die Traktion verloren
+const SURF_MU = [1.30, 1.08, 0.65];
 const TIRE_COMPOUNDS = {
   soft:   { grip: 1.03, wear: 1.24, tempGain: 1.20, tempRange: [72, 103], pitDelta: -0.04 },
   medium: { grip: 1.00, wear: 1.00, tempGain: 1.00, tempRange: [66, 96],  pitDelta: 0.00 },
@@ -7590,7 +7590,7 @@ class Car {
        Reifengrips nutzbar -> Autos bremsen gefuehlt "durch". Neu: nahe 100%
        moeglich, ABS-Level regelt nur wie aggressiv modelliert wird.
        Der sqrt(1-lat^2)-Term unten haelt den Kurven-Bremsschutz erhalten. */
-    const absBase  = clamp(1.00 - (setup.absLevel || 4) * 0.018, 0.88, 0.98);
+    const absBase  = clamp(1.00 - (setup.absLevel || 4) * 0.025, 0.84, 0.98);
     const muMaxR   = muR * FzR;
     const muMaxF   = muF * FzF;
 
@@ -7628,7 +7628,7 @@ class Car {
         const counterSteer = clamp(-this.steer * slipDir / 0.34, 0, 1);
         const throttleCatch = input.throttle > 0.18 ? 0.96 : 0.82;
         const catchMul = (1 - counterSteer * 0.58) * throttleCatch;
-        const brakeDestab = input.brake > 0.12 ? input.brake * 0.22 : 0; // Bremsen destabilisiert weniger stark (weniger Ausbrechen beim Bremsen)
+        const brakeDestab = input.brake > 0.12 ? input.brake * 0.48 : 0;
         const spinRamp = clamp((speed - 16) / 30, 0.12, 1.20);
         this.yawRate += slipDir * rearOverLimit * (0.85 + brakeDestab) * spinRamp * catchMul * dt;
         this.vy += slipDir * rearOverLimit * speed * 0.052 * spinRamp * catchMul * dt;
