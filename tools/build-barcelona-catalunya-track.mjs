@@ -201,6 +201,7 @@ function build() {
     mesh: {
       offset: [0, 0, 0],
       rawSurface: true,
+      hideMaterialsAlways: '^(GROOVE1|GROOVE2)$',
       fixAlphaMaterials: 'fence|tree|glass|net|ivy|alpha',
       fixAllBlendMaterials: true,
       light: { sun: 0.96, hemi: 0.84, exposure: 1 }
