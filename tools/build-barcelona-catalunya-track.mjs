@@ -7,15 +7,15 @@ const glbPath = path.join(root, 'assets', 'tracks', 'barcelona_catalunya_2023_la
 const outPath = path.join(root, 'assets', 'tracks', 'barcelona-catalunya-2023.js');
 
 const CONTROL_POINTS = [
-  [298, -95], [230, 5], [156, 105], [108, 195], [50, 300], [5, 380],
+  [315, -95], [260, 20], [200, 135], [140, 250], [75, 345], [15, 420],
   [-60, 490], [-180, 500], [-300, 505], [-420, 515], [-490, 470],
   [-505, 380], [-470, 285], [-410, 190], [-340, 110], [-265, 95],
   [-210, 145], [-210, 245], [-250, 340], [-295, 405], [-225, 415],
   [-110, 380], [0, 315], [85, 230], [55, 155], [-25, 80], [-75, 0],
   [-125, -75], [-120, -135], [-45, -185], [70, -230], [175, -270],
   [275, -310], [175, -350], [95, -410], [78, -475], [128, -525],
-  [225, -525], [315, -470], [390, -420], [455, -380], [420, -330],
-  [400, -270], [360, -205], [330, -150]
+  [225, -525], [315, -470], [390, -420], [455, -380], [485, -315],
+  [445, -235], [380, -155]
 ];
 
 const PIT_PATH = [
@@ -115,8 +115,11 @@ function catmull(points, i, t) {
 function densePath(points, stepsPerSegment = 16) {
   const out = [];
   for (let i = 0; i < points.length; i += 1) {
+    const a = points[i];
+    const b = points[(i + 1) % points.length];
     for (let s = 0; s < stepsPerSegment; s += 1) {
-      out.push(catmull(points, i, s / stepsPerSegment));
+      const t = s / stepsPerSegment;
+      out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
     }
   }
   return out;
