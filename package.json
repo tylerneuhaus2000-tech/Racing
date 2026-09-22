@@ -11,10 +11,11 @@
     "build:mac": "electron-builder --mac",
     "build:win": "electron-builder --win",
     "build:all": "electron-builder --mac --win",
-    "test": "npm run audit:gt3 && npm run test:native",
+    "test": "npm run audit:gt3 && npm run test:native && npm run test:unreal",
     "audit:gt3": "node tools/gt3-preflight-audit.mjs",
     "audit:security": "node tools/security-audit.mjs",
     "test:native": "node tools/validate-native-project.mjs",
+    "test:unreal": "node tools/validate-unreal-project.mjs",
     "test:ai": "node tools/ai-drive-audit.cjs",
     "load:local": "node tools/safe-load-test.mjs --base http://127.0.0.1:8787"
   },
