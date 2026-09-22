@@ -3,7 +3,13 @@
   "EngineAssociation": "5.6",
   "Category": "Games",
   "Description": "GRIDLINE native racing game",
-  "Modules": [],
+  "Modules": [
+    {
+      "Name": "GridlineRacing",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ],
   "Plugins": [
     {
       "Name": "EnhancedInput",
