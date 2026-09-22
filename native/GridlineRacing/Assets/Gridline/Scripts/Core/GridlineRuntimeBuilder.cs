@@ -41,6 +41,7 @@ namespace Gridline.Native
             LapSystem.Configure(Vehicle, Track);
             CreateCamera(sceneRoot.transform, Vehicle.transform);
             CreateHud(sceneRoot.transform, Vehicle, LapSystem);
+            sceneRoot.AddComponent<GridlineTouchControls>();
         }
 
         private static Material CreateMaterial(string name, Color color)
