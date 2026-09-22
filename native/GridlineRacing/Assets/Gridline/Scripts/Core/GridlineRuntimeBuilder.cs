@@ -133,12 +133,21 @@ namespace Gridline.Native
             Material curbWhite,
             Material line)
         {
-            GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            ground.name = "Silverstone Terrain";
-            ground.transform.SetParent(parent);
-            ground.transform.position = new Vector3(0f, -0.2f, 0f);
-            ground.transform.localScale = new Vector3(115f, 1f, 115f);
-            ground.GetComponent<Renderer>().sharedMaterial = grass;
+            GameObject importedTrack = LoadImportedModel("Content/Tracks/Silverstone_GP", parent, "Silverstone Visual Track");
+            bool hasImportedTrack = importedTrack != null;
+            if (hasImportedTrack)
+            {
+                importedTrack.transform.localPosition = new Vector3(-46.24f, 7.21f, 89.7f);
+            }
+            else
+            {
+                GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+                ground.name = "Silverstone Terrain";
+                ground.transform.SetParent(parent);
+                ground.transform.position = new Vector3(0f, -0.2f, 0f);
+                ground.transform.localScale = new Vector3(115f, 1f, 115f);
+                ground.GetComponent<Renderer>().sharedMaterial = grass;
+            }
 
             List<Vector3> roadVertices = new List<Vector3>(track.points.Length * 4);
             List<int> roadTriangles = new List<int>(track.points.Length * 6);
@@ -176,8 +185,13 @@ namespace Gridline.Native
                 AddQuad(boundaryVertices, boundaryTriangles, boundaryRightB, boundaryRightA, boundaryRightD, boundaryRightC);
             }
 
-            CreateMeshObject("Silverstone Road Mesh", parent, roadVertices, roadTriangles, asphalt, true);
-            CreateMeshObject("Silverstone Boundary Mesh", parent, boundaryVertices, boundaryTriangles, curbRed, true);
+            GameObject roadMesh = CreateMeshObject("Silverstone Road Physics", parent, roadVertices, roadTriangles, asphalt, true);
+            GameObject boundaryMesh = CreateMeshObject("Silverstone Boundary Physics", parent, boundaryVertices, boundaryTriangles, curbRed, true);
+            if (hasImportedTrack)
+            {
+                roadMesh.GetComponent<Renderer>().enabled = false;
+                boundaryMesh.GetComponent<Renderer>().enabled = false;
+            }
 
             Vector3 start = track.Point(0) + Vector3.up * 0.16f;
             Quaternion startRotation = Quaternion.LookRotation(track.Forward(0), Vector3.up);
@@ -250,28 +264,52 @@ namespace Gridline.Native
             collider.center = new Vector3(0f, 0.35f, 0f);
             collider.size = new Vector3(1.95f, 0.8f, 4.1f);
 
-            CreateCube("Body", car.transform, new Vector3(0f, 0.36f, 0f), new Vector3(2.05f, 0.5f, 4.2f), body, true);
-            CreateCube("Cabin", car.transform, new Vector3(0f, 0.78f, -0.35f), new Vector3(1.35f, 0.55f, 1.35f), glass, true);
-            CreateCube("Front Splitter", car.transform, new Vector3(0f, 0.2f, 2.22f), new Vector3(2.25f, 0.12f, 0.28f), carbon, true);
-            CreateCube("Rear Wing", car.transform, new Vector3(0f, 0.93f, -2.12f), new Vector3(2.35f, 0.12f, 0.36f), carbon, true);
+            GameObject importedCar = LoadImportedModel("Content/Vehicles/Ferrari_296_GT3", car.transform, "Ferrari 296 GT3");
+            Transform frontLeftPivot = null;
+            Transform frontRightPivot = null;
+            Transform rearLeftPivot = null;
+            Transform rearRightPivot = null;
+            if (importedCar != null)
+            {
+                importedCar.transform.localScale = Vector3.one * 100f;
+                importedCar.transform.localPosition = Vector3.zero;
+            }
+            else
+            {
+                CreateCube("Body", car.transform, new Vector3(0f, 0.36f, 0f), new Vector3(2.05f, 0.5f, 4.2f), body, true);
+                CreateCube("Cabin", car.transform, new Vector3(0f, 0.78f, -0.35f), new Vector3(1.35f, 0.55f, 1.35f), glass, true);
+                CreateCube("Front Splitter", car.transform, new Vector3(0f, 0.2f, 2.22f), new Vector3(2.25f, 0.12f, 0.28f), carbon, true);
+                CreateCube("Rear Wing", car.transform, new Vector3(0f, 0.93f, -2.12f), new Vector3(2.35f, 0.12f, 0.36f), carbon, true);
 
-            Transform frontLeftPivot = CreateWheel(car.transform, "Front Left Wheel", new Vector3(-1.08f, 0.22f, 1.38f), tire);
-            Transform frontRightPivot = CreateWheel(car.transform, "Front Right Wheel", new Vector3(1.08f, 0.22f, 1.38f), tire);
-            Transform rearLeftPivot = CreateWheel(car.transform, "Rear Left Wheel", new Vector3(-1.08f, 0.22f, -1.38f), tire);
-            Transform rearRightPivot = CreateWheel(car.transform, "Rear Right Wheel", new Vector3(1.08f, 0.22f, -1.38f), tire);
+                frontLeftPivot = CreateWheel(car.transform, "Front Left Wheel", new Vector3(-1.08f, 0.22f, 1.38f), tire);
+                frontRightPivot = CreateWheel(car.transform, "Front Right Wheel", new Vector3(1.08f, 0.22f, 1.38f), tire);
+                rearLeftPivot = CreateWheel(car.transform, "Rear Left Wheel", new Vector3(-1.08f, 0.22f, -1.38f), tire);
+                rearRightPivot = CreateWheel(car.transform, "Rear Right Wheel", new Vector3(1.08f, 0.22f, -1.38f), tire);
+            }
 
             GridlineVehicleController controller = car.AddComponent<GridlineVehicleController>();
-            controller.FrontWheelSteerPivots = new[] { frontLeftPivot, frontRightPivot };
-            controller.WheelSpinNodes = new[]
+            controller.FrontWheelSteerPivots = frontLeftPivot == null ? null : new[] { frontLeftPivot, frontRightPivot };
+            controller.WheelSpinNodes = frontLeftPivot == null ? null : new[]
             {
-                frontLeftPivot.GetChild(0),
-                frontRightPivot.GetChild(0),
-                rearLeftPivot.GetChild(0),
-                rearRightPivot.GetChild(0)
+                frontLeftPivot.GetChild(0), frontRightPivot.GetChild(0),
+                rearLeftPivot.GetChild(0), rearRightPivot.GetChild(0)
             };
             controller.ConfigureSpawnPose(spawnPosition, spawnRotation);
             controller.ResetCar();
             return controller;
+        }
+
+        private static GameObject LoadImportedModel(string resourcePath, Transform parent, string instanceName)
+        {
+            GameObject prefab = Resources.Load<GameObject>(resourcePath);
+            if (prefab == null)
+            {
+                return null;
+            }
+
+            GameObject instance = Object.Instantiate(prefab, parent);
+            instance.name = instanceName;
+            return instance;
         }
 
         private static Transform CreateWheel(Transform parent, string name, Vector3 localPosition, Material material)
