@@ -5,12 +5,14 @@ namespace Gridline.Native
     public sealed class GridlineDebugHud : MonoBehaviour
     {
         public GridlineVehicleController Vehicle;
+        public GridlineLapSystem LapSystem;
 
         private GUIStyle titleStyle;
         private GUIStyle labelStyle;
         private GUIStyle valueStyle;
         private GUIStyle menuTitleStyle;
         private GUIStyle menuTextStyle;
+        private GUIStyle warningStyle;
         private float fps;
 
         private void Update()
@@ -46,7 +48,7 @@ namespace Gridline.Native
         private void DrawTelemetry()
         {
             const float panelWidth = 330f;
-            const float panelHeight = 252f;
+            const float panelHeight = 304f;
             Rect panel = new Rect(22f, Screen.height - panelHeight - 22f, panelWidth, panelHeight);
             DrawPanel(panel, new Color(0.015f, 0.018f, 0.023f, 0.88f));
 
@@ -68,6 +70,16 @@ namespace Gridline.Native
 
             GUI.Label(new Rect(panel.x + 18f, panel.y + 218f, 135f, 22f), $"LAT G {Vehicle.LateralG:+0.00;-0.00;0.00}", labelStyle);
             GUI.Label(new Rect(panel.x + 176f, panel.y + 218f, 135f, 22f), $"LONG G {Vehicle.LongitudinalG:+0.00;-0.00;0.00}", labelStyle);
+
+            if (LapSystem != null && LapSystem.Track != null)
+            {
+                GUI.Label(new Rect(panel.x + 18f, panel.y + 244f, 294f, 22f),
+                    $"SILVERSTONE  LAP {LapSystem.CompletedLaps + 1}  {LapSystem.LapProgress * 100f:0}%",
+                    labelStyle);
+                GUI.Label(new Rect(panel.x + 18f, panel.y + 266f, 294f, 22f),
+                    LapSystem.IsValidLap ? "LAP STATUS  VALID" : "LAP STATUS  INVALID",
+                    LapSystem.IsValidLap ? labelStyle : warningStyle);
+            }
         }
 
         private void DrawMenu()
@@ -164,6 +176,12 @@ namespace Gridline.Native
                 fontSize = 16,
                 alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = new Color(0.78f, 0.84f, 0.9f) }
+            };
+
+            warningStyle = new GUIStyle(labelStyle)
+            {
+                fontStyle = FontStyle.Bold,
+                normal = { textColor = new Color(1f, 0.32f, 0.22f) }
             };
         }
     }

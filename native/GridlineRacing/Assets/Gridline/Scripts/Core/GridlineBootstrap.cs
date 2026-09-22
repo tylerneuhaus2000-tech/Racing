@@ -10,7 +10,7 @@ namespace Gridline.Native
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Boot()
         {
-            if (Object.FindFirstObjectByType<GridlineBootstrap>() != null)
+            if (Object.FindAnyObjectByType<GridlineBootstrap>() != null)
             {
                 return;
             }
@@ -27,7 +27,10 @@ namespace Gridline.Native
             Time.fixedDeltaTime = 1f / 60f;
             Time.maximumDeltaTime = 0.1f;
 
-            runtimeRoot.AddComponent<GridlineInputRouter>();
+            if (GetComponent<GridlineInputRouter>() == null)
+            {
+                gameObject.AddComponent<GridlineInputRouter>();
+            }
             GridlineRuntimeBuilder.BuildIfNeeded();
             GridlineGameState.ReturnToMenu();
         }

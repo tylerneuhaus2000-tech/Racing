@@ -7,6 +7,7 @@ namespace Gridline.Native
         private const string SceneRootName = "Gridline Prototype Scene";
 
         public static GridlineVehicleController Vehicle { get; private set; }
+        public static GridlineTrackData Track { get; private set; }
 
         public static void BuildIfNeeded()
         {
@@ -28,10 +29,15 @@ namespace Gridline.Native
             Material tire = CreateMaterial("Gridline Tire", new Color(0.006f, 0.006f, 0.007f));
 
             CreateLighting(sceneRoot.transform);
-            CreateTrack(sceneRoot.transform, grass, asphalt, curbRed, curbWhite, line);
-            Vehicle = CreateCar(sceneRoot.transform, body, carbon, glass, tire);
+            Track = GridlineTrackData.Load("Tracks/silverstone-gp");
+            CreateTrack(sceneRoot.transform, Track, grass, asphalt, curbRed, curbWhite, line);
+            Vector3 spawnPosition = Track != null ? Track.Point(0) + Vector3.up * 0.65f : new Vector3(0f, 0.62f, -26f);
+            Quaternion spawnRotation = Track != null ? Quaternion.LookRotation(Track.Forward(0), Vector3.up) : Quaternion.identity;
+            Vehicle = CreateCar(sceneRoot.transform, body, carbon, glass, tire, spawnPosition, spawnRotation);
+            GridlineLapSystem lapSystem = sceneRoot.AddComponent<GridlineLapSystem>();
+            lapSystem.Configure(Vehicle, Track);
             CreateCamera(sceneRoot.transform, Vehicle.transform);
-            CreateHud(sceneRoot.transform, Vehicle);
+            CreateHud(sceneRoot.transform, Vehicle, lapSystem);
         }
 
         private static Material CreateMaterial(string name, Color color)
@@ -68,12 +74,19 @@ namespace Gridline.Native
 
         private static void CreateTrack(
             Transform parent,
+            GridlineTrackData track,
             Material grass,
             Material asphalt,
             Material curbRed,
             Material curbWhite,
             Material line)
         {
+            if (track != null)
+            {
+                CreateSilverstoneTrack(parent, track, grass, asphalt, curbRed, curbWhite, line);
+                return;
+            }
+
             GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "Ground";
             ground.transform.SetParent(parent);
@@ -110,16 +123,67 @@ namespace Gridline.Native
             }
         }
 
+        private static void CreateSilverstoneTrack(
+            Transform parent,
+            GridlineTrackData track,
+            Material grass,
+            Material asphalt,
+            Material curbRed,
+            Material curbWhite,
+            Material line)
+        {
+            GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            ground.name = "Silverstone Terrain";
+            ground.transform.SetParent(parent);
+            ground.transform.position = new Vector3(0f, -0.2f, 0f);
+            ground.transform.localScale = new Vector3(115f, 1f, 115f);
+            ground.GetComponent<Renderer>().sharedMaterial = grass;
+
+            for (int i = 0; i < track.points.Length; i += 1)
+            {
+                Vector3 current = track.Point(i);
+                Vector3 next = track.Point(i + 1);
+                Vector3 segment = next - current;
+                float length = Vector3.ProjectOnPlane(segment, Vector3.up).magnitude;
+                if (length < 0.1f)
+                {
+                    continue;
+                }
+
+                Vector3 midpoint = (current + next) * 0.5f;
+                Quaternion rotation = Quaternion.LookRotation(segment.normalized, Vector3.up);
+                CreateCube("Silverstone Road", parent, midpoint + Vector3.up * 0.02f,
+                    new Vector3(track.halfWidth * 2f, 0.12f, length + 0.5f), asphalt, false, rotation);
+
+                Vector3 right = rotation * Vector3.right;
+                Material curbMaterial = i % 2 == 0 ? curbRed : curbWhite;
+                CreateCube("Silverstone Left Boundary", parent,
+                    midpoint - right * (track.halfWidth + 0.45f) + Vector3.up * 0.11f,
+                    new Vector3(0.7f, 0.12f, length + 0.5f), curbMaterial, false, rotation);
+                CreateCube("Silverstone Right Boundary", parent,
+                    midpoint + right * (track.halfWidth + 0.45f) + Vector3.up * 0.11f,
+                    new Vector3(0.7f, 0.12f, length + 0.5f), curbMaterial, false, rotation);
+            }
+
+            Vector3 start = track.Point(0) + Vector3.up * 0.16f;
+            Quaternion startRotation = Quaternion.LookRotation(track.Forward(0), Vector3.up);
+            CreateCube("Silverstone Start Finish", parent, start,
+                new Vector3(track.halfWidth * 2f, 0.04f, 0.45f), line, false,
+                startRotation * Quaternion.Euler(0f, 90f, 0f));
+        }
+
         private static GridlineVehicleController CreateCar(
             Transform parent,
             Material body,
             Material carbon,
             Material glass,
-            Material tire)
+            Material tire,
+            Vector3 spawnPosition,
+            Quaternion spawnRotation)
         {
             GameObject car = new GameObject("Gridline Prototype GT");
             car.transform.SetParent(parent);
-            car.transform.SetPositionAndRotation(new Vector3(0f, 0.62f, -26f), Quaternion.identity);
+            car.transform.SetPositionAndRotation(spawnPosition, spawnRotation);
 
             Rigidbody rigidbody = car.AddComponent<Rigidbody>();
             rigidbody.mass = 1225f;
@@ -193,21 +257,22 @@ namespace Gridline.Native
             rig.Target = target;
         }
 
-        private static void CreateHud(Transform parent, GridlineVehicleController vehicle)
+        private static void CreateHud(Transform parent, GridlineVehicleController vehicle, GridlineLapSystem lapSystem)
         {
             GameObject hudObject = new GameObject("Gridline Debug HUD");
             hudObject.transform.SetParent(parent);
             GridlineDebugHud hud = hudObject.AddComponent<GridlineDebugHud>();
             hud.Vehicle = vehicle;
+            hud.LapSystem = lapSystem;
         }
 
-        private static GameObject CreateCube(string name, Transform parent, Vector3 localPosition, Vector3 localScale, Material material, bool visualOnly)
+        private static GameObject CreateCube(string name, Transform parent, Vector3 localPosition, Vector3 localScale, Material material, bool visualOnly, Quaternion? localRotation = null)
         {
             GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
             cube.name = name;
             cube.transform.SetParent(parent);
             cube.transform.localPosition = localPosition;
-            cube.transform.localRotation = Quaternion.identity;
+            cube.transform.localRotation = localRotation ?? Quaternion.identity;
             cube.transform.localScale = localScale;
             cube.GetComponent<Renderer>().sharedMaterial = material;
 
