@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Gridline.Native
@@ -139,6 +140,11 @@ namespace Gridline.Native
             ground.transform.localScale = new Vector3(115f, 1f, 115f);
             ground.GetComponent<Renderer>().sharedMaterial = grass;
 
+            List<Vector3> roadVertices = new List<Vector3>(track.points.Length * 4);
+            List<int> roadTriangles = new List<int>(track.points.Length * 6);
+            List<Vector3> boundaryVertices = new List<Vector3>(track.points.Length * 8);
+            List<int> boundaryTriangles = new List<int>(track.points.Length * 12);
+
             for (int i = 0; i < track.points.Length; i += 1)
             {
                 Vector3 current = track.Point(i);
@@ -150,26 +156,74 @@ namespace Gridline.Native
                     continue;
                 }
 
-                Vector3 midpoint = (current + next) * 0.5f;
-                Quaternion rotation = Quaternion.LookRotation(segment.normalized, Vector3.up);
-                CreateCube("Silverstone Road", parent, midpoint + Vector3.up * 0.02f,
-                    new Vector3(track.halfWidth * 2f, 0.12f, length + 0.5f), asphalt, false, rotation);
+                Vector3 forward = new Vector3(segment.x, 0f, segment.z).normalized;
+                Vector3 right = new Vector3(forward.z, 0f, -forward.x);
+                Vector3 currentLeft = current - right * track.halfWidth + Vector3.up * 0.02f;
+                Vector3 currentRight = current + right * track.halfWidth + Vector3.up * 0.02f;
+                Vector3 nextLeft = next - right * track.halfWidth + Vector3.up * 0.02f;
+                Vector3 nextRight = next + right * track.halfWidth + Vector3.up * 0.02f;
+                AddQuad(roadVertices, roadTriangles, currentLeft, currentRight, nextLeft, nextRight);
 
-                Vector3 right = rotation * Vector3.right;
-                Material curbMaterial = i % 2 == 0 ? curbRed : curbWhite;
-                CreateCube("Silverstone Left Boundary", parent,
-                    midpoint - right * (track.halfWidth + 0.45f) + Vector3.up * 0.11f,
-                    new Vector3(0.7f, 0.12f, length + 0.5f), curbMaterial, false, rotation);
-                CreateCube("Silverstone Right Boundary", parent,
-                    midpoint + right * (track.halfWidth + 0.45f) + Vector3.up * 0.11f,
-                    new Vector3(0.7f, 0.12f, length + 0.5f), curbMaterial, false, rotation);
+                Vector3 boundaryLeftA = current - right * (track.halfWidth + 0.45f) + Vector3.up * 0.11f;
+                Vector3 boundaryLeftB = current - right * (track.halfWidth + 1.15f) + Vector3.up * 0.11f;
+                Vector3 boundaryLeftC = next - right * (track.halfWidth + 0.45f) + Vector3.up * 0.11f;
+                Vector3 boundaryLeftD = next - right * (track.halfWidth + 1.15f) + Vector3.up * 0.11f;
+                Vector3 boundaryRightA = current + right * (track.halfWidth + 0.45f) + Vector3.up * 0.11f;
+                Vector3 boundaryRightB = current + right * (track.halfWidth + 1.15f) + Vector3.up * 0.11f;
+                Vector3 boundaryRightC = next + right * (track.halfWidth + 0.45f) + Vector3.up * 0.11f;
+                Vector3 boundaryRightD = next + right * (track.halfWidth + 1.15f) + Vector3.up * 0.11f;
+                AddQuad(boundaryVertices, boundaryTriangles, boundaryLeftA, boundaryLeftB, boundaryLeftC, boundaryLeftD);
+                AddQuad(boundaryVertices, boundaryTriangles, boundaryRightB, boundaryRightA, boundaryRightD, boundaryRightC);
             }
+
+            CreateMeshObject("Silverstone Road Mesh", parent, roadVertices, roadTriangles, asphalt, true);
+            CreateMeshObject("Silverstone Boundary Mesh", parent, boundaryVertices, boundaryTriangles, curbRed, true);
 
             Vector3 start = track.Point(0) + Vector3.up * 0.16f;
             Quaternion startRotation = Quaternion.LookRotation(track.Forward(0), Vector3.up);
             CreateCube("Silverstone Start Finish", parent, start,
                 new Vector3(track.halfWidth * 2f, 0.04f, 0.45f), line, false,
                 startRotation * Quaternion.Euler(0f, 90f, 0f));
+        }
+
+        private static void AddQuad(List<Vector3> vertices, List<int> triangles, Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+        {
+            int start = vertices.Count;
+            vertices.Add(a);
+            vertices.Add(b);
+            vertices.Add(c);
+            vertices.Add(d);
+            triangles.Add(start);
+            triangles.Add(start + 2);
+            triangles.Add(start + 1);
+            triangles.Add(start + 1);
+            triangles.Add(start + 2);
+            triangles.Add(start + 3);
+        }
+
+        private static GameObject CreateMeshObject(
+            string name,
+            Transform parent,
+            List<Vector3> vertices,
+            List<int> triangles,
+            Material material,
+            bool collision)
+        {
+            GameObject meshObject = new GameObject(name);
+            meshObject.transform.SetParent(parent);
+            Mesh mesh = new Mesh { name = name };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            meshObject.AddComponent<MeshFilter>().sharedMesh = mesh;
+            meshObject.AddComponent<MeshRenderer>().sharedMaterial = material;
+            if (collision)
+            {
+                meshObject.AddComponent<MeshCollider>().sharedMesh = mesh;
+            }
+
+            return meshObject;
         }
 
         private static GridlineVehicleController CreateCar(
