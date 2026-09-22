@@ -1,0 +1,26 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "5.6",
+  "Category": "Games",
+  "Description": "GRIDLINE native racing game",
+  "Modules": [],
+  "Plugins": [
+    {
+      "Name": "EnhancedInput",
+      "Enabled": true
+    },
+    {
+      "Name": "ChaosVehicles",
+      "Enabled": true
+    },
+    {
+      "Name": "CommonUI",
+      "Enabled": true
+    }
+  ],
+  "TargetPlatforms": [
+    "Windows",
+    "Mac",
+    "IOS"
+  ]
+}
