@@ -24,6 +24,8 @@ Open this folder in Unity Hub:
 native/GridlineRacing
 ```
 
+The Unity 6000.5.1f1 editor is installed on the development Mac. Headless compilation currently requires an activated Unity Editor license; until that is activated, repository tests can validate the project structure but cannot claim a Unity compile.
+
 Unity CLI currently requires an activated editor license on this machine before batch builds can run.
 
 ## Controls
