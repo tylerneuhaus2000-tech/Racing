@@ -2,6 +2,8 @@
 
 This manifest keeps the first Unreal milestone tied to files already in the repository. It is deliberately small for Windows, macOS, and iPadOS.
 
+The active production direction is currently Unity again. This file remains only as the archived UE5 migration reference.
+
 ## Reference track candidate
 
 `assets/tracks/silverstone_gp.glb` is the first candidate because it is a moderate-size existing mesh and the repository already contains `assets/tracks/silverstone-gp-ai.js` for track logic reference.

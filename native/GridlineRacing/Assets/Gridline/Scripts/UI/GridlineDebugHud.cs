@@ -29,15 +29,17 @@ namespace Gridline.Native
                 return;
             }
 
-            DrawTelemetry();
-
             if (GridlineGameState.IsMenu)
             {
                 DrawMenu();
             }
-            else if (GridlineGameState.IsPaused)
+            else
             {
-                DrawPaused();
+                DrawTelemetry();
+                if (GridlineGameState.IsPaused)
+                {
+                    DrawPaused();
+                }
             }
         }
 
@@ -74,7 +76,7 @@ namespace Gridline.Native
             DrawPanel(panel, new Color(0.01f, 0.012f, 0.016f, 0.93f));
 
             GUI.Label(new Rect(panel.x + 30f, panel.y + 30f, panel.width - 60f, 56f), "GRIDLINE", menuTitleStyle);
-            GUI.Label(new Rect(panel.x + 32f, panel.y + 92f, panel.width - 64f, 30f), "Native rebuild prototype", menuTextStyle);
+            GUI.Label(new Rect(panel.x + 32f, panel.y + 92f, panel.width - 64f, 30f), "DRIVING TEST BUILD", menuTextStyle);
             GUI.Label(new Rect(panel.x + 32f, panel.y + 142f, panel.width - 64f, 26f), "Enter: start driving", menuTextStyle);
             GUI.Label(new Rect(panel.x + 32f, panel.y + 174f, panel.width - 64f, 26f), "WASD / arrows: drive", menuTextStyle);
             GUI.Label(new Rect(panel.x + 32f, panel.y + 206f, panel.width - 64f, 26f), "Space: handbrake   R: reset   Esc: menu", menuTextStyle);

@@ -7,6 +7,12 @@ This is the native rebuild of Gridline. It is intentionally separate from the cu
 - One bootstrap scene reserved for the native game.
 - Runtime-generated low-spec driving prototype is now the first implementation slice.
 - Fixed 60 Hz physics baseline with speed, throttle, brake, steering, and G-force telemetry.
+
+## Reference Test Targets
+
+- Track benchmark: Silverstone.
+- Mobile benchmark: iPad with A16 chip.
+- Input test devices: game controller and steering wheel.
 - The browser prototype is no longer the production target; Barcelona is removed from its track registry.
 
 ## One-Month Build Direction

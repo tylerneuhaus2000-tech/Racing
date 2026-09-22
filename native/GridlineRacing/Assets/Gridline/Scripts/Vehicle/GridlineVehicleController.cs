@@ -133,16 +133,20 @@ namespace Gridline.Native
                 return;
             }
 
-            float keyboardThrottle = Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow) ? 1f : 0f;
-            float keyboardBrake = Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow) ? 1f : 0f;
-            float keyboardSteer =
-                (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow) ? 1f : 0f) -
-                (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow) ? 1f : 0f);
+            GridlineInputRouter input = GridlineInputRouter.Instance;
+            if (input == null)
+            {
+                throttleInput = 0f;
+                brakeInput = 0f;
+                steerInput = 0f;
+                handbrakeInput = 0f;
+                return;
+            }
 
-            throttleInput = Mathf.MoveTowards(throttleInput, keyboardThrottle, Time.unscaledDeltaTime * 5f);
-            brakeInput = Mathf.MoveTowards(brakeInput, keyboardBrake, Time.unscaledDeltaTime * 7f);
-            steerInput = Mathf.MoveTowards(steerInput, keyboardSteer, Time.unscaledDeltaTime * 6f);
-            handbrakeInput = Input.GetKey(KeyCode.Space) ? 1f : 0f;
+            throttleInput = Mathf.MoveTowards(throttleInput, input.Throttle, Time.unscaledDeltaTime * 5f);
+            brakeInput = Mathf.MoveTowards(brakeInput, input.Brake, Time.unscaledDeltaTime * 7f);
+            steerInput = Mathf.MoveTowards(steerInput, input.Steering, Time.unscaledDeltaTime * 6f);
+            handbrakeInput = input.Handbrake;
         }
 
         private void ApplyDriving(Vector3 localVelocity)
