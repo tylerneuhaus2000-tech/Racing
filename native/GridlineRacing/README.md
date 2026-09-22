@@ -3,13 +3,17 @@
 This is the native rebuild of Gridline. It is intentionally separate from the current web game so the live game can stay playable while the native version is rebuilt cleanly.
 
 ## Current Slice
-- Unity 6000.5.1f1 project skeleton.
-- One bootstrap scene.
-- Runtime-generated test track.
-- One drivable prototype car.
-- Animated wheel visuals.
-- Chase camera.
-- Debug HUD for speed, gear, RPM, throttle, brake, steering, lateral G, longitudinal G, and FPS.
+- Unity 6000.5.1f1 project foundation.
+- One bootstrap scene reserved for the native game.
+- The browser prototype is no longer the production target; Barcelona is removed from its track registry.
+
+## One-Month Build Direction
+1. Week 1: stable driving loop, input abstraction, camera, reset, pause, and frame-rate-independent physics.
+2. Week 2: real track import, collision boundaries, lap timing, checkpoints, pit lane, and reliable lap validation.
+3. Week 3: production HUD, G-force telemetry, tire/brake/engine state, audio hooks, and aircraft scenery.
+4. Week 4: career/dashboard flow, unlocks, save data, performance pass, packaged macOS build, and regression testing.
+
+The web game remains a reference/prototype only. New gameplay systems belong in this Unity project.
 
 ## Run
 Open this folder in Unity Hub:

@@ -2219,7 +2219,8 @@ body.hud-edit #input-meter{pointer-events:auto;z-index:85}
     <p class="sub">Allein gegen die Uhr — oder Rennen gegen bis zu 20 KI-Gegner mit eigenen Linien und Fehlern.</p>
     <div class="cards">
       <button class="card" id="btn-mode-tt"><div><b>ZEITFAHREN</b><span>Freie Runden, Bestzeiten-Jagd. Deine Bestzeit wird pro Strecke &amp; Auto gespeichert.</span></div></button>
-      <div class="card" id="card-race">
+      <div class="card locked" id="card-race">
+        <div class="lock-badge">🚧 IN ARBEIT</div>
         <div>
           <b>RENNEN</b>
           <span>Startaufstellung mit dir ganz hinten, Zieldurchfahrt mit Ergebnis. Ab 6 Runden ist ein Boxenstopp Pflicht.</span>
@@ -2896,7 +2897,6 @@ body.hud-edit #input-meter{pointer-events:auto;z-index:85}
 <script src="assets/tracks/spa_francorchamps_2022.js?v=20260914a" defer></script>
 <script src="assets/tracks/monza-mesh.js?v=20260910h" defer></script>
 <script src="assets/tracks/silverstone-gp-ai.js?v=1" defer></script>
-<script src="assets/tracks/barcelona-catalunya-2023.js?v=20260922a" defer></script>
 <!-- Shanghai is a released production track. Load it directly after the base
      track registry so it is always present on the normal game page. -->
 <script src="assets/tracks/shanghai_2018.js?v=20260911e" defer></script>
@@ -2910,7 +2910,6 @@ window.addEventListener('DOMContentLoaded', () => {
     'spa_francorchamps_2022','shanghai-2018','shanghai_2018',
     'superspeedway','inselring','norisring','stadtring','kartbahn-lider','nuerburgring',
     'nurburgring','redbullring-custom','redbull-ring','redbullring',
-    'barcelona-catalunya-2023'
   ]);
   for(let i=list.length-1;i>=0;i--){
     if(!allowed.has(list[i]?.id)) list.splice(i,1);
