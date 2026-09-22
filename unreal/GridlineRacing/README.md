@@ -24,4 +24,4 @@ No new pit lane, barriers, scenery, or track sections may be invented. Existing 
 
 ## Editor requirement
 
-Unreal Engine 5 is not currently installed on the development Mac, so the `.uproject` cannot be opened or packaged until the Epic Games Launcher installs a compatible UE5 version. The project is pinned to UE 5.6 and can be changed if a different installed version is selected.
+Unreal Engine 5.5.4 is installed through the Epic Games Launcher on the development Mac. The project is pinned to the compatible UE 5.5 line.
