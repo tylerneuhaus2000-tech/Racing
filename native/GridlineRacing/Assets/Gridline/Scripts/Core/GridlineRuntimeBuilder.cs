@@ -215,6 +215,7 @@ namespace Gridline.Native
                 rearLeftPivot.GetChild(0),
                 rearRightPivot.GetChild(0)
             };
+            controller.ConfigureSpawnPose(spawnPosition, spawnRotation);
             controller.ResetCar();
             return controller;
         }

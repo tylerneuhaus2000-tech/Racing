@@ -51,6 +51,12 @@ namespace Gridline.Native
         public float LateralG => lateralG;
         public float LongitudinalG => longitudinalG;
 
+        public void ConfigureSpawnPose(Vector3 position, Quaternion rotation)
+        {
+            spawnPosition = position;
+            spawnEuler = rotation.eulerAngles;
+        }
+
         private void Awake()
         {
             body = GetComponent<Rigidbody>();
