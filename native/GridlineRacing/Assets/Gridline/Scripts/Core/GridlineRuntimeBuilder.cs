@@ -67,6 +67,14 @@ namespace Gridline.Native
 
         private static void CreateLighting(Transform parent)
         {
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            RenderSettings.ambientLight = new Color(0.22f, 0.25f, 0.3f);
+            RenderSettings.ambientIntensity = 1.1f;
+            RenderSettings.fog = true;
+            RenderSettings.fogColor = new Color(0.47f, 0.61f, 0.76f);
+            RenderSettings.fogStartDistance = 80f;
+            RenderSettings.fogEndDistance = 650f;
+
             GameObject sun = new GameObject("Sun");
             sun.transform.SetParent(parent);
             sun.transform.rotation = Quaternion.Euler(48f, -35f, 0f);
@@ -142,12 +150,28 @@ namespace Gridline.Native
             {
                 importedTrack.transform.localPosition = new Vector3(-46.24f, 7.21f, 89.7f);
             }
-            else
+            if (hasImportedTrack)
+            {
+                GridlineRuntimeModelMonitor monitor = importedTrack.AddComponent<GridlineRuntimeModelMonitor>();
+                monitor.Asset = importedTrack.GetComponent<GltfAsset>();
+                monitor.HideFallbackWhenReady = false;
+            }
+
+            if (!hasImportedTrack)
             {
                 GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
                 ground.name = "Silverstone Terrain";
                 ground.transform.SetParent(parent);
                 ground.transform.position = new Vector3(0f, -0.2f, 0f);
+                ground.transform.localScale = new Vector3(115f, 1f, 115f);
+                ground.GetComponent<Renderer>().sharedMaterial = grass;
+            }
+            else
+            {
+                GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+                ground.name = "Silverstone Terrain Fallback";
+                ground.transform.SetParent(parent);
+                ground.transform.position = new Vector3(0f, -0.25f, 0f);
                 ground.transform.localScale = new Vector3(115f, 1f, 115f);
                 ground.GetComponent<Renderer>().sharedMaterial = grass;
             }
@@ -192,8 +216,12 @@ namespace Gridline.Native
             GameObject boundaryMesh = CreateMeshObject("Silverstone Boundary Physics", parent, boundaryVertices, boundaryTriangles, curbRed, true);
             if (hasImportedTrack)
             {
-                roadMesh.GetComponent<Renderer>().enabled = false;
-                boundaryMesh.GetComponent<Renderer>().enabled = false;
+                GridlineRuntimeModelMonitor monitor = importedTrack.GetComponent<GridlineRuntimeModelMonitor>();
+                monitor.FallbackRenderers = new[]
+                {
+                    roadMesh.GetComponent<Renderer>(),
+                    boundaryMesh.GetComponent<Renderer>()
+                };
             }
 
             Vector3 start = track.Point(0) + Vector3.up * 0.16f;
@@ -276,6 +304,8 @@ namespace Gridline.Native
             {
                 importedCar.transform.localScale = Vector3.one * 100f;
                 importedCar.transform.localPosition = Vector3.zero;
+                GridlineRuntimeModelMonitor monitor = importedCar.AddComponent<GridlineRuntimeModelMonitor>();
+                monitor.Asset = importedCar.GetComponent<GltfAsset>();
             }
             else
             {
@@ -346,6 +376,8 @@ namespace Gridline.Native
             camera.fieldOfView = 62f;
             camera.nearClipPlane = 0.05f;
             camera.farClipPlane = 700f;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = new Color(0.42f, 0.58f, 0.75f);
             cameraObject.AddComponent<AudioListener>();
 
             GridlineCameraRig rig = cameraObject.AddComponent<GridlineCameraRig>();
