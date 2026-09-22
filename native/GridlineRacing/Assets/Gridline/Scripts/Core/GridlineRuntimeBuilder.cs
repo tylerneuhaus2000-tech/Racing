@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using GLTFast;
 using UnityEngine;
 
 namespace Gridline.Native
@@ -9,6 +10,7 @@ namespace Gridline.Native
 
         public static GridlineVehicleController Vehicle { get; private set; }
         public static GridlineTrackData Track { get; private set; }
+        public static GridlineLapSystem LapSystem { get; private set; }
 
         public static void BuildIfNeeded()
         {
@@ -35,10 +37,10 @@ namespace Gridline.Native
             Vector3 spawnPosition = Track != null ? Track.Point(0) + Vector3.up * 0.65f : new Vector3(0f, 0.62f, -26f);
             Quaternion spawnRotation = Track != null ? Quaternion.LookRotation(Track.Forward(0), Vector3.up) : Quaternion.identity;
             Vehicle = CreateCar(sceneRoot.transform, body, carbon, glass, tire, spawnPosition, spawnRotation);
-            GridlineLapSystem lapSystem = sceneRoot.AddComponent<GridlineLapSystem>();
-            lapSystem.Configure(Vehicle, Track);
+            LapSystem = sceneRoot.AddComponent<GridlineLapSystem>();
+            LapSystem.Configure(Vehicle, Track);
             CreateCamera(sceneRoot.transform, Vehicle.transform);
-            CreateHud(sceneRoot.transform, Vehicle, lapSystem);
+            CreateHud(sceneRoot.transform, Vehicle, LapSystem);
         }
 
         private static Material CreateMaterial(string name, Color color)
@@ -301,13 +303,12 @@ namespace Gridline.Native
 
         private static GameObject LoadImportedModel(string resourcePath, Transform parent, string instanceName)
         {
-            GameObject prefab = Resources.Load<GameObject>(resourcePath);
-            if (prefab == null)
-            {
-                return null;
-            }
-
-            GameObject instance = Object.Instantiate(prefab, parent);
+            GameObject instance = new GameObject(instanceName);
+            instance.transform.SetParent(parent);
+            GltfAsset asset = instance.AddComponent<GltfAsset>();
+            string relativePath = resourcePath + ".glb";
+            asset.StreamingAsset = true;
+            asset.Url = relativePath;
             instance.name = instanceName;
             return instance;
         }
@@ -382,7 +383,7 @@ namespace Gridline.Native
             Collider collider = gameObject.GetComponent<Collider>();
             if (collider != null)
             {
-                Object.Destroy(collider);
+                UnityEngine.Object.Destroy(collider);
             }
         }
     }

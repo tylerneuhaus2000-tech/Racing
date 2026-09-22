@@ -103,6 +103,10 @@ namespace Gridline.Native
             body.linearVelocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;
             previousLocalVelocity = Vector3.zero;
+            if (GridlineRuntimeBuilder.LapSystem != null)
+            {
+                GridlineRuntimeBuilder.LapSystem.ResetSession();
+            }
         }
 
         private void ReadInput()

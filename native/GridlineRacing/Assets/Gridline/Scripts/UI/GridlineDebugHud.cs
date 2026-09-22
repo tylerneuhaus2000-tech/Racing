@@ -48,7 +48,7 @@ namespace Gridline.Native
         private void DrawTelemetry()
         {
             const float panelWidth = 330f;
-            const float panelHeight = 304f;
+            const float panelHeight = 382f;
             Rect panel = new Rect(22f, Screen.height - panelHeight - 22f, panelWidth, panelHeight);
             DrawPanel(panel, new Color(0.015f, 0.018f, 0.023f, 0.88f));
 
@@ -79,7 +79,28 @@ namespace Gridline.Native
                 GUI.Label(new Rect(panel.x + 18f, panel.y + 266f, 294f, 22f),
                     LapSystem.IsValidLap ? "LAP STATUS  VALID" : "LAP STATUS  INVALID",
                     LapSystem.IsValidLap ? labelStyle : warningStyle);
+                GUI.Label(new Rect(panel.x + 18f, panel.y + 290f, 294f, 22f),
+                    $"TIME       {FormatTime(LapSystem.CurrentLapTime)}", labelStyle);
+                GUI.Label(new Rect(panel.x + 18f, panel.y + 312f, 294f, 22f),
+                    $"LAST       {FormatTime(LapSystem.LastLapTime)}", labelStyle);
+                GUI.Label(new Rect(panel.x + 18f, panel.y + 334f, 294f, 22f),
+                    $"BEST       {FormatTime(LapSystem.BestLapTime)}", labelStyle);
+                GUI.Label(new Rect(panel.x + 18f, panel.y + 356f, 294f, 22f),
+                    $"SECTOR     S{LapSystem.CurrentSector}  {FormatTime(LapSystem.CurrentSectorTime)}",
+                    labelStyle);
             }
+        }
+
+        private static string FormatTime(float seconds)
+        {
+            if (seconds <= 0f)
+            {
+                return "--:--.---";
+            }
+
+            int minutes = Mathf.FloorToInt(seconds / 60f);
+            float remainder = seconds - minutes * 60f;
+            return $"{minutes:00}:{remainder:00.000}";
         }
 
         private void DrawMenu()
