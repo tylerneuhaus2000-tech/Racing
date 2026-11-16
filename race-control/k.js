@@ -27,12 +27,12 @@ function dmgClear(c){const lost=c.dp||0;c.dp=0;c.dmul=1;c.limp=0;return lost;}
 /* Treffer zwischen zwei Autos: Ort ergibt sich aus der Geometrie */
 function hitDamage(c,o,sev,pt){if(!c||c.removed)return;const B=carBox(o),L=pt?localOf(c,pt.x,pt.y):localOf(c,B.x,B.y),side=L.ly>=0?"R":"L";const out=[];
   if(Math.abs(L.lx)>Math.abs(L.ly)*1.4){
-    if(L.lx>0){if(sev>0.15)out.push("fw"+side);if(sev>0.55&&Math.random()<0.6)out.push("fw"+(side==="L"?"R":"L"));if(sev>0.6&&Math.random()<0.45)out.push("nose");if(sev>0.85&&Math.random()<0.35)out.push((Math.random()<0.6?"sF":"wF")+side);}
-    else{if(sev>0.3&&Math.random()<sev)out.push("rw");if(Math.random()<sev*0.5)out.push("floor");if(sev>0.75&&Math.random()<0.3)out.push((Math.random()<0.6?"sR":"wR")+side);}}
-  else{const ax=L.lx>0?"F":"R";if(Math.random()<sev*0.55)out.push((Math.random()<0.7?"s":"w")+ax+side);if(Math.random()<0.5*sev+0.15)out.push("sp"+side);if(ax==="F"&&Math.random()<0.35)out.push("fw"+side);}
+    if(L.lx>0){if(sev>0.28)out.push("fw"+side);if(sev>0.55&&Math.random()<0.6)out.push("fw"+(side==="L"?"R":"L"));if(sev>0.6&&Math.random()<0.45)out.push("nose");if(sev>0.85&&Math.random()<0.35)out.push((Math.random()<0.6?"sF":"wF")+side);}
+    else{if(sev>0.35&&Math.random()<sev)out.push("rw");if(Math.random()<sev*0.35)out.push("floor");if(sev>0.75&&Math.random()<0.3)out.push((Math.random()<0.6?"sR":"wR")+side);}}
+  else{const ax=L.lx>0?"F":"R";if(Math.random()<sev*0.55)out.push((Math.random()<0.7?"s":"w")+ax+side);if(Math.random()<0.45*sev+0.05)out.push("sp"+side);if(ax==="F"&&Math.random()<0.35)out.push("fw"+side);}
   for(const k of out)breakPart(c,k);return out;}
 /* ---- Kontakt aus der Überlappungsauflösung (deoverlap): Schließgeschwindigkeit entlang der Trennachse entscheidet ---- */
-const CONTACT_MIN=4,CONTACT_DMG=15;
+const CONTACT_MIN=4,CONTACT_DMG=28;
 function carVel(c){const q=posXY(c.s,c.lat),ca=Math.cos(q.ang),sa=Math.sin(q.ang),lv=(c.latV||0)*SIDE;return {x:c.v*ca-lv*sa,y:c.v*sa+lv*ca};}
 function boxVerts(c){const b=carBox(c),out=[];for(const[sx,sy]of[[1,1],[1,-1],[-1,1],[-1,-1]]){const lx=sx*BOX_HX,ly=sy*BOX_HY;out.push([b.x+lx*b.c-ly*b.s,b.y+lx*b.s+ly*b.c]);}return out;}
 /* Kontaktpunkt: Mittel der am tiefsten eindringenden Ecken beider Autos (n zeigt von A nach B) */
@@ -44,9 +44,9 @@ function contactHit(A,B,n){if(A.mode==="grid"||B.mode==="grid"||A.mode==="garage
   const va=carVel(A),vb=carVel(B),vrel=(va.x-vb.x)*n.x+(va.y-vb.y)*n.y;if(vrel<CONTACT_MIN)return 0;
   const la=A.cHit&&A.cHit[B.drv.code],lb=B.cHit&&B.cHit[A.drv.code];if((la!=null&&S.t-la<1.5)||(lb!=null&&S.t-lb<1.5))return 0;
   markHit(A,B);S.contacts=(S.contacts||0)+1;
-  const pt=contactPoint(A,B,n),sev=clamp((vrel-CONTACT_DMG)/45+0.1,0,0.8);
+  const pt=contactPoint(A,B,n),sev=clamp((vrel-CONTACT_DMG)/55+0.08,0,0.75);
   A.sparks=Math.max(A.sparks||0,0.35);B.sparks=Math.max(B.sparks||0,0.35);
-  if(vrel>=CONTACT_DMG&&Math.random()<clamp((vrel-CONTACT_DMG)/50+0.2,0,0.6)){hitDamage(A,B,sev,pt);hitDamage(B,A,sev,pt);if(vrel>18){A.wob=A.wob||{t:0,T:0.8,amp:0.12*(Math.random()<0.5?1:-1)};B.wob=B.wob||{t:0,T:0.8,amp:0.12*(Math.random()<0.5?1:-1)};}}
+  if(vrel>=CONTACT_DMG&&Math.random()<clamp((vrel-CONTACT_DMG)/160+0.04,0,0.18)){const fa=Math.random()<0.5;hitDamage(fa?A:B,fa?B:A,sev,pt);hitDamage(fa?B:A,fa?A:B,sev*0.6,pt);if(vrel>18){A.wob=A.wob||{t:0,T:0.8,amp:0.12*(Math.random()<0.5?1:-1)};B.wob=B.wob||{t:0,T:0.8,amp:0.12*(Math.random()<0.5?1:-1)};}}
   else if(Math.random()<0.4)spawnDeb(pt.x,pt.y,(va.x+vb.x)*0.4+rand(-6,6),(va.y+vb.y)*0.4+rand(-6,6),"cf",Math.random()<0.5?A:B);
   return vrel;}
 /* Reifenschaden: Rad w (0 VL, 1 VR, 2 HL, 3 HR), Gummifetzen fliegen weg */

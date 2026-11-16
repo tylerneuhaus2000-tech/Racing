@@ -385,10 +385,24 @@ const HTXT={1:c=>`${c} steht in der Auslaufzone, Fahrer ausgestiegen. Bergung hi
   2:c=>`${c} steht am Streckenrand – Marshals müssen kurz auf die Strecke`,
   3:c=>`${c} steckt im Reifenstapel – Bergungsfahrzeug muss auf die Strecke`,
   4:c=>`${c}: Barriere beschädigt, Auto blockiert die Strecke – Reparatur nötig`};
-function spawnHazard(sev,pos,text,cars,extra){
+/* Bergungszeit: SC-Einsätze dauern rund eine Runde; mehrere Zwischenfälle kurz hintereinander verlängern deutlich */
+function hazDur(sev,extra){const base=extra&&extra.dur!=null?extra.dur:sev===4?rand(95,130):sev===3?Math.max(rand(40,52),LAPT*rand(0.75,1)):[0,rand(20,26),rand(26,34)][sev];
+  S.hazLog=(S.hazLog||[]).filter(t=>S.t-t<LAPT*1.5);const mult=1+0.6*Math.min(3,S.hazLog.length);S.hazLog.push(S.t);return base*mult;}
+function spawnHazard(sev,pos,text,cars,extra){const h0=S.hazard,dur=hazDur(sev,extra);
+  if(h0&&h0.nuke&&!(extra&&extra.nuke)){for(const c of cars||[])if(!h0.cars.includes(c))h0.cars.push(c);return;}
+  if(h0&&!(extra&&extra.nuke)&&!(extra&&extra.rain)&&!h0.rain){mergeHazard(h0,sev,text,cars,extra,dur);return;}
   S.hazard=Object.assign({sev,pos,sector:pos>=0?sectorOf(pos):-1,text,t:0,handled:false,cleared:false,clearAt:0,clT:0,cars:cars||[],
-    deadline:14,dur:sev===4?rand(95,130):[0,rand(20,26),rand(26,34),rand(40,52)][sev],counted:false,rep:sev===4},extra||{});
+    deadline:14,counted:false,rep:sev===4},extra||{},{dur});
   S.hazCount++;addLog("INCIDENT – "+text,"flag");if(UI.speed>1)setSpeed(1);}
+/* weiterer Zwischenfall während einer laufenden Bergung: zusammenlegen statt überschreiben */
+function mergeHazard(h,sev,text,cars,extra,dur){for(const c of cars||[])if(!h.cars.includes(c))h.cars.push(c);
+  h.count=(h.count||1)+1;h.text=`${text} – zusätzlich zum laufenden Einsatz (${h.count} Zwischenfälle)`;
+  if(extra&&extra.deb)h.deb=true;if(extra&&extra.rep)h.rep=true;
+  if(sev>h.sev)h.sev=sev;
+  if(h.cleared){h.cleared=false;h.clT=0;h.handled=false;}
+  if(h.handled&&respLevel(h)>=h.sev)h.clearAt=Math.max(h.clearAt||0,S.t+dur)+0.35*dur;
+  else{if(h.handled){h.handled=false;h.counted=false;h.late=false;h.t=0;h.deadline=14;}h.dur=Math.max(h.dur||0,dur)+0.35*dur;}
+  S.hazCount++;addLog("INCIDENT – "+h.text,"flag");if(UI.speed>1)setSpeed(1);}
 function crashHazard(c,co,sev){
   const race=S.type==="race",rp=race||Math.random()<0.4;
   const txt=race?HTXT[sev](c.drv.code):`${c.drv.code} steht nach Abflug in ${cnm(co)} – Session muss unterbrochen werden`+(rp?". Barriere beschädigt, Reparatur nötig":"");
@@ -397,7 +411,9 @@ function respLevel(h){const m=S.flag.mode;return m==="red"?4:m==="sc"?3:m==="vsc
 const NEEDTXT={1:"Gelb im betroffenen Sektor",2:"VSC",3:"Safety Car",4:"Rote Flagge"};
 function recText(h){return h.sev===1?`Doppelgelb in Sektor ${h.sector+1}`:h.sev===2?"Virtual Safety Car":h.sev===3?"Safety Car":"Rote Flagge";}
 function endText(h){const m=S.flag.mode;return m==="red"?"Neustart freigeben":m==="sc"?"„SC in this lap“":m==="vsc"?"VSC beenden":"Sektoren grün schalten";}
-function hazardStep(dt){const h=S.hazard;if(!h)return;if(h.nuke){nukeHazStep(h,dt);return;}const r=respLevel(h),where=h.sector>=0?` in Sektor ${h.sector+1}`:"";
+function hazardStep(dt){const h=S.hazard;
+  if(!h){const w=S.cars.find(c=>!c.removed&&c.retired&&c.crash&&c.crash.done&&!c.pit&&!c.crash.nuke);   // Wrack ohne laufende Bergung: Einsatz auslösen
+    if(w){w.orphT=(w.orphT||0)+dt;if(w.orphT>3)spawnHazard(S.type==="race"?2:4,w.pos,`${w.drv.code} steht noch an der Strecke – Marshals müssen das Auto bergen`,[w],{});}return;}if(h.nuke){nukeHazStep(h,dt);return;}const r=respLevel(h),where=h.sector>=0?` in Sektor ${h.sector+1}`:"";
   if(!h.handled){h.t+=dt;
     if(r>=h.sev){h.handled=true;h.clearAt=S.t+(S.flag.mode==="red"?Math.max(h.dur,rand(180,240)):h.dur);if(!h.counted){h.counted=true;W.dec.total++;
         if(r===h.sev||h.rain){const b=Math.round(50*clamp(1-h.t/h.deadline,0,1));W.dec.ok++;score(100+b);addLog(`Korrekte Reaktion der Rennleitung (+${100+b})`,"good");repAdd(1);review("Flagge: "+h.text,true,100+b,"");}
@@ -408,7 +424,10 @@ function hazardStep(dt){const h=S.hazard;if(!h)return;if(h.nuke){nukeHazStep(h,d
       if(h.t>=h.deadline&&!h.late){h.late=true;if(!h.counted){h.counted=true;W.dec.total++;}score(-150);addLog("Keine Reaktion der Rennleitung – Fahrer in Gefahr (−150). Die Entscheidung liegt weiter bei dir.","bad");repAdd(-6);review("Flagge: "+h.text,false,-150,"Zu spät reagiert – nötig war: "+NEEDTXT[h.sev]+".");}}
   }else if(!h.cleared){
     if(r<h.sev&&!(S.flag.mode==="sc")){score(-100);addLog("Zu früh freigegeben – Marshals sind noch auf der Strecke! (−100)","bad");h.handled=false;h.late=true;}
-    else if(h.rain?(S.wx.rain<0.5&&S.t>=h.clearAt):S.t>=h.clearAt){h.cleared=true;h.clT=0;h.cars.forEach(c=>c.removed=true);addLog("TRACK CLEAR","good");}
+    else if(h.rain?(S.wx.rain<0.5&&S.t>=h.clearAt):S.t>=h.clearAt){
+      const left=S.cars.filter(c=>!c.removed&&c.retired&&c.crash&&!c.pit&&!h.cars.includes(c));   // „Strecke frei“ nur, wenn wirklich kein Wrack mehr dasteht
+      if(left.length){h.cars.push(...left);h.clearAt=S.t+rand(18,28)*left.length;addLog(`Bergung läuft weiter – auch ${left.map(c=>c.drv.code).join(", ")} muss noch weggeräumt werden`,"flag");}
+      else{h.cleared=true;h.clT=0;h.cars.forEach(c=>c.removed=true);addLog("TRACK CLEAR","good");}}
     else setAlert("",`${h.rep?"Bergung und Reparatur der Barriere":"Bergung läuft"}${where} – ${h.rain?"warten bis der Regen nachlässt":"noch ca. "+Math.max(0,Math.ceil(h.clearAt-S.t))+"s"}. Empfehlung: aktuelle Maßnahme beibehalten.`);
   }else{h.clT+=dt;
     const back=r===0||(S.flag.mode==="sc"&&(S.restart||(S.sc&&S.sc.inLap)));
