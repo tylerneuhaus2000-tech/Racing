@@ -51,7 +51,7 @@ function ttItems(){const sv=loadSaves(),auto=sv.auto,n=Object.keys(sv).length;re
   (()=>{let d=false;try{d=localStorage.getItem("rc_tut")==="1";}catch(e){}return {k:"tut",t:"Tutorial",s:d?"Alle Funktionen der Rennleitung Schritt für Schritt erklärt":"★ Empfohlen für den Einstieg – alles Schritt für Schritt erklärt",f:()=>tutStart()};})(),
   {k:"season",t:"Saison",s:"Eigener Rennkalender · WM, Fahrermarkt, Upgrades",f:()=>ttOpen(()=>menuSetup("season"))},
   {k:"single",t:"Einzelrennen",s:`Ein Wochenende auf einer von ${Object.keys(TRACKS).length} Strecken`,f:()=>ttOpen(()=>menuSetup("single"))},
-  {k:"load",t:"Spielstand laden",s:n?`${n} Spielstand${n>1?"e":""} gespeichert`:"Noch nichts gespeichert",dis:!n,f:()=>ttOpen(menuLoad)},
+  {k:"load",t:"Spielstand laden",s:n?`${n} Spielstand${n>1?"e":""} gespeichert · Import/Export`:"Noch nichts gespeichert · Import möglich",f:()=>ttOpen(menuLoad)},
   {k:"rules",t:"Regelbuch",s:"Flaggen, Strafen, Startverfahren, Safety Car",f:()=>ttOpen(()=>{const m=$("modal");m.className="modal";m.innerHTML=`<h2>📖 Regelbuch</h2>${RULES}<p style="opacity:.35;font-size:10px;text-align:right;margin:2px 0">Regelwerk Rev. ${funCode()}</p><button class="big go" id="clBtn">Zurück</button>`;$("overlay").classList.add("show");$("clBtn").onclick=()=>titleScreen();})}
 ].filter(Boolean);}
 function ttOpen(fn){const el=$("title");el.classList.add("dim");fn();$("overlay").classList.add("show","ontitle");if(typeof sndEvent==="function")sndEvent("ok");}

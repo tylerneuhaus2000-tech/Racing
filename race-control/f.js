@@ -379,10 +379,56 @@ function menuSeasonOverview(source,fromTitle){
 function menuLoad(){const m=$("modal"),sv=loadSaves(),names={auto:"Automatisch",s1:"Slot 1",s2:"Slot 2",s3:"Slot 3"};m.className="modal";
   m.innerHTML=`<h2>Spielstand laden</h2>${Object.keys(sv).map(k=>`<div class="slot"><div><b>${names[k]||k}</b><br><small>${esc(sv[k].name)} · ${sv[k].date}</small></div>
     <button class="ghost" data-l="${k}">Laden</button><button class="ghost" data-x="${k}">Löschen</button></div>`).join("")||"<p>Keine Spielstände.</p>"}
+    <div style="display:flex;gap:8px;margin:12px 0 4px"><button class="ghost" id="expBtn" ${Object.keys(sv).length?"":"disabled"}>⬇ Exportieren</button><button class="ghost" id="impBtn">⬆ Importieren</button></div>
     <button class="big" style="background:#3a3f48" id="backBtn">Zurück</button>`;
+  $("expBtn").onclick=rcExport;$("impBtn").onclick=rcImportPick;
   m.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>loadGame(sv[b.dataset.l].data));
   m.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{delSave(b.dataset.x);menuLoad();});
   $("backBtn").onclick=S?menuPause:menuMain;}
+/* ---- Spielstände exportieren / importieren (Datei oder eingefügter Text) ---- */
+const SLOT_NAMES={auto:"Automatisch",s1:"Slot 1",s2:"Slot 2",s3:"Slot 3"},SLOT_KEYS=Object.keys(SLOT_NAMES);
+function rcExport(){const sv=loadSaves(),out={app:"race-control",fmt:1,exported:new Date().toISOString(),saves:{}};
+  for(const k of Object.keys(sv)){const e=sv[k];out.saves[k]={name:e.name,date:e.date,data:e.data};}
+  const blob=new Blob([JSON.stringify(out)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`race-control-spielstaende-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);}
+function rcValidData(d){return !!d&&typeof d==="object"&&(d.pending?!!d.career:d.v===1&&!!d.opts&&!!TRACKS[d.track]);}
+/* akzeptiert den Export ({app,saves}), einen einzelnen Eintrag ({name,date,data}) oder nur die Spieldaten */
+function rcParseImport(text){let j;try{j=JSON.parse(String(text).trim());}catch(e){return {err:"Das ist kein gültiges JSON."};}
+  let list=[];
+  if(j&&j.saves&&typeof j.saves==="object"){if(j.app&&j.app!=="race-control")return {err:`Die Datei stammt nicht von Race Control („${esc(String(j.app))}“).`};
+    for(const k of Object.keys(j.saves)){const e=j.saves[k]||{};list.push({from:k,name:e.name||k,date:e.date||"",data:e.data});}}
+  else if(j&&j.data)list.push({from:"s1",name:j.name||"Importiert",date:j.date||"",data:j.data});
+  else if(j&&(j.v||j.pending))list.push({from:"s1",name:"Importiert",date:"",data:j});
+  else return {err:"Keine Spielstände in den Daten gefunden."};
+  for(const e of list)e.ok=rcValidData(e.data);
+  if(!list.some(e=>e.ok))return {err:"Keine der enthaltenen Spielstände ist lesbar."};
+  return {list};}
+function rcImportPick(){const m=$("modal");m.className="modal";
+  m.innerHTML=`<h2>Spielstände importieren</h2><p class="hint">Eine exportierte .json-Datei wählen oder den Inhalt einfügen.</p>
+    <input type="file" id="impFile" accept=".json,application/json" style="margin:6px 0 10px">
+    <textarea id="impTxt" placeholder='{"app":"race-control", … }' style="width:100%;box-sizing:border-box;min-height:110px;background:#0d1117;color:inherit;border:1px solid var(--line);border-radius:6px;padding:6px;font:11px ui-monospace,monospace"></textarea>
+    <p id="impErr" style="color:#ff6b6b;min-height:1em;margin:6px 0"></p>
+    <button class="big go" id="impNext">Weiter</button><button class="big" style="background:#3a3f48" id="impBack">Zurück</button>`;
+  const go=t=>{const r=rcParseImport(t);if(r.err){$("impErr").innerHTML=r.err;return;}rcImportPreview(r.list);};
+  $("impFile").onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>go(fr.result);fr.onerror=()=>{$("impErr").textContent="Datei konnte nicht gelesen werden.";};fr.readAsText(f);};
+  $("impNext").onclick=()=>go($("impTxt").value);$("impBack").onclick=menuLoad;}
+function rcImportPreview(list){const m=$("modal"),sv=loadSaves();m.className="modal";
+  const used=new Set(),def=e=>{let k=SLOT_KEYS.includes(e.from)&&!used.has(e.from)?e.from:SLOT_KEYS.find(x=>!used.has(x)&&!sv[x])||SLOT_KEYS.find(x=>!used.has(x))||"";if(k)used.add(k);return k;};
+  const rows=list.map((e,i)=>{const d=e.ok?def(e):"";return `<div class="slot"><div><b>${esc(e.name)}</b><br><small>${esc(e.date)}${e.ok?"":" · <span style='color:#ff6b6b'>unlesbar, wird übersprungen</span>"}</small></div>
+    ${e.ok?`<select data-i="${i}"><option value="">nicht importieren</option>${SLOT_KEYS.map(k=>`<option value="${k}" ${k===d?"selected":""}>${SLOT_NAMES[k]}</option>`).join("")}</select>`:""}</div><small class="ow" data-o="${i}" style="display:block;color:#f2c94c;margin:-4px 0 6px"></small>`;}).join("");
+  m.innerHTML=`<h2>Spielstände importieren</h2><p class="hint">Ziel-Slot wählen. Belegte Slots werden überschrieben.</p>${rows}
+    <p id="impErr" style="color:#ff6b6b;min-height:1em;margin:6px 0"></p><button class="big go" id="impDo">Importieren</button><button class="big" style="background:#3a3f48" id="impBack">Zurück</button>`;
+  const sel=()=>[...m.querySelectorAll("select[data-i]")];
+  const upd=()=>{const cnt={};for(const s of sel())if(s.value)cnt[s.value]=(cnt[s.value]||0)+1;
+    for(const s of sel()){const o=m.querySelector(`[data-o="${s.dataset.i}"]`);o.textContent=s.value&&cnt[s.value]>1?"⚠ Slot doppelt gewählt":s.value&&sv[s.value]?`überschreibt: ${sv[s.value].name}`:"";}
+    $("impDo").disabled=Object.values(cnt).some(n=>n>1)||!Object.keys(cnt).length;};
+  sel().forEach(s=>s.onchange=upd);upd();
+  $("impBack").onclick=rcImportPick;
+  $("impDo").onclick=()=>{try{const s=loadSaves();let n=0;
+      for(const x of sel()){if(!x.value)continue;const e=list[+x.dataset.i],entry={name:e.name,date:e.date||new Date().toLocaleString("de-DE"),updatedAtMs:Date.now(),data:e.data};
+        s[x.value]=entry;if(window.RCCloud)window.RCCloud.save(x.value,entry);n++;}
+      localStorage.setItem(SAVEKEY,JSON.stringify(s));menuLoad();}
+    catch(err){$("impErr").textContent="Speichern fehlgeschlagen (Speicher voll?): "+(err&&err.message||err);}};}
 function menuPause(){if(R.inc||!S)return;const m=$("modal"),sv=loadSaves();m.className="modal";if(UI.speed)UI.prevSpeed=UI.speed;setSpeed(0);
   m.innerHTML=`<h2>☰ Pause</h2><p class="hint">Gespeichert wird der laufende Stand (Zeit bzw. Runde, Positionen, Reifen, Strafen). Offene Vorfälle, Flaggen und Autos in der Box werden beim Laden zurückgesetzt. Während einer Gefahrenlage wird der letzte ruhige Stand genommen.</p><div class="menu">
     <button id="pCont">Weiter</button>
