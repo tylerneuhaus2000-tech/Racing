@@ -34,7 +34,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;background:va
 #track{display:block;width:100%;height:auto;cursor:grab}
 .cambar{position:absolute;left:8px;bottom:8px;display:flex;gap:6px;flex-wrap:wrap}
 .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;min-width:0}
-.box h3{margin:0;padding:7px 10px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+.box h3{margin:0;padding:7px 10px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pad{padding:9px}
 #towerBody{font-size:12px;font-variant-numeric:tabular-nums;overflow:auto;max-height:560px}
 .row{display:grid;grid-template-columns:20px 4px 36px 1fr auto;gap:6px;align-items:center;padding:2.5px 8px;border-bottom:1px solid #1d2128;white-space:nowrap;cursor:pointer}
@@ -66,7 +66,11 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;background:va
 .big.go{background:var(--green);color:#000}.big:disabled{background:#3a3f48;color:#888;cursor:default}
 .clock{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
 .hint{color:var(--muted);font-size:12px;line-height:1.45}
-.tog{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+.tog{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;padding:7px 9px;border:1px solid var(--line);border-left:3px solid #3a404b;border-radius:8px;background:var(--panel2)}
+.tog>span{min-width:0;font-weight:700;font-size:12px}.tog>span small{display:block;color:var(--muted);font-weight:500;font-size:10.5px}
+.tog.blue{border-left-color:var(--blue)}.tog.om{border-left-color:var(--purple)}
+.pill{font-size:11px;font-weight:800;border-radius:999px;padding:3px 9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%}
+.pill.blue{color:#8ab8ff;background:#0f1f3a;border:1px solid #1d4fa8}
 .tog button{border:0;border-radius:6px;padding:5px 12px;font-weight:800;font-size:12px;background:#444}
 .tog button.on{background:var(--purple)}
 .rpbar button.on{background:#7fb0ff;color:#000}
@@ -130,9 +134,11 @@ table.res td,table.res th{padding:3px 6px;border-bottom:1px solid #1f242b;text-a
 .nb button{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid #3a404b;border-radius:8px;padding:9px 6px;font-weight:800;font-size:12.5px;letter-spacing:.03em;transition:background .25s,box-shadow .25s,border-color .25s,color .25s}
 .nb button small{font-size:9px;font-weight:700;letter-spacing:.1em;opacity:.8;min-height:1.1em}
 .nb button:disabled,.da button:disabled{opacity:.3;cursor:not-allowed}
-.nb .vsc{--c:rgba(255,212,0,.6);background:#262000;border-color:#6b5a00;color:var(--yellow)}
-.nb .sc{--c:rgba(255,138,0,.6);background:#261700;border-color:#6b3a00;color:var(--orange)}
-.nb .red{--c:rgba(225,6,0,.7);background:#260504;border-color:#6b1210;color:#ff8a86}
+.nb .vsc{--c:rgba(255,212,0,.6);background:var(--panel2);border-color:#5c4e12;color:#f0cf4a}
+.nb .sc{--c:rgba(255,138,0,.6);background:var(--panel2);border-color:#5c3a12;color:#f5a447}
+.nb .red{--c:rgba(225,6,0,.7);background:var(--panel2);border-color:#5c1a18;color:#ff8a86}
+.nb button:not(:disabled):hover{filter:brightness(1.18)}
+.nb button:disabled:not(.on){opacity:.35;filter:grayscale(.9)}
 .nb .vsc.on{background:#5a4a00;border-color:var(--yellow);box-shadow:0 0 14px rgba(255,212,0,.45),inset 0 0 10px rgba(255,212,0,.2)}
 .nb .sc.on{background:#5a3500;border-color:var(--orange);box-shadow:0 0 14px rgba(255,138,0,.45),inset 0 0 10px rgba(255,138,0,.2)}
 .nb .red.on{background:#5a0a08;border-color:var(--red);color:#fff;box-shadow:0 0 16px rgba(225,6,0,.55),inset 0 0 10px rgba(225,6,0,.25)}
@@ -141,7 +147,13 @@ table.res td,table.res th{padding:3px 6px;border-bottom:1px solid #1f242b;text-a
 .secs .need{--c:rgba(255,212,0,.55)}
 @keyframes nbPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,0,0,0);filter:brightness(1)}50%{box-shadow:0 0 14px 3px var(--c,rgba(255,255,255,.5));filter:brightness(1.25)}}
 @media (prefers-reduced-motion:reduce){.nb .need,.secs .need{animation:none;outline:2px solid var(--c,#fff)}}
-.da{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin-top:6px}.da button{font-size:9.5px;padding:6px 1px;line-height:1.15}.da .hard{background:#3a1010;border-color:#7a2020}
+.da{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:6px}
+.da button{font-size:11px;padding:7px 4px;line-height:1.15;border-left-width:3px;hyphens:auto;text-wrap:balance;overflow-wrap:anywhere}
+.da button:not(:disabled):hover{border-color:#5a6270}
+.da .t{border-left-color:#6b7380}.da .p{border-left-color:var(--blue)}.da .x{border-left-color:var(--orange)}
+.da .hard{background:#3a1010;border-color:#7a2020;border-left-color:var(--red);color:#ffb0ac}
+.da.daf{grid-template-columns:minmax(0,1fr) minmax(0,1fr);margin-top:7px}
+.da .inv{border:1px solid #8a7420;background:#2a240c;color:#f2c94c}.da .clr{border-left-width:1px;color:var(--muted)}
 .ld{display:flex;gap:6px;margin:4px 0 2px}.ld i{width:18px;height:18px;border-radius:50%;background:#2a0e0e;border:1px solid #401515}.ld i.on{background:var(--red);box-shadow:0 0 10px var(--red)}
 #status{padding:4px 14px;border-radius:6px;font-weight:800;letter-spacing:.06em;background:var(--green);color:#000}
 #radio{max-height:150px;overflow:auto;font-size:12px}#log{max-height:230px}#inbox{max-height:190px}#towerBody{max-height:none}
@@ -171,7 +183,11 @@ table.res td,table.res th{padding:3px 6px;border-bottom:1px solid #1f242b;text-a
 .cc{position:absolute;right:8px;bottom:6px;display:flex;gap:4px}.cc button{background:#000b;border:1px solid #3a404b;border-radius:6px;padding:3px 9px;font:700 11px ui-monospace,monospace}.cc button.on{background:var(--text);color:#000}
 .menu{display:grid;gap:8px;margin-top:10px}.menu button{text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-weight:700;font-size:15px}.menu button:hover{border-color:#fff}.menu button small{display:block;color:var(--muted);font-weight:500;font-size:12px;margin-top:2px}.menu button:disabled{opacity:.4;cursor:default}
 .slot{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}.slot div{flex:1;min-width:0}.slot small{color:var(--muted)}
-#redOpts button{width:100%;margin-top:5px;border:1px solid #3a404b;background:var(--panel2);border-radius:7px;padding:6px 4px;font-weight:700;font-size:11px}
+#redOpts button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;margin-top:6px;border:1px solid var(--line);border-left:3px solid #3a404b;background:var(--panel2);border-radius:8px;padding:7px 9px;font-weight:700;font-size:11.5px;text-align:left}
+#redOpts button b{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;background:#2f3540;white-space:nowrap}
+#redOpts button b.ok{background:#173d29;color:#7ff0b4}#redOpts button b.warn{background:#46370c;color:#ffd75e}
+#redOpts .act{justify-content:center;border-left-width:1px;text-align:center}
+#redOpts .danger{justify-content:center;border-left-width:1px;border-color:#7a2020;background:#2a1212;color:#ff9a96}
 .modal.hero{max-width:1040px;max-height:94vh;padding:0;overflow:auto;background:#0d1014;border-color:#2f3540}
 .hero-top{position:relative;padding:26px 30px 22px;background:radial-gradient(1200px 300px at 0% 0%,#3a0705 0%,transparent 60%),linear-gradient(135deg,#181c22,#0d1014)}
 .hero-top:after{content:"";position:absolute;left:0;right:0;bottom:0;height:8px;background:repeating-linear-gradient(90deg,#fff 0 14px,#111 14px 28px);opacity:.85}
@@ -229,20 +245,22 @@ table.res td,table.res th{padding:3px 6px;border-bottom:1px solid #1f242b;text-a
         <div class="mon"><canvas id="cvCctv" width="640" height="420"></canvas><div class="ml" id="cctvLbl">MON 03 · CCTV</div><div class="cc"><button id="ccPrev">◀</button><button id="ccAuto" class="on">AUTO</button><button id="ccNext">▶</button></div></div>
       </div>
       <div class="bottom">
-        <div class="box"><h3>Session · Startverfahren</h3><div class="pad"><div class="ld" id="ld"><i></i><i></i><i></i><i></i><i></i></div><div class="hint" id="sessInfo"></div><div id="actions"></div></div></div>
-        <div class="box"><h3>Flaggen · Streckensektoren</h3><div class="pad">
+        <div class="box"><h3 title="Session · Startverfahren">Session · Start</h3><div class="pad"><div class="ld" id="ld"><i></i><i></i><i></i><i></i><i></i></div><div class="hint" id="sessInfo"></div><div id="actions"></div></div></div>
+        <div class="box"><h3 title="Flaggen · Streckensektoren">Flaggen · Sektoren</h3><div class="pad">
           <div class="secs"><button class="sb" id="sec0"></button><button class="sb" id="sec1"></button><button class="sb" id="sec2"></button></div>
           <div class="hint" style="margin:4px 0">Klick: Grün → Gelb → Doppelgelb · Tasten 1 2 3</div>
           <button class="ghost" id="allGreen" style="width:100%">Alle Sektoren grün</button>
-          <div class="tog" style="border-color:#1d4fa8"><span>Blaue Flaggen <small style="color:var(--muted)">(automatisch)</small></span><b id="blueInfo" style="color:#6aa5ff;font-size:12px">–</b></div>
-          <div class="tog"><span>Overtake Mode</span><button id="omBtn" class="on">AN</button></div></div></div>
+          <div class="tog blue"><span>Blaue Flaggen<small>automatisch</small></span><b id="blueInfo" class="pill blue">keine</b></div>
+          <div class="tog om"><span>Overtake Mode<small>Überholhilfe</small></span><button id="omBtn" class="on">AN</button></div></div></div>
         <div class="box"><h3>Neutralisierung</h3><div class="pad"><div class="nb">
           <button class="vsc" data-g="vsc"><span>VSC</span><small></small></button>
           <button class="sc" data-g="sc"><span>SAFETY CAR</span><small></small></button>
           <button class="red" data-g="red"><span>ROTE FLAGGE</span><small></small></button></div><div id="redOpts"></div></div></div>
-        <div class="box"><h3>Fahrzeug · Direkte Maßnahme</h3><div class="pad"><div class="hint" id="selInfo">Kein Auto gewählt</div><div class="da">
-          <button data-p="warn">VERWAR-<br>NUNG</button><button data-p="5">+5 SEK.</button><button data-p="10">+10 SEK.</button><button data-p="dt">DURCH-<br>FAHRT</button>
-          <button data-p="sg">STOP<br>&amp; GO</button><button data-p="bo">SCHWARZ-<br>ORANGE</button><button data-p="grid3">−3<br>PLÄTZE</button><button data-p="del">RUNDE<br>STREICHEN</button><button class="hard" data-p="dsq">SCHWARZE<br>FLAGGE</button><button data-p="clear">STRAFEN<br>LÖSCHEN</button><button data-p="inv" style="border-color:#f2c94c;color:#f2c94c" title="Vorfall mit diesem Auto selbst melden">UNTER-<br>SUCHEN</button></div></div></div>
+        <div class="box"><h3 title="Fahrzeug · Direkte Maßnahme">Fahrzeug · Maßnahme</h3><div class="pad"><div class="hint" id="selInfo">Kein Auto gewählt</div>
+          <div class="da"><button class="t" data-p="warn">Verwarnung</button><button class="t" data-p="5">+5 Sek.</button><button class="t" data-p="10">+10 Sek.</button>
+          <button class="p" data-p="dt">Durchfahrt</button><button class="p" data-p="sg">Stop &amp; Go</button><button class="p" data-p="grid3">−3 Plätze</button>
+          <button class="x" data-p="bo">Schwarz-Orange</button><button class="x" data-p="del">Runde streichen</button><button class="hard" data-p="dsq">Schwarze Flagge</button></div>
+          <div class="da daf"><button class="inv" data-p="inv" title="Vorfall mit diesem Auto selbst melden">🔍 Untersuchen</button><button class="clr" data-p="clear">Strafen löschen</button></div></div></div>
       </div>
     </div>
     <div class="col">
@@ -257,7 +275,7 @@ table.res td,table.res th{padding:3px 6px;border-bottom:1px solid #1f242b;text-a
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
-<script src="cloud-saves.js?v=202611161408" defer></script>
-<script src="tracks.js?v=202611161408"></script><script src="a.js?v=202611161408"></script><script src="b.js?v=202611161408"></script><script src="c.js?v=202611161408"></script><script src="d.js?v=202611161408"></script><script src="m.js?v=202611161408"></script><script src="x.js?v=202611161408"></script><script src="v.js?v=202611161408"></script><script src="k.js?v=202611161408"></script><script src="r.js?v=202611161408"></script><script src="e.js?v=202611161408"></script><script src="w.js?v=202611161408"></script><script src="s.js?v=202611161408"></script><script src="p.js?v=202611161408"></script><script src="t.js?v=202611161408"></script><script src="f.js?v=202611161408"></script><script src="u.js?v=202611161408"></script>
+<script src="cloud-saves.js?v=202611161416" defer></script>
+<script src="tracks.js?v=202611161416"></script><script src="a.js?v=202611161416"></script><script src="b.js?v=202611161416"></script><script src="c.js?v=202611161416"></script><script src="d.js?v=202611161416"></script><script src="m.js?v=202611161416"></script><script src="x.js?v=202611161416"></script><script src="v.js?v=202611161416"></script><script src="k.js?v=202611161416"></script><script src="r.js?v=202611161416"></script><script src="e.js?v=202611161416"></script><script src="w.js?v=202611161416"></script><script src="s.js?v=202611161416"></script><script src="p.js?v=202611161416"></script><script src="t.js?v=202611161416"></script><script src="f.js?v=202611161416"></script><script src="u.js?v=202611161416"></script>
 </body>
 </html>

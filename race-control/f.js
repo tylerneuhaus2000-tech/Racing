@@ -58,11 +58,11 @@ function uiFlags(){
     b.dataset.act=x.act;b.disabled=!x.act||(!x.en&&!x.on);b.classList.toggle("on",!!x.on);b.classList.toggle("need",nd&&!b.disabled);});
   const o=$("omBtn");o.className=S.om?"on":"";o.textContent=S.om?"AN":"AUS";
   let rh="";const timed=S.type!=="race",racing=!timed&&S.phase==="racing"&&!S.ended;
-  if(timed)rh+=`<button data-r="clock">Uhr bei Rot: ${S.redRun?"LÄUFT WEITER":"WIRD ANGEHALTEN"}</button>`;
-  if(racing)rh+=`<button data-r="pit">Boxeneinfahrt: ${S.pitClosed?"GESCHLOSSEN":"OFFEN"}</button>`;
-  if(racing&&m==="sc"&&S.sc&&S.sc.on&&!S.unlapOn&&lappedCount()>0)rh+=`<button data-r="unlap">Überrundete zurückrunden lassen (${lappedCount()})</button>`;
-  if(racing&&m==="red")rh+=`<button data-r="stand">Stehender Neustart (Startaufstellung)</button>`;
-  if(m==="red"&&!S.ended&&(timed?!S.chequered:S.phase==="racing"))rh+=`<button data-r="abort" style="border-color:#7a2020;background:#2a1212">${timed?"Session nicht fortsetzen – beenden":"Rennen nicht fortsetzen – werten"}</button>`;
+  if(timed)rh+=`<button data-r="clock"><span>Uhr bei Rot</span><b class="${S.redRun?"warn":""}">${S.redRun?"LÄUFT WEITER":"HÄLT AN"}</b></button>`;
+  if(racing)rh+=`<button data-r="pit"><span>Boxeneinfahrt</span><b class="${S.pitClosed?"warn":"ok"}">${S.pitClosed?"GESCHLOSSEN":"OFFEN"}</b></button>`;
+  if(racing&&m==="sc"&&S.sc&&S.sc.on&&!S.unlapOn&&lappedCount()>0)rh+=`<button class="act" data-r="unlap">Überrundete zurückrunden lassen (${lappedCount()})</button>`;
+  if(racing&&m==="red")rh+=`<button class="act" data-r="stand">Stehender Neustart (Startaufstellung)</button>`;
+  if(m==="red"&&!S.ended&&(timed?!S.chequered:S.phase==="racing"))rh+=`<button class="danger" data-r="abort">${timed?"Session nicht fortsetzen – beenden":"Rennen nicht fortsetzen – werten"}</button>`;
   const ro=$("redOpts");if(ro.dataset.h!==rh){ro.dataset.h=rh;ro.innerHTML=rh;
     ro.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const k=b.dataset.r;
       if(k==="clock"){S.redRun=!S.redRun;addLog(S.redRun?"Uhr läuft bei roter Flagge weiter":"Uhr wird bei roter Flagge angehalten","flag");}
@@ -556,7 +556,7 @@ function uiTop(){
   st.textContent=t;st.style.background=bg;st.style.color=fg;
   $("clock").textContent=S.type==="race"?(S.phase==="racing"?`Runde ${clamp(Math.floor((S.leader?S.leader.s:0)/L)+1,1,S.laps)}/${S.laps}`:"Start"):fmtClock(S.clock*W.cs);
   [...$("ld").children].forEach((b,i)=>b.classList.toggle("on",i<S.lights));
-  {const bl=S.cars.filter(c=>c.blueT>0&&!c.removed).map(c=>c.drv.code);$("blueInfo").textContent=bl.length?bl.join(" · "):"–";}
+  {const bl=S.cars.filter(c=>c.blueT>0&&!c.removed).map(c=>c.drv.code);$("blueInfo").textContent=bl.length?bl.join(" · "):"keine";}
   if(!S.hazard)setAlert("",advice());}
 function fitCanvases(){const d=Math.min(2,window.devicePixelRatio||1);
   for(const k of ["all","feed","cctv"]){const cv=CV[k],r=cv.getBoundingClientRect();if(r.width<50||r.height<50)continue;
