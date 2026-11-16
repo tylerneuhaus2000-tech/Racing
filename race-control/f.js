@@ -505,16 +505,21 @@ function fitCanvases(){const d=Math.min(2,window.devicePixelRatio||1);
     cv._d=d;if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}}}
 function beginCv(cv){const d=cv._d||1,c=cv.getContext("2d");c.setTransform(d,0,0,d,0,0);return [c,cv.width/d,cv.height/d];}
 let lastT=performance.now();
-function frame(now){const rdt=Math.min(0.1,(now-lastT)/1000);lastT=now;
+/* Ein Fehler in Simulation oder Zeichnen darf die Schleife nicht stoppen (sonst bleibt alles schwarz) */
+function frame(now){try{frameInner(now);}catch(e){frameErr(e);}requestAnimationFrame(frame);}
+function frameErr(e){UI.errN=(UI.errN||0)+1;if(UI.errN<=3&&typeof console!=="undefined")console.error(e);if(UI.errBox)return;
+  const d=document.createElement("div");d.style.cssText="position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:9999;background:#2a1212;border:1px solid #e10600;color:#fff;padding:10px 14px;border-radius:8px;font:13px system-ui;max-width:90vw";
+  d.innerHTML=`<b>Race Control: Fehler beim Ausführen.</b> Meist hilft Neuladen ohne Cache (Mac: Cmd+Shift+R, Windows: Strg+F5).<br><small style="opacity:.7">${esc(String(e&&e.message||e))}</small>`;
+  document.body.appendChild(d);UI.errBox=d;}
+function frameInner(now){const rdt=Math.min(0.1,(now-lastT)/1000);lastT=now;
   if(S){
-    if(FUN.t>=0){funFrame(rdt);requestAnimationFrame(frame);return;}
+    if(FUN.t>=0){funFrame(rdt);return;}
     if(R.inc)rpFrame(rdt);
     else{UI.acc+=rdt*UI.speed;let n=0;while(UI.acc>=DT&&n<60){simStep(DT);UI.acc-=DT;n++;}if(n>=60)UI.acc=0;
       drawMonitors(rdt);}
     UI.saveT+=rdt;if(UI.saveT>12&&!R.inc&&UI.speed>0){UI.saveT=0;liveSave();}
     UI.towerT+=rdt;if(UI.towerT>0.25){UI.towerT=0;fitCanvases();uiTower();uiTop();uiFlags();drawRadar(CV.radar);$("wxText").innerHTML=wxText();}
-  }
-  requestAnimationFrame(frame);}
+  }}
 showMenu();requestAnimationFrame(frame);
 window.addEventListener("rc-cloud-updated",()=>{if(!S&&!$("overlay").classList.contains("show"))showMenu();});
 window.__rc={get S(){return S;},get W(){return W;},UI,R,step:n=>{for(let i=0;i<n;i++)simStep(DT);},decide,openReplay,closeReplay,setNeutral};

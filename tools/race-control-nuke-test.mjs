@@ -15,7 +15,7 @@ const ok = (cond, msg) => { console.log((cond ? "  ✔ " : "  ✘ ") + msg); if 
 run(`setTrack(${JSON.stringify(track)});newWeekend({mode:"quick",format:${JSON.stringify(type === "race" ? "race" : "quali")},laps:8,wx:"dry",lapsSel:8},null);`);
 const step = (n) => { for (let i = 0; i < n; i++) { run("simStep(DT)"); if (G.S.step % 15 === 0 && !G.S.nuke) autopilot(ctx); } };
 /* bis ins Rennen bzw. bis die Quali läuft */
-for (let i = 0; i < 9000 && !(type === "race" ? G.S.phase === "racing" && G.S.raceT - G.S.goT > 45 : G.S.started && G.S.t > 150); i++) step(1);
+for (let i = 0; i < 24000 && !(type === "race" ? G.S.phase === "racing" && G.S.raceT - G.S.goT > 45 : G.S.started && G.S.t > 150); i++) step(1);
 ok(type === "race" ? G.S.phase === "racing" : G.S.started, `Session läuft (${G.S.type}/${G.S.phase})`);
 
 /* Ziel: Auto mitten im Feld (so wie "gewähltes Auto") */

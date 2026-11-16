@@ -30,7 +30,7 @@ function stub(name = "stub") {
 
 export function loadGame({ track = "madrid", quiet = true, root = ROOT } = {}) {
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-  const files = [...html.matchAll(/<script src="([a-z]+\.js)"><\/script>/g)].map((m) => m[1]);
+  const files = [...html.matchAll(/<script src="([a-z]+\.js)(?:\?[^"]*)?"><\/script>/g)].map((m) => m[1]);
   const store = new Map();
   const g = {
     console: quiet ? { log() {}, warn() {}, error: console.error, info() {} } : console,
