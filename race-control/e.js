@@ -308,7 +308,7 @@ function rpFrame(rdt){const inc=R.inc,cl=inc.clip,cv=$("rpCv");if(!cv||!cl.lengt
   const i=Math.floor(R.pos),t=R.pos-i,f0=cl[i],f1=cl[Math.min(cl.length-1,i+1)];
   if(!R.tmp||R.tmp.a.length!==f0.a.length)R.tmp={a:new Float32Array(f0.a.length)};
   const fr=R.tmp;for(let k=0;k<f0.a.length;k+=5){fr.a[k]=f0.a[k]+(f1.a[k]-f0.a[k])*t;fr.a[k+1]=f0.a[k+1]+(f1.a[k+1]-f0.a[k+1])*t;
-    fr.a[k+2]=f0.a[k+2]+(f1.a[k+2]-f0.a[k+2])*t;fr.a[k+3]=f0.a[k+3];fr.a[k+4]=f0.a[k+4];}
+    {let da=f1.a[k+2]-f0.a[k+2];da-=Math.round(da/6.2832)*6.2832;fr.a[k+2]=f0.a[k+2]+da*t;}fr.a[k+3]=f0.a[k+3];fr.a[k+4]=f0.a[k+4];}
   fr.fm=f0.fm;fr.sec=f0.sec;fr.li=f0.li;fr.wet=f0.wet;fr.rain=f0.rain;fr.sc=f0.sc;fr.hz=f0.hz;fr.px=f0.px;fr.t=f0.t+(f1.t-f0.t)*t;fr.e=f0.e;fr.db=f0.db;fr.nk=f0.nk;
   const c=cv.getContext("2d"),W=cv.width,H=cv.height,fc=inc.cars[Math.min(R.focus,inc.cars.length-1)],k=inc.roster.indexOf(fc);
   let cam;

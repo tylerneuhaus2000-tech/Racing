@@ -79,7 +79,7 @@ function spinBeached(c){const co=c.spinCo||nextCorner(c.pos).c;c.retired=true;c.
   if(!S.hazard)crashHazard(c,co,S.type==="race"?(Math.random()<0.5?2:1):4);}
 function spinCar(c,rot,side,kind){c.spinKind=kind||null;c.spinHit=false;c.spinOut=kind==="off"||kind==="beach"?rand(23.5,25.5):kind==="tap"?27:19.5;const rr=Math.random(),tot=(rr<0.22?rand(1.3,1.9):rr<0.5?rand(2.6,3.6):rr<0.68?rand(4.2,5):rr<0.9?rand(5.8,6.8):rand(7.6,9.6))*(c.v>110?1.15:1);   // 75°…550°, nicht immer 180/360
   const res=((tot+Math.PI)%(2*Math.PI))-Math.PI,half=false,Td=clamp(c.v/85,0.8,1.8)*(0.6+tot/9);c.spinTot=tot;c.spinRes=Math.abs(res)>0.25?res:0;c.spinTurn=0.8+Math.abs(res)*0.55;   // rot: Drehsinn auf dem Bildschirm (+ = Nase zur +lat·SIDE-Seite)
-  c.spinTd=Td;c.spinHalf=half;c.spinT=c.spinT0=Td+0.5+(c.spinRes?c.spinTurn:0)+0.3;c.spinDir=rot||1;c.spinSide=side||(c.lat>=0?1:-1);c.spinH0=T.ang[sidx(c.pos)];c.ot=null;c.wide=null;c.lockT=0.6;c.giveBack=null;c.wob=null;}
+  c.spinTd=Td;c.spinHalf=half;c.spinT=c.spinT0=Td+0.5+(c.spinRes?c.spinTurn:0)+0.3;c.spinDir=rot||1;c.spinSide=side||(c.lat>=0?1:-1);c.spinH0=T.ang[sidx(c.pos)];c.sk=null;c.ot=null;c.wide=null;c.lockT=0.6;c.giveBack=null;c.wob=null;}
 function soloEvent(c,co){const k=c.soloArm;c.soloArm=null;c.ot=null;
   if(co.ro==="wall"&&!k.crash&&k.kind!=="save"&&Math.random()<0.55)k.crash=true;else if(co.ro==="asphalt"&&k.crash&&Math.random()<0.5){k.crash=false;k.kind=null;}else if(co.ro==="gravel"&&!k.crash&&k.kind!=="save"&&Math.random()<0.4)k.kind="beach";
   if(k.crash){const race=S.type==="race";let sev=4;

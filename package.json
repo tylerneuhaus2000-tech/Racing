@@ -17,6 +17,8 @@
     "test:native": "node tools/validate-native-project.mjs",
     "test:unreal": "node tools/validate-unreal-project.mjs",
     "test:ai": "node tools/ai-drive-audit.cjs",
+    "test:rc-damage": "node tools/race-control-damage-soak.mjs",
+    "test:rc-nuke": "node tools/race-control-nuke-test.mjs",
     "load:local": "node tools/safe-load-test.mjs --base http://127.0.0.1:8787"
   },
   "build": {

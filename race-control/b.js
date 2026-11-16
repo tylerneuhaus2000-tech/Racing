@@ -54,20 +54,7 @@ function carStep(c,dt){
   if(c.wob){const w=c.wob;w.t+=dt;if(w.t>=w.T){c.wob=null;c.spin=0;}else c.spin=w.amp*Math.sin(2*Math.PI*w.t/w.T)*(1-w.t/w.T);}   // Auto schlägt nach einem Treffer sichtbar aus
   if(c.otCool>0)c.otCool-=dt; if(c.yieldT>0)c.yieldT-=dt; if(c.holdT>0)c.holdT-=dt; if(c.defT>0)c.defT-=dt; if(c.cold>0)c.cold-=dt;
   const F=S.flag,race=S.type==="race",idx=sidx(c.pos),prof=T.prof[idx],G0=grp(c),v0=c.v;
-  if(c.spinT>0){ c.spinT-=dt; const t=(c.spinT0||2.6)-c.spinT,Td=c.spinTd||1.2,p=clamp(t/Td,0,1);
-    // Heck bricht aus, die Nase dreht in die Kurve; das Auto rutscht geradeaus weiter. Entweder volle Drehung oder halbe Drehung und danach Wenden auf der Stelle
-    const q=1-Math.pow(1-p,1.6),tot=c.spinTot||2*Math.PI;let a=tot*q*q*(3-2*q);
-    if(c.spinRes&&t>Td+0.5){const u=clamp((t-Td-0.5)/c.spinTurn,0,1);a=tot-c.spinRes*u*u*(3-2*u);if(u<1&&u>0)c.lockT=0.15;}   // dreht auf dem kürzesten Weg zurück in Fahrtrichtung
-    c.spin=c.spinT<=0?0:c.spinDir*a; c.v=Math.max(0,c.v-((c.spinOut||0)>21&&Math.abs(c.lat)<(c.spinOut-1)?38:85)*dt); if(c.v>15)c.lockT=0.2;
-    let th=T.ang[idx]-c.spinH0;while(th>Math.PI)th-=2*Math.PI;while(th<-Math.PI)th+=2*Math.PI;th=clamp(th,-1,1);
-    c.s+=c.v*Math.cos(th)*dt; let nl=c.lat-SIDE*c.v*Math.sin(th)*dt*0.8; const sd=c.spinSide||(c.lat>=0?1:-1);
-    const so=c.spinOut||19.5,far=so>21;
-    if(Math.abs(nl)<so)nl+=sd*(far?(c.v>4?17:0):Math.min(10,c.v*0.22))*dt;      // rutscht nach außen: auf den Randstreifen, in die Auslaufzone oder bis an die Barriere
-    if(Math.abs(nl)>LINE_OUT+2&&c.spinKind==="beach")c.v=Math.max(0,c.v-30*dt);   // Kies bremst
-    c.lat=clamp(nl,-so-0.5,so+0.5); if(Math.abs(c.lat)>LINE_OUT&&c.v>15)c.dustT=0.25;
-    if(c.spinKind==="tap"&&Math.abs(c.lat)>=26.4&&!c.spinHit){c.spinHit=true;if(c.v>8){c.sparks=0.6;c.dmg=1;c.dmgT=S.t;c.ignoreDmg=false;wallDamage(c,clamp(c.v/120,0.15,0.45),Math.sign(c.lat)||1);c.v*=0.35;addLog(`CAR ${c.drv.num} (${c.drv.code}) – Berührung mit der Barriere, fährt beschädigt weiter`);}}
-    if(c.spinT<=0&&c.spinKind==="beach"&&Math.abs(c.lat)>21){c.spin=0;c.spinKind=null;spinBeached(c);return;} c.pos=mod(c.s); c.latV=0; c.yaw*=0.9; c.brk=true;
-    if(c.spinT<=0)c.rejoin=7; return; }
+  if(c.spinT>0){spinStep(c,dt);return;}
   if(c.rejoin>0){ c.rejoin-=dt; let busy=false;             // wartet am Rand, bis die Lücke frei ist
     for(const o of S.cars){if(o===c||o.removed||o.mode==="garage"||grp(o)!==0)continue;const d=delta(c,o);if(d>-120&&d<8&&(o.v>8||o.blockBy===c)){busy=true;break;}}
     if(busy&&c.rejoin>0){c.v=0;c.brk=false;c.latV=0;return;}
@@ -220,15 +207,56 @@ function otCtl(c,ahead,ad,vFree,tl,dt){
     else if(c.ot.t>11||d>45){c.ot=null;c.otCool=4;}
     else tl=clamp(o.lat+c.ot.side*(o.spinT>0?11:7.4),-12.3,12.3);}
   return tl;}
+/* ---- Dreher: Impuls in Weltkoordinaten, Drehung gekoppelt an den Rutschweg (kein Drehen im Stand), danach Wenden um die Vorderachse ---- */
+const PIVOT_X=4.4;
+function wrapA(a){while(a>Math.PI)a-=2*Math.PI;while(a<-Math.PI)a+=2*Math.PI;return a;}
+function spinStep(c,dt){const so=c.spinOut||19.5,far=so>21,sd=c.spinSide||(c.lat>=0?1:-1);let ang=T.ang[sidx(c.pos)];
+  if(!c.sk){const v0=Math.max(c.v,1),dec=far?38:50,Ts=v0/dec,tot=c.spinTot||2*Math.PI;
+    c.sk={ph:0,mv:c.spinH0!=null?c.spinH0:ang,d:0,D:Math.max(5,v0*v0/(2*dec)),rot:(c.spinDir||1)*Math.min(tot,1+3*Ts),a:0,base:c.spin||0,pa:ang,t:0};}
+  const k=c.sk;k.t+=dt;c.spinT=Math.max(c.spinT-dt,0.05);c.wob=null;
+  const comp=()=>{const an=T.ang[sidx(c.pos)],d=wrapA(an-k.pa);k.pa=an;return d;};
+  if(k.ph===0){
+    const dec=far&&Math.abs(c.lat)<so-1?38:Math.abs(c.lat)>=so-0.6?70:50;c.v=Math.max(0,c.v-dec*dt);if(Math.abs(c.lat)>LINE_OUT+2&&c.spinKind==="beach")c.v=Math.max(0,c.v-30*dt);
+    const step=c.v*dt;k.d+=step;
+    const rel=clamp(wrapA(k.mv-ang),-1,1);k.mv=ang+rel;
+    let dl=SIDE*step*Math.sin(rel)*0.8;
+    const rem=so-c.lat*sd-dl*sd;if(rem>0&&step>0){const R=Math.max(0.5,c.v*c.v/(2*dec));dl+=sd*Math.min(rem,far?clamp(rem/R,0,0.75)*step:Math.min(0.22*step,10*dt));}
+    c.s+=step*Math.cos(rel);c.lat=clamp(c.lat+dl,-so-0.5,so+0.5);c.pos=mod(c.s);
+    k.base-=comp();const x=clamp(k.d/k.D,0,1),tg=k.rot*x*x*(3-2*x);k.a+=clamp(tg-k.a,-7*dt,7*dt);c.spin=k.base+k.a;
+    if(c.v>15)c.lockT=0.2;if(Math.abs(c.lat)>LINE_OUT&&c.v>15)c.dustT=0.25;
+    if(c.spinKind==="tap"&&Math.abs(c.lat)>=26.4&&!c.spinHit){c.spinHit=true;if(c.v>8){c.sparks=0.6;c.dmg=1;c.dmgT=S.t;c.ignoreDmg=false;wallDamage(c,clamp(c.v/120,0.15,0.45),Math.sign(c.lat)||1);c.v*=0.35;addLog(`CAR ${c.drv.num} (${c.drv.code}) – Berührung mit der Barriere, fährt beschädigt weiter`);}}
+    if(c.v<0.5||k.t>9){c.v=0;
+      if(c.spinKind==="beach"&&Math.abs(c.lat)>21){c.spinKind=null;c.spinT=0;c.sk=null;spinBeached(c);return;}
+      k.ph=1;k.sp=c.spin;}}
+  else{k.sp-=comp();c.spin=k.sp;const err=wrapA(-c.spin);
+    if(k.px==null){const hb=T.ang[sidx(c.pos)]+c.spin,he=hb+err,q=posXY(c.s,c.lat),out=X=>{const dx=X*(Math.cos(hb)-Math.cos(he)),dy=X*(Math.sin(hb)-Math.sin(he));return (-dx*Math.sin(q.ang)+dy*Math.cos(q.ang))*SIDE*sd;};
+      k.px=out(PIVOT_X)>=out(-PIVOT_X)?PIVOT_X:-PIVOT_X;}
+    if(Math.abs(err)<0.02){c.spin=0;c.spinT=0;c.sk=null;c.wob=null;c.rejoin=7;}
+    else{const hb=T.ang[sidx(c.pos)]+c.spin,dth=Math.sign(err)*Math.min(Math.abs(err),(0.6+1.4*Math.min(1,k.t))*dt),hb2=hb+dth;
+      pushCar(c,k.px*(Math.cos(hb)-Math.cos(hb2)),k.px*(Math.sin(hb)-Math.sin(hb2)));c.lat=clamp(c.lat,-29,29);k.sp+=dth-comp();c.spin=k.sp;
+      c.lockT=0.15;if(Math.abs(c.lat)>LINE_OUT)c.dustT=0.2;}}
+  c.latV=0;c.yaw*=0.9;c.brk=true;}
 function crashStep(c,dt){const k=c.crash,idx=sidx(c.pos);
   let th=T.ang[idx]-k.h0;while(th>Math.PI)th-=2*Math.PI;while(th<-Math.PI)th+=2*Math.PI;th=clamp(th,-1.2,1.2);
-  const atRest=(k.rest-c.lat)*k.dir<=0.3,off=Math.abs(c.lat)>LINE_OUT;
-  c.v=Math.max(0,c.v-(k.mech?42:atRest?260:off?k.grav:70)*dt);
+  const atRest=(k.rest-c.lat)*k.dir<=0.3,off=Math.abs(c.lat)>LINE_OUT,imp=(Math.abs(k.rest)>25||k.wall)&&!k.hit;
+  {let dec=k.mech?42:atRest?260:off?k.grav:70;const rem0=(k.rest-c.lat)*k.dir;
+    if(!atRest&&rem0>0.3&&!k.nuke){const ve=imp?Math.min(c.v*0.8,Math.max(20,k.v0*0.4)):0;dec=clamp((c.v*c.v-ve*ve)/(2*rem0/0.85),12,dec);c.v=Math.max(Math.min(c.v,8),c.v-dec*dt);}
+    else c.v=Math.max(0,c.v-dec*dt);}
   c.s+=c.v*Math.cos(th)*dt;c.pos=mod(c.s);
-  if(!atRest){let dl=-SIDE*c.v*Math.sin(th)*dt;if(dl*k.dir<9*dt)dl=k.dir*9*dt;c.lat+=dl;
+  if(k.pa==null){k.pa=T.ang[idx];k.rotAcc=0;if(!k.mech&&!k.nuke&&!k.done&&Math.abs(k.rest)<15.5){k.rest=(Math.sign(k.rest)||k.dir||1)*16;k.dir=Math.sign(k.rest-c.lat)||k.dir;}}
+  const ds0=c.v*Math.cos(th)*dt;let dl=0;
+  if(!atRest){dl=-SIDE*c.v*Math.sin(th)*dt;
+    const rem=(k.rest-c.lat)*k.dir-dl*k.dir,dec=k.mech?42:off?k.grav:70,vend=imp?Math.min(c.v*0.8,Math.max(20,k.v0*0.4)):0;
+    if(rem>0&&c.v>0.5){const R=Math.max(0.5,(c.v*c.v-vend*vend)/(2*dec));dl+=k.dir*Math.min(rem,clamp(rem/R,0.1,0.9)*c.v*dt);}
+    else if(rem>0&&Math.abs(c.lat)>LINE_OUT){k.rest=c.lat;}
+    else if(rem>0)dl+=k.dir*3*dt;
+    c.lat+=dl;
     if((k.rest-c.lat)*k.dir<=0){c.lat=k.rest;if((Math.abs(k.rest)>25||k.wall)&&c.v>18&&!k.hit){k.hit=true;c.sparks=0.7;const vi=c.v;c.v*=rand(0.05,0.35);k.sv0=(Math.random()<0.5?-1:1)*rand(0.5,4)*Math.min(1.6,vi/90);   // Einschlag: Tempo bricht ein, Rückprall mit eigener Drehung
       if(vi>100&&Math.random()<0.5)c.dmg=1;wallDamage(c,clamp(vi/140,0.2,1),k.dir);}}}
-  c.spin+=k.sv0*Math.min(1,c.v/k.v0+0.08)*dt;c.yaw*=0.9;c.brk=true;c.latV=0;if(c.v>20){if(off)c.dustT=0.25;else c.lockT=0.2;}
+  {const an=T.ang[sidx(c.pos)];c.spin-=wrapA(an-k.pa);k.pa=an;}
+  {const w=k.sv0*Math.min(1,c.v/Math.max(1,k.v0)+0.08)*(c.v>0.5||c.blast?1:0)*dt;c.spin+=w;k.rotAcc+=w;}
+  if(!k.hit&&!k.done&&Math.abs(k.sv0)<2.5&&c.v>3){const m=Math.atan2(SIDE*dl,Math.max(0.001,ds0)),tg=m*0.85+k.rotAcc;c.spin+=wrapA(tg-c.spin)*Math.min(1,2.2*dt)*(1-Math.abs(k.sv0)/2.5);}
+  c.yaw*=0.9;c.brk=true;c.latV=0;if(c.v>20){if(off)c.dustT=0.25;else c.lockT=0.2;}
   if(c.v<1){c.v=0;k.done=true;k.sv0=0;}
   if(k.done&&!k.hit&&!k.mech&&!k.soft){k.soft=true;if(Math.random()<0.6)breakPart(c,"floor");if(Math.random()<0.5)breakPart(c,"fw"+(Math.random()<0.5?"L":"R"));}
   if(k.done&&Math.abs(c.lat)<15.5&&!k.mech&&!S.cars.some(o=>o!==c&&!o.removed&&Math.abs(delta(o,c))<CAR_L+2&&Math.abs(o.lat-c.lat)<CAR_W+1.5)){c.lat+=Math.sign(c.lat||k.dir)*2.5*dt;}   // Wrack rollt noch an den Rand, Fahrbahn bleibt frei
