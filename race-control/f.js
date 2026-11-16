@@ -523,7 +523,7 @@ function drawMonitors(rdt){
   if(UI.tv&&UI.tv.left>0){UI.tv.left-=rdt;const a=Math.min(1,UI.tv.left*2,(4.5-UI.tv.left)*4),bw=Math.min(cw-24,UI.tv.t.length*7.4+26);   // TV-Einblendung
     c.save();c.globalAlpha=Math.max(0,a);c.fillStyle="rgba(10,13,18,.92)";c.fillRect(12,ch-58,bw,26);c.fillStyle=UI.tv.col;c.fillRect(12,ch-58,5,26);
     c.fillStyle="#fff";c.font="bold 12px ui-monospace,monospace";c.textAlign="left";c.fillText(UI.tv.t,24,ch-41);c.restore();}
-  sndEngine(sc?sc.v:0,UI.speed>0&&!S.ended&&sc&&sc.mode!=="garage"&&sc.mode!=="grid"&&!sc.removed,sc&&(sc.brk||sc.crash||sc.spinT>0)?0:1);
+  sndEngine(sc?sc.v:0,UI.speed>0&&!S.ended&&sc&&sc.mode!=="garage"&&sc.mode!=="grid"&&!sc.removed,sc&&(sc.brk||sc.crash||sc.spinT>0)?0:1,sc&&sc.drv.code);
   if(S.lights!==UI._li){if(S.lights>0&&S.lights>(UI._li||0))sndEvent("light");else if(UI._li>0&&S.lights===0&&S.phase==="racing")sndEvent("go");UI._li=S.lights;}
   // Bremsspuren bleiben auf der Strecke liegen
   if(UI._ms!==S){UI._ms=S;MARKS.length=0;}
