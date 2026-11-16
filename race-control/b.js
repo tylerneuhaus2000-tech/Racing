@@ -51,6 +51,7 @@ function carStep(c,dt){
   c.omOn=false; if(c.sparks>0)c.sparks-=dt; if(c.lockT>0)c.lockT-=dt; if(c.relT>0)c.relT-=dt;
   if(c.removed||c.mode==="garage"||c.mode==="grid"){c.brk=false;return;}
   if(c.crash){crashStep(c,dt);return;}
+  if(c.nudge){const n=c.nudge,f=Math.min(dt,n.T-n.t)/n.T;n.t+=dt;c.v=Math.max(0,c.v-n.dv*f);c.lat+=n.dl*f;if(n.t>=n.T)c.nudge=null;}
   if(c.wob){const w=c.wob;w.t+=dt;if(w.t>=w.T){c.wob=null;c.spin=0;}else{const u=w.t/w.T;c.spin=w.amp*1.5*Math.sin(2*Math.PI*u)*Math.sin(Math.PI*u)*(1-0.4*u);}}   // Auto schlägt nach einem Treffer sichtbar aus
   if(c.otCool>0)c.otCool-=dt; if(c.yieldT>0)c.yieldT-=dt; if(c.holdT>0)c.holdT-=dt; if(c.defT>0)c.defT-=dt; if(c.cold>0)c.cold-=dt;
   const F=S.flag,race=S.type==="race",idx=sidx(c.pos),prof=T.prof[idx],G0=grp(c),v0=c.v;
@@ -63,10 +64,10 @@ function carStep(c,dt){
   const ci=COI[idx];
   if(ci<0)c.lastCo=-1;
   else if(!c.pit&&!c.script&&!c.busy&&c.lastCo!==ci&&c.pos>PIT_EXIT_S+60&&c.pos<PIT_ENTRY_S-80){const co=CORNERS[ci];
-    if(c.soloArm&&co.kmax>0.0135&&idx>=co.ia-5&&aloneCar(c,40)){c.lastCo=ci;soloEvent(c,co);if(c.crash){crashStep(c,dt);return;}if(c.spinT>0){spinStep(c,dt);return;}}
+    if(c.soloArm&&(co.kmax>0.0135||c.soloArm.err)&&soloReady(c,co,idx)&&(c.soloArm.err||aloneCar(c,40))){const sa=c.soloArm;c.lastCo=ci;soloEvent(c,co);if(sa.chain!=null)chainCheck(c,sa.chain);if(c.crash){crashStep(c,dt);return;}if(c.spinT>0){spinStep(c,dt);return;}}
     else if(c.wideArm&&!c.wide&&!c.ot&&co.kmax>0.012&&idx>=co.i0){c.lastCo=ci;
       if(aloneCar(c,40)){c.wide=mkOffTrack(c,co,c.wideArm);c.wideArm=null;if(c.wide.big&&c.mode==="push")c.lapBad=true;if(c.wide.lock&&!(c.lockT>0))c.lockT=rand(0.4,1);}}
-    else if(co.kmax>0.008&&idx>=co.i0&&cornerErr(c,co,ci)){if(c.crash||c.spinT>0)return;}}
+    else if(co.kmax>0.008&&idx>=co.i0&&cornerErr(c,co,ci)){if(c.crash){crashStep(c,dt);return;}if(c.spinT>0){spinStep(c,dt);return;}}}
   let vT=prof*grip(c,idx);if(c.limp&&!c.pit)vT*=c.limp;if(c.dmul)vT*=c.dmul;
   const neutral=F.mode==="sc"||F.mode==="vsc"||F.mode==="red";
   const ySec=S.sec[sectorOf(c.pos)], inSec=ySec>0&&!neutral;
@@ -207,6 +208,11 @@ function otCtl(c,ahead,ad,vFree,tl,dt){
     else if(c.ot.t>11||d>45){c.ot=null;c.otCool=4;}
     else tl=clamp(o.lat+c.ot.side*(o.spinT>0?11:7.4),-12.3,12.3);}
   return tl;}
+/* ---- Kontrollverlust nur dort, wo das Auto am Limit ist: beim Einlenken unter Bremse oder nach dem Scheitel beim Gasgeben ---- */
+function soloReady(c,co,idx){const k=c.soloArm;if(k.co&&k.co!==co){c.soloArm=null;return false;}if(!k.when)k.when=Math.random()<(k.crash?0.5:0.6)?"exit":"entry";
+  const load=Math.abs(T.k[idx]||0)>=co.kmax*0.55;
+  if(k.when==="entry"){if(idx>co.ia+2){k.when="exit";return false;}return load&&idx>=co.i0&&(c.brk||c.v>(T.prof[idx]||0)*0.98);}
+  return idx>=co.ia&&(load||idx>=co.ia+3)&&(!c.brk||idx>=co.i1-2);}
 /* ---- Dreher: Impuls in Weltkoordinaten, Drehung gekoppelt an den Rutschweg (kein Drehen im Stand), danach Wenden um die Vorderachse ---- */
 const PIVOT_X=4.4,SPIN_ON=0.45,CRASH_ON=0.5;
 function wrapA(a){while(a>Math.PI)a-=2*Math.PI;while(a<-Math.PI)a+=2*Math.PI;return a;}
@@ -214,7 +220,7 @@ const angAt=c=>posXY(c.s,c.lat).ang;
 function spinStep(c,dt){const so=c.spinOut||19.5,far=so>21,sd=c.spinSide||(c.lat>=0?1:-1);let ang=angAt(c);
   if(!c.sk){const v0=Math.max(c.v,1),dec=far?38:50,Ts=v0/dec,tot=c.spinTot||2*Math.PI,rel0=clamp(Math.atan2(SIDE*(c.latV||0),v0),-0.6,0.6);
     const base=(c.spin||0)+SIDE*((c.yaw||0)+(c.drift||0));c.yaw=0;if(c.drift!=null)c.drift=0;
-    c.sk={ph:0,mv:ang+rel0,rel0,d:0,D:Math.max(5,v0*v0/(2*dec)),rot:(c.spinDir||1)*Math.min(tot,1+3*Ts),a:0,w:0,base,pa:ang,t:0};}
+    c.nudge=null;c.sk={ph:0,mv:ang+rel0,rel0,d:0,D:Math.max(5,v0*v0/(2*dec)),rot:(c.spinDir||1)*Math.min(tot,1+3*Ts),a:0,w:0,base,pa:ang,t:0};}
   const k=c.sk;k.t+=dt;c.spinT=Math.max(c.spinT-dt,0.05);c.wob=null;
   const comp=()=>{const an=angAt(c),d=wrapA(an-k.pa);k.pa=an;return d;};
   if(k.ph===0){const on=SPIN_ON>0?clamp(k.t/SPIN_ON,0,1):1,r=on*on*(3-2*on);

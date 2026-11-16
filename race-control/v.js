@@ -33,13 +33,13 @@ function cornerErr(c,co,ci){if(c.errCo===ci)return false;c.errCo=ci;drvState(c);
   if(Math.random()>p)return false;
   const sev=Math.min(1,heavy()*(co.ro==="wall"?1.15:1)*(1+wl*0.4)*(tc==="dry"?1+wl*1.3:1)),out=-co.dir;(S.errs=S.errs||[]).push(sev);
   if(sev<0.45){                                                          // harmlos: Zehntel verloren
-    c.v*=tri(0.9,0.96,0.99);if(Math.random()<0.25)c.lockT=rand(0.15,0.5);
+    c.nudge={dv:c.v*(1-tri(0.9,0.96,0.99)),dl:0,T:0.6,t:0};if(Math.random()<0.25)c.lockT=rand(0.15,0.5);
     if(Math.random()<0.12)radio(c,pick(["Kleiner Fehler, Kurvenausgang verpatzt.","Rutscher am Eingang, Zeit verloren.","Heck kam leicht, alles gut."]));return false;}
-  if(sev<0.62){c.lockT=rand(0.4,1.1);c.v*=tri(0.82,0.88,0.94);c.lat+=out*rand(0.5,2.5);   // Verbremser, geht leicht weit
+  if(sev<0.62){c.lockT=rand(0.4,1.1);c.nudge={dv:c.v*(1-tri(0.82,0.88,0.94)),dl:out*rand(0.5,2.5),T:0.7,t:0};   // Verbremser, geht leicht weit
     if(Math.random()<0.4)radio(c,pick(["Vorderrad blockiert, Bremsplatten!","Verbremst, sorry.","Zu spät gebremst."]));chainCheck(c,sev);return false;}
   if(sev<0.76){c.wideArm={viol:Math.random()<0.5,big:Math.random()<0.45};return false;}      // durch die Auslaufzone / Track Limits
-  if(sev<0.9){const sk=wpick([{k:null,w:2},{k:"off",w:1},{k:"beach",w:co.ro==="gravel"?1:0.2},{k:"save",w:1.2}].map(o=>(o.w*=memW("spin_"+o.k,-1),o))).k;memAdd("spin_"+sk,-1);c.soloArm={crash:false,kind:sk};soloEvent(c,co);chainCheck(c,sev);return c.spinT>0;}
-  c.soloArm={crash:true};soloEvent(c,co);chainCheck(c,sev);return true;}
+  if(sev<0.9){const sk=wpick([{k:null,w:2},{k:"off",w:1},{k:"beach",w:co.ro==="gravel"?1:0.2},{k:"save",w:1.2}].map(o=>(o.w*=memW("spin_"+o.k,-1),o))).k;memAdd("spin_"+sk,-1);c.soloArm={crash:false,kind:sk,err:true,chain:sev,co};return false;}
+  c.soloArm={crash:true,err:true,chain:sev,co};return false;}
 /* ---- Kettenreaktion: wer dahinter fährt, muss reagieren – Reaktionszeit ist variabel ---- */
 function chainCheck(src,sev){if(S.type!=="race")return;
   for(const f of S.cars){if(f===src||f.removed||f.pit||f.crash||f.spinT>0||f.mode!=="race")continue;const d=delta(src,f);   // f liegt dahinter
