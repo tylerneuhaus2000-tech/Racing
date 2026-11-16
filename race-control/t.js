@@ -48,7 +48,7 @@ function ttBuild(){ttCss();let el=$("title");if(el)return el;el=document.createE
 function ttItems(){const sv=loadSaves(),auto=sv.auto,n=Object.keys(sv).length;return [
   auto?{k:"cont",t:"Fortsetzen",s:`${auto.name} · ${auto.date}`,f:()=>{hideTitle();loadGame(auto.data);}}:null,
   (()=>{let d=false;try{d=localStorage.getItem("rc_tut")==="1";}catch(e){}return {k:"tut",t:"Tutorial",s:d?"Alle Funktionen der Rennleitung Schritt für Schritt erklärt":"★ Empfohlen für den Einstieg – alles Schritt für Schritt erklärt",f:()=>tutStart()};})(),
-  {k:"season",t:"Saison",s:"Kompletter 2026er Kalender · WM, Fahrermarkt, Upgrades",f:()=>ttOpen(()=>menuSetup("season"))},
+  {k:"season",t:"Saison",s:"Eigener Rennkalender · WM, Fahrermarkt, Upgrades",f:()=>ttOpen(()=>menuSetup("season"))},
   {k:"single",t:"Einzelrennen",s:`Ein Wochenende auf einer von ${Object.keys(TRACKS).length} Strecken`,f:()=>ttOpen(()=>menuSetup("single"))},
   {k:"load",t:"Spielstand laden",s:n?`${n} Spielstand${n>1?"e":""} gespeichert`:"Noch nichts gespeichert",dis:!n,f:()=>ttOpen(menuLoad)},
   {k:"rules",t:"Regelbuch",s:"Flaggen, Strafen, Startverfahren, Safety Car",f:()=>ttOpen(()=>{const m=$("modal");m.className="modal";m.innerHTML=`<h2>📖 Regelbuch</h2>${RULES}<button class="big go" id="clBtn">Zurück</button>`;$("overlay").classList.add("show");$("clBtn").onclick=()=>titleScreen();})}
@@ -68,7 +68,7 @@ function ttSide(){const k=CAREER&&CAREER.type==="season"?CAREER:null,next=k?TRAC
 }
 function ttSel(i){if(i===TT.idx)return;TT.idx=i;document.querySelectorAll("#ttMenu .mi").forEach((b,j)=>b.classList.toggle("sel",j===i));if(typeof sndEvent==="function")sndEvent("tick");}
 function ttKey(e){const el=$("title");if(!TT.on||el.classList.contains("dim"))return;
-  if(!el.classList.contains("ready")){el.classList.add("ready");TT.started=true;if(typeof sndInit==="function")sndInit();e.preventDefault();return;}
+  if(["ArrowDown","ArrowUp","Enter"].includes(e.key)&&typeof sndInit==="function")sndInit();
   const n=TT.items.length;let i=TT.idx;
   if(e.key==="ArrowDown"){do{i=(i+1)%n;}while(TT.items[i].dis);ttSel(i);e.preventDefault();}
   else if(e.key==="ArrowUp"){do{i=(i-1+n)%n;}while(TT.items[i].dis);ttSel(i);e.preventDefault();}
@@ -96,7 +96,7 @@ function ttLoop(ts){if(!TT.on)return;const cv=$("ttCv"),dpr=Math.min(2,window.de
   TT.raf=requestAnimationFrame(ttLoop);}
 function titleScreen(){const el=ttBuild();el.classList.remove("dim");el.style.display="block";$("overlay").classList.remove("show");
   if(!TT.on){TT.on=true;ttTrack();TT.last=0;TT.raf=requestAnimationFrame(ttLoop);requestAnimationFrame(()=>el.classList.add("vis"));}
-  ttRender();if(TT.started)el.classList.add("ready");
-  if(!TT.bound){TT.bound=true;window.addEventListener("keydown",ttKey);el.addEventListener("click",e=>{if(!el.classList.contains("ready")){el.classList.add("ready");TT.started=true;if(typeof sndInit==="function")sndInit();}});}
+  ttRender();TT.started=true;el.classList.add("ready");document.body.classList.remove("booting");
+  if(!TT.bound){TT.bound=true;window.addEventListener("keydown",ttKey);}
   el.addEventListener("transitionend",()=>{},{once:true});}
 function hideTitle(){$("overlay").classList.remove("ontitle");const el=$("title");if(!el)return;TT.on=false;cancelAnimationFrame(TT.raf);el.style.display="none";el.classList.remove("vis");}

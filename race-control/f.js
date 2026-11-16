@@ -221,6 +221,7 @@ function menuMain(){if(typeof titleScreen==="function")return titleScreen();cons
       <button class="cardb" id="mRules"><span class="ic">📖</span><b>Regelbuch</b><small>Flaggen, Strafen, Startverfahren, Safety Car</small></button></div>
     <p class="hint" style="margin:14px 0 0">Ohne Anmeldung bleiben Spielstände auf diesem Gerät. Mit Google-Anmeldung werden sie über dein Konto auf anderen Geräten verfügbar. Gespeichert wird automatisch zu Beginn jeder Session.</p></div>`;
   $("overlay").classList.add("show");
+  document.body.classList.remove("booting");
   if(auto)$("mCont").onclick=()=>loadGame(auto.data);
   $("mSingle").onclick=()=>menuSetup("single");$("mSeason").onclick=()=>menuSetup("season");
   $("mLoad").onclick=menuLoad;$("mRules").onclick=()=>{m.className="modal";m.innerHTML=`<h2>📖 Regelbuch</h2>${RULES}<p style="opacity:.35;font-size:10px;text-align:right;margin:2px 0">Regelwerk Rev. ${funCode()}</p><button class="big go" id="clBtn">Zurück</button>`;$("clBtn").onclick=menuMain;};}

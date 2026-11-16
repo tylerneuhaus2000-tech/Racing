@@ -12,6 +12,7 @@ html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,
 button,select,input{font:inherit;color:inherit}
 button{cursor:pointer}
 .app{max-width:1400px;margin:0 auto;padding:8px;display:grid;gap:8px}
+body.booting .app{visibility:hidden}
 header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 12px}
 .brand{font-weight:800;letter-spacing:.08em;text-transform:uppercase}.brand b{color:var(--red)}
 .chip{padding:2px 9px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-weight:600;font-size:12px}
@@ -188,7 +189,7 @@ table.res td,table.res th{padding:3px 6px;border-bottom:1px solid #1f242b;text-a
 .row.hd{cursor:default;color:var(--muted);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;flex:0 0 auto!important;min-height:16px!important;background:#11141a}.row.hd:hover{background:#11141a}
 </style>
 </head>
-<body>
+<body class="booting">
 <div class="app">
   <header>
     <div class="brand">Race <b>Control</b></div>
