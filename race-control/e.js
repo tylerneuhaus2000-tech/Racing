@@ -76,7 +76,7 @@ function drawScene(ctx,W,H,cam,fr,roster,opt){
   for(const t of P.trees){ctx.fillStyle=night?"#07110c":t[3]<0.5?"#0d2a17":"#103420";ctx.beginPath();ctx.arc(t[0],t[1],t[2],0,7);ctx.fill();}
   st(P.stands,13,"#39465c");ctx.setLineDash([2.5,2.5]);st(P.stands,9,"#6f86ad");ctx.setLineDash([]);
   st(P.bld,13,"#565e6b");st(P.bld,9,"#3c434e");
-  st(P.center,63,"#77808c");st(P.center,60,"#22343a");drawPuddles(ctx,fr);
+  st(P.center,63,"#77808c");st(P.center,60,"#22343a");
   st(P.gravel,7.4,night?"#6e6247":"#8d7d58");st(P.runA,7.4,night?"#2c3742":"#46525f");st(P.rwall,1.6,"#d9dde3");
   st(P.gar,11,"#4b525e");st(P.pit,21,"#30353d");
   st(P.kerb,3,"#d22");ctx.setLineDash([4,4]);st(P.kerb,3,"#f4f4f4");ctx.setLineDash([]);
@@ -87,6 +87,7 @@ function drawScene(ctx,W,H,cam,fr,roster,opt){
   st(P.center,32,`rgb(${g-4},${g},${b})`);
   if(cam.z>1.4)st(P.line,7,`rgba(0,0,0,${(0.05+0.14*clamp((S&&S.evo||0)/6,0,1))*(1-Math.min(0.8,wet*1.2))})`);
   if(wet>0.3&&cam.z>1.2)st(P.line,5,`rgba(190,215,240,${(0.07*wet).toFixed(3)})`);   // nasse Fahrbahn glänzt auf der Ideallinie
+  drawPuddles(ctx,fr);
   if(fr.nk)drawNukeGround(ctx,fr);
   drawDebris(ctx,fr);
   if(opt.marks&&cam.z>1.2){ctx.lineWidth=0.9;ctx.strokeStyle="rgba(8,8,8,0.4)";ctx.beginPath();for(const m of MARKS){ctx.moveTo(m[0],m[1]);ctx.lineTo(m[2],m[3]);}ctx.stroke();}
