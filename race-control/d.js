@@ -168,15 +168,15 @@ function onGarage(c){if(S.type!=="race")planNext(c);}
 /* Sektorzeiten für die farbige Zeitnahme */
 function setSec(c,k,t){if(!(t>0))return;c.secT[k]=t;if(c.secPB[k]==null||t<c.secPB[k])c.secPB[k]=t;S.secBest=S.secBest||[null,null,null];if(S.secBest[k]==null||t<S.secBest[k])S.secBest[k]=t;}
 function secTick(c){if(c.mode!=="push"||c.pit||c.secK==null)return;const k=sectorOf(c.pos);
-  if(k===c.secK+1){const tc=S.t-(c.pos-SECB[k])/Math.max(c.v,5);setSec(c,c.secK,tc-c.secT0);c.secT0=tc;c.secK=k;}}
+  if(k===c.secK+1){const tc=S.t-(c.pos-SECB[k])/Math.max(c.v,5);setSec(c,c.secK,tc-c.secT0);c.secT0=tc;c.secK=k;c.secDoneAt=S.t;}}
 function onLine(c){
   if(c.towFor&&S.type!=="race"&&c.mode==="push"&&(delta(c,c.towFor)>0||c.towFor.pit||c.towFor.mode!=="push"&&c.towFor.mode!=="out")){c.towFor=null;}
   if(S.type==="race"){raceLine(c);return;}
   if(c.pit)return;
   const tc=S.t-mod(c.s)/Math.max(c.v,5);
   if(c.mode==="out"){ if(c.outDist>0.4*L){ if(S.chequered||S.flag.mode==="red")toIn(c); else{c.mode="push";c.lapT0=tc;c.lapId++;c.noise=rand(-0.004,0.001);c.secT=[null,null,null];c.secPB=c.secPB||[null,null,null];c.secK=0;c.secT0=tc;} } }
-  else if(c.mode==="push"){const t=tc-c.lapT0;if(c.lapBad){c.lapBad=false;addLog(`${c.drv.code} – Runde zählt nicht (Strecke in der Auslaufzone verlassen)`);}else c.laps.push({t,id:c.lapId});c.pushLeft--;if(c.secK===2)setSec(c,2,tc-c.secT0);c.secK=0;c.secT0=tc;
-    if(S.bestT==null||t<S.bestT){S.bestT=t;addLog(`${c.drv.code} ${fmtLap(t*TSCALE)} – Bestzeit`);radio(c,pick(["P1, P1. Starke Runde.","Das ist Bestzeit. Gut gemacht."]),true);}
+  else if(c.mode==="push"){const t=tc-c.lapT0;if(c.lapBad){c.lapBad=false;addLog(`${c.drv.code} – Runde zählt nicht (Strecke in der Auslaufzone verlassen)`);}else{c.laps.push({t,id:c.lapId});c.qFlash={t,at:S.t};}c.pushLeft--;if(c.secK===2)setSec(c,2,tc-c.secT0);c.secK=0;c.secT0=tc;
+    if(S.bestT==null||t<S.bestT){S.bestT=t;S.bestBy=c;S.bestSplits=c.secT[0]!=null&&c.secT[1]!=null?[c.secT[0],c.secT[0]+c.secT[1],t]:null;addLog(`${c.drv.code} ${fmtLap(t*TSCALE)} – Bestzeit`);radio(c,pick(["P1, P1. Starke Runde.","Das ist Bestzeit. Gut gemacht."]),true);}
     if(S.chequered||c.pushLeft<=0)toIn(c);else{c.lapT0=tc;c.lapId++;if(c.longRun){c.noise-=0.0007;if(c.pushLeft===2&&Math.random()<0.5)radio(c,pick(["Reifen bauen hinten ab. Balance geht Richtung Übersteuern.","Pace ist konstant. Noch zwei Runden, dann Box.","Vorne links körnt. Ich manage."]));}}}}
 
 /* ---- Rennen ---- */

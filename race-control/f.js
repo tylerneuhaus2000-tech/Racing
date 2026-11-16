@@ -96,7 +96,7 @@ function uiTower(){let h="";if(S.timingOff&&S.t<S.timingOff){$("towerBody").inne
       x+=`<span class="ty ${c.tyre}" style="margin-left:3px">${c.tyre}</span>`;
       if(c.mode==="push")x+=c.longRun?`<span class="tag" style="background:#2b6cb0">LONG</span>`:`<span class="tag push">PUSH</span>`;else if(c.mode==="out")x+=`<span class="tag">OUT</span>`;else if(c.mode==="in")x+=`<span class="tag">IN</span>`;
       if(c.gridPen)x+=`<span class="tag pen">−${c.gridPen}P</span>`;if(c.retired)x+=`<span class="tag pen">OUT</span>`;
-      h+=`<div class="row ${S.cut<99&&i>=S.cut&&t?"elim":""} ${c.i===UI.sel?"sel":""}" data-c="${c.i}"><span class="p">${i+1}</span><span class="bar" style="background:${c.drv.color}"></span>
+      h+=`<div class="row ${S.cut<99&&i>=S.cut?"elim":""} ${c.i===UI.sel?"sel":""}" data-c="${c.i}"><span class="p">${i+1}</span><span class="bar" style="background:${c.drv.color}"></span>
         <span class="c">${c.drv.code}</span><span class="g">${UI.twMode===2?(c.laps.length?fmtLap(c.laps[c.laps.length-1].t*TSCALE):"—"):t?(i===0?fmtLap(t*TSCALE):"+"+((t-b0)*TSCALE).toFixed(3)):"—"}</span><span class="x">${x}</span></div>`;});
   }else{const o=raceOrder(),ld=o[0];h+=`<div class="row hd"><span class="p">P</span><span></span><span>Name</span><span class="g">${["Abstand ▾","Intervall ▾","Letzte ▾"][UI.twMode||0]}</span><span class="x">Stopps · Reifen/Alter</span></div>`;
     o.forEach((c,i)=>{let g="";const out=c.retired||c.dsq;
@@ -112,12 +112,50 @@ function uiTower(){let h="";if(S.timingOff&&S.t<S.timingOff){$("towerBody").inne
       h+=`<div class="row ${out?"out":""} ${c.i===UI.sel?"sel":""}" data-c="${c.i}"><span class="p">${out?"–":i+1}</span><span class="bar" style="background:${c.drv.color}"></span>
         <span class="c">${c.drv.code}</span><span class="g">${g}</span><span class="x">${x}</span></div>`;});}
   $("towerBody").innerHTML=h;
+  if(S.type!=="race")twAnimate();
   const c=S.cars[UI.sel]||S.cars[0];
   if(c){const b=bestLap(c);$("selInfo").innerHTML=`<b style="color:${c.drv.color}">■</b> <b>${c.drv.num} ${esc(c.drv.name)}</b> · ${TEAMS[c.drv.team].name}<br>
     ${TYN[c.tyre]}${S.type==="race"?" ("+(c.tyreLaps||0)+" Rd.)":""} · Stil: ${aggName(aggOf(c))} · Regen-Typ: ${styleName(c.drv.style)} · Stopps ${c.stops} · Strafen ${c.penTot}s${c.dtPending?" + DT":""} · TL ${c.strikes} · Verw. ${c.warn} · Strafpunkte ${(W.career&&W.career.lic&&W.career.lic[c.drv.code])||c.lic||0}${b?" · Beste "+fmtLap(b*TSCALE):""}`;}}
 $("towerBody").addEventListener("click",e=>{if(e.target.closest(".row.hd")){UI.twMode=((UI.twMode||0)+1)%3;if(S&&S.type!=="race"&&UI.twMode===1)UI.twMode=2;uiTower();return;}const r=e.target.closest("[data-c]");if(r){UI.sel=+r.dataset.c;UI.feedAuto=false;$("feedAuto").classList.remove("on");uiTower();}});
 $("feedPov").onclick=()=>{UI.pov=!UI.pov;$("feedPov").classList.toggle("on",UI.pov);};
 $("feedAuto").onclick=()=>{UI.feedAuto=!UI.feedAuto;$("feedAuto").classList.toggle("on",UI.feedAuto);UI.feedT=0;};
+/* Zeitnahme im Quali: Zeilen gleiten zur neuen Position; der Stand läuft über das Neuzeichnen (alle 0,25 s) hinweg weiter */
+function twAnimate(){const now=performance.now(),D=650,rows=[...$("towerBody").querySelectorAll(".row[data-c]")],A=UI.twAnim=UI.twAnim||{},prev=UI.twPos||{},pos={};
+  const ease=u=>1-Math.pow(1-u,3);
+  for(const r of rows){const id=r.dataset.c,y=r.offsetTop;pos[id]=y;let a=A[id];
+    if(prev[id]!=null&&prev[id]!==y){const cur=a&&now-a.t0<D?a.dy*(1-ease((now-a.t0)/D)):0;a=A[id]={dy:cur+prev[id]-y,t0:now,dir:prev[id]>y?"up":"dn"};}
+    if(!a)continue;const u=(now-a.t0)/D,F=1.7;if(u>=F){delete A[id];continue;}
+    const rest=u<1?a.dy*(1-ease(u)):0,fa=u<0.35?1:Math.max(0,1-(u-0.35)/(F-0.35)),rgb=a.dir==="up"?"47,209,107":"225,6,0",left=Math.round(D*(F-Math.max(u,0.35)));
+    r.style.transition="none";r.style.transform=`translateY(${rest}px)`;r.style.boxShadow=`inset 3px 0 0 rgba(${rgb},${fa.toFixed(2)})`;r.style.backgroundColor=`rgba(${rgb},${(0.22*fa).toFixed(3)})`;r.style.zIndex=a.dir==="up"?2:1;
+    r.getBoundingClientRect();
+    r.style.transition=`transform ${Math.round(D*Math.max(0,1-u))}ms cubic-bezier(.2,.8,.2,1),box-shadow ${left}ms linear,background-color ${left}ms linear`;
+    r.style.transform="translateY(0)";r.style.boxShadow=`inset 3px 0 0 rgba(${rgb},0)`;r.style.backgroundColor=`rgba(${rgb},0)`;}
+  UI.twPos=pos;}
+/* F1-artige Zeit-Einblendung im Quali (Monitor 2): Name, laufende Zeit bzw. Delta zu P1, Referenz, Sektorbalken */
+const qSurname=d=>d.name.split(" ").slice(-1)[0].toUpperCase();
+const fmtTenth=s=>{s=Math.max(0,s);const m=Math.floor(s/60),r=s-m*60;return m+":"+r.toFixed(1).padStart(4,"0");};
+function drawQualiBox(g,cw,ch,c){if(!c||c.removed)return;const fl=c.qFlash&&S.t-c.qFlash.at<4?c.qFlash:null;if(c.mode!=="push"&&!fl)return;
+  const W_=Math.min(380,cw-24),x=12,y=34,H=78,team=TEAMS[c.drv.team]||{},col=c.drv.color;g.save();
+  g.fillStyle="rgba(10,12,16,.93)";g.beginPath();g.roundRect?g.roundRect(x,y,W_,H,6):g.rect(x,y,W_,H);g.fill();
+  g.fillStyle="#fff";g.font="bold 15px ui-monospace,monospace";g.textBaseline="middle";g.fillText(String(c.drv.num),x+10,y+14);
+  g.fillStyle=col;g.fillRect(x+40,y+7,4,15);g.font="bold 15px system-ui,sans-serif";g.fillStyle="#fff";g.fillText(qSurname(c.drv),x+52,y+15);
+  g.font="bold 14px system-ui,sans-serif";g.fillStyle=c.tyre==="S"?"#ff4a4a":c.tyre==="M"?"#ffd400":c.tyre==="H"?"#f2f2f2":c.tyre==="I"?"#3fd16b":"#4aa3ff";g.textAlign="right";g.fillText(c.tyre,x+W_-12,y+15);g.textAlign="left";
+  g.fillStyle=col;g.fillRect(x,y+28,W_,3);
+  const ref=S.bestT,bb=S.bestBy;let big="",bigCol="#fff",sub="";
+  if(fl){const ord=timedOrder(),p=ord.indexOf(c)+1;big=fmtLap(fl.t*TSCALE);sub=p?`P${p}`:"";bigCol=ref!=null&&fl.t<=ref+1e-6?"#c38bff":"#fff";}
+  else{const k=c.secK||0,sp=S.bestSplits;
+    if(k>0&&c.secDoneAt!=null&&S.t-c.secDoneAt<3&&sp&&bb!==c){let cum=0;for(let j=0;j<k;j++)cum+=c.secT[j]||0;const d=(cum-sp[k-1])*TSCALE;big=(d<0?"−":"+")+Math.abs(d).toFixed(3);bigCol=d<0?"#2fd16b":"#f2c94c";}
+    else big=fmtTenth((S.t-c.lapT0)*TSCALE);}
+  g.font="bold 26px ui-monospace,monospace";g.fillStyle=bigCol;g.fillText(big,x+12,y+50);
+  if(sub){g.font="bold 15px system-ui,sans-serif";g.fillStyle="#fff";g.fillText(sub,x+12+g.measureText(big).width+30,y+50);}
+  g.textAlign="right";g.font="bold 15px ui-monospace,monospace";g.fillStyle="#dfe3e8";g.fillText(ref!=null?fmtLap(ref*TSCALE):"—",x+W_-12,y+44);
+  g.font="bold 10.5px system-ui,sans-serif";g.fillStyle="#9aa3ad";g.fillText(bb?qSurname(bb.drv):"",x+W_-12,y+58);g.textAlign="left";
+  const sw=W_/3,sb=S.secBest||[],by=y+H-11;
+  for(let k=0;k<3;k++){const done=fl||k<(c.secK||0),st=c.secT&&c.secT[k],cur=!fl&&k===(c.secK||0);
+    g.fillStyle=!done||st==null?"#2a3038":st<=sb[k]+1e-6?"#a24cf0":c.secPB&&st<=c.secPB[k]+1e-6?"#2fd16b":"#f2c94c";g.fillRect(x+k*sw+(k?1:0),by+8,sw-(k?1:0),3);
+    g.font=cur?"bold 10px system-ui,sans-serif":"bold 9.5px system-ui,sans-serif";g.fillStyle=cur?"#fff":done&&st!=null?g.fillStyle:"#6b7380";g.textAlign=k===0?"left":k===2?"right":"center";
+    g.fillText(cur?`SECTOR ${k+1}`:`S${k+1}`,k===0?x+10:k===2?x+W_-10:x+W_/2,by+1);}
+  g.restore();}
 function autoDirector(rdt){UI.feedT-=rdt;if(UI.feedT>0&&S.cars[UI.feedCar]&&!S.cars[UI.feedCar].removed)return;UI.feedT=5;
   const live=c=>!c.removed&&c.mode!=="garage";let t=null;
   const h=S.hazard;if(h&&h.cars&&h.cars[0]&&!h.cars[0].removed)t=h.cars[0];
@@ -126,8 +164,19 @@ function autoDirector(rdt){UI.feedT-=rdt;if(UI.feedT>0&&S.cars[UI.feedCar]&&!S.c
     if(!t){const p=S.cars.filter(c=>c.pit&&c.pit.ph==="svc");if(p.length&&Math.random()<0.5)t=p[0];}
     if(!t){const o=S.cars.filter(c=>live(c)&&c.omOn);if(o.length)t=pick(o);}
     if(!t)t=Math.random()<0.6?S.leader:pick(S.cars.filter(c=>live(c)&&c.mode==="race")||[S.leader]);}
-  if(!t&&S.type!=="race"){const p=S.cars.filter(c=>c.mode==="push"&&!c.pit);if(p.length)t=pick(p);else{const o=S.cars.filter(c=>c.mode==="out"||c.mode==="in");if(o.length)t=pick(o);}}
+  if(!t&&S.type!=="race"){t=qDirector(live);UI.feedT=1;}
   if(!t)t=S.cars.find(live)||S.cars[0];if(t)UI.feedCar=t.i;}
+/* Quali-Regie: wer gerade schneller als P1 unterwegs ist, sonst Top-5 auf dem Weg zur Ziellinie; dranbleiben bis zum Ende der Runde */
+function qDirector(live){const L_=UI.qLock,lk=L_&&S.cars[L_.i];
+  if(lk&&live(lk)){if(lk.mode==="push"&&lk.lapId===L_.lap)return lk;if(L_.until==null)L_.until=S.t+2.5;if(S.t<L_.until)return lk;}
+  UI.qLock=null;const sp=S.bestSplits,ord=timedOrder(),push=S.cars.filter(c=>live(c)&&c.mode==="push"&&!c.pit&&!c.longRun);
+  const delta=c=>{const k=c.secK||0;if(!k||!sp)return null;let cum=0;for(let j=0;j<k;j++)cum+=c.secT[j]||0;return cum-sp[k-1];};
+  const hot=push.map(c=>({c,d:delta(c)})).filter(o=>o.d!=null&&o.d<0).sort((a,b)=>(b.c.secK-a.c.secK)||(a.d-b.d));
+  let t=hot.length?hot[0].c:null;
+  if(!t){const fin=push.filter(c=>mod(c.s)/L>0.8&&(ord.indexOf(c)<5||bestLap(c)==null)).sort((a,b)=>ord.indexOf(a)-ord.indexOf(b));if(fin.length)t=fin[0];}
+  if(t){UI.qLock={i:t.i,lap:t.lapId,until:null};return t;}
+  const cur=S.cars[UI.feedCar];UI.qHold=(UI.qHold||0)-1;if(cur&&live(cur)&&UI.qHold>0&&!(push.length&&cur.mode!=="push"))return cur;UI.qHold=6;
+  if(push.length)return push.sort((a,b)=>(bestLap(a)==null)-(bestLap(b)==null)||ord.indexOf(a)-ord.indexOf(b))[Math.floor(Math.random()*Math.min(4,push.length))];const o=S.cars.filter(c=>c.mode==="out"||c.mode==="in");return o.length?pick(o):null;}
 function fairness(){const r=(W.review||[]).filter(x=>!x.title.startsWith("Flagge"));if(!r.length)return "–";return Math.round(100*r.filter(x=>x.ok).length/r.length)+"%";}
 function reviewHtml(){const r=W.review||[];if(!r.length)return "";const bad=r.filter(x=>!x.ok),good=r.filter(x=>x.ok).sort((a,b)=>b.pts-a.pts)[0];
   return `<h4>Deine Entscheidungen an diesem Wochenende</h4><div class="rv">${good?`<div><b class="g">Beste: ${esc(good.title)}</b> (+${good.pts}) · ${good.sess}</div>`:""}
@@ -520,6 +569,7 @@ function drawMonitors(rdt){
   if(UI.pov&&sc&&!sc.removed&&sc.mode!=="garage")drawPOV(c,cw,ch,fr,ro,fs);else
   drawScene(c,cw,ch,cam,fr,ro,{hist,marks:true,labels:"all",hi:[fs],grid:S.type==="race"&&S.phase!=="racing",showLights:S.phase==="lights"});
   hud(c,cw,"● LIVE",null,sc?`${sc.drv.code} · ${Math.round(sc.v*KMH)} KM/H`:"");
+  if(S.type==="q"&&!UI.pov)drawQualiBox(c,cw,ch,sc);
   if(UI.tv&&UI.tv.left>0){UI.tv.left-=rdt;const a=Math.min(1,UI.tv.left*2,(4.5-UI.tv.left)*4),bw=Math.min(cw-24,UI.tv.t.length*7.4+26);   // TV-Einblendung
     c.save();c.globalAlpha=Math.max(0,a);c.fillStyle="rgba(10,13,18,.92)";c.fillRect(12,ch-58,bw,26);c.fillStyle=UI.tv.col;c.fillRect(12,ch-58,5,26);
     c.fillStyle="#fff";c.font="bold 12px ui-monospace,monospace";c.textAlign="left";c.fillText(UI.tv.t,24,ch-41);c.restore();}
