@@ -99,6 +99,22 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
+    // F1 Race Control-Spielstände: eigene Slots je Nutzer. Die getrennte
+    // Collection verhindert Überschreiben des GT3-Karriere-Dokuments.
+    match /race_control_saves/{uid}/slots/{slotId} {
+      allow read: if request.auth != null && request.auth.uid == uid
+        && slotId in ['auto', 's1', 's2', 's3'];
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && slotId in ['auto', 's1', 's2', 's3']
+        && request.resource.data.slot == slotId
+        && request.resource.data.updatedAtMs is int
+        && request.resource.data.deleted is bool
+        && (request.resource.data.deleted == true || request.resource.data.data is map);
+      allow delete: if request.auth != null && request.auth.uid == uid
+        && slotId in ['auto', 's1', 's2', 's3'];
+    }
+
     match /usernames/{username} {
       allow read: if true;
       allow create: if request.auth != null

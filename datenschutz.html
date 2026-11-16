@@ -51,6 +51,7 @@
 			<li><strong>Multiplayer:</strong> Für die Dauer einer Sitzung Position, Geschwindigkeit und Spielername, damit andere dich sehen können. Die Verbindung läuft direkt zwischen den Browsern (PeerJS/WebRTC); dabei wird deine IP-Adresse technikbedingt den Mitspielenden bekannt.</li>
 			<li><strong>Käufe im Rennspiel:</strong> erworbenes Produkt, Betrag, Währung und Zeitpunkt. Zahlungsdaten wie Karten- oder Kontonummern erhalten und speichern wir nicht.</li>
 			<li><strong>Casino-Spiel:</strong> Der Spielstand (virtuelle Chips, Statistiken, Einstellungen) wird ausschließlich lokal in deinem Browser gespeichert und nicht an uns übertragen.</li>
+			<li><strong>Race Control – F1 Rennleitung:</strong> Spielstände enthalten unter anderem Punktestand, Saisonfortschritt, Entscheidungen und den laufenden Rennzustand. Sie werden lokal gespeichert und bei Anmeldung mit deinem Google-Konto zusätzlich nutzerbezogen in Firebase Firestore synchronisiert. Die Cloud-Spielstände kannst du im Spiel über „Löschen“ entfernen.</li>
 		</ul>
 		<p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO.</p>
 
@@ -85,7 +86,7 @@
 		<p>Weitere Informationen: <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">policies.google.com/technologies/ads</a></p>
 
 		<h2>10. Lokale Speicherung im Browser</h2>
-		<p>Wir nutzen <code>localStorage</code> für technisch notwendige Zwecke: deine Anmelde-Sitzung, Spieleinstellungen, lokale Bestzeiten, den Casino-Spielstand und deine Cookie-Entscheidung. Diese Daten verbleiben auf deinem Gerät und werden nicht an uns übertragen. Du kannst sie jederzeit über die Einstellungen deines Browsers löschen.</p>
+		<p>Wir nutzen <code>localStorage</code> für technisch notwendige Zwecke: deine Anmelde-Sitzung, Spieleinstellungen, lokale Bestzeiten, Spielstände von Race Control, den Casino-Spielstand und deine Cookie-Entscheidung. Diese lokalen Daten verbleiben auf deinem Gerät. Wenn du Race Control mit Google-Anmeldung nutzt, werden dessen Spielstände zusätzlich mit deinem Konto in Firebase Firestore synchronisiert. Du kannst lokale Daten über die Einstellungen deines Browsers löschen.</p>
 		<p><strong>Rechtsgrundlage:</strong> § 25 Abs. 2 Nr. 2 TTDSG (unbedingt erforderlich), Art. 6 Abs. 1 lit. b und f DSGVO.</p>
 
 		<h2>11. Schriftarten</h2>
