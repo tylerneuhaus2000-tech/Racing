@@ -151,7 +151,7 @@ function carStep(c,dt){
   else c.blockT=0;
   let a=ACC*(S.wx.wet>0.2?1-0.3*S.wx.wet:1); if(race&&S.raceT-S.goT<5)a*=c.launch;
   /* Gas/Bremse wie ein Fahrer: kleine Überschüsse durch Gaswegnehmen, echte Bremsung erst bei deutlichem Überschuss, dann bis zum Scheitel durchziehen */
-  if(vT>=c.v){c.v=Math.min(vT,c.v+a*dt*Math.min(1,0.2+(vT-c.v)/3));if(c.brkOn&&(c.brkHold=(c.brkHold||0)+dt)>0.12)c.brkOn=false;}
+  if(vT>=c.v){c.v=Math.min(vT,c.v+a*dt*Math.min(1,0.3+(vT-c.v)/2));if(c.brkOn&&(c.brkHold=(c.brkHold||0)+dt)>0.12)c.brkOn=false;}
   else{const over=c.v-vT;c.brkHold=0;
     if(!c.brkOn&&over>Math.max(3.5,c.v*0.035))c.brkOn=true;
     c.v=c.brkOn?Math.max(vT,c.v-BRK*dt):Math.max(vT,c.v-Math.min(COAST,over*4)*dt);}
