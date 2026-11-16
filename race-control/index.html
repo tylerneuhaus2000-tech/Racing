@@ -74,6 +74,10 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;background:va
 .inc{display:flex;align-items:center;gap:8px;padding:6px 9px;border-bottom:1px solid #1d2128}
 .inc .t{flex:1;min-width:0}.inc .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .inc .t small{color:var(--muted)}
+.ibf{display:flex;gap:4px;padding:6px 9px;border-bottom:1px solid #1d2128;flex:0 0 auto}
+.ibf button{flex:1;min-width:0;background:transparent;border:1px solid #333944;border-radius:999px;padding:3px 4px;font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap}
+.ibf button.on{background:var(--panel2);border-color:#5a6270;color:var(--text)}
+.ibf button i{font-style:normal;opacity:.7;margin-left:3px}.ibf button.hot i{color:var(--yellow);opacity:1}
 .inc.open{background:#2b2a12}.inc button{background:var(--panel2);border:1px solid #3a404b;border-radius:7px;padding:5px 9px;font-weight:700;font-size:12px}
 .manual{display:flex;gap:5px;flex-wrap:wrap;padding:8px 9px;border-top:1px solid var(--line)}
 .manual select{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:4px;flex:1;min-width:80px}
@@ -121,11 +125,22 @@ table.res td,table.res th{padding:3px 6px;border-bottom:1px solid #1f242b;text-a
 .sb{border:2px solid #1f6b3f;background:#0d2e1c;color:#7ff0b4;border-radius:7px;padding:8px 2px;font-weight:800;font-size:12px}
 .sb small{display:block;font-size:9px;letter-spacing:.08em}
 .sb.y1{background:var(--yellow);border-color:var(--yellow);color:#000}.sb.y2{background:#ffb000;border-color:#fff;color:#000}
-.nb{display:grid;grid-template-columns:1fr 1fr;gap:5px}
-.nb button,.da button{border:1px solid #3a404b;background:var(--panel2);border-radius:7px;padding:8px 4px;font-weight:800;font-size:11.5px}
+.nb{display:grid;grid-template-columns:1fr;gap:6px}
+.da button{border:1px solid #3a404b;background:var(--panel2);border-radius:7px;padding:8px 4px;font-weight:800;font-size:11.5px}
+.nb button{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid #3a404b;border-radius:8px;padding:9px 6px;font-weight:800;font-size:12.5px;letter-spacing:.03em;transition:background .25s,box-shadow .25s,border-color .25s,color .25s}
+.nb button small{font-size:9px;font-weight:700;letter-spacing:.1em;opacity:.8;min-height:1.1em}
 .nb button:disabled,.da button:disabled{opacity:.3;cursor:not-allowed}
-.nb .vsc{background:#5a4a00;border-color:var(--yellow);color:var(--yellow)}.nb .sc{background:#5a3500;border-color:var(--orange);color:var(--orange)}
-.nb .red{background:#5a0a08;border-color:var(--red);color:#ff8a86}.nb .on{outline:2px solid #fff}
+.nb .vsc{--c:rgba(255,212,0,.6);background:#262000;border-color:#6b5a00;color:var(--yellow)}
+.nb .sc{--c:rgba(255,138,0,.6);background:#261700;border-color:#6b3a00;color:var(--orange)}
+.nb .red{--c:rgba(225,6,0,.7);background:#260504;border-color:#6b1210;color:#ff8a86}
+.nb .vsc.on{background:#5a4a00;border-color:var(--yellow);box-shadow:0 0 14px rgba(255,212,0,.45),inset 0 0 10px rgba(255,212,0,.2)}
+.nb .sc.on{background:#5a3500;border-color:var(--orange);box-shadow:0 0 14px rgba(255,138,0,.45),inset 0 0 10px rgba(255,138,0,.2)}
+.nb .red.on{background:#5a0a08;border-color:var(--red);color:#fff;box-shadow:0 0 16px rgba(225,6,0,.55),inset 0 0 10px rgba(225,6,0,.25)}
+.nb button.on:disabled{opacity:.8;cursor:default}
+.nb .need,.secs .need{animation:nbPulse 1.6s ease-in-out infinite}
+.secs .need{--c:rgba(255,212,0,.55)}
+@keyframes nbPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,0,0,0);filter:brightness(1)}50%{box-shadow:0 0 14px 3px var(--c,rgba(255,255,255,.5));filter:brightness(1.25)}}
+@media (prefers-reduced-motion:reduce){.nb .need,.secs .need{animation:none;outline:2px solid var(--c,#fff)}}
 .da{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin-top:6px}.da button{font-size:9.5px;padding:6px 1px;line-height:1.15}.da .hard{background:#3a1010;border-color:#7a2020}
 .ld{display:flex;gap:6px;margin:4px 0 2px}.ld i{width:18px;height:18px;border-radius:50%;background:#2a0e0e;border:1px solid #401515}.ld i.on{background:var(--red);box-shadow:0 0 10px var(--red)}
 #status{padding:4px 14px;border-radius:6px;font-weight:800;letter-spacing:.06em;background:var(--green);color:#000}
@@ -222,16 +237,16 @@ table.res td,table.res th{padding:3px 6px;border-bottom:1px solid #1f242b;text-a
           <div class="tog" style="border-color:#1d4fa8"><span>Blaue Flaggen <small style="color:var(--muted)">(automatisch)</small></span><b id="blueInfo" style="color:#6aa5ff;font-size:12px">–</b></div>
           <div class="tog"><span>Overtake Mode</span><button id="omBtn" class="on">AN</button></div></div></div>
         <div class="box"><h3>Neutralisierung</h3><div class="pad"><div class="nb">
-          <button class="vsc" data-n="vsc">VSC</button><button data-n="vscEnd">VSC BEENDEN</button>
-          <button class="sc" data-n="sc">SAFETY CAR</button><button data-n="scIn">SC IN THIS LAP</button>
-          <button class="red" data-n="red">ROTE FLAGGE</button><button data-n="restart">NEUSTART</button></div><div id="redOpts"></div></div></div>
+          <button class="vsc" data-g="vsc"><span>VSC</span><small></small></button>
+          <button class="sc" data-g="sc"><span>SAFETY CAR</span><small></small></button>
+          <button class="red" data-g="red"><span>ROTE FLAGGE</span><small></small></button></div><div id="redOpts"></div></div></div>
         <div class="box"><h3>Fahrzeug · Direkte Maßnahme</h3><div class="pad"><div class="hint" id="selInfo">Kein Auto gewählt</div><div class="da">
           <button data-p="warn">VERWAR-<br>NUNG</button><button data-p="5">+5 SEK.</button><button data-p="10">+10 SEK.</button><button data-p="dt">DURCH-<br>FAHRT</button>
           <button data-p="sg">STOP<br>&amp; GO</button><button data-p="bo">SCHWARZ-<br>ORANGE</button><button data-p="grid3">−3<br>PLÄTZE</button><button data-p="del">RUNDE<br>STREICHEN</button><button class="hard" data-p="dsq">SCHWARZE<br>FLAGGE</button><button data-p="clear">STRAFEN<br>LÖSCHEN</button><button data-p="inv" style="border-color:#f2c94c;color:#f2c94c" title="Vorfall mit diesem Auto selbst melden">UNTER-<br>SUCHEN</button></div></div></div>
       </div>
     </div>
     <div class="col">
-      <div class="box rbox1"><h3>Stewards · Vorfälle &amp; Replays</h3><div id="inbox"></div></div>
+      <div class="box rbox1"><h3>Stewards · Vorfälle &amp; Replays</h3><div class="ibf" id="inboxF"></div><div id="inbox"></div></div>
       <div class="box rbox2"><h3>Race Control Messages</h3><div id="log"></div></div>
       <div class="box rbox3"><h3>Teamfunk</h3><div id="radio"></div></div>
       <div class="box rbox4"><h3>Regenradar</h3><div class="pad"><canvas id="radar" width="420" height="260" title="Klicken für großes Radar mit Prognose" style="cursor:zoom-in"></canvas><div class="hint" id="wxText" style="margin-top:6px"></div></div></div>
@@ -242,7 +257,7 @@ table.res td,table.res th{padding:3px 6px;border-bottom:1px solid #1f242b;text-a
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
-<script src="cloud-saves.js?v=202611161329" defer></script>
-<script src="tracks.js?v=202611161329"></script><script src="a.js?v=202611161329"></script><script src="b.js?v=202611161329"></script><script src="c.js?v=202611161329"></script><script src="d.js?v=202611161329"></script><script src="m.js?v=202611161329"></script><script src="x.js?v=202611161329"></script><script src="v.js?v=202611161329"></script><script src="k.js?v=202611161329"></script><script src="r.js?v=202611161329"></script><script src="e.js?v=202611161329"></script><script src="w.js?v=202611161329"></script><script src="s.js?v=202611161329"></script><script src="p.js?v=202611161329"></script><script src="t.js?v=202611161329"></script><script src="f.js?v=202611161329"></script><script src="u.js?v=202611161329"></script>
+<script src="cloud-saves.js?v=202611161343" defer></script>
+<script src="tracks.js?v=202611161343"></script><script src="a.js?v=202611161343"></script><script src="b.js?v=202611161343"></script><script src="c.js?v=202611161343"></script><script src="d.js?v=202611161343"></script><script src="m.js?v=202611161343"></script><script src="x.js?v=202611161343"></script><script src="v.js?v=202611161343"></script><script src="k.js?v=202611161343"></script><script src="r.js?v=202611161343"></script><script src="e.js?v=202611161343"></script><script src="w.js?v=202611161343"></script><script src="s.js?v=202611161343"></script><script src="p.js?v=202611161343"></script><script src="t.js?v=202611161343"></script><script src="f.js?v=202611161343"></script><script src="u.js?v=202611161343"></script>
 </body>
 </html>

@@ -41,15 +41,22 @@ function uiSession(){
     else if(k==="form")startFormation();else if(k==="lights")startLights();else if(k==="go"){if(S.holdReady)lightsOut();}else if(k==="abort")abortStart();else if(k==="scstart")startBehindSC();uiSession();});
   $("towerTitle").textContent=S.type==="race"?"Zeitnahme · Rennen":`Zeitnahme · ${S.name}`;
   uiFlags();}
+/* Wo wird gerade eine Aktion der Rennleitung gebraucht? (Empfehlung der Streckenposten bzw. „Strecke frei“) */
+function nbNeed(race){const h=S.hazard,m=S.flag.mode,n={vsc:0,sc:0,red:0,sec:[0,0,0]};if(!h)return n;
+  if(!h.handled){if(respLevel(h)<h.sev){if(h.sev===1&&h.sector>=0)n.sec[h.sector]=1;else if(h.sev===2&&m==="green")n.vsc=1;else if(h.sev===3&&race&&(m==="green"||m==="vsc"))n.sc=1;else n.red=1;}}
+  else if(h.cleared){if(m==="red")n.red=1;else if(m==="sc"){if(!S.restart&&!(S.sc&&S.sc.inLap))n.sc=1;}else if(m==="vsc")n.vsc=1;else for(let i=0;i<3;i++)if(S.sec[i])n.sec[i]=1;}
+  return n;}
 function uiFlags(){
-  for(let i=0;i<3;i++){const b=$("sec"+i),v=S.sec[i];b.className="sb"+(v===1?" y1":v===2?" y2":"");b.innerHTML=`S${i+1}<small>${v===0?"GRÜN":v===1?"GELB":"DOPPELGELB"}</small>`;}
-  const m=S.flag.mode,race=S.type==="race"&&S.phase==="racing";
-  document.querySelectorAll(".nb button").forEach(b=>{const k=b.dataset.n;let en=false,on=false;
-    if(k==="vsc"){en=m==="green";on=m==="vsc";}else if(k==="vscEnd")en=m==="vsc";
-    else if(k==="sc"){en=race&&(m==="green"||m==="vsc");on=m==="sc";}else if(k==="scIn")en=m==="sc"&&!S.restart&&!(S.sc&&S.sc.inLap);
-    else if(k==="red"){en=m!=="red"&&(S.started||race);on=m==="red";}else if(k==="restart")en=m==="red";
-    if(k==="restart")b.textContent=race?"NEUSTART FLIEGEND":"NEUSTART";
-    b.disabled=!en&&!on;b.classList.toggle("on",on);});
+  const m=S.flag.mode,race=S.type==="race"&&S.phase==="racing",need=nbNeed(race);
+  for(let i=0;i<3;i++){const b=$("sec"+i),v=S.sec[i];b.className="sb"+(v===1?" y1":v===2?" y2":"")+(need.sec[i]?" need":"");b.innerHTML=`S${i+1}<small>${v===0?"GRÜN":v===1?"GELB":"DOPPELGELB"}</small>`;}
+  /* ein Knopf pro Kategorie: Beschriftung und Aktion wechseln mit dem Zustand */
+  const st={vsc:m==="vsc"?{act:"vscEnd",t:"VSC BEENDEN",on:1}:{act:"vsc",t:"VSC",en:m==="green"},
+    sc:m==="sc"?(S.restart||(S.sc&&S.sc.inLap)?{act:"",t:"SC KOMMT REIN",on:1,sub:"RESTART FOLGT"}:{act:"scIn",t:S.sc&&S.sc.on?"SC IN THIS LAP":"SC ABBESTELLEN",on:1})
+      :{act:"sc",t:"SAFETY CAR",en:race&&(m==="green"||m==="vsc")},
+    red:m==="red"?{act:"restart",t:race?"NEUSTART FLIEGEND":"NEUSTART",on:1,sub:"ROTE FLAGGE AKTIV"}:{act:"red",t:"ROTE FLAGGE",en:S.started||race}};
+  document.querySelectorAll(".nb button").forEach(b=>{const g=b.dataset.g,x=st[g];if(!x)return;const nd=!!need[g]&&!!x.act;
+    const sub=nd?"EMPFOHLEN":x.sub||(x.on?"AKTIV":"");const h=`<span>${x.t}</span><small>${sub}</small>`;if(b._h!==h){b._h=h;b.innerHTML=h;}
+    b.dataset.act=x.act;b.disabled=!x.act||(!x.en&&!x.on);b.classList.toggle("on",!!x.on);b.classList.toggle("need",nd&&!b.disabled);});
   const o=$("omBtn");o.className=S.om?"on":"";o.textContent=S.om?"AN":"AUS";
   let rh="";const timed=S.type!=="race",racing=!timed&&S.phase==="racing"&&!S.ended;
   if(timed)rh+=`<button data-r="clock">Uhr bei Rot: ${S.redRun?"LÄUFT WEITER":"WIRD ANGEHALTEN"}</button>`;
@@ -64,10 +71,17 @@ function uiFlags(){
       else if(k==="unlap")startUnlap();
       else if(k==="stand")standingRestart();
       else{abortSession();if(S.flag.mode==="red"){S.flag.mode="green";S.hazard&&S.hazard.cars.forEach(c=>c.removed=true);S.hazard=null;}}uiFlags();uiSession();});}}
-function uiInbox(){const list=S.incidents.filter(i=>i.status!=="rec"&&i.status!=="hidden").slice().reverse();
+/* Filter: standardmäßig nur, was noch eine Entscheidung braucht */
+const INBOX_F={open:{t:"Offen",f:i=>i.status==="open"||i.status==="deferred"},done:{t:"Entschieden",f:i=>i.status!=="open"&&i.status!=="deferred"&&i.status!=="info"},
+  info:{t:"Replays",f:i=>i.status==="info"},all:{t:"Alle",f:()=>true}};
+const INBOX_EMPTY={open:"Nichts offen – alles entschieden.",done:"Noch nichts entschieden.",info:"Noch keine Replays.",all:"Noch keine Vorfälle."};
+function uiInbox(){const vis=S.incidents.filter(i=>i.status!=="rec"&&i.status!=="hidden"),fk=INBOX_F[UI.inboxF]?UI.inboxF:"open";
+  const fb=$("inboxF");if(fb){const h=Object.entries(INBOX_F).map(([k,o])=>{const n=vis.filter(o.f).length;return `<button data-f="${k}" class="${k===fk?"on":""}${k==="open"&&n?" hot":""}">${o.t}${k==="all"?"":`<i>${n}</i>`}</button>`;}).join("");
+    if(fb._h!==h){fb._h=h;fb.innerHTML=h;fb.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{UI.inboxF=b.dataset.f;uiInbox();});}}
+  const list=vis.filter(INBOX_F[fk].f).reverse();
   $("inbox").innerHTML=list.length?list.map(i=>`<div class="inc ${i.status==="open"?"open":""}"><div class="t" data-j="${i.id}" title="Zur Stelle springen"><b>${esc(i.title)}</b>
     <small>${i.tag} · ${i.protest?"⚠ Protest von "+esc(i.protest)+" – neu prüfen":i.status==="open"?"Entscheidung offen":i.status==="deferred"?"Anhörung nach dem Rennen":i.status==="info"?"Replay":!FB_LIVE?(i.missed?"nachträglich gemeldet":"entschieden"):i.missed?"✘ übersehen":i.ok?"✔ korrekt":i.pts>0?"≈ teilweise":"✘ falsch"}</small></div>
-    <button data-i="${i.id}">${i.status==="open"?"Prüfen":"Replay"}</button></div>`).join(""):`<div class="pad hint">Noch keine Vorfälle.</div>`;
+    <button data-i="${i.id}">${i.status==="open"?"Prüfen":"Replay"}</button></div>`).join(""):`<div class="pad hint">${INBOX_EMPTY[fk]}</div>`;
   $("inbox").querySelectorAll("[data-j]").forEach(b=>b.onclick=()=>{const inc=S.incidents.find(x=>x.id===+b.dataset.j);if(!inc)return;
     if(inc.pos!=null&&inc.pos>=0){const co=cornerNear(inc.pos);ccSet(CORNERS.indexOf(co));}if(inc.cars[0]&&S.cars.includes(inc.cars[0]))focusCar(inc.cars[0]);});
   $("inbox").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{const inc=S.incidents.find(x=>x.id===+b.dataset.i);if(inc&&inc.clip&&inc.clip.length)openReplay(inc);});}
@@ -460,7 +474,7 @@ document.querySelectorAll("#speedSeg button").forEach(b=>b.onclick=()=>setSpeed(
 $("rulesBtn").onclick=showRules;$("docBtn").onclick=showDocs;$("sndBtn").onclick=sndToggle;$("menuBtn").onclick=menuPause;
 for(let i=0;i<3;i++)$("sec"+i).onclick=()=>S&&cycleSector(i);
 $("allGreen").onclick=()=>S&&allGreen();
-document.querySelectorAll(".nb button").forEach(b=>b.onclick=()=>S&&setNeutral(b.dataset.n));
+document.querySelectorAll(".nb button").forEach(b=>b.onclick=()=>{if(S&&b.dataset.act)setNeutral(b.dataset.act);});
 $("omBtn").onclick=()=>{if(!S)return;S.om=!S.om;addLog(S.om?"OVERTAKE MODE ENABLED":"OVERTAKE MODE DISABLED","flag");uiFlags();};
 document.querySelectorAll(".da button").forEach(b=>b.onclick=()=>{if(!S)return;const c=S.cars[UI.sel];if(!c)return;const p=b.dataset.p;
   if(p==="inv"){investigate(c);return;}
