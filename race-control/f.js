@@ -124,7 +124,7 @@ function standingsHtml(k){
   const tm={};if(k.tpoints)TEAM_KEYS.forEach(t=>tm[t]=k.tpoints[t]||0);else dr.forEach(x=>{tm[x.d.team]=(tm[x.d.team]||0)+x.p;});const ts=Object.keys(tm).sort((a,b)=>tm[b]-tm[a]);
   return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div><h4>Fahrer-WM</h4><table class="res"><tr><th></th><th>Fahrer</th><th>Pkt.</th><th title="Strafpunkte – ab 12 ein Rennen Sperre">SP</th></tr>${dr.map((x,i)=>`<tr><td>${i+1}</td><td><span style="color:${x.d.color}">■</span> ${esc(x.d.name)}</td><td><b>${x.p}</b></td><td>${(k.lic&&k.lic[x.d.code])||""}</td></tr>`).join("")}</table></div>
     <div><h4>Konstrukteurs-WM</h4><table class="res">${ts.map((t,i)=>`<tr><td>${i+1}</td><td><span style="color:${TEAMS[t].color}">■</span> ${TEAMS[t].name}</td><td><b>${tm[t]}</b></td></tr>`).join("")}</table>
-    <h4>Bisherige Rennen</h4><div class="hint">${k.history.map((r,i)=>`${i+1}. ${TRACKS[r.track].name}: ${r.top.join(" · ")}`).join("<br>")}</div></div></div>`;}
+    <h4>Bisherige Rennen</h4><div class="hint">${(Array.isArray(k.history)?k.history:[]).map((r,i)=>`${i+1}. ${esc(TRACKS[r.track]?TRACKS[r.track].name:r.track)}: ${esc((r.top||[]).join(" · "))}`).join("<br>")||"Noch keine Rennresultate."}</div></div></div>`;}
 function uiResults(){const cl=W.results,win=cl[0],acc=W.dec.total?Math.round(100*W.dec.ok/W.dec.total):0,wt=win.finT+win.penSec,k=W.career,season=k&&k.type==="season";
   let title="Zurück auf die Kartbahn 🛞";if(acc>=90&&W.score>0)title="FIA-Rennleiter-Niveau 🏆";else if(acc>=75)title="Solider Steward 👍";else if(acc>=55)title="Praktikant in der Race Control 📋";
   const rows=cl.map((c,i)=>{let g=c.dsq?"DSQ":"DNF";if(c.finished&&!c.dsq)g=i===0?"Sieger":c.finLaps<win.finLaps?`+${win.finLaps-c.finLaps} Rd.`:"+"+(c.finT+c.penSec-wt).toFixed(1)+"s";
@@ -189,8 +189,9 @@ function startRound(){const k=CAREER,key=k.cal[Math.min(k.round,k.cal.length-1)]
   restoreDB(k);
   mgmtBeforeRound(k,()=>{$("overlay").classList.remove("show");
     const o=Object.assign({},OPTS,{laps:OPTS.lapsSel==="full"?TRACK.laps:+OPTS.lapsSel,banned:[]});
-    const sprintRound=k.type==="season"&&(Array.isArray(k.sprints)?!!k.sprints[k.round]:!!OPTS.sprints&&SPRINTS.includes(key));
-    if(sprintRound)o.format="sprint";
+    const configured=Array.isArray(k.formats)?k.formats[k.round]:null;
+    if(Object.prototype.hasOwnProperty.call(SEASON_WEEKEND_FORMATS,configured))o.format=configured;
+    else if(k.type==="season"&&(Array.isArray(k.sprints)?!!k.sprints[k.round]:!!OPTS.sprints&&SPRINTS.includes(key)))o.format="sprint";
     newWeekend(o,k);score(0);setSpeed(1);});}
 
 const RULES=`<h4>Ablauf</h4><ul><li>Du gibst jede Session selbst frei (Boxenausfahrt öffnen). Bei 0:00 fällt die Zielflagge – wer vorher über Start/Ziel war, darf die Runde beenden, danach fahren alle in die Box.</li>
@@ -211,6 +212,31 @@ const RULES=`<h4>Ablauf</h4><ul><li>Du gibst jede Session selbst frei (Boxenausf
 function trackOptions(){let h=CALENDAR.map((k,i)=>`<option value="${k}">${i+1}. ${TRACKS[k].name}</option>`).join("");
   h+=Object.keys(TRACKS).filter(k=>!CALENDAR.includes(k)).map(k=>`<option value="${k}">${TRACKS[k].name}</option>`).join("");return h;}
 function seasonTrackOptions(selected){const keys=CALENDAR.concat(Object.keys(TRACKS).filter(k=>!CALENDAR.includes(k)));return keys.map(k=>`<option value="${k}"${k===selected?" selected":""}>${esc(TRACKS[k].name)}</option>`).join("");}
+const SEASON_WEEKEND_FORMATS={full:"Standard",sprint:"Sprint",quali:"Quali + Rennen",race:"Nur Rennen"};
+const SEASON_TEMPLATE_KEY="rc_season_templates_v1";
+function seasonFormatName(format){return Object.prototype.hasOwnProperty.call(SEASON_WEEKEND_FORMATS,format)?SEASON_WEEKEND_FORMATS[format]:SEASON_WEEKEND_FORMATS.full;}
+function seasonWeekendFormat(career,index,opts){
+  const configured=career&&Array.isArray(career.formats)?career.formats[index]:null;
+  if(Object.prototype.hasOwnProperty.call(SEASON_WEEKEND_FORMATS,configured))return configured;
+  if(career&&Array.isArray(career.sprints))return career.sprints[index]?"sprint":Object.prototype.hasOwnProperty.call(SEASON_WEEKEND_FORMATS,opts&&opts.format)?opts.format:"full";
+  return opts&&opts.sprints&&SPRINTS.includes(career&&career.cal&&career.cal[index])?"sprint":Object.prototype.hasOwnProperty.call(SEASON_WEEKEND_FORMATS,opts&&opts.format)?opts.format:"full";
+}
+function readSeasonTemplateState(){try{const raw=JSON.parse(localStorage.getItem(SEASON_TEMPLATE_KEY)||"null");if(Array.isArray(raw))return {items:raw,deleted:[]};return raw&&Array.isArray(raw.items)?{items:raw.items,deleted:Array.isArray(raw.deleted)?raw.deleted:[]}:{items:[],deleted:[]};}catch(e){return {items:[],deleted:[]};}}
+function visibleSeasonTemplates(state){const deleted=new Map((state.deleted||[]).map(x=>[x.id,Number(x.updatedAtMs)||0]));return (state.items||[]).filter(x=>x&&x.id&&(!deleted.has(x.id)||(Number(x.updatedAtMs)||0)>deleted.get(x.id)));}
+function writeSeasonTemplateState(state){try{localStorage.setItem(SEASON_TEMPLATE_KEY,JSON.stringify(state));return true;}catch(e){return false;}}
+function makeSeasonTemplateId(){return self.crypto&&crypto.randomUUID?crypto.randomUUID():"sc_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,9);}
+async function listSeasonTemplates(){if(window.RCCloud&&typeof RCCloud.listSeasonTemplates==="function")return RCCloud.listSeasonTemplates();return visibleSeasonTemplates(readSeasonTemplateState());}
+async function saveSeasonTemplate(template){
+  if(window.RCCloud&&typeof RCCloud.saveSeasonTemplate==="function")return RCCloud.saveSeasonTemplate(template);
+  const state=readSeasonTemplateState(),items=visibleSeasonTemplates(state),existing=items.find(x=>x.name.toLowerCase()===template.name.toLowerCase());
+  if(!existing&&items.length>=12)throw new Error("Du kannst höchstens 12 Saisonvorlagen speichern.");
+  const item={id:template.id||(existing&&existing.id)||makeSeasonTemplateId(),name:template.name,cal:template.cal.slice(),formats:template.formats.slice(),updatedAtMs:Date.now()};
+  state.items=items.filter(x=>x.id!==item.id).concat(item);state.deleted=state.deleted.filter(x=>x.id!==item.id);writeSeasonTemplateState(state);return {item,cloud:false};
+}
+async function deleteSeasonTemplate(id){
+  if(window.RCCloud&&typeof RCCloud.deleteSeasonTemplate==="function")return RCCloud.deleteSeasonTemplate(id);
+  const state=readSeasonTemplateState(),updatedAtMs=Date.now();state.items=state.items.filter(x=>x.id!==id);state.deleted=state.deleted.filter(x=>x.id!==id).concat({id,updatedAtMs});writeSeasonTemplateState(state);return {cloud:false};
+}
 const heroTop=(sub)=>`<div class="hero-top"><div class="tagl">F1 2026<br>22 FAHRER · 11 TEAMS<br>${Object.keys(TRACKS).length} SPIELSTRECKEN</div><div class="wm">Race <b>Control</b></div><div class="sub">${sub}</div></div>`;
 function menuMain(){if(typeof titleScreen==="function")return titleScreen();const m=$("modal"),sv=loadSaves(),auto=sv.auto,n=Object.keys(sv).length;m.className="modal hero";
   m.innerHTML=heroTop("Du bist die Rennleitung der Formel 1: Sessions freigeben, Flaggen setzen, Vorfälle im Replay prüfen und Strafen verteilen.")+`<div class="hero-body"><div class="cards">
@@ -233,13 +259,13 @@ function drawPreview(cv,key){buildTrack(key);const c=cv.getContext("2d"),W=cv.wi
   c.restore();}
 function menuSetup(type){
   const m=$("modal"),season=type==="season";m.className="modal hero";
-  let seasonRaces=season?CALENDAR.map(key=>({track:key,sprint:SPRINTS.includes(key)})):[];
+  let seasonRaces=season?CALENDAR.map(key=>({track:key,format:SPRINTS.includes(key)?"sprint":"full"})):[];
   let previewRound=0;
-  m.innerHTML=heroTop(season?"Stelle deine eigene Saison zusammen: Wähle die Rennen und entscheide für jedes Wochenende, ob es einen Sprint gibt.":"Einzelrennen: ein Wochenende auf der Strecke deiner Wahl.")+`<div class="hero-body">
+  m.innerHTML=heroTop(season?"Stelle deine Saison zusammen: Wähle Strecken, Reihenfolge und Wochenendformat für jedes Rennen.":"Einzelrennen: ein Wochenende auf der Strecke deiner Wahl.")+`<div class="hero-body">
     <div class="setup"><div>
-      ${season?`<label class="field"><span>Saisonlänge</span><div class="season-length"><input id="oCal" type="range" min="1" max="${CALENDAR.length}" value="${CALENDAR.length}" step="1" aria-label="Anzahl der Saisonrennen"><output id="oCalCount">${CALENDAR.length} Rennen</output></div><small class="field-note">Lege zuerst die Anzahl fest. Danach kannst du jede Strecke wählen und Sprintrennen markieren.</small></label>`
+      ${season?`<label class="field"><span>Saisonlänge</span><div class="season-length"><input id="oCal" type="range" min="1" max="${CALENDAR.length}" value="${CALENDAR.length}" step="1" aria-label="Anzahl der Saisonrennen"><output id="oCalCount">${CALENDAR.length} Rennen</output></div><small class="field-note">Danach legst du Strecke, Reihenfolge und Format pro Rennen fest.</small></label>`
         :`<label class="field"><span>Strecke</span><select id="oTrack">${trackOptions()}</select></label>`}
-      <label class="field"><span>${season?"Normale Wochenenden":"Wochenende"}</span><select id="oFmt"><option value="full">Training + Qualifying + Rennen</option>${season?"":`<option value="sprint">Sprint-Wochenende (FP · Sprint-Quali · Sprint · Quali · Rennen)</option>`}<option value="quali">Qualifying + Rennen</option><option value="race">Nur Rennen</option></select></label>
+      ${season?"":`<label class="field"><span>Wochenende</span><select id="oFmt"><option value="full">Training + Qualifying + Rennen</option><option value="sprint">Sprint-Wochenende (FP · Sprint-Quali · Sprint · Quali · Rennen)</option><option value="quali">Qualifying + Rennen</option><option value="race">Nur Rennen</option></select></label>`}
       <label class="field"><span>Session-Längen</span><select id="oMode"><option value="short">Kurz</option><option value="real">Realistisch (FP 60 · Q 18/15/12 Min.)</option></select></label>
       <label class="field"><span>Renndistanz</span><select id="oLaps"><option value="8">8 Runden</option><option value="12" selected>12 Runden</option><option value="18">18 Runden</option><option value="30">30 Runden</option><option value="full">Volle Distanz</option></select></label>
       <label class="field"><span>Feedback</span><select id="oFb"><option value="0">Erst nach dem Rennen (realistisch)</option><option value="1">Sofort nach jeder Entscheidung</option></select></label>
@@ -247,7 +273,10 @@ function menuSetup(type){
     </div><div>
       ${season?`<div class="prev"><canvas id="pvCv" width="760" height="300"></canvas><div id="pvInfo"></div>
         <section class="calendar-editor" aria-label="Saisonkalender"><div class="schedule-head"><b>Dein Rennkalender</b><span id="seasonSummary" aria-live="polite"></span></div>
-          <p class="hint">Die Reihenfolge ist deine Rennreihenfolge. Strecke und Sprint legst du pro Rennen fest.</p><div id="seasonList" class="season-list"></div>
+          <p class="hint">Die Zeilenreihenfolge ist deine Rennreihenfolge. Wähle pro Rennen Strecke und Format. Standard umfasst Training, Qualifying und Rennen.</p>
+          <div class="template-toolbar"><button type="button" class="ghost" id="templatesToggle">Vorlagen <span id="templateCount">0</span></button><button type="button" class="ghost" id="templateSaveOpen">Als Vorlage speichern</button></div>
+          <div id="templatePanel" class="template-panel" hidden><div class="template-save-row"><input id="templateName" maxlength="32" aria-label="Name der Saisonvorlage" placeholder="Name der Vorlage"><button type="button" class="ghost" id="templateSave">Speichern</button></div><div id="templateList" class="template-list"></div><div id="templateStatus" class="hint" aria-live="polite"></div></div>
+          <div id="seasonList" class="season-list"></div>
         </section></div>`:`<div class="prev"><canvas id="pvCv" width="760" height="430"></canvas><div id="pvInfo"></div></div>`}
     </div></div>
     <div class="btnrow"><button class="big" style="background:#3a3f48;flex:0 0 130px" id="backBtn">Zurück</button><button class="big go" id="goBtn">${season?"Saison starten":"Wochenende starten"}</button></div>
@@ -257,41 +286,95 @@ function menuSetup(type){
     const key=season?seasonRaces[Math.min(previewRound,seasonRaces.length-1)].track:$("oTrack").value;
     drawPreview($("pvCv"),key);const t=TRACKS[key];
     if(season){const race=seasonRaces[previewRound];
-      $("pvInfo").innerHTML=`<div class="pstats"><div><b>Rennen ${previewRound+1}</b><span>${esc(t.name)}</span></div><div><b>${race.sprint?"Ja":"Nein"}</b><span>Sprint-Wochenende</span></div></div>`;
+      $("pvInfo").innerHTML=`<div class="pstats"><div><b>Rennen ${previewRound+1}</b><span>${esc(t.name)}</span></div><div><b>${esc(seasonFormatName(race.format))}</b><span>Wochenendformat</span></div></div>`;
     }else $("pvInfo").innerHTML=`<div class="pstats"><div><b>${esc(t.name)}</b><span>Strecke</span></div><div><b>${t.len?(t.len/1000).toFixed(3)+" km":"–"}</b><span>Länge</span></div><div><b>${t.laps}</b><span>Runden (voll)</span></div><div><b>${fmtLap(t.lapS).slice(0,-2)}</b><span>Rundenzeit ca.</span></div></div>`;
   };
   const renderSeasonCalendar=()=>{
     const list=$("seasonList");if(!season||!list)return;
-    list.innerHTML=seasonRaces.map((race,i)=>`<div class="season-row"><span class="round-num">${String(i+1).padStart(2,"0")}</span><select data-season-track="${i}" aria-label="Strecke für Rennen ${i+1}">${seasonTrackOptions(race.track)}</select><label class="season-sprint"><input type="checkbox" data-season-sprint="${i}" aria-label="Sprint-Wochenende für Rennen ${i+1}" ${race.sprint?"checked":""}><span>Sprint</span></label></div>`).join("");
+    list.innerHTML=seasonRaces.map((race,i)=>`<div class="season-row"><span class="round-num">${String(i+1).padStart(2,"0")}</span><select data-season-track="${i}" aria-label="Strecke für Rennen ${i+1}">${seasonTrackOptions(race.track)}</select><select data-season-format="${i}" aria-label="Wochenendformat für Rennen ${i+1}">${Object.entries(SEASON_WEEKEND_FORMATS).map(([value,label])=>`<option value="${value}"${value===race.format?" selected":""}>${esc(label)}</option>`).join("")}</select></div>`).join("");
     list.querySelectorAll("[data-season-track]").forEach(select=>{
       select.onfocus=()=>{previewRound=+select.dataset.seasonTrack;upd();};
       select.onchange=()=>{const i=+select.dataset.seasonTrack;seasonRaces[i].track=select.value;previewRound=i;upd();};
     });
-    list.querySelectorAll("[data-season-sprint]").forEach(input=>input.onchange=()=>{
-      const i=+input.dataset.seasonSprint;seasonRaces[i].sprint=input.checked;
-      $("seasonSummary").textContent=`${seasonRaces.length} Rennen · ${seasonRaces.filter(r=>r.sprint).length} Sprint-Wochenende${seasonRaces.filter(r=>r.sprint).length===1?"":"n"}`;
+    list.querySelectorAll("[data-season-format]").forEach(select=>select.onchange=()=>{
+      const i=+select.dataset.seasonFormat;seasonRaces[i].format=select.value;
       if(previewRound===i)upd();
+      updateSeasonSummary();
     });
-    const sprintCount=seasonRaces.filter(r=>r.sprint).length;
-    $("seasonSummary").textContent=`${seasonRaces.length} Rennen · ${sprintCount} Sprint-Wochenende${sprintCount===1?"":"n"}`;
+    updateSeasonSummary();
+  };
+  const updateSeasonSummary=()=>{
+    if(!season)return;
+    const counts={};seasonRaces.forEach(race=>{counts[race.format]=(counts[race.format]||0)+1;});
+    const formatCounts=Object.entries(SEASON_WEEKEND_FORMATS).filter(([format])=>counts[format]).map(([format,label])=>`${counts[format]} ${label}`);
+    $("seasonSummary").textContent=`${seasonRaces.length} Rennen · ${formatCounts.join(" · ")}`;
     $("oCalCount").textContent=`${seasonRaces.length} Rennen`;
   };
   if(season){
     $("oCal").oninput=()=>{
       const wanted=+$("oCal").value;
       while(seasonRaces.length>wanted)seasonRaces.pop();
-      while(seasonRaces.length<wanted){const track=CALENDAR[seasonRaces.length%CALENDAR.length];seasonRaces.push({track,sprint:SPRINTS.includes(track)});}
+      while(seasonRaces.length<wanted){const track=CALENDAR[seasonRaces.length%CALENDAR.length];seasonRaces.push({track,format:SPRINTS.includes(track)?"sprint":"full"});}
       previewRound=Math.min(previewRound,seasonRaces.length-1);renderSeasonCalendar();upd();
     };
     renderSeasonCalendar();upd();
+    const templatePanel=$("templatePanel"),templateList=$("templateList"),templateStatus=$("templateStatus");
+    const templateMessage=(message,state)=>{templateStatus.textContent=message;templateStatus.dataset.state=state||"local";};
+    const renderTemplates=async()=>{
+      templateList.innerHTML='<p class="hint">Vorlagen werden geladen …</p>';
+      try{
+        const templates=await listSeasonTemplates();
+        $("templateCount").textContent=templates.length;
+        templateList.innerHTML=templates.length?templates.map(item=>`<div class="template-item"><div><b>${esc(item.name)}</b><small>${item.cal.length} Rennen · ${item.formats.filter(f=>f==="sprint").length} Sprint</small></div><button type="button" class="ghost" data-template-load="${esc(item.id)}">Laden</button><button type="button" class="ghost" data-template-delete="${esc(item.id)}" aria-label="Vorlage ${esc(item.name)} löschen">Löschen</button></div>`).join(""):'<p class="hint">Noch keine Saisonvorlagen gespeichert.</p>';
+        templateList.querySelectorAll("[data-template-load]").forEach(button=>button.onclick=()=>{
+          const item=templates.find(x=>x.id===button.dataset.templateLoad);if(!item)return;
+          if(!Array.isArray(item.cal)||!item.cal.length||item.cal.length>CALENDAR.length)return templateMessage("Diese Vorlage hat einen ungültigen Rennkalender.","error");
+          seasonRaces=item.cal.map((track,i)=>({track:TRACKS[track]?track:CALENDAR[i%CALENDAR.length],format:Object.prototype.hasOwnProperty.call(SEASON_WEEKEND_FORMATS,item.formats&&item.formats[i])?item.formats[i]:"full"}));
+          $("oCal").value=seasonRaces.length;previewRound=0;renderSeasonCalendar();upd();templateMessage(`„${item.name}“ geladen.`,"ready");
+        });
+        templateList.querySelectorAll("[data-template-delete]").forEach(button=>button.onclick=async()=>{
+          const item=templates.find(x=>x.id===button.dataset.templateDelete);if(!item||!confirm(`Saisonvorlage „${item.name}“ löschen?`))return;
+          button.disabled=true;
+          try{const result=await deleteSeasonTemplate(item.id);templateMessage(result.cloud?"Vorlage gelöscht und synchronisiert.":"Vorlage lokal gelöscht.",result.cloud?"ready":"local");await renderTemplates();}
+          catch(error){button.disabled=false;templateMessage(error.message||"Vorlage konnte nicht gelöscht werden.","error");}
+        });
+      }catch(error){templateList.innerHTML='<p class="hint">Vorlagen sind lokal verfügbar; die Cloud ist gerade nicht erreichbar.</p>';$("templateCount").textContent=visibleSeasonTemplates(readSeasonTemplateState()).length;templateMessage("Cloud nicht erreichbar · lokale Vorlagen bleiben erhalten.","error");}
+    };
+    $("templatesToggle").onclick=()=>{templatePanel.hidden=!templatePanel.hidden;if(!templatePanel.hidden)renderTemplates();};
+    $("templateSaveOpen").onclick=()=>{templatePanel.hidden=false;$("templateName").focus();renderTemplates();};
+    $("templateSave").onclick=async()=>{
+      const name=$("templateName").value.trim();if(!name)return templateMessage("Gib einen Namen für die Vorlage ein.","error");
+      if(name.length>32)return templateMessage("Der Name darf höchstens 32 Zeichen lang sein.","error");
+      const button=$("templateSave");button.disabled=true;
+      try{
+        const result=await saveSeasonTemplate({name,cal:seasonRaces.map(r=>r.track),formats:seasonRaces.map(r=>r.format)});
+        $("templateName").value="";templateMessage(result.cloud?`„${name}“ gespeichert und synchronisiert.`:`„${name}“ lokal gespeichert.`,result.cloud?"ready":"local");await renderTemplates();
+      }catch(error){templateMessage(error.message||"Vorlage konnte nicht gespeichert werden.","error");}
+      finally{button.disabled=false;}
+    };
+    renderTemplates();
   }else{$("oTrack").onchange=upd;upd();}
   $("oMode").onchange=e=>{$("oLaps").value=e.target.value==="real"?"full":"12";};
   $("backBtn").onclick=menuMain;
   $("goBtn").onclick=()=>{
-    FB_LIVE=$("oFb").value==="1";OPTS={fb:FB_LIVE,wx:$("oWx").value,mode:$("oMode").value,format:$("oFmt").value,lapsSel:$("oLaps").value};
-    CAREER={type,cal:season?seasonRaces.map(r=>r.track):[$("oTrack").value],sprints:season?seasonRaces.map(r=>r.sprint):[],round:0,points:{},lic:{},history:[],score:0,dec:{ok:0,total:0},rep:60};
+    FB_LIVE=$("oFb").value==="1";OPTS={fb:FB_LIVE,wx:$("oWx").value,mode:$("oMode").value,format:season?"full":$("oFmt").value,lapsSel:$("oLaps").value};
+    CAREER={type,cal:season?seasonRaces.map(r=>r.track):[$("oTrack").value],formats:season?seasonRaces.map(r=>r.format):[],sprints:season?seasonRaces.map(r=>r.format==="sprint"):[],round:0,points:{},lic:{},history:[],score:0,dec:{ok:0,total:0},rep:60};
     $("overlay").classList.remove("show");startRound();
   };
+}
+function menuSeasonOverview(source,fromTitle){
+  const career=source&&source.career?source.career:source,opts=source&&source.opts?source.opts:OPTS||{};
+  if(!career||career.type!=="season")return fromTitle?titleScreen():menuPause();
+  const calendar=Array.isArray(career.cal)?career.cal:[],completed=clamp(career.round||0,0,calendar.length),total=calendar.length;
+  const rounds=calendar.map((key,index)=>{
+    const history=(career.history||[])[index],status=index<completed?"Abgeschlossen":index===completed&&completed<total?"Als Nächstes":"Ausstehend";
+    const top=history&&Array.isArray(history.top)?history.top.map(code=>{const d=DRIVERS.find(x=>x.code===code);return d?d.name:code;}).join(" · "):"Noch kein Ergebnis";
+    return `<div class="season-overview-round"><span class="round-num">${String(index+1).padStart(2,"0")}</span><div><b>${esc(TRACKS[key]?TRACKS[key].name:key)}</b><small>${esc(seasonFormatName(seasonWeekendFormat(career,index,opts)))} · ${esc(status)}</small>${history?`<small>Top 3: ${esc(top)}</small>`:""}</div></div>`;
+  }).join("");
+  const m=$("modal");m.className="modal wide";
+  m.innerHTML=`<h2>🏆 Saisonübersicht</h2><p class="hint">${career.year||2026} · ${completed} von ${total} Rennen abgeschlossen · Ansehen ${Math.round(career.rep==null?60:career.rep)}</p><div class="season-overview"><section class="season-overview-calendar"><h3>Rennkalender</h3>${rounds}</section><section class="season-overview-standings"><h3>Meisterschaft</h3>${standingsHtml(career)}</section></div><button class="big go" id="seasonOverviewBack">${fromTitle?"Zurück zum Hauptmenü":"Zurück zur Pause"}</button>`;
+  $("overlay").classList.add("show");
+  $("seasonOverviewBack").onclick=()=>fromTitle?titleScreen():menuPause();
 }
 function menuLoad(){const m=$("modal"),sv=loadSaves(),names={auto:"Automatisch",s1:"Slot 1",s2:"Slot 2",s3:"Slot 3"};m.className="modal";
   m.innerHTML=`<h2>Spielstand laden</h2>${Object.keys(sv).map(k=>`<div class="slot"><div><b>${names[k]||k}</b><br><small>${esc(sv[k].name)} · ${sv[k].date}</small></div>
@@ -306,12 +389,14 @@ function menuPause(){if(R.inc||!S)return;const m=$("modal"),sv=loadSaves();m.cla
     <button id="pRs">Session wiederholen<small>${W.defs[W.idx]?esc(W.defs[W.idx].name):""} startet neu – Punkte und Entscheidungen dieser Session werden verworfen</small></button>
     <button id="pRw">Ganzes Wochenende wiederholen<small>zurück zur ersten Session auf ${esc(TRACK.name)}</small></button>
     ${["s1","s2","s3"].map((k,i)=>`<button data-s="${k}">In Slot ${i+1} speichern<small>${sv[k]?esc(sv[k].name)+" · "+sv[k].date:"leer"}</small></button>`).join("")}
+    ${W.career&&W.career.type==="season"?'<button id="pOverview">Saisonübersicht<small>Rennkalender und aktueller WM-Stand</small></button>':""}
     <button id="pLoad">Spielstand laden</button><button id="pMain">Zum Hauptmenü<small>Der automatische Spielstand bleibt erhalten</small></button></div><div id="pMsg"></div>`;
   $("overlay").classList.add("show");
   $("pCont").onclick=()=>{$("overlay").classList.remove("show");setSpeed(UI.prevSpeed||1);};
   m.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{liveSave();const lv=W.liveSnap&&W.liveSnap.idx===W.snap.idx&&W.liveSnap.track===W.snap.track;const ok=W.snap&&writeSave(b.dataset.s,lv?W.liveSnap:W.snap,lv?W.liveName:W.snapName);$("pMsg").innerHTML=`<div class="fbk ${ok?"ok":"bad"}">${ok?"Gespeichert.":"Speichern nicht möglich (Browser-Speicher gesperrt)."}</div>`;if(ok)setTimeout(menuPause,600);});
   const again=(data,txt)=>{if(!data)return;if(!$("pMsg").dataset.ask||$("pMsg").dataset.ask!==txt){$("pMsg").dataset.ask=txt;$("pMsg").innerHTML=`<div class="fbk mid">${txt} wirklich neu starten? Zum Bestätigen noch einmal klicken.</div>`;return;}loadGame(JSON.parse(JSON.stringify(data)));};
   $("pRs").onclick=()=>again(W.snap,"Session");$("pRw").onclick=()=>again(W.wk||W.snap,"Wochenende");
+  if($("pOverview"))$("pOverview").onclick=()=>menuSeasonOverview({career:W.career,opts:W.opts},false);
   $("pLoad").onclick=menuLoad;$("pMain").onclick=()=>{S=null;menuMain();};}
 const showMenu=menuMain;
 function showDocs(){if(R.inc||!S)return;const prev=UI.speed;setSpeed(0);const m=$("modal");m.className="modal";const ds=(W.docs||[]).slice().reverse();
@@ -431,5 +516,5 @@ function frame(now){const rdt=Math.min(0.1,(now-lastT)/1000);lastT=now;
   }
   requestAnimationFrame(frame);}
 showMenu();requestAnimationFrame(frame);
-window.addEventListener("rc-cloud-updated",()=>{if(!S)showMenu();});
+window.addEventListener("rc-cloud-updated",()=>{if(!S&&!$("overlay").classList.contains("show"))showMenu();});
 window.__rc={get S(){return S;},get W(){return W;},UI,R,step:n=>{for(let i=0;i<n;i++)simStep(DT);},decide,openReplay,closeReplay,setNeutral};

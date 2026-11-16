@@ -47,6 +47,7 @@ function ttBuild(){ttCss();let el=$("title");if(el)return el;el=document.createE
   document.body.appendChild(el);return el;}
 function ttItems(){const sv=loadSaves(),auto=sv.auto,n=Object.keys(sv).length;return [
   auto?{k:"cont",t:"Fortsetzen",s:`${auto.name} · ${auto.date}`,f:()=>{hideTitle();loadGame(auto.data);}}:null,
+  auto&&auto.data&&auto.data.career&&auto.data.career.type==="season"?{k:"overview",t:"Saisonübersicht",s:`${auto.data.career.round||0} von ${auto.data.career.cal.length} Rennen abgeschlossen`,f:()=>ttOpen(()=>menuSeasonOverview(auto.data,true))}:null,
   (()=>{let d=false;try{d=localStorage.getItem("rc_tut")==="1";}catch(e){}return {k:"tut",t:"Tutorial",s:d?"Alle Funktionen der Rennleitung Schritt für Schritt erklärt":"★ Empfohlen für den Einstieg – alles Schritt für Schritt erklärt",f:()=>tutStart()};})(),
   {k:"season",t:"Saison",s:"Eigener Rennkalender · WM, Fahrermarkt, Upgrades",f:()=>ttOpen(()=>menuSetup("season"))},
   {k:"single",t:"Einzelrennen",s:`Ein Wochenende auf einer von ${Object.keys(TRACKS).length} Strecken`,f:()=>ttOpen(()=>menuSetup("single"))},
@@ -94,7 +95,7 @@ function ttLoop(ts){if(!TT.on)return;const cv=$("ttCv"),dpr=Math.min(2,window.de
   try{drawScene(c,W_,H_,cam,fr,ro,{bg:"#04070a",labels:"none"});}catch(e){}
   const tx=$("ttShot");if(tx)tx.textContent=`${sh.n} · ${TRACKS[TT.trk].name.split(" · ")[0].toUpperCase()}`;
   TT.raf=requestAnimationFrame(ttLoop);}
-function titleScreen(){const el=ttBuild();el.classList.remove("dim");el.style.display="block";$("overlay").classList.remove("show");
+function titleScreen(){const el=ttBuild();el.classList.remove("dim");el.style.display="block";$("overlay").classList.remove("show","ontitle");
   if(!TT.on){TT.on=true;ttTrack();TT.last=0;TT.raf=requestAnimationFrame(ttLoop);requestAnimationFrame(()=>el.classList.add("vis"));}
   ttRender();TT.started=true;el.classList.add("ready");document.body.classList.remove("booting");
   if(!TT.bound){TT.bound=true;window.addEventListener("keydown",ttKey);}
