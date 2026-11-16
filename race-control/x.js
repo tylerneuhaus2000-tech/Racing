@@ -8,8 +8,8 @@ function buildZones(){OZ=new Uint8Array(NU);const run=[];let st=-1;
   for(const[a,b]of run)for(let i=a;i<=b;i++)OZ[i]=1;TRACK.zones=run.map(([a,b])=>({a:a*DS,b:b*DS}));}
 function ersMul(c,idx,prof,dt,neutral,race){if(c.soc==null){c.soc=0.85;c.harv=0;c.omE=0;}
   if(c.pit||c.mode==="garage"||c.crash)return 1;
-  const rdt=dt*TSCALE,full=prof>VTOP*0.55&&!c.brk,zone=OZ&&OZ[idx];let m=1;c.clip=false;
-  if(c.brk||c.wantSave){const h=Math.min(K_MAX*rdt,Math.max(0,HARV_LAP-c.harv));c.harv+=h;c.soc=Math.min(1,c.soc+h/ES_CAP);}
+  const rdt=dt*TSCALE,full=prof>VTOP*0.55&&!c.decel,zone=OZ&&OZ[idx];let m=1;c.clip=false;
+  if(c.decel||c.wantSave){const h=Math.min(K_MAX*rdt,Math.max(0,HARV_LAP-c.harv));c.harv+=h;c.soc=Math.min(1,c.soc+h/ES_CAP);}
   const noDep=neutral||S.phase==="form"||S.phase==="gridwait"||(S.sec&&S.sec[sectorOf(c.pos)]>0);
   if(full&&!noDep){let p=zone?K_MAX:0.25;                          // außerhalb der Beschleunigungszonen nur 250 kW
     if(c.soc>0.03){c.soc=Math.max(0,c.soc-p*rdt/ES_CAP);

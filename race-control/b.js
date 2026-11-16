@@ -150,8 +150,12 @@ function carStep(c,dt){
     else if(ahead.v<8&&ahead.crash&&ahead.crash.done)vT=Math.max(vT,Math.abs(c.lat-ahead.lat)>CAR_W*0.6?10:4);}   // um ein stehendes Auto herumrollen   // um ein stehendes Auto herumrollen
   else c.blockT=0;
   let a=ACC*(S.wx.wet>0.2?1-0.3*S.wx.wet:1); if(race&&S.raceT-S.goT<5)a*=c.launch;
-  if(vT>c.v)c.v=Math.min(vT,c.v+a*dt); else c.v=Math.max(vT,c.v-BRK*dt);
-  c.brk=c.v<v0-0.02;
+  /* Gas/Bremse wie ein Fahrer: kleine Überschüsse durch Gaswegnehmen, echte Bremsung erst bei deutlichem Überschuss, dann bis zum Scheitel durchziehen */
+  if(vT>=c.v){c.v=Math.min(vT,c.v+a*dt*Math.min(1,0.2+(vT-c.v)/3));if(c.brkOn&&(c.brkHold=(c.brkHold||0)+dt)>0.12)c.brkOn=false;}
+  else{const over=c.v-vT;c.brkHold=0;
+    if(!c.brkOn&&over>Math.max(3.5,c.v*0.035))c.brkOn=true;
+    c.v=c.brkOn?Math.max(vT,c.v-BRK*dt):Math.max(vT,c.v-Math.min(COAST,over*4)*dt);}
+  c.brk=!!c.brkOn;c.decel=c.v<v0-0.02;   // ERS rekuperiert bei jedem Verzögern, auch beim Gaswegnehmen
   const os=c.s; c.s+=c.v*dt; if(c.mode==="out"&&!c.pit)c.outDist+=c.v*dt;
   c.wear=Math.min(1.2,c.wear+c.v*dt*wearRate(c)); c.pos=mod(c.s);
   if(Math.floor(c.s/L)>Math.floor(os/L))onLine(c);
@@ -179,7 +183,11 @@ function carStep(c,dt){
   if(!c.pit&&!free)rate=Math.min(rate,Math.max(1.5,c.v*0.2));
   if((c.yieldT>0||c.ot)&&c.v<12)rate=Math.max(rate,6);   // im Stand neben ein Wrack rangieren
   if(c.ot&&c.ot.o.v<8&&!c.pit)rate=Math.max(rate,8);
-  let nl=c.lat+clamp(tl-c.lat,-rate*dt,rate*dt);
+  let nl;
+  if(free||c.pit)nl=c.lat+clamp(tl-c.lat,-rate*dt,rate*dt);
+  else{/* Seitenführung mit Trägheit: Querbewegung baut sich auf und ab, statt von 0 auf volle Rate zu springen */
+    const lv=c.latV||0,des=clamp((tl-c.lat)*3.2,-rate,rate),la=LATACC*(c.v<12?2:1);let v2=lv+clamp(des-lv,-la*dt,la*dt);
+    nl=c.lat+v2*dt;if((tl-c.lat)*(tl-nl)<0&&Math.abs(tl-c.lat)<0.3)nl=tl;}
   if(!free&&nl!==c.lat){for(const o of S.cars){if(o===c||o.removed||o.mode==="garage"||grp(o)!==G0)continue;
     if(Math.abs(delta(c,o))<CAR_L+(G0===0?7:1.5)){const n=Math.abs(nl-o.lat);if(n<CAR_W+0.7&&n<Math.abs(c.lat-o.lat)){nl=c.lat;break;}}}}
   c.latV=(nl-c.lat)/dt; c.lat=nl;
