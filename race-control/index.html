@@ -156,7 +156,7 @@ table.res td,table.res th{padding:3px 6px;border-bottom:1px solid #1f242b;text-a
 .menu{display:grid;gap:8px;margin-top:10px}.menu button{text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-weight:700;font-size:15px}.menu button:hover{border-color:#fff}.menu button small{display:block;color:var(--muted);font-weight:500;font-size:12px;margin-top:2px}.menu button:disabled{opacity:.4;cursor:default}
 .slot{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}.slot div{flex:1;min-width:0}.slot small{color:var(--muted)}
 #redOpts button{width:100%;margin-top:5px;border:1px solid #3a404b;background:var(--panel2);border-radius:7px;padding:6px 4px;font-weight:700;font-size:11px}
-.modal.hero{max-width:1040px;padding:0;overflow:hidden;background:#0d1014;border-color:#2f3540}
+.modal.hero{max-width:1040px;max-height:94vh;padding:0;overflow:auto;background:#0d1014;border-color:#2f3540}
 .hero-top{position:relative;padding:26px 30px 22px;background:radial-gradient(1200px 300px at 0% 0%,#3a0705 0%,transparent 60%),linear-gradient(135deg,#181c22,#0d1014)}
 .hero-top:after{content:"";position:absolute;left:0;right:0;bottom:0;height:8px;background:repeating-linear-gradient(90deg,#fff 0 14px,#111 14px 28px);opacity:.85}
 .hero-top .wm{font-size:38px;font-weight:900;letter-spacing:.06em;line-height:1;text-transform:uppercase}.hero-top .wm b{color:var(--red)}
@@ -172,12 +172,16 @@ table.res td,table.res th{padding:3px 6px;border-bottom:1px solid #1f242b;text-a
 .setup{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:22px}
 .field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}.field span{font:700 11px ui-monospace,monospace;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
 .field select{background:#1b2027;border:1px solid #303743;border-radius:9px;padding:9px 10px;font-size:14px}
+.season-length{display:flex;align-items:center;gap:12px}.season-length input{flex:1;min-width:0;accent-color:var(--red)}.season-length output{min-width:86px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+.field-note{color:var(--muted);font-size:11px;line-height:1.4}
 .prev{background:#080b0f;border:1px solid #232934;border-radius:14px;padding:12px}
 .prev canvas{display:block;width:100%;height:auto}
 .pstats{display:flex;gap:8px;margin-top:10px}.pstats div{flex:1;background:#141920;border:1px solid #232934;border-radius:9px;padding:7px 9px}.pstats b{display:block;font-size:16px}.pstats span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.calendar-editor{margin-top:12px;padding:10px;border:1px solid #232934;border-radius:10px;background:#10141a}.schedule-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.schedule-head b{font-size:13px}.schedule-head span{color:var(--muted);font-size:11px;text-align:right}.calendar-editor .hint{margin:5px 0 8px;font-size:11px}
+.season-list{max-height:330px;overflow:auto;overscroll-behavior:contain}.season-row{display:grid;grid-template-columns:24px minmax(0,1fr) 78px;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid #1d222a}.season-row:last-child{border-bottom:0}.round-num{color:var(--muted);font:700 10px ui-monospace,monospace;text-align:center}.season-row select{width:100%;min-width:0;padding:6px 7px;font-size:12px}.season-sprint{display:flex;justify-content:center;align-items:center;gap:5px;color:var(--muted);font-size:11px;cursor:pointer}.season-sprint input{margin:0;accent-color:var(--red)}
 .calgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;font-size:12.5px;max-height:330px;overflow:auto}.calgrid div{padding:3px 0;border-bottom:1px solid #1d222a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.calgrid i{font-style:normal;color:var(--muted);display:inline-block;width:22px}
 .btnrow{display:flex;gap:10px;margin-top:6px}.btnrow .big{margin-top:0}
-@media(max-width:760px){.cards,.setup{grid-template-columns:1fr}.hero-top .tagl{display:none}.hero-top .wm{font-size:28px}}
+@media(max-width:760px){.cards,.setup{grid-template-columns:1fr}.hero-top .tagl{display:none}.hero-top .wm{font-size:28px}.hero-body{padding:16px}.season-list{max-height:38vh}.season-row{grid-template-columns:22px minmax(0,1fr) 72px;gap:5px}.calendar-editor{padding:8px}}
 .msg.cl{cursor:pointer}.msg.cl:hover{background:#1c2129}.inc .t{cursor:pointer}
 .rv{max-height:220px;overflow:auto;font-size:12.5px}.rv div{padding:4px 0;border-bottom:1px solid #1f242b}.rv b.g{color:#7ff0b4}.rv b.r{color:#ff9b9b}
 .msg.blue{color:#6aa5ff}.tag.blue{background:#2f7bff}.tag.stp{background:#2a303a;color:#cfd4dc}

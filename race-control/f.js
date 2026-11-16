@@ -189,7 +189,8 @@ function startRound(){const k=CAREER,key=k.cal[Math.min(k.round,k.cal.length-1)]
   restoreDB(k);
   mgmtBeforeRound(k,()=>{$("overlay").classList.remove("show");
     const o=Object.assign({},OPTS,{laps:OPTS.lapsSel==="full"?TRACK.laps:+OPTS.lapsSel,banned:[]});
-    if(k.type==="season"&&OPTS.sprints&&o.format!=="race"&&SPRINTS.includes(key))o.format="sprint";
+    const sprintRound=k.type==="season"&&(Array.isArray(k.sprints)?!!k.sprints[k.round]:!!OPTS.sprints&&SPRINTS.includes(key));
+    if(sprintRound)o.format="sprint";
     newWeekend(o,k);score(0);setSpeed(1);});}
 
 const RULES=`<h4>Ablauf</h4><ul><li>Du gibst jede Session selbst frei (Boxenausfahrt öffnen). Bei 0:00 fällt die Zielflagge – wer vorher über Start/Ziel war, darf die Runde beenden, danach fahren alle in die Box.</li>
@@ -209,12 +210,13 @@ const RULES=`<h4>Ablauf</h4><ul><li>Du gibst jede Session selbst frei (Boxenausf
   <h4>Punkte</h4><ul><li>Richtiger Call +100 (Flaggen mit Tempo-Bonus), falsch −50, Gefahr ignoriert −150, zu früh freigegeben −100.</li></ul>`;
 function trackOptions(){let h=CALENDAR.map((k,i)=>`<option value="${k}">${i+1}. ${TRACKS[k].name}</option>`).join("");
   h+=Object.keys(TRACKS).filter(k=>!CALENDAR.includes(k)).map(k=>`<option value="${k}">${TRACKS[k].name}</option>`).join("");return h;}
-const heroTop=(sub)=>`<div class="hero-top"><div class="tagl">SAISON 2026<br>22 FAHRER · 11 TEAMS<br>${CALENDAR.length} STRECKEN</div><div class="wm">Race <b>Control</b></div><div class="sub">${sub}</div></div>`;
+function seasonTrackOptions(selected){const keys=CALENDAR.concat(Object.keys(TRACKS).filter(k=>!CALENDAR.includes(k)));return keys.map(k=>`<option value="${k}"${k===selected?" selected":""}>${esc(TRACKS[k].name)}</option>`).join("");}
+const heroTop=(sub)=>`<div class="hero-top"><div class="tagl">F1 2026<br>22 FAHRER · 11 TEAMS<br>${Object.keys(TRACKS).length} SPIELSTRECKEN</div><div class="wm">Race <b>Control</b></div><div class="sub">${sub}</div></div>`;
 function menuMain(){if(typeof titleScreen==="function")return titleScreen();const m=$("modal"),sv=loadSaves(),auto=sv.auto,n=Object.keys(sv).length;m.className="modal hero";
   m.innerHTML=heroTop("Du bist die Rennleitung der Formel 1: Sessions freigeben, Flaggen setzen, Vorfälle im Replay prüfen und Strafen verteilen.")+`<div class="hero-body"><div class="cards">
       ${auto?`<button class="cardb wide" id="mCont"><span class="ic">▶</span><b>Fortsetzen</b><small>${esc(auto.name)} · ${auto.date}</small></button>`:""}
       <button class="cardb" id="mSingle"><span class="ic">🏁</span><b>Einzelrennen</b><small>Ein Rennwochenende auf einer von ${Object.keys(TRACKS).length} Strecken</small></button>
-      <button class="cardb" id="mSeason"><span class="ic">🏆</span><b>Saison</b><small>Fahrer- und Konstrukteurs-WM über den 2026er Kalender</small></button>
+      <button class="cardb" id="mSeason"><span class="ic">🏆</span><b>Saison</b><small>Fahrer- und Konstrukteurs-WM mit frei anpassbarem Rennkalender</small></button>
       <button class="cardb" id="mLoad" ${n?"":"disabled"}><span class="ic">💾</span><b>Spielstand laden</b><small>${n?n+" Spielstand"+(n>1?"e":"")+" vorhanden":"Noch nichts gespeichert"}</small></button>
       <button class="cardb" id="mRules"><span class="ic">📖</span><b>Regelbuch</b><small>Flaggen, Strafen, Startverfahren, Safety Car</small></button></div>
     <p class="hint" style="margin:14px 0 0">Ohne Anmeldung bleiben Spielstände auf diesem Gerät. Mit Google-Anmeldung werden sie über dein Konto auf anderen Geräten verfügbar. Gespeichert wird automatisch zu Beginn jeder Session.</p></div>`;
@@ -228,28 +230,68 @@ function drawPreview(cv,key){buildTrack(key);const c=cv.getContext("2d"),W=cv.wi
   c.lineWidth=20/Math.max(z,0.12)*0.42;c.strokeStyle="#39414d";c.stroke();c.lineWidth=20/Math.max(z,0.12)*0.2;c.strokeStyle="#f2f4f6";c.stroke();
   for(let k=0;k<3;k++){const i=Math.floor(k*NU/3),p={x:T.x[i],y:T.y[i]};c.fillStyle=k?"#ffd400":"#e10600";c.beginPath();c.arc(p.x,p.y,(k?5:8)/z,0,7);c.fill();}
   c.restore();}
-function menuSetup(type){const m=$("modal");m.className="modal hero";const season=type==="season";
-  m.innerHTML=heroTop(season?"Saison: Punkte nach jedem Rennen, WM-Stand, Strafpunkte und Sperren.":"Einzelrennen: ein Wochenende auf der Strecke deiner Wahl.")+`<div class="hero-body"><div class="setup"><div>
-    ${season?`<label class="field"><span>Umfang</span><select id="oCal"><option value="24">Komplette Saison (${CALENDAR.length} Rennen)</option><option value="12">Halbe Saison (12 Rennen)</option><option value="6">Kurzsaison (6 Rennen)</option></select></label>`
-      :`<label class="field"><span>Strecke</span><select id="oTrack">${trackOptions()}</select></label>`}
-    <label class="field"><span>Wochenende</span><select id="oFmt"><option value="full">Training + Qualifying + Rennen</option>${season?"":`<option value="sprint">Sprint-Wochenende (FP · Sprint-Quali · Sprint · Quali · Rennen)</option>`}<option value="quali">Qualifying + Rennen</option><option value="race">Nur Rennen</option></select></label>
-    ${season?`<label class="field"><span>Sprint-Wochenenden</span><select id="oSpr"><option value="1">Wie im Kalender (${SPRINTS.length} Sprints)</option><option value="0">Keine Sprints</option></select></label>`:""}
-    <label class="field"><span>Session-Längen</span><select id="oMode"><option value="short">Kurz</option><option value="real">Realistisch (FP 60 · Q 18/15/12 Min.)</option></select></label>
-    <label class="field"><span>Renndistanz</span><select id="oLaps"><option value="8">8 Runden</option><option value="12" selected>12 Runden</option><option value="18">18 Runden</option><option value="30">30 Runden</option><option value="full">Volle Distanz</option></select></label>
-    <label class="field"><span>Feedback</span><select id="oFb"><option value="0">Erst nach dem Rennen (realistisch)</option><option value="1">Sofort nach jeder Entscheidung</option></select></label>
-    <label class="field"><span>Wetter</span><select id="oWx"><option value="rand">Zufall</option><option value="dry">Trocken</option><option value="wet">Regen kommt</option></select></label>
-    <div class="btnrow"><button class="big" style="background:#3a3f48;flex:0 0 130px" id="backBtn">Zurück</button><button class="big go" id="goBtn">${season?"Saison starten":"Wochenende starten"}</button></div></div>
-    <div class="prev"><canvas id="pvCv" width="760" height="${season?300:430}"></canvas><div id="pvInfo"></div></div></div></div>`;
-  const cal=()=>{const n=+$("oCal").value,st=CALENDAR.length/n,o=[];for(let i=0;i<n;i++)o.push(CALENDAR[Math.floor(i*st)]);return o;};
-  const upd=()=>{const key=season?cal()[0]:$("oTrack").value;drawPreview($("pvCv"),key);const t=TRACKS[key];
-    $("pvInfo").innerHTML=season?`<div class="hint" style="margin:8px 0 6px"><b>Auftakt: ${esc(t.name)}</b></div><div class="calgrid">${cal().map((k,i)=>`<div><i>${i+1}</i>${esc(TRACKS[k].name)}${SPRINTS.includes(k)?" · Sprint":""}</div>`).join("")}</div>`
-      :`<div class="pstats"><div><b>${esc(t.name)}</b><span>Strecke</span></div><div><b>${t.len?(t.len/1000).toFixed(3)+" km":"–"}</b><span>Länge</span></div><div><b>${t.laps}</b><span>Runden (voll)</span></div><div><b>${fmtLap(t.lapS).slice(0,-2)}</b><span>Rundenzeit ca.</span></div></div>`;};
-  if(season)$("oCal").onchange=upd;else $("oTrack").onchange=upd;upd();
+function menuSetup(type){
+  const m=$("modal"),season=type==="season";m.className="modal hero";
+  let seasonRaces=season?CALENDAR.map(key=>({track:key,sprint:SPRINTS.includes(key)})):[];
+  let previewRound=0;
+  m.innerHTML=heroTop(season?"Stelle deine eigene Saison zusammen: Wähle die Rennen und entscheide für jedes Wochenende, ob es einen Sprint gibt.":"Einzelrennen: ein Wochenende auf der Strecke deiner Wahl.")+`<div class="hero-body">
+    <div class="setup"><div>
+      ${season?`<label class="field"><span>Saisonlänge</span><div class="season-length"><input id="oCal" type="range" min="1" max="${CALENDAR.length}" value="${CALENDAR.length}" step="1" aria-label="Anzahl der Saisonrennen"><output id="oCalCount">${CALENDAR.length} Rennen</output></div><small class="field-note">Lege zuerst die Anzahl fest. Danach kannst du jede Strecke wählen und Sprintrennen markieren.</small></label>`
+        :`<label class="field"><span>Strecke</span><select id="oTrack">${trackOptions()}</select></label>`}
+      <label class="field"><span>${season?"Normale Wochenenden":"Wochenende"}</span><select id="oFmt"><option value="full">Training + Qualifying + Rennen</option>${season?"":`<option value="sprint">Sprint-Wochenende (FP · Sprint-Quali · Sprint · Quali · Rennen)</option>`}<option value="quali">Qualifying + Rennen</option><option value="race">Nur Rennen</option></select></label>
+      <label class="field"><span>Session-Längen</span><select id="oMode"><option value="short">Kurz</option><option value="real">Realistisch (FP 60 · Q 18/15/12 Min.)</option></select></label>
+      <label class="field"><span>Renndistanz</span><select id="oLaps"><option value="8">8 Runden</option><option value="12" selected>12 Runden</option><option value="18">18 Runden</option><option value="30">30 Runden</option><option value="full">Volle Distanz</option></select></label>
+      <label class="field"><span>Feedback</span><select id="oFb"><option value="0">Erst nach dem Rennen (realistisch)</option><option value="1">Sofort nach jeder Entscheidung</option></select></label>
+      <label class="field"><span>Wetter</span><select id="oWx"><option value="rand">Zufall</option><option value="dry">Trocken</option><option value="wet">Regen kommt</option></select></label>
+    </div><div>
+      ${season?`<div class="prev"><canvas id="pvCv" width="760" height="300"></canvas><div id="pvInfo"></div>
+        <section class="calendar-editor" aria-label="Saisonkalender"><div class="schedule-head"><b>Dein Rennkalender</b><span id="seasonSummary" aria-live="polite"></span></div>
+          <p class="hint">Die Reihenfolge ist deine Rennreihenfolge. Strecke und Sprint legst du pro Rennen fest.</p><div id="seasonList" class="season-list"></div>
+        </section></div>`:`<div class="prev"><canvas id="pvCv" width="760" height="430"></canvas><div id="pvInfo"></div></div>`}
+    </div></div>
+    <div class="btnrow"><button class="big" style="background:#3a3f48;flex:0 0 130px" id="backBtn">Zurück</button><button class="big go" id="goBtn">${season?"Saison starten":"Wochenende starten"}</button></div>
+  </div>`;
+
+  const upd=()=>{
+    const key=season?seasonRaces[Math.min(previewRound,seasonRaces.length-1)].track:$("oTrack").value;
+    drawPreview($("pvCv"),key);const t=TRACKS[key];
+    if(season){const race=seasonRaces[previewRound];
+      $("pvInfo").innerHTML=`<div class="pstats"><div><b>Rennen ${previewRound+1}</b><span>${esc(t.name)}</span></div><div><b>${race.sprint?"Ja":"Nein"}</b><span>Sprint-Wochenende</span></div></div>`;
+    }else $("pvInfo").innerHTML=`<div class="pstats"><div><b>${esc(t.name)}</b><span>Strecke</span></div><div><b>${t.len?(t.len/1000).toFixed(3)+" km":"–"}</b><span>Länge</span></div><div><b>${t.laps}</b><span>Runden (voll)</span></div><div><b>${fmtLap(t.lapS).slice(0,-2)}</b><span>Rundenzeit ca.</span></div></div>`;
+  };
+  const renderSeasonCalendar=()=>{
+    const list=$("seasonList");if(!season||!list)return;
+    list.innerHTML=seasonRaces.map((race,i)=>`<div class="season-row"><span class="round-num">${String(i+1).padStart(2,"0")}</span><select data-season-track="${i}" aria-label="Strecke für Rennen ${i+1}">${seasonTrackOptions(race.track)}</select><label class="season-sprint"><input type="checkbox" data-season-sprint="${i}" aria-label="Sprint-Wochenende für Rennen ${i+1}" ${race.sprint?"checked":""}><span>Sprint</span></label></div>`).join("");
+    list.querySelectorAll("[data-season-track]").forEach(select=>{
+      select.onfocus=()=>{previewRound=+select.dataset.seasonTrack;upd();};
+      select.onchange=()=>{const i=+select.dataset.seasonTrack;seasonRaces[i].track=select.value;previewRound=i;upd();};
+    });
+    list.querySelectorAll("[data-season-sprint]").forEach(input=>input.onchange=()=>{
+      const i=+input.dataset.seasonSprint;seasonRaces[i].sprint=input.checked;
+      $("seasonSummary").textContent=`${seasonRaces.length} Rennen · ${seasonRaces.filter(r=>r.sprint).length} Sprint-Wochenende${seasonRaces.filter(r=>r.sprint).length===1?"":"n"}`;
+      if(previewRound===i)upd();
+    });
+    const sprintCount=seasonRaces.filter(r=>r.sprint).length;
+    $("seasonSummary").textContent=`${seasonRaces.length} Rennen · ${sprintCount} Sprint-Wochenende${sprintCount===1?"":"n"}`;
+    $("oCalCount").textContent=`${seasonRaces.length} Rennen`;
+  };
+  if(season){
+    $("oCal").oninput=()=>{
+      const wanted=+$("oCal").value;
+      while(seasonRaces.length>wanted)seasonRaces.pop();
+      while(seasonRaces.length<wanted){const track=CALENDAR[seasonRaces.length%CALENDAR.length];seasonRaces.push({track,sprint:SPRINTS.includes(track)});}
+      previewRound=Math.min(previewRound,seasonRaces.length-1);renderSeasonCalendar();upd();
+    };
+    renderSeasonCalendar();upd();
+  }else{$("oTrack").onchange=upd;upd();}
   $("oMode").onchange=e=>{$("oLaps").value=e.target.value==="real"?"full":"12";};
   $("backBtn").onclick=menuMain;
-  $("goBtn").onclick=()=>{FB_LIVE=$("oFb").value==="1";OPTS={fb:FB_LIVE,wx:$("oWx").value,mode:$("oMode").value,format:$("oFmt").value,lapsSel:$("oLaps").value,sprints:season&&$("oSpr").value==="1"};
-    CAREER={type,cal:season?cal():[$("oTrack").value],round:0,points:{},lic:{},history:[],score:0,dec:{ok:0,total:0},rep:60};
-    $("overlay").classList.remove("show");startRound();};}
+  $("goBtn").onclick=()=>{
+    FB_LIVE=$("oFb").value==="1";OPTS={fb:FB_LIVE,wx:$("oWx").value,mode:$("oMode").value,format:$("oFmt").value,lapsSel:$("oLaps").value};
+    CAREER={type,cal:season?seasonRaces.map(r=>r.track):[$("oTrack").value],sprints:season?seasonRaces.map(r=>r.sprint):[],round:0,points:{},lic:{},history:[],score:0,dec:{ok:0,total:0},rep:60};
+    $("overlay").classList.remove("show");startRound();
+  };
+}
 function menuLoad(){const m=$("modal"),sv=loadSaves(),names={auto:"Automatisch",s1:"Slot 1",s2:"Slot 2",s3:"Slot 3"};m.className="modal";
   m.innerHTML=`<h2>Spielstand laden</h2>${Object.keys(sv).map(k=>`<div class="slot"><div><b>${names[k]||k}</b><br><small>${esc(sv[k].name)} · ${sv[k].date}</small></div>
     <button class="ghost" data-l="${k}">Laden</button><button class="ghost" data-x="${k}">Löschen</button></div>`).join("")||"<p>Keine Spielstände.</p>"}
