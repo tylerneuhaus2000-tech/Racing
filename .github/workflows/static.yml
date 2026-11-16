@@ -28,7 +28,6 @@ jobs:
         run: |
           SHA=$(git rev-parse --short HEAD)
           sed -i "s|BUILD <span id=\"build-sha\">DEV</span>|BUILD <span id=\"build-sha\">${SHA}</span>|g" gt3-web-racer.html
-          sed -i "s|\.js?v=DEV\"|.js?v=${SHA}\"|g" race-control/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
