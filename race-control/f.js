@@ -71,7 +71,7 @@ function uiFlags(){
       else if(k==="stand")standingRestart();
       else{abortSession();if(S.flag.mode==="red"){S.flag.mode="green";S.hazard&&S.hazard.cars.forEach(c=>c.removed=true);S.hazard=null;}}uiFlags();uiSession();});}}
 /* Filter: standardmäßig nur, was noch eine Entscheidung braucht */
-const INBOX_F={open:{t:"Offen",f:i=>i.status==="open"||i.status==="deferred"},done:{t:"Entschieden",f:i=>i.status!=="open"&&i.status!=="deferred"&&i.status!=="info"},
+const INBOX_F={open:{t:"Offen",f:i=>i.status==="open"||i.status==="deferred"},done:{t:"Erledigt",f:i=>i.status!=="open"&&i.status!=="deferred"&&i.status!=="info"},
   info:{t:"Replays",f:i=>i.status==="info"},all:{t:"Alle",f:()=>true}};
 const INBOX_EMPTY={open:"Nichts offen – alles entschieden.",done:"Noch nichts entschieden.",info:"Noch keine Replays.",all:"Noch keine Vorfälle."};
 function uiInbox(){const vis=S.incidents.filter(i=>i.status!=="rec"&&i.status!=="hidden"),fk=INBOX_F[UI.inboxF]?UI.inboxF:"open";
