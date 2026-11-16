@@ -41,10 +41,9 @@ function uiSession(){
     else if(k==="form")startFormation();else if(k==="lights")startLights();else if(k==="go"){if(S.holdReady)lightsOut();}else if(k==="abort")abortStart();else if(k==="scstart")startBehindSC();uiSession();});
   $("towerTitle").textContent=S.type==="race"?"Zeitnahme · Rennen":`Zeitnahme · ${S.name}`;
   uiFlags();}
-/* Wo wird gerade eine Aktion der Rennleitung gebraucht? (Empfehlung der Streckenposten bzw. „Strecke frei“) */
+/* Blinken nur bei „Strecke frei“: welcher Knopf beendet die Neutralisierung? (die Reaktion auf eine neue Gefahr entscheidet der Spieler selbst) */
 function nbNeed(race){const h=S.hazard,m=S.flag.mode,n={vsc:0,sc:0,red:0,sec:[0,0,0]};if(!h)return n;
-  if(!h.handled){if(respLevel(h)<h.sev){if(h.sev===1&&h.sector>=0)n.sec[h.sector]=1;else if(h.sev===2&&m==="green")n.vsc=1;else if(h.sev===3&&race&&(m==="green"||m==="vsc"))n.sc=1;else n.red=1;}}
-  else if(h.cleared){if(m==="red")n.red=1;else if(m==="sc"){if(!S.restart&&!(S.sc&&S.sc.inLap))n.sc=1;}else if(m==="vsc")n.vsc=1;else for(let i=0;i<3;i++)if(S.sec[i])n.sec[i]=1;}
+  if(h.handled&&h.cleared){if(m==="red")n.red=1;else if(m==="sc"){if(!S.restart&&!(S.sc&&S.sc.inLap))n.sc=1;}else if(m==="vsc")n.vsc=1;else for(let i=0;i<3;i++)if(S.sec[i])n.sec[i]=1;}
   return n;}
 function uiFlags(){
   const m=S.flag.mode,race=S.type==="race"&&S.phase==="racing",need=nbNeed(race);
