@@ -58,7 +58,7 @@ function simStep(dt){
   for(const c of S.cars){if(c.script)scriptStep(c,dt);if(c.impede||c.fakeImp)impedeStep(c,dt);}
   for(const c of S.cars)carStep(c,dt);
   if(S.type!=="race")for(const c of S.cars)secTick(c);
-  scStep(dt);hazardStep(dt);deoverlap();
+  scStep(dt);hazardStep(dt);nukeStep(dt);deoverlap();
   if(S.type==="race"){let ld=null;for(const c of S.cars)if(!c.removed&&!c.retired&&!c.finished&&c.mode!=="garage"&&(!ld||c.s>ld.s))ld=c;if(ld)S.leader=ld;}
   radioAmbient(dt);protestStep();hiddenStep();recFrame();finalizeIncs(false);}
 
@@ -397,7 +397,7 @@ function respLevel(h){const m=S.flag.mode;return m==="red"?4:m==="sc"?3:m==="vsc
 const NEEDTXT={1:"Gelb im betroffenen Sektor",2:"VSC",3:"Safety Car",4:"Rote Flagge"};
 function recText(h){return h.sev===1?`Doppelgelb in Sektor ${h.sector+1}`:h.sev===2?"Virtual Safety Car":h.sev===3?"Safety Car":"Rote Flagge";}
 function endText(h){const m=S.flag.mode;return m==="red"?"Neustart freigeben":m==="sc"?"„SC in this lap“":m==="vsc"?"VSC beenden":"Sektoren grün schalten";}
-function hazardStep(dt){const h=S.hazard;if(!h)return;const r=respLevel(h),where=h.sector>=0?` in Sektor ${h.sector+1}`:"";
+function hazardStep(dt){const h=S.hazard;if(!h)return;if(h.nuke){nukeHazStep(h,dt);return;}const r=respLevel(h),where=h.sector>=0?` in Sektor ${h.sector+1}`:"";
   if(!h.handled){h.t+=dt;
     if(r>=h.sev){h.handled=true;h.clearAt=S.t+(S.flag.mode==="red"?Math.max(h.dur,rand(180,240)):h.dur);if(!h.counted){h.counted=true;W.dec.total++;
         if(r===h.sev||h.rain){const b=Math.round(50*clamp(1-h.t/h.deadline,0,1));W.dec.ok++;score(100+b);addLog(`Korrekte Reaktion der Rennleitung (+${100+b})`,"good");repAdd(1);review("Flagge: "+h.text,true,100+b,"");}

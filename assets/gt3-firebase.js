@@ -1057,15 +1057,38 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Ergebnis einer Google-Anmeldung per Weiterleitung einsammeln (Fallback zum Pop-up).
-auth.getRedirectResult().then(res => {
-  if(res && res.user) closeAuthModal();
-}).catch(e => {
-  document.addEventListener('DOMContentLoaded', () => {
-    openAuthModal();
-    zeigeAuthFehler(e);
+// Nur eine vom Spieler gestartete Google-Weiterleitung darf beim naechsten
+// Laden einen Login-Dialog oeffnen. getRedirectResult() wirft unter file://
+// (Electron) auch ohne Login-Versuch; das blockierte bisher das Solo-Spiel.
+const AUTH_REDIRECT_PENDING_KEY = 'gridline_auth_redirect_pending';
+const redirectWasRequested = (() => {
+  try { return sessionStorage.getItem(AUTH_REDIRECT_PENDING_KEY) === '1'; }
+  catch(_) { return false; }
+})();
+function setAuthRedirectPending(pending){
+  try {
+    if(pending) sessionStorage.setItem(AUTH_REDIRECT_PENDING_KEY, '1');
+    else sessionStorage.removeItem(AUTH_REDIRECT_PENDING_KEY);
+  } catch(_) {}
+}
+if(location.protocol !== 'file:'){
+  auth.getRedirectResult().then(res => {
+    setAuthRedirectPending(false);
+    if(res && res.user) closeAuthModal();
+  }).catch(e => {
+    setAuthRedirectPending(false);
+    if(!redirectWasRequested){
+      console.warn('[FB] Redirect-Ergebnis ohne Login-Versuch ignoriert:', e.code || e.message);
+      return;
+    }
+    const showRedirectError = () => {
+      openAuthModal();
+      zeigeAuthFehler(e);
+    };
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showRedirectError, {once:true});
+    else showRedirectError();
   });
-});
+}
 
 /* ── Login-Ereignis protokollieren (Ger\u00e4te-/Sitzungsmetadaten + IP) ──
    Zweck: Missbrauchs-/Mehrfachaccount-Erkennung durch Admins (nicht f\u00fcr
@@ -1726,8 +1749,11 @@ document.getElementById('btn-fb-google').onclick = () => {
 
   const provider = new firebase.auth.GoogleAuthProvider();
   const fertig = () => { googleLaeuft = false; };
-  const perWeiterleitung = () => auth.signInWithRedirect(provider)
-    .catch(e => { fertig(); zeigeAuthFehler(e); });
+  const perWeiterleitung = () => {
+    setAuthRedirectPending(true);
+    return auth.signInWithRedirect(provider)
+      .catch(e => { setAuthRedirectPending(false); fertig(); zeigeAuthFehler(e); });
+  };
 
   if(BRAUCHT_REDIRECT){ perWeiterleitung(); return; }
 

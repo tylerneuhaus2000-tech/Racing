@@ -28,7 +28,7 @@ const TEAM2={MER:"#101418",MCL:"#101418",FER:"#fff200",RBR:"#ffd000",HAA:"#e6002
 const MARKS=[];
 const FLAGCOL={vsc:"#ffd400",sc:"#ff9d00",red:"#e10600"};
 function w2s(x,y,cam,W,H){const dx=(x-cam.x)*cam.z,dy=(y-cam.y)*cam.z,c=Math.cos(-cam.rot),s=Math.sin(-cam.rot);return [W/2+dx*c-dy*s,H/2+dx*s+dy*c];}
-const CARDYN={roll:0,steer:0,brk:false,v:0};
+const CARDYN={roll:0,steer:0,brk:false,v:0,dm:0,pw:0,t:0};
 /* Lackierungen (private Bilddateien, Nase zeigt nach rechts) */
 const LIV={};for(const k of ["ALP","AMR","AUD","CAD","FER","HAA","MCL","MER","RCB","RBR","WIL"]){const im=new Image();im.onload=()=>{im.ok=true;};im.src="img/"+k+".png";LIV[k]=im;}
 let LIV_ON=true;
@@ -36,14 +36,14 @@ function drawCarShape(ctx,col,fl,z,drv,rainL){const dy=CARDYN.roll*0.38,dx=CARDY
   const li=LIV_ON&&drv&&LIV[drv.team];
   if(li&&li.ok){const L_=14.9,H_=Math.min(L_*li.height/li.width,5.3);   // exakt so groß wie die Kollisionsbox (14,9 × 5,1)
     if(z>1.2){ctx.fillStyle="rgba(0,0,0,0.35)";ctx.beginPath();ctx.ellipse(-0.3+dx*0.5,0.9-dy*0.6,7.8,H_*0.5,0,0,7);ctx.fill();}
-    ctx.save();ctx.translate(dx,dy);if(CARDYN.dm||Math.abs(CARDYN.steer)>0.015)dmgDrawImage(ctx,li,L_,H_,CARDYN.dm,CARDYN.steer,drv.team);else ctx.drawImage(li,-L_/2,-H_/2,L_,H_);ctx.restore();
+    ctx.save();ctx.translate(dx,dy);if(CARDYN.dm||Math.abs(CARDYN.steer)>0.015)dmgDrawImage(ctx,li,L_,H_,CARDYN.dm,CARDYN.steer,drv.team,CARDYN.pw,CARDYN.t);else ctx.drawImage(li,-L_/2,-H_/2,L_,H_);ctx.restore();
     if(fl&4){ctx.fillStyle="#ff2a2a";ctx.fillRect(-8.6,-0.5,0.6,1.0);}
     if(rainL){ctx.fillStyle="#ff2a2a";ctx.beginPath();ctx.arc(-8.4,0,0.9,0,7);ctx.fill();}
     return;}
   if(z>1.2){ctx.fillStyle="rgba(0,0,0,0.35)";ctx.beginPath();ctx.ellipse(-0.3+dx*0.5,0.9-dy*0.6,7.6,3.3,0,0,7);ctx.fill();}      // Schatten, verschiebt sich mit Rollen/Nicken
   ctx.fillStyle="#0a0a0a";
-  ctx.fillRect(-6.4,-3.25,3.1,1.6);ctx.fillRect(-6.4,1.65,3.1,1.6);
-  for(const wy of[-2.525,2.525]){ctx.save();ctx.translate(4.45,wy);ctx.rotate(CARDYN.steer);ctx.fillRect(-1.35,-0.73,2.7,1.45);ctx.restore();}   // Vorderräder lenken ein
+  {const dm=CARDYN.dm||0;if(!(dm&DP.wRL))ctx.fillRect(-6.4,-3.25,3.1,1.6);if(!(dm&DP.wRR))ctx.fillRect(-6.4,1.65,3.1,1.6);}
+  for(const wy of[-2.525,2.525]){if((CARDYN.dm||0)&(wy<0?DP.wFL:DP.wFR))continue;ctx.save();ctx.translate(4.45,wy);ctx.rotate(CARDYN.steer);ctx.fillRect(-1.35,-0.73,2.7,1.45);ctx.restore();}   // Vorderräder lenken ein
   if(CARDYN.brk&&z>2.2){const a=clamp(CARDYN.v/150,0.3,0.9);ctx.fillStyle=`rgba(255,${Math.round(120-60*a)},20,${(0.55*a).toFixed(2)})`;
     for(const p of[[4.45,-2.5],[4.45,2.5],[-4.85,-2.45],[-4.85,2.45]]){ctx.beginPath();ctx.arc(p[0],p[1],0.75,0,7);ctx.fill();}}       // glühende Bremsscheiben
   ctx.save();ctx.translate(dx,dy);                                   // Karosserie: taucht beim Bremsen ein, neigt sich in der Kurve nach außen
@@ -66,6 +66,7 @@ function drawScene(ctx,W,H,cam,fr,roster,opt){
   opt=opt||{};
   const night=NIGHT.has(TRACK.key);
   ctx.save();ctx.fillStyle=night?"#04070c":opt.bg||"#0b1f14";ctx.fillRect(0,0,W,H);
+  if(fr.nk){const sh=nukeShake(fr);ctx.translate(sh[0],sh[1]);}
   ctx.translate(W/2,H/2);ctx.scale(cam.z,cam.z);ctx.rotate(-cam.rot);ctx.translate(-cam.x,-cam.y);
   ctx.lineJoin="round";ctx.lineCap="butt";
   const st=(p,w,c)=>{ctx.lineWidth=w;ctx.strokeStyle=c;ctx.stroke(p);};
@@ -75,7 +76,7 @@ function drawScene(ctx,W,H,cam,fr,roster,opt){
   for(const t of P.trees){ctx.fillStyle=night?"#07110c":t[3]<0.5?"#0d2a17":"#103420";ctx.beginPath();ctx.arc(t[0],t[1],t[2],0,7);ctx.fill();}
   st(P.stands,13,"#39465c");ctx.setLineDash([2.5,2.5]);st(P.stands,9,"#6f86ad");ctx.setLineDash([]);
   st(P.bld,13,"#565e6b");st(P.bld,9,"#3c434e");
-  st(P.center,63,"#77808c");st(P.center,60,"#22343a");drawPuddles(ctx,fr);drawDebris(ctx,fr);
+  st(P.center,63,"#77808c");st(P.center,60,"#22343a");drawPuddles(ctx,fr);
   st(P.gravel,7.4,night?"#6e6247":"#8d7d58");st(P.runA,7.4,night?"#2c3742":"#46525f");st(P.rwall,1.6,"#d9dde3");
   st(P.gar,11,"#4b525e");st(P.pit,21,"#30353d");
   st(P.kerb,3,"#d22");ctx.setLineDash([4,4]);st(P.kerb,3,"#f4f4f4");ctx.setLineDash([]);
@@ -86,6 +87,8 @@ function drawScene(ctx,W,H,cam,fr,roster,opt){
   st(P.center,32,`rgb(${g-4},${g},${b})`);
   if(cam.z>1.4)st(P.line,7,`rgba(0,0,0,${(0.05+0.14*clamp((S&&S.evo||0)/6,0,1))*(1-Math.min(0.8,wet*1.2))})`);
   if(wet>0.3&&cam.z>1.2)st(P.line,5,`rgba(190,215,240,${(0.07*wet).toFixed(3)})`);   // nasse Fahrbahn glänzt auf der Ideallinie
+  if(fr.nk)drawNukeGround(ctx,fr);
+  drawDebris(ctx,fr);
   if(opt.marks&&cam.z>1.2){ctx.lineWidth=0.9;ctx.strokeStyle="rgba(8,8,8,0.4)";ctx.beginPath();for(const m of MARKS){ctx.moveTo(m[0],m[1]);ctx.lineTo(m[2],m[3]);}ctx.stroke();}
   st(P.wall,1.4,"#c9ced6");
   // Start/Ziel + Boxen
@@ -124,7 +127,7 @@ function drawScene(ctx,W,H,cam,fr,roster,opt){
     const q=posXY(fr.a[o],fr.a[o+1]);ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.ang+fr.a[o+2]);
     if(cam.z<1.25){const sc=Math.max(1,1.05/cam.z);ctx.scale(sc,sc);}
     {const ix=sidx(mod(fr.a[o])),kk=T.k[ix],v=Math.abs(fr.a[o+3]),r=clamp(v*v*Math.abs(kk)/ALAT,0,1.2);
-      CARDYN.roll=(fl&128)||(fl&16)?0:-Math.sign(kk*SIDE)*r;CARDYN.steer=(fl&128)?0:clamp(kk*SIDE*16,-0.42,0.42);CARDYN.brk=(fl&4)&&v>30;CARDYN.v=v;CARDYN.dm=fr.e&&fr.e.length>=(k+1)*5?fr.e[k*5+3]|(fr.e[k*5+4]<<8):0;}
+      CARDYN.roll=(fl&128)||(fl&16)?0:-Math.sign(kk*SIDE)*r;CARDYN.steer=(fl&128)?0:clamp(kk*SIDE*16,-0.42,0.42);CARDYN.brk=(fl&4)&&v>30;CARDYN.v=v;CARDYN.dm=fr.e&&fr.e.length>=(k+1)*5?fr.e[k*5+3]|(fr.e[k*5+4]<<8):0;CARDYN.pw=(fl>>22)&3;CARDYN.t=fr.t||0;}
     drawCarShape(ctx,roster[k].drv.color,fl,cam.z,roster[k].drv,wet>0.25&&Math.sin(fr.t*14)>0);
     if((fl&128)&&fr.a[o+3]<0&&cam.z>1.5){const el=-fr.a[o+3];drawCrew(ctx,fl,((fl>>14)&63)/63,roster[k].drv,fr.t);ctx.restore();
       // Standuhr über dem Auto
@@ -134,7 +137,9 @@ function drawScene(ctx,W,H,cam,fr,roster,opt){
     else ctx.restore();}
   if(fr.sc){const q=posXY(fr.sc[0],fr.sc[1]);ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.ang);
     ctx.fillStyle="#d8dde3";ctx.fillRect(-7,-3.2,14,6.4);ctx.fillStyle="#ff9d00";ctx.fillRect(-1.5,-3.2,3,6.4);ctx.fillStyle="#111";ctx.fillRect(1,-2.4,3,4.8);ctx.restore();}
+  if(fr.nk)drawNukeAir(ctx,fr);
   ctx.restore();
+  if(fr.nk)drawNukeFlash(ctx,fr,W,H);
   // Labels
   ctx.font="bold 10px ui-monospace,monospace";ctx.textAlign="center";
   const hi=opt.hi||[];
@@ -188,7 +193,7 @@ function drawFx(ctx,fr,hist,n){const wet=fr.wet||0,N=hist.length;
 /* Zwischenbild aus zwei Simulationsschritten – macht die Bewegung bei 60 Bildern pro Sekunde flüssig */
 function lerpFrame(f0,f1,t,tmp){if(!tmp.a||tmp.a.length!==f1.a.length)tmp.a=new Float32Array(f1.a.length);const a=tmp.a,n=f1.a.length;if(f0.a.length!==n)return f1;
   for(let k=0;k<n;k+=5){a[k]=f0.a[k]+(f1.a[k]-f0.a[k])*t;a[k+1]=f0.a[k+1]+(f1.a[k+1]-f0.a[k+1])*t;{let da=f1.a[k+2]-f0.a[k+2];da-=Math.round(da/6.2832)*6.2832;a[k+2]=f0.a[k+2]+da*t;}a[k+3]=f1.a[k+3];a[k+4]=f1.a[k+4];}
-  tmp.e=f1.e;tmp.db=f1.db;tmp.fm=f1.fm;tmp.sec=f1.sec;tmp.li=f1.li;tmp.wet=f1.wet;tmp.rain=f1.rain;tmp.hz=f1.hz;tmp.px=f1.px;tmp.t=f0.t+(f1.t-f0.t)*t;
+  tmp.e=f1.e;tmp.db=f1.db;tmp.nk=f1.nk;tmp.fm=f1.fm;tmp.sec=f1.sec;tmp.li=f1.li;tmp.wet=f1.wet;tmp.rain=f1.rain;tmp.hz=f1.hz;tmp.px=f1.px;tmp.t=f0.t+(f1.t-f0.t)*t;
   tmp.sc=f1.sc&&f0.sc?[f0.sc[0]+(f1.sc[0]-f0.sc[0])*t,f0.sc[1]+(f1.sc[1]-f0.sc[1])*t]:f1.sc;return tmp;}
 function hud(ctx,W,text,col,right){ctx.font="bold 11px ui-monospace,monospace";
   if(text){const w=ctx.measureText(text).width+12;ctx.fillStyle=col||"#000a";ctx.fillRect(8,8,w,18);ctx.fillStyle=col?"#000":"#fff";ctx.fillText(text,14,21);}
@@ -304,7 +309,7 @@ function rpFrame(rdt){const inc=R.inc,cl=inc.clip,cv=$("rpCv");if(!cv||!cl.lengt
   if(!R.tmp||R.tmp.a.length!==f0.a.length)R.tmp={a:new Float32Array(f0.a.length)};
   const fr=R.tmp;for(let k=0;k<f0.a.length;k+=5){fr.a[k]=f0.a[k]+(f1.a[k]-f0.a[k])*t;fr.a[k+1]=f0.a[k+1]+(f1.a[k+1]-f0.a[k+1])*t;
     fr.a[k+2]=f0.a[k+2]+(f1.a[k+2]-f0.a[k+2])*t;fr.a[k+3]=f0.a[k+3];fr.a[k+4]=f0.a[k+4];}
-  fr.fm=f0.fm;fr.sec=f0.sec;fr.li=f0.li;fr.wet=f0.wet;fr.rain=f0.rain;fr.sc=f0.sc;fr.hz=f0.hz;fr.px=f0.px;fr.t=f0.t+(f1.t-f0.t)*t;
+  fr.fm=f0.fm;fr.sec=f0.sec;fr.li=f0.li;fr.wet=f0.wet;fr.rain=f0.rain;fr.sc=f0.sc;fr.hz=f0.hz;fr.px=f0.px;fr.t=f0.t+(f1.t-f0.t)*t;fr.e=f0.e;fr.db=f0.db;fr.nk=f0.nk;
   const c=cv.getContext("2d"),W=cv.width,H=cv.height,fc=inc.cars[Math.min(R.focus,inc.cars.length-1)],k=inc.roster.indexOf(fc);
   let cam;
   if(R.cam==="all")cam=camFit(W,H),cam.z*=Math.max(1,R.zoom);

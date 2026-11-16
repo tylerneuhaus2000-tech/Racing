@@ -65,7 +65,7 @@ function carStep(c,dt){
     if(Math.abs(nl)<so)nl+=sd*(far?(c.v>4?17:0):Math.min(10,c.v*0.22))*dt;      // rutscht nach außen: auf den Randstreifen, in die Auslaufzone oder bis an die Barriere
     if(Math.abs(nl)>LINE_OUT+2&&c.spinKind==="beach")c.v=Math.max(0,c.v-30*dt);   // Kies bremst
     c.lat=clamp(nl,-so-0.5,so+0.5); if(Math.abs(c.lat)>LINE_OUT&&c.v>15)c.dustT=0.25;
-    if(c.spinKind==="tap"&&Math.abs(c.lat)>=26.4&&!c.spinHit){c.spinHit=true;if(c.v>8){c.sparks=0.6;c.dmg=1;c.dmgT=S.t;c.ignoreDmg=false;c.v*=0.35;addLog(`CAR ${c.drv.num} (${c.drv.code}) – Berührung mit der Barriere, fährt beschädigt weiter`);}}
+    if(c.spinKind==="tap"&&Math.abs(c.lat)>=26.4&&!c.spinHit){c.spinHit=true;if(c.v>8){c.sparks=0.6;c.dmg=1;c.dmgT=S.t;c.ignoreDmg=false;wallDamage(c,clamp(c.v/120,0.15,0.45),Math.sign(c.lat)||1);c.v*=0.35;addLog(`CAR ${c.drv.num} (${c.drv.code}) – Berührung mit der Barriere, fährt beschädigt weiter`);}}
     if(c.spinT<=0&&c.spinKind==="beach"&&Math.abs(c.lat)>21){c.spin=0;c.spinKind=null;spinBeached(c);return;} c.pos=mod(c.s); c.latV=0; c.yaw*=0.9; c.brk=true;
     if(c.spinT<=0)c.rejoin=7; return; }
   if(c.rejoin>0){ c.rejoin-=dt; let busy=false;             // wartet am Rand, bis die Lücke frei ist
@@ -230,6 +230,7 @@ function crashStep(c,dt){const k=c.crash,idx=sidx(c.pos);
       if(vi>100&&Math.random()<0.5)c.dmg=1;wallDamage(c,clamp(vi/140,0.2,1),k.dir);}}}
   c.spin+=k.sv0*Math.min(1,c.v/k.v0+0.08)*dt;c.yaw*=0.9;c.brk=true;c.latV=0;if(c.v>20){if(off)c.dustT=0.25;else c.lockT=0.2;}
   if(c.v<1){c.v=0;k.done=true;k.sv0=0;}
+  if(k.done&&!k.hit&&!k.mech&&!k.soft){k.soft=true;if(Math.random()<0.6)breakPart(c,"floor");if(Math.random()<0.5)breakPart(c,"fw"+(Math.random()<0.5?"L":"R"));}
   if(k.done&&Math.abs(c.lat)<15.5&&!k.mech&&!S.cars.some(o=>o!==c&&!o.removed&&Math.abs(delta(o,c))<CAR_L+2&&Math.abs(o.lat-c.lat)<CAR_W+1.5)){c.lat+=Math.sign(c.lat||k.dir)*2.5*dt;}   // Wrack rollt noch an den Rand, Fahrbahn bleibt frei
 }
 
@@ -314,7 +315,7 @@ function deoverlap(){const cs=S.cars,heavy=c=>c.crash||c.v<1||c.mode==="grid"?0.
   for(let pass=0;pass<10;pass++){let any=false;
   for(let x=0;x<cs.length;x++){const A=cs[x];if(A.removed||A.mode==="garage")continue;
     for(let y=x+1;y<cs.length;y++){const B=cs[y];if(B.removed||B.mode==="garage"||grp(A)!==grp(B))continue;
-      const m=obbMTV(A,B);if(!m)continue;any=true;if(pass===0)S.ovl++;
+      const m=obbMTV(A,B);if(!m)continue;any=true;if(pass===0){S.ovl++;if(!pairFree(A,B))contactHit(A,B,m);}
       const wa=heavy(A),wb=heavy(B),sum=wa+wb,d=m.d+0.02;
       pushCar(A,-m.x*d*wa/sum,-m.y*d*wa/sum);pushCar(B,m.x*d*wb/sum,m.y*d*wb/sum);
       const dd=delta(A,B);if(Math.abs(dd)>CAR_L*0.5&&Math.abs(dd)<CAR_L+6){const rear=dd>0?A:B,front=dd>0?B:A;if(!rear.crash)rear.v=Math.min(rear.v,front.v);}}}

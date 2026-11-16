@@ -6,10 +6,10 @@ function recFrame(){const n=S.cars.length,a=new Float32Array(n*5),e=new Uint8Arr
     let cw=0;if(c.pit&&c.pit.ph==="svc"&&c.pit.T0!=null){const p=c.pit,el=S.t-p.T0;a[o+3]=-(el+0.001);
       if(el<p.wait)cw=2048;else if(el<p.wait+p.work){cw=4096|(Math.round(clamp((el-p.wait)/p.work,0,1)*63)<<14);}else if(el<p.wait+p.work+p.rep){cw=8192|(Math.round(clamp((el-p.wait-p.work)/p.rep,0,1)*63)<<14);}}   // Phase plus Fortschritt 0–63   // Standzeit und Phase der Boxencrew
     {const acc=(c.v-(c._pv==null?c.v:c._pv))/DT;c._pv=c.v;const pf=T.prof[sidx(c.pos)]||1;let th=c.brk?0:c.v>=pf*0.96?1:clamp(0.15+acc/22,0,1);if(c.pit)th=Math.min(th,0.35);
-      e[i*5]=Math.round(clamp(c.soc==null?0.85:c.soc,0,1)*255);e[i*5+1]=Math.round(th*255);e[i*5+2]=c.clip?2:c.brk||c.wantSave?1:c.omOn?3:0;e[i*5+3]=(c.dp||0)&255;e[i*5+4]=(c.dp||0)>>8;}
-    a[o+4]=(c.removed?0:1)|(c.omOn?2:0)|(c.brk?4:0)|(c.sparks>0?8:0)|(c.crash?16:0)|(c.blueT>0?32:0)|(c.lockT>0?64:0)|(c.pit&&(c.pit.ph==="svc"||c.pit.ph==="hold")?128:0)|(c.relT>0?256:0)|(c.dustT>0?512:0)|(c.dmg?1024:0)|cw|(c.aquaT>0?1<<20:0)|(c.fire&&c.fire.t<c.fire.T?1<<21:0);if(c.fire&&c.fire.t<c.fire.T)c.fire.t+=DT;}
+      e[i*5]=Math.round(clamp(c.soc==null?0.85:c.soc,0,1)*255);e[i*5+1]=Math.round(th*255);e[i*5+2]=c.clip?2:c.brk||c.wantSave?1:c.omOn?3:0;{const dpv=(c.dp||0)|(c.punct?DP.tyre:0);e[i*5+3]=dpv&255;e[i*5+4]=(dpv>>8)&255;}}
+    a[o+4]=(c.removed?0:1)|(c.omOn?2:0)|(c.brk?4:0)|(c.sparks>0?8:0)|(c.crash?16:0)|(c.blueT>0?32:0)|(c.lockT>0?64:0)|(c.pit&&(c.pit.ph==="svc"||c.pit.ph==="hold")?128:0)|(c.relT>0?256:0)|(c.dustT>0?512:0)|(c.dmg?1024:0)|cw|(c.aquaT>0?1<<20:0)|(c.fire&&c.fire.t<c.fire.T?1<<21:0)|(c.punct?((c.punctW==null?(c.punctW=irand(2,3)):c.punctW)&3)<<22:0);if(c.fire&&c.fire.t<c.fire.T)c.fire.t+=DT;}
   REC.push({a,e,db:debrisRec(),fm:S.flag.mode,sec:S.sec.slice(),li:S.lights,wet:S.wx.wet,rain:S.wx.rain,sc:S.sc&&S.sc.on?[S.sc.s,S.sc.lat]:S.rsSC?[S.rsSC.s,0]:null,px:(S.type!=="race"?!S.pitExitOpen:S.flag.mode==="red")?1:0,
-    hz:S.hazard&&!S.hazard.cleared&&S.hazard.pos>=0?[S.hazard.pos,S.hazard.deb?1:0,S.hazard.handled?1:0,S.hazard.cars&&S.hazard.cars[0]?S.hazard.cars[0].lat:0]:null,t:S.t});
+    nk:S.nuke?S.nuke.rec:null,hz:S.hazard&&!S.hazard.cleared&&S.hazard.pos>=0?[S.hazard.pos,S.hazard.deb?1:0,S.hazard.handled?1:0,S.hazard.cars&&S.hazard.cars[0]?S.hazard.cars[0].lat:0]:null,t:S.t});
   if(REC.length>2400){REC.splice(0,300);recBase+=300;}
   S.step++;}
 function sessTag(){return S.type==="race"?"R"+clamp(Math.floor((S.leader?S.leader.s:0)/L)+1,1,S.laps):S.name;}
@@ -68,7 +68,7 @@ function armMech(){const cand=S.cars.filter(c=>!c.removed&&(c.mode==="race"||c.m
   registerInc({kind:"info",title:`Defekt · ${car.drv.code} · ${cnm(co)}`,cars:[car],pos:car.pos,pre:3,post:5});
   radio(car,pick(["Kein Antrieb! Der Motor ist weg.","Getriebe hängt fest. Ich muss abstellen.","Leistung weg, Leistung weg!"]),false,true);return true;}
 function armPuncture(){const cand=S.cars.filter(c=>!c.removed&&c.mode==="race"&&!c.pit&&!c.crash&&!c.finished&&!c.punct&&!c.wantPit);
-  if(!cand.length)return false;const car=pick(cand);car.punct=true;car.dmg=1;car.ignoreDmg=false;car.ot=null;
+  if(!cand.length)return false;const car=pick(cand);puncture(car,null,false);car.ot=null;
   addLog(`CAR ${car.drv.num} (${car.drv.code}) – Reifenschaden, fährt langsam zur Box`);radio(car,"Reifenschaden! Ich habe einen Platten, ich komme rein.",false,true);return true;}
 function omActive(){return S.om&&S.type==="race"&&S.phase==="racing"&&S.flag.mode==="green";}
 
@@ -139,12 +139,12 @@ function collide(A,B,co){
   if(typeof sndEvent==="function")sndEvent("crash");
   {const rv=rivMap(),k=rivKey(A,B);if(rv[k])radio(B,pick([`Schon wieder ${A.drv.code}! Der hat es auf mich abgesehen.`,`Wieder ${A.drv.code}. Das muss endlich Konsequenzen haben!`,`Immer derselbe. ${A.drv.code} lernt es nicht.`]),false,true);rv[k]=(rv[k]||0)+1;}
   A.sparks=B.sparks=0.7;A.lockT=0.5;A.v=Math.min(A.v,B.v)*0.78;A.dmg=1;A.dmgT=S.t;A.ignoreDmg=!out&&Math.random()<0.4;
-  hitDamage(A,B,rand(0.25,0.9));hitDamage(B,A,out?rand(0.6,1):light?rand(0.3,0.7):rand(0.15,0.55));
+  hitDamage(A,B,rand(0.25,0.9));hitDamage(B,A,out?rand(0.6,1):light?rand(0.3,0.7):rand(0.15,0.55));markHit(A,B);
   A.wob={t:0,T:1.0,amp:(rear?0.22:0.4)*(-sd)};
   if(out){B.crash={dir:sd,rest:sd*27.5,h0:T.ang[idx]+SIDE*sd*0.38,v0:Math.max(30,B.v),sv0:rand(4.5,6.5)*rot,grav:105,done:false};B.retired=true;B.ot=null;B.wob=null;
     if(rear)B.v*=1.05;crashHazard(B,co,Math.random()<0.6?3:2);A.ignoreDmg=false;}
   else if(light){B.wob={t:0,T:1.1,amp:0.5*sd};if(rear)B.v*=1.03;B.dmg=1;B.dmgT=S.t;B.ignoreDmg=false;B.lockT=0.4;
-    if(rear&&Math.random()<0.5){B.punct=true;addLog(`CAR ${B.drv.num} (${B.drv.code}) – Reifenschaden hinten nach Kontakt`);}}
+    if(rear&&Math.random()<0.5){puncture(B,irand(2,3),false);addLog(`CAR ${B.drv.num} (${B.drv.code}) – Reifenschaden hinten nach Kontakt`);}}
   else{spinCar(B,rot,sd);if(rear)B.v*=1.04;if(Math.random()<0.3)B.dmg=1;}
   radio(B,rear?pick(["Er ist mir voll ins Heck gefahren!","Ich wurde von hinten getroffen! Prüft das Auto.","Was soll das? Der hat den Bremspunkt komplett verpasst!"])
     :pick(["Habt ihr das gesehen?! Der hat nicht mal gebremst!","Er fährt mir einfach rein!","Was macht der da?!"]),false,true);

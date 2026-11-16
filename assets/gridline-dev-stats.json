@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "developmentTimeSeconds": 32615,
+  "developmentTimeSource": "Initialer historischer Wert: 4h 30m plus dokumentierte lokale Session bis zum letzten Aktivitätszeitpunkt.",
+  "developmentSession": {
+    "active": false,
+    "startedAt": "",
+    "endedAt": "2026-09-23T20:26:36Z",
+    "source": "Letzte dokumentierte lokale Session; derzeit pausiert."
+  },
+  "currentPhase": "Silverstone physics reference slice",
+  "currentTask": "Native Ferrari-Handling gegen Browser-Referenz prüfen und manuell mit Controller/Lenkrad validieren",
+  "currentMilestone": "Native Rigidbody foundation",
+  "unityVersion": "6000.5.1f1",
+  "referenceCar": "Ferrari 296 GT3",
+  "referenceTrack": "Silverstone GP",
+  "physicsFrequencyHz": 120,
+  "nativeIntegratedVehicles": 1,
+  "nativeIntegratedTracks": 1,
+  "nativeCSharpFiles": 17,
+  "nativeCSharpLines": 3854,
+  "webGameLines": 18751,
+  "gitCommitCount": 467,
+  "platformTarget": "macOS runtime verified; Windows Standalone und iOS/Xcode gebaut; Windows/iPad Runtime offen",
+  "latestBuild": {
+    "status": "passed",
+    "label": "Aktueller macOS Player: zwei gültige Silverstone-Runden nach Handling-Fix",
+    "lastKnownSuccessful": "2026-09-23T20:21:06.000Z"
+  },
+  "tests": {
+    "status": "passed",
+    "passedSuites": 6,
+    "failedSuites": 0,
+    "summary": "native, physics, Silverstone, vehicle-FPS, rules runtime und Cross-platform-Exports gruen",
+    "checks": [
+      {
+        "name": "Native project validation",
+        "state": "passed",
+        "detail": "17 C#-Dateien validiert"
+      },
+      {
+        "name": "Physics audit",
+        "state": "passed",
+        "detail": "120 Hz, Rigidbody, Wheel-Input, G-Force und Lap-Checks"
+      },
+      {
+        "name": "Silverstone geometry audit",
+        "state": "passed",
+        "detail": "Mean 1.35 m, p95 3.41 m, max 6.00 m zum Asphalt"
+      },
+      {
+        "name": "Vehicle FPS regression",
+        "state": "passed",
+        "detail": "30/60/120/144 FPS · Fixed 120 Hz · 10/10 resets"
+      },
+      {
+        "name": "Lap rules runtime QA",
+        "state": "passed",
+        "detail": "wrong-way, track limits, checkpoint skip, physical shortcut, reset"
+      },
+      {
+        "name": "Cross-platform Unity exports",
+        "state": "passed",
+        "detail": "Windows Standalone und iOS/Xcode Export erstellt; Geräte-Runtime noch offen"
+      }
+    ]
+  },
+  "tokens": {
+    "available": false,
+    "total": null,
+    "input": null,
+    "output": null,
+    "cost": null,
+    "reason": "Keine verlaesslichen Codex-Usage-Daten aus dieser Web-App-Umgebung. Kein API-Key verwendet.",
+    "lastCheckedAt": "2026-09-23T15:53:01Z",
+    "checkIntervalMinutes": 30
+  },
+  "latestDevelopment": [
+    {
+      "title": "Developer-App-Dashboard integriert",
+      "detail": "Responsive App-Schaltflaeche, Projekt-Stats, Teststatus und transparente Nicht-verfuegbar-Anzeige fuer Tokens/Kosten ohne API-Key."
+    },
+    {
+      "title": "Silverstone frame alignment korrigiert",
+      "detail": "Die native GLB darf nicht auf X gespiegelt werden; Centerline und sichtbare Kollisionsgeometrie muessen denselben Weltframe nutzen."
+    },
+    {
+      "title": "Physik-FPS verglichen",
+      "detail": "30/60/120/144 FPS zeigen vergleichbare 0-100-, Brems- und Quer-G-Werte bei rund 120 Hz Fixed Physics."
+    },
+    {
+      "title": "Rigidbody-Fahrzeug ausgebaut",
+      "detail": "Vier Raycast-Raeder, Federung, Reifen-Slip, Bremsen, Antrieb, Rueckwaertsgang und Reset sind im nativen Slice aktiv."
+    },
+    {
+      "title": "Aktueller Silverstone-Lauf verifiziert",
+      "detail": "Der aktuelle macOS-Player absolvierte zwei gültige Runden in 325.726 s und 322.360 s ohne klassifizierten Fehler."
+    },
+    {
+      "title": "Cross-platform Builds erstellt",
+      "detail": "Der aktuelle Unity-Stand wurde erfolgreich als Windows Standalone und iOS/Xcode Export gebaut; Hardware-Runtime bleibt separat offen."
+    }
+  ],
+  "lastDevelopmentActivity": "2026-09-23T20:26:36.000Z",
+  "lastActivityLabel": "Windows-Standalone und iOS/Xcode-Export erfolgreich erstellt; Geräte-Runtime noch offen",
+  "updatedBy": "Codex local project ledger"
+}

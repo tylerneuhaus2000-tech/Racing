@@ -2,7 +2,7 @@
 /**
  * usage-dashboard.js
  *
- * Liest die lokale Claude/Codex-Nutzung via `ccusage` aus und stellt sie bereit:
+ * Stellt eine optionale, explizit bereitgestellte lokale Usage-Quelle bereit:
  *
  *   node usage-dashboard.js            -> HTTP-Server mit Dashboard + JSON-API
  *   node usage-dashboard.js --json     -> gibt den aufbereiteten Feed einmalig als JSON aus
@@ -14,16 +14,17 @@
  *
  * Optionen:
  *   --port N     Port (Default 4317, oder $PORT)
- *   --ttl S      Cache-Dauer der ccusage-Abfrage in Sekunden (Default 300)
+ *   --ttl S      Cache-Dauer der lokalen Usage-Abfrage in Sekunden (Default 1800)
  *
- * Keine externen Dependencies. Braucht nur `npx ccusage` (wird bei Bedarf geladen).
+ * Keine externen Dependencies und kein API-Key. Ohne GRIDLINE_USAGE_FEED bleibt
+ * die Usage transparent nicht verfuegbar.
  */
 
 'use strict';
 
 const http = require('http');
 const fs = require('fs');
-const { spawn } = require('child_process');
+const path = require('path');
 
 // ---- CLI-Argumente ---------------------------------------------------------
 const argv = process.argv.slice(2);
@@ -34,64 +35,54 @@ function opt(name, def) {
 }
 
 const PORT = parseInt(opt('--port', process.env.PORT || '4317'), 10);
-const TTL_MS = parseInt(opt('--ttl', '300'), 10) * 1000;
+const TTL_MS = parseInt(opt('--ttl', '1800'), 10) * 1000;
+const ROOT = __dirname;
+const USAGE_FEED = process.env.GRIDLINE_USAGE_FEED || path.join(ROOT, 'assets', 'gridline-usage.json');
 
-// ---- ccusage aufrufen ------------------------------------------------------
-function runCcusage(period) {
-  return new Promise((resolve, reject) => {
-    const args = ['-y', 'ccusage@latest', period, '--json'];
-    const child = spawn('npx', args, { env: process.env });
-    let out = '';
-    let err = '';
-    child.stdout.on('data', (d) => { out += d; });
-    child.stderr.on('data', (d) => { err += d; });
-    child.on('error', reject);
-    child.on('close', (code) => {
-      if (code !== 0 && !out.trim()) {
-        return reject(new Error(`ccusage ${period} exit ${code}: ${err.trim()}`));
-      }
-      try {
-        // npm-Warnings landen ggf. in stderr; stdout ist reines JSON.
-        resolve(JSON.parse(out));
-      } catch (e) {
-        reject(new Error(`JSON-Parse fehlgeschlagen: ${e.message}\n${out.slice(0, 300)}`));
-      }
-    });
-  });
+// Die Datei muss selbst eine validierte Quelle mit available:true und totals.tokens
+// liefern. Das Dashboard ermittelt keine Preise und liest keine Zugangsdaten.
+// ---- Explizite lokale Quelle lesen ----------------------------------------
+function unavailable(reason) {
+  return {
+    available: false,
+    generatedAt: new Date().toISOString(),
+    checkedAt: new Date().toISOString(),
+    source: null,
+    reason,
+    totals: { cost: null, tokens: null, months: 0 },
+    inputTokens: null,
+    outputTokens: null,
+    currentMonth: null,
+    months: [],
+  };
 }
 
-// ---- Feed aufbereiten ------------------------------------------------------
-function num(x) { return typeof x === 'number' ? x : 0; }
-
-function shapeMonthly(raw) {
-  const rows = (raw && raw.monthly) || [];
-  const months = rows.map((r) => ({
-    period: r.period,
-    agents: (r.metadata && r.metadata.agents) || [],
-    models: r.modelsUsed || [],
-    inputTokens: num(r.inputTokens),
-    outputTokens: num(r.outputTokens),
-    cacheCreationTokens: num(r.cacheCreationTokens),
-    cacheReadTokens: num(r.cacheReadTokens),
-    totalTokens: num(r.totalTokens),
-    cost: Number(num(r.totalCost).toFixed(2)),
-    byModel: (r.modelBreakdowns || []).map((m) => ({
-      model: m.modelName,
-      totalTokens: num(m.inputTokens) + num(m.outputTokens) +
-        num(m.cacheCreationTokens) + num(m.cacheReadTokens),
-      cost: Number(num(m.cost).toFixed(2)),
-    })),
-  }));
-  const totalCost = Number(months.reduce((s, m) => s + m.cost, 0).toFixed(2));
-  const totalTokens = months.reduce((s, m) => s + m.totalTokens, 0);
-  const now = new Date();
-  const thisMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
-  const current = months.find((m) => m.period === thisMonth) || null;
+function readUsageFeed() {
+  if (!fs.existsSync(USAGE_FEED)) {
+    return unavailable('Keine explizite GRIDLINE_USAGE_FEED-Datei gefunden.');
+  }
+  let raw;
+  try {
+    raw = JSON.parse(fs.readFileSync(USAGE_FEED, 'utf8'));
+  } catch (error) {
+    return unavailable(`Usage-Feed konnte nicht gelesen werden: ${error.message}`);
+  }
+  const tokens = Number(raw?.totals?.tokens ?? raw?.totalTokens);
+  const cost = Number(raw?.totals?.cost ?? raw?.cost);
+  if (raw?.available !== true || !Number.isFinite(tokens) || tokens < 0) {
+    return unavailable(raw?.reason || 'Usage-Feed enthaelt keine validierten Token-Daten.');
+  }
   return {
-    generatedAt: new Date().toISOString(),
-    totals: { cost: totalCost, tokens: totalTokens, months: months.length },
-    currentMonth: current,
-    months,
+    available: true,
+    generatedAt: raw.generatedAt || new Date().toISOString(),
+    checkedAt: new Date().toISOString(),
+    source: raw.source || 'Explizite lokale Usage-JSON',
+    reason: 'Validierte lokale Usage-Quelle gelesen.',
+    totals: { cost: Number.isFinite(cost) && cost >= 0 ? cost : null, tokens, months: Number(raw?.totals?.months || 0) },
+    inputTokens: Number.isFinite(Number(raw.inputTokens)) ? Number(raw.inputTokens) : null,
+    outputTokens: Number.isFinite(Number(raw.outputTokens)) ? Number(raw.outputTokens) : null,
+    currentMonth: raw.currentMonth || null,
+    months: Array.isArray(raw.months) ? raw.months : [],
   };
 }
 
@@ -102,8 +93,7 @@ async function getFeed(force) {
   if (!force && cache.data && (Date.now() - cache.at) < TTL_MS) {
     return cache.data;
   }
-  const raw = await runCcusage('monthly');
-  const feed = shapeMonthly(raw);
+  const feed = readUsageFeed();
   cache = { at: Date.now(), data: feed, error: null };
   return feed;
 }
@@ -114,7 +104,7 @@ const DASHBOARD_HTML = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Claude / Codex Usage</title>
+  <title>GRIDLINE Usage</title>
 <style>
   :root { color-scheme: light dark; }
   * { box-sizing: border-box; }
@@ -142,14 +132,14 @@ const DASHBOARD_HTML = `<!doctype html>
 </style>
 </head>
 <body>
-  <h1>Claude / Codex Usage</h1>
+  <h1>GRIDLINE Usage</h1>
   <div class="sub" id="sub">lade…</div>
   <div id="content"></div>
-  <footer>Quelle: <code>ccusage monthly</code> (lokale Logs, Kosten geschaetzt). Auto-Refresh alle 60&nbsp;s.</footer>
+  <footer>Quelle: explizite lokale Usage-JSON, falls vorhanden. Auto-Refresh alle 30&nbsp;min; keine Werte werden geschaetzt.</footer>
 <script>
-const fmtN = (n) => new Intl.NumberFormat('de-DE').format(n);
-const fmtT = (n) => n >= 1e9 ? (n/1e9).toFixed(2)+' B' : n >= 1e6 ? (n/1e6).toFixed(1)+' M' : fmtN(n);
-const fmt$ = (n) => '$' + new Intl.NumberFormat('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(n);
+const fmtN = (n) => Number.isFinite(Number(n)) ? new Intl.NumberFormat('de-DE').format(Number(n)) : 'Nicht verfuegbar';
+const fmtT = (n) => !Number.isFinite(Number(n)) ? 'Nicht verfuegbar' : n >= 1e9 ? (n/1e9).toFixed(2)+' B' : n >= 1e6 ? (n/1e6).toFixed(1)+' M' : fmtN(n);
+const fmt$ = (n) => Number.isFinite(Number(n)) ? '$' + new Intl.NumberFormat('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(Number(n)) : 'Nicht verfuegbar';
 
 async function load() {
   try {
@@ -196,7 +186,7 @@ function card(k, v, cost) {
 }
 
 load();
-setInterval(load, 60000);
+setInterval(load, 30 * 60 * 1000);
 </script>
 </body>
 </html>`;

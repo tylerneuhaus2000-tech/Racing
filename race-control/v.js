@@ -63,7 +63,7 @@ function moodStep(dt){if(S.type!=="race"||S.phase!=="racing")return;
     registerInc({kind:"unsafe",title:`Loses Rad · ${c.drv.code}`,cars:[c],pos:c.pos,truth:"pen",pre:4,post:4,data:"Boxenfunk: Rad hinten links nicht als fixiert gemeldet, Auto trotzdem freigegeben. Rad löst sich zwei Kurven später.",explain:"Ein Auto in unsicherem Zustand loszuschicken ist eine Unsafe Release – Strafe."});
     radio(c,"Rad ist weg! Das Rad ist abgefallen!",true,true);}
   for(const f of S.cars){const a=f.chainArm;if(!a)continue;a.t-=dt;const src=a.src;
-    if(!f.removed&&!src.removed&&Math.abs(delta(f,src))<CAR_L+4&&obbHit(f,src,0.08)){f.chainArm=null;f.dmg=1;f.ignoreDmg=true;f.dmgT=S.t;f.v*=rand(0.7,0.85);f.sparks=0.6;src.sparks=0.4;hitDamage(f,src,rand(0.2,0.6));hitDamage(src,f,rand(0.1,0.4));
+    if(!f.removed&&!src.removed&&Math.abs(delta(f,src))<CAR_L+4&&obbHit(f,src,0.08)){f.chainArm=null;f.dmg=1;f.ignoreDmg=true;f.dmgT=S.t;f.v*=rand(0.7,0.85);f.sparks=0.6;src.sparks=0.4;hitDamage(f,src,rand(0.2,0.6));hitDamage(src,f,rand(0.1,0.4));markHit(f,src);
       registerInc({kind:"inc",sub:"racing",title:`Kettenreaktion · ${f.drv.code}/${src.drv.code}`,cars:[f,src],pos:f.pos,pre:5,post:3,truth:{who:f,pen:0},
         data:`Telemetrie ${f.drv.code}: Reaktion ${a.need.toFixed(2)} s, verfügbare Zeit ${a.gapT.toFixed(2)} s. ${src.drv.code} hatte sich zuvor ${a.sev>0.9?"gedreht":"verbremst"}. Kontakt Frontflügel ${f.drv.code} – Heck ${src.drv.code}.`,
         explain:"Unvermeidbar – das Auto davor kam unkontrolliert zurück. Rennunfall, keine Strafe."});
@@ -90,9 +90,7 @@ function pitStopVar(c){let work=lognorm(CREW[c.drv.team]||2.6,0.08),note=null;co
 
 /* ---- Seltene und außergewöhnliche Ereignisse (Wahrscheinlichkeit pro Grand Prix) ---- */
 const RARE=[
- {id:"blowout",p:1/30,t:"Reifenplatzer auf der Geraden",fn(){const c=rareCar(true);if(!c)return false;c.punct=true;c.dmg=1;c.ignoreDmg=false;const co=nextCorner(c.pos,0)||CORNERS[0];
-   if(Math.random()<0.5){c.soloArm={crash:Math.random()<0.5};soloEvent(c,co);}addLog(`CAR ${c.drv.num} (${c.drv.code}) – Reifen explodiert bei ${Math.round(c.v*KMH)} km/h`,"bad");
-   radio(c,"Reifen ist geplatzt! Das kam ohne jede Warnung!",true,true);if(!S.hazard)spawnHazard(2,c.pos,`Gummiteile von ${c.drv.code} auf der Strecke`,[],{deb:true,dur:rand(18,30)});}},
+ {id:"blowout",p:1/30,t:"Reifenplatzer auf der Geraden",fn(){const c=rareCar(true);if(!c)return false;blowout(c);}},
  {id:"oil",p:1/90,t:"Ölspur – mehrere Autos rutschen",fn(){const c=rareCar(true);if(!c||S.hazard)return false;c.retired=true;c.crash={dir:1,rest:20,h0:T.ang[sidx(c.pos)],v0:Math.max(30,c.v),sv0:0,grav:60,done:false,mech:true};
    S.oil={pos:c.pos,until:S.t+rand(25,45)};spawnHazard(2,c.pos,`Motorschaden bei ${c.drv.code} – Öl auf der Ideallinie, Posten streuen Bindemittel`,[c],{deb:true,dur:rand(30,50)});
    radio(c,"Motor ist geplatzt, ich verliere Öl!",false,true);registerInc({kind:"info",title:`Ölspur · ${c.drv.code}`,cars:[c],pos:c.pos,pre:3,post:5});}},
