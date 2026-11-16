@@ -34,7 +34,7 @@ function aquaEvent(c,d){const dir=Math.random()<0.5?1:-1,r=Math.random(),co=next
     c.wob={t:0,T:1.9,amp:rand(0.75,1.15)*dir};c.lockT=0.9;c.v*=0.78;c.latV=(c.latV||0)+dir*rand(4,7);
     radio(c,pick(["AQUAPLANING! Das Auto ist komplett aufgeschwommen!","Ich bin nur noch Passagier, da steht Wasser!","Riesige Pfütze – ich hatte null Kontrolle, Glück gehabt."]),true);
     registerInc({kind:"info",title:`Aquaplaning · ${c.drv.code}`,cars:[c],pos:c.pos,pre:4,post:4});return false;}
-  if(r<0.86){c.spinCo=co;spinCar(c,dir*SIDE,-dir,Math.random()<0.6?"off":null);c.v*=0.9;   // Dreher auf dem Wasserfilm
+  if(r<0.86){c.spinCo=co;spinCar(c,dir*SIDE,-dir,Math.random()<0.6?"off":null);   // Dreher auf dem Wasserfilm
     radio(c,pick(["Aquaplaning, ich hab mich gedreht! Da steht ein See!","Weg war es – das Auto hat einfach abgehoben."]),true);
     registerInc({kind:"info",title:`Aquaplaning-Dreher · ${c.drv.code}`,cars:[c],pos:c.pos,pre:5,post:4});return true;}
   c.soloArm={crash:true};soloEvent(c,co);                               // geradeaus in die Mauer
