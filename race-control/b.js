@@ -24,7 +24,24 @@ function mkCar(drv,i){return {i,drv,s:0,pos:0,lat:0,latV:0,v:0,spin:0,inPit:fals
   crash:null,spinT:0,spinDir:1,removed:false,retired:false,finished:false,finT:0,finLaps:0,stopAt:null,wantPit:false,pitGoal:null,
   plan:[],used:new Set(),nextTyre:null,react:0,launch:1,decLap:-99,sparks:0,brk:false,rogue:false,unsafeArm:false,speedArm:0,speeding:0,
   lastCo:-1,_tl:0,onGrid:false,yaw:0,spinH0:0,cold:0,slotK:i,unlap:false,unlapPh:0,lic:0,lockT:0,relT:0,rejoin:0,spinT0:2.6,spinSide:0,dustT:0};}
-function placeGarage(c){c.inPit=true;c.mode="garage";c.lat=GARLAT;c.s=boxPos(c.drv.ti)+(c.drv.slot?8:-8);c.pos=mod(c.s);c.v=0;c.pit=null;c.stopAt=null;c.spin=0;}
+function placeGarage(c){c.inPit=true;c.mode="garage";c.lat=GARLAT;c.s=boxPos(c.drv.ti)+(c.drv.slot?8:-8);c.pos=mod(c.s);c.v=0;c.pit=null;c.stopAt=null;c.spin=SIDE*Math.PI/2;c.yaw=0;c.drift=0;c.garIn=null;c.garOut=null;}
+/* Garage: Autos stehen quer, Nase zur Boxengasse. Rein: vor der Box halten, rückwärts im Bogen hineinschieben. Raus: erst wenn die Fast Lane frei ist, im Bogen einbiegen */
+function garInStep(c,dt){const g=c.garIn;g.t+=dt;const u0=clamp(g.t/2.8,0,1),u=u0*u0*(3-2*u0),A=Math.PI/2;
+  const s=g.s0-9*Math.sin(A*u),l=g.l0+(GARLAT-g.l0)*(1-Math.cos(A*u)),ds=-9*Math.cos(A*u),dl=(GARLAT-g.l0)*Math.sin(A*u);
+  c.s=s;c.pos=mod(s);c.lat=l;c.v=0;c.brk=false;c.latV=0;c.yaw=0;c.drift=0;
+  if(Math.abs(ds)+Math.abs(dl)>1e-6)c.spin=wrapA(Math.atan2(SIDE*dl,ds)+Math.PI);
+  if(u0>=1){c.garIn=null;c.lat=GARLAT;c.spin=SIDE*Math.PI/2;if(c.mode!=="garage"&&c.pit)c.garOut={ph:0};}}
+function garOutStep(c,dt){const g=c.garOut;c.brk=false;c.latV=0;c.yaw=0;c.drift=0;
+  if(g.ph===0){c.spin=SIDE*Math.PI/2;c.v=0;const edge=BOXLAT-1.5;
+    if(c.lat<edge){c.lat=Math.min(edge,c.lat+4*dt);return true;}   // aus der Garage bis an den Rand der Fast Lane vorrollen
+    /* einbiegen erst, wenn niemand neben oder knapp hinter einem ist – auch keine Autos, die an der Ausfahrtsampel warten */
+    const busy=S.cars.some(o=>o!==c&&!o.removed&&o.pit&&o.mode!=="garage"&&!o.garIn&&o.lat>-35&&o.lat<-22&&delta(c,o)>-60&&delta(c,o)<16)||S.cars.some(o=>o!==c&&o.garOut&&o.garOut.ph===1&&Math.abs(delta(c,o))<24);
+    if(busy){g.wait=(g.wait||0)+dt;return true;}
+    g.ph=1;g.t=0;g.s0=c.s;g.l0=c.lat;return true;}
+  g.t+=dt;const T=2.2,u0=clamp(g.t/T,0,1),A=Math.PI/2,len=14;
+  const s=g.s0+len*(1-Math.cos(A*u0)),l=g.l0+(PLAT-g.l0)*Math.sin(A*u0),ds=len*Math.sin(A*u0),dl=(PLAT-g.l0)*Math.cos(A*u0);
+  c.v=(s-c.s)/dt;c.s=s;c.pos=mod(s);c.lat=l;c.spin=Math.atan2(SIDE*dl,Math.max(1e-6,ds));
+  if(u0>=1){c.garOut=null;c.spin=0;c.lat=PLAT;c.v=Math.max(c.v,8);return false;}return true;}
 function bestLap(c){let b=null;for(const l of c.laps)if(!c.del.has(l.id)&&(b===null||l.t<b))b=l.t;return b;}
 function wearRate(c){const life=S.type==="race"?(S.sprint?W.opts.laps:S.laps)*(c.tyre==="S"?0.42:c.tyre==="M"?0.68:c.tyre==="H"?1.0:0.8):30;
   let r=1/(life*L);if((c.tyre==="I"||c.tyre==="W")&&S.wx.wet<0.12)r*=4;return r;}
@@ -49,6 +66,8 @@ function isSlow(c,o){
 
 function carStep(c,dt){
   c.omOn=false; if(c.sparks>0)c.sparks-=dt; if(c.lockT>0)c.lockT-=dt; if(c.relT>0)c.relT-=dt;
+  if(c.garIn&&!c.removed){garInStep(c,dt);return;}
+  if(c.garOut&&!c.removed&&c.mode!=="garage"&&garOutStep(c,dt))return;
   if(c.removed||c.mode==="garage"||c.mode==="grid"){c.brk=false;return;}
   if(c.crash){crashStep(c,dt);return;}
   if(c.nudge){const n=c.nudge,f=Math.min(dt,n.T-n.t)/n.T;n.t+=dt;c.v=Math.max(0,c.v-n.dv*f);c.lat+=n.dl*f;if(n.t>=n.T)c.nudge=null;}
@@ -284,7 +303,7 @@ function crashStep(c,dt){const k=c.crash,idx=sidx(c.pos);
 function startPit(c){
   c.pit={ph:"in",goal:c.pitGoal||"garage",timer:0,trap:false,waitU:0};c.inPit=true;c.wantPit=false;c.ot=null;c.yieldT=0;
   const g=c.pit.goal;
-  if(g==="garage")c.stopAt=absAhead(c,mod(boxPos(c.drv.ti)+(c.drv.slot?8:-8)));
+  if(g==="garage")c.stopAt=absAhead(c,mod(boxPos(c.drv.ti)+(c.drv.slot?8:-8)+9));
   else if(g==="service"){const mate=mateBusy(c);c.pit.stack=!!mate;
     c.stopAt=absAhead(c,mod(boxPos(c.drv.ti)-(mate?17:0)));}
   else if(g==="queue")c.stopAt=absAhead(c,PIT_OUT_S-6);
@@ -300,7 +319,7 @@ function pitCtl(c,vT,dt){const p=c.pit;let tl=PLAT;
   else if(c.pos<PIT_IN_S&&c.pos>PIT_ENTRY_S-60)vT=Math.min(vT,Math.sqrt(lim*lim+2*BRK*0.8*(PIT_IN_S-c.pos)));
   if(p.ph==="in"){
     if(!p.trap&&inZone){p.trap=true;if(c.speeding>1)reportSpeed(c,lim*KMH);}
-    if(c.stopAt!=null&&c.stopAt-c.s<18)tl=p.goal==="garage"?GARLAT:p.goal==="service"?BOXLAT:PLAT;
+    if(c.stopAt!=null&&c.stopAt-c.s<18)tl=p.goal==="garage"||p.goal==="service"?BOXLAT:PLAT;
     if(p.goal==="through"&&c.pos>20&&c.pos<L/2)p.ph="exit";
   }else if(p.ph==="hold"){vT=0;tl=BOXLAT;      // Double Stack: wartet hinter der Box, bis der Teamkollege weg ist
     if(!mateBusy(c)){p.ph="in";p.stack=false;c.stopAt=absAhead(c,boxPos(c.drv.ti));}
@@ -328,7 +347,7 @@ function arrive(c){const p=c.pit;
   if(c.mode==="form"){if(p||(S.rsChain&&!c.rsGo))return;
     if(S.rsChain&&c.slotK>0){const pr=S.cars.find(o=>o.slotK===c.slotK-1&&(o.mode==="form"||o.mode==="grid")&&!o.retired&&!o.removed);if(pr&&!pr.onGrid&&delta(c,pr)<0){c.stopAt+=L;return;}}c.mode="grid";c.stopAt=null;c.onGrid=true;return;}   // in der Boxengasse wartend ist man nicht auf dem Startplatz
   if(!p)return;
-  if(p.goal==="garage"){c.mode="garage";c.pit=null;c.lat=GARLAT;c.stopAt=null;c.speeding=0;onGarage(c);}
+  if(p.goal==="garage"){c.mode="garage";c.pit=null;c.stopAt=null;c.speeding=0;c.garIn={t:0,s0:c.s,l0:c.lat};onGarage(c);}
   else if(p.goal==="service"&&p.ph==="in"&&p.stack){p.ph="hold";c.stopAt=null;c.lat=BOXLAT;addLog(`${c.drv.code} wartet hinter dem Teamkollegen (Double Stack)`);}
   else if(p.goal==="service"&&p.ph==="in"){p.ph="svc";c.stopAt=null;p.T0=S.t;p.wait=0;p.work=0;p.rep=0;
     if(c.sgServe){c.sgServe=false;c.sgPending=false;p.timer=10;p.wait=10;addLog(`${c.drv.code} tritt 10s Stop-and-Go an`);return;}
@@ -343,7 +362,7 @@ function arrive(c){const p=c.pit;
     if(S.type==="race"&&Math.random()<0.06*memW("unsafe",-1)){c.unsafeArm=true;memAdd("unsafe",-1);}
   }
 }
-function releaseFromGarage(c){c.mode="out";c.pit={ph:"exit",goal:"out",timer:0,trap:true,waitU:0};c.outDist=0;c.runs++;
+function releaseFromGarage(c){c.mode="out";c.pit={ph:"exit",goal:"out",timer:0,trap:true,waitU:0};c.outDist=0;c.runs++;if(c.lat<BOXLAT-2&&!c.garIn)c.garOut={ph:0};
   c.stopAt=S.pitExitOpen?null:absAhead(c,PIT_OUT_S-6);}
 
 /* ---- Überlappungen verhindern ---- */

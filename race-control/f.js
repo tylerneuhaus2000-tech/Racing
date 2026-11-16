@@ -61,7 +61,7 @@ function uiFlags(){
   if(timed)rh+=`<button data-r="clock"><span>Uhr bei Rot</span><b class="${S.redRun?"warn":""}">${S.redRun?"LÄUFT WEITER":"HÄLT AN"}</b></button>`;
   if(racing)rh+=`<button data-r="pit"><span>Boxeneinfahrt</span><b class="${S.pitClosed?"warn":"ok"}">${S.pitClosed?"GESCHLOSSEN":"OFFEN"}</b></button>`;
   if(racing&&m==="sc"&&S.sc&&S.sc.on&&!S.unlapOn&&lappedCount()>0)rh+=`<button class="act" data-r="unlap">Überrundete zurückrunden lassen (${lappedCount()})</button>`;
-  if(racing&&m==="red")rh+=`<button class="act" data-r="stand">Stehender Neustart (Startaufstellung)</button>`;
+  if(racing&&m==="red")rh+=`<button class="act" data-r="grid">Startaufstellung festlegen${S.redOrderSet?" ✓":""}</button><button class="act" data-r="stand">${S.rsPending?"Neustart vorgemerkt …":"Stehender Neustart (Startaufstellung)"}</button>`;
   if(m==="red"&&!S.ended&&(timed?!S.chequered:S.phase==="racing"))rh+=`<button class="danger" data-r="abort">${timed?"Session nicht fortsetzen – beenden":"Rennen nicht fortsetzen – werten"}</button>`;
   const ro=$("redOpts");if(ro.dataset.h!==rh){ro.dataset.h=rh;ro.innerHTML=rh;
     ro.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const k=b.dataset.r;
@@ -69,11 +69,27 @@ function uiFlags(){
       else if(k==="pit"){S.pitClosed=!S.pitClosed;addLog(S.pitClosed?"PIT ENTRY CLOSED":"PIT ENTRY OPEN","flag");}
       else if(k==="unlap")startUnlap();
       else if(k==="stand")standingRestart();
+      else if(k==="grid")gridEditor();
       else{abortSession();if(S.flag.mode==="red"){S.flag.mode="green";S.hazard&&S.hazard.cars.forEach(c=>c.removed=true);S.hazard=null;}}uiFlags();uiSession();});}}
 /* Filter: standardmäßig nur, was noch eine Entscheidung braucht */
 const INBOX_F={open:{t:"Offen",f:i=>i.status==="open"||i.status==="deferred"},done:{t:"Erledigt",f:i=>i.status!=="open"&&i.status!=="deferred"&&i.status!=="info"},
   info:{t:"Replays",f:i=>i.status==="info"},all:{t:"Alle",f:()=>true}};
 const INBOX_EMPTY={open:"Nichts offen – alles entschieden.",done:"Noch nichts entschieden.",info:"Noch keine Replays.",all:"Noch keine Vorfälle."};
+/* Unter Rot: Startreihenfolge festlegen – Vorlage „Stand bei Rot“ oder „letzte abgeschlossene Runde“, dann mit ▲▼ anpassen */
+function gridEditor(){if(!S||S.flag.mode!=="red"||!S.redSnap)return;const m=$("modal");if(UI.speed)UI.prevSpeed=UI.speed;setSpeed(0);
+  const alive=c=>!c.removed&&!c.retired&&!c.finished&&!c.crash;let ord=(S.redOrder||S.redSnap.atRed).filter(alive);
+  const draw=()=>{m.className="modal";m.innerHTML=`<h2>Startaufstellung nach Rot</h2><p class="hint">Vorlage wählen, mit ▲▼ anpassen, dann übernehmen. Die Autos in der Boxengasse reihen sich danach in dieser Reihenfolge auf.</p>
+    <div style="display:flex;gap:8px;margin:8px 0"><button class="ghost" id="gePreRed">Stand bei Rot</button><button class="ghost" id="gePreLap">Letzte abgeschlossene Runde</button></div>
+    <div style="max-height:52vh;overflow:auto">${ord.map((c,i)=>`<div class="slot"><b style="width:28px">P${i+1}</b><span class="bar" style="display:inline-block;width:4px;height:14px;background:${c.drv.color}"></span><div><b>${c.drv.code}</b> <small>${esc(c.drv.name)}</small></div>
+      <button class="ghost" data-u="${i}" ${i?"":"disabled"}>▲</button><button class="ghost" data-d="${i}" ${i<ord.length-1?"":"disabled"}>▼</button></div>`).join("")}</div>
+    <div class="btnrow"><button class="big go" id="geOk">Übernehmen</button><button class="big" style="background:#3a3f48" id="geNo">Abbrechen</button></div>`;
+    $("gePreRed").onclick=()=>{ord=S.redSnap.atRed.filter(alive);draw();};$("gePreLap").onclick=()=>{ord=S.redSnap.lastLap.filter(alive);draw();};
+    m.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{const i=+b.dataset.u;[ord[i-1],ord[i]]=[ord[i],ord[i-1]];draw();});
+    m.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{const i=+b.dataset.d;[ord[i+1],ord[i]]=[ord[i],ord[i+1]];draw();});
+    const close=()=>{$("overlay").classList.remove("show");setSpeed(UI.prevSpeed||1);uiFlags();uiTower();};
+    $("geNo").onclick=close;
+    $("geOk").onclick=()=>{S.redOrder=ord.slice();S.redOrderSet=true;const n=rsSortQueue(ord,true);addLog(`STARTAUFSTELLUNG FESTGELEGT: ${ord.slice(0,5).map(c=>c.drv.code).join(", ")}${ord.length>5?" …":""}${n?` – ${n} Autos in der Boxengasse umsortiert`:""}`,"flag");close();};};
+  draw();$("overlay").classList.add("show");}
 function uiInbox(){const vis=S.incidents.filter(i=>i.status!=="rec"&&i.status!=="hidden"),fk=INBOX_F[UI.inboxF]?UI.inboxF:"open";
   const fb=$("inboxF");if(fb){const h=Object.entries(INBOX_F).map(([k,o])=>{const n=vis.filter(o.f).length;return `<button data-f="${k}" class="${k===fk?"on":""}${k==="open"&&n?" hot":""}">${o.t}${k==="all"?"":`<i>${n}</i>`}</button>`;}).join("");
     if(fb._h!==h){fb._h=h;fb.innerHTML=h;fb.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{UI.inboxF=b.dataset.f;uiInbox();});}}
@@ -86,6 +102,7 @@ function uiInbox(){const vis=S.incidents.filter(i=>i.status!=="rec"&&i.status!==
   $("inbox").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{const inc=S.incidents.find(x=>x.id===+b.dataset.i);if(inc&&inc.clip&&inc.clip.length)openReplay(inc);});}
 function raceOrder(){
   if(S.phase!=="racing")return S.cars.slice();
+  if(S.flag.mode==="red"&&S.redOrder){const ro=S.redOrder.filter(c=>!c.retired&&!c.dsq&&!c.removed);return ro.concat(S.cars.filter(c=>!ro.includes(c)&&!c.retired&&!c.dsq),S.cars.filter(c=>(c.retired||c.dsq)&&!ro.includes(c)));}
   const fin=S.cars.filter(c=>c.finished&&!c.dsq).sort((a,b)=>(b.finLaps-a.finLaps)||(a.finOrd-b.finOrd)),run=S.cars.filter(c=>!c.finished&&!c.retired&&!c.dsq).sort((a,b)=>b.s-a.s);
   return fin.concat(run,S.cars.filter(c=>(c.retired||c.dsq)&&!c.finished),S.cars.filter(c=>c.dsq&&c.finished));}
 function uiTower(){let h="";if(S.timingOff&&S.t<S.timingOff){$("towerBody").innerHTML=`<div class="pad hint">⚠ ZEITNAHME AUSGEFALLEN – Daten werden wiederhergestellt …</div>`;return;}

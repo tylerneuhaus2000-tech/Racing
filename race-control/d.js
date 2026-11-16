@@ -59,7 +59,9 @@ function simStep(dt){
   for(const c of S.cars)carStep(c,dt);
   if(S.type!=="race")for(const c of S.cars)secTick(c);
   scStep(dt);hazardStep(dt);nukeStep(dt);deoverlap();
-  if(S.type==="race"){let ld=null;for(const c of S.cars)if(!c.removed&&!c.retired&&!c.finished&&c.mode!=="garage"&&(!ld||c.s>ld.s))ld=c;if(ld)S.leader=ld;}
+  redStep();
+  if(S.type==="race"){let ld=null;if(S.flag.mode==="red"&&S.redOrder)ld=S.redOrder.find(c=>!c.removed&&!c.retired&&!c.finished);
+    if(!ld)for(const c of S.cars)if(!c.removed&&!c.retired&&!c.finished&&c.mode!=="garage"&&(!ld||c.s>ld.s))ld=c;if(ld)S.leader=ld;}
   radioAmbient(dt);protestStep();hiddenStep();recFrame();finalizeIncs(false);}
 
 function radioAmbient(dt){S.radT=(S.radT||0)+dt;if(S.radT<1)return;S.radT=0;radioQueue();radioChatter();
@@ -219,15 +221,24 @@ function startBehindSC(){if(S.phase!=="pre"&&S.phase!=="gridwait")return;
 function slotAhead(c,k){let t=absAhead(c,mod(gridSlot(k).s));if(t-c.s<260)t+=L;return t;}
 function standingRestart(){
   const run=S.cars.filter(c=>!c.removed&&!c.retired&&!c.finished&&!c.crash&&c.mode!=="garage");
-  const out=run.filter(c=>!c.pit||c.v>2);if(out.length){setAlert("bad",`Restart noch nicht möglich: ${out.map(c=>c.drv.code).join(", ")} ${out.length>1?"sind":"ist"} noch nicht in der Boxengasse aufgereiht.`);addLog("Restart abgelehnt – noch nicht alle Autos in der Boxengasse","flag");return false;}
+  const out=run.filter(c=>!c.pit||c.v>2);if(out.length){if(!S.rsPending){S.rsPending=true;addLog(`NEUSTART VORGEMERKT – startet automatisch, sobald alle aufgereiht sind (noch unterwegs: ${out.map(c=>c.drv.code).join(", ")})`,"flag");}
+    setAlert("",`Neustart vorgemerkt – wartet noch auf ${out.map(c=>c.drv.code).join(", ")}.`);return false;}
+  S.rsPending=false;
   const ord=(S.redOrder||[]).filter(c=>run.includes(c));for(const c of run.slice().sort((a,b)=>b.s-a.s))if(!ord.includes(c))ord.push(c);
   const q=ord.filter(c=>c.pit&&c.v<2),fr=p=>mod(PIT_OUT_S-6-p),qs=q.map(c=>({pos:c.pos,lat:c.lat})).sort((a,b)=>fr(a.pos)-fr(b.pos));
-  q.forEach((c,i)=>{let d=mod(qs[i].pos-c.pos);if(d>L/2)d-=L;c.s+=d;c.pos=mod(c.s);c.lat=qs[i].lat;});   // Schlange nach Rennreihenfolge sortieren (Rundenzähler bleibt)   // Boxengassen-Schlange nach Rennreihenfolge sortieren
+  rsSortQueue(ord);
   S.flag.mode="green";S.phase="form";S.restartGrid=true;S.rsChain=true;S.sc=null;S.restart=false;S.unlapOn=false;S.nextSlot=ord.length;S.rsT=S.t;
   const ld=ord[0];S.rsSC={s:(ld?ld.s:0)+70,v:0};
   ord.forEach((c,i)=>{c.pred=i?ord[i-1]:null;c.redLaps=Math.floor(c.s/L);c.slotK=i;c.gridLat=gridSlot(i).lat;c.mode="form";c.onGrid=false;c.wantPit=false;c.ot=null;c.unlap=false;if(c.script)endScript(c);
     c.rsRel=S.t+i*1.1;c.rsGo=false;c.stopAt=c.pit?c.s:null;if(c.pit){c.pit.ph="exit";c.pit.goal="out";}});
   addLog("RESTART-PROZEDUR – Safety Car führt das Feld eine Runde zur Startaufstellung","flag");uiSession();uiFlags();}
+/* Boxengassen-Schlange in die gewünschte Reihenfolge bringen (nur stehende Autos; Rundenzähler bleibt) */
+function rsSortQueue(ord,onlyQueue){const q=ord.filter(c=>c.pit&&c.v<2&&(!onlyQueue||c.pit.goal==="queue")),fr=p=>mod(PIT_OUT_S-6-p),qs=q.map(c=>({pos:c.pos,lat:c.lat})).sort((a,b)=>fr(a.pos)-fr(b.pos));
+  q.forEach((c,i)=>{let d=mod(qs[i].pos-c.pos);if(d>L/2)d-=L;c.s+=d;c.pos=mod(c.s);c.lat=qs[i].lat;});return q.length;}
+/* unter Rot: jedes Auto auf der Strecke reiht sich in der Boxengasse ein; vorgemerkter Neustart startet, sobald alle stehen */
+function redStep(){if(S.type!=="race"||S.flag.mode!=="red"||S.phase!=="racing")return;
+  for(const c of S.cars){if(c.removed||c.retired||c.finished||c.crash||c.pit||c.mode!=="race")continue;if(!c.wantPit||c.pitGoal!=="queue"){c.wantPit=true;c.pitGoal="queue";}}
+  if(S.rsPending){const run=S.cars.filter(c=>!c.removed&&!c.retired&&!c.finished&&!c.crash&&c.mode!=="garage");if(run.every(c=>c.pit&&c.v<=2))standingRestart();}}
 function rsStep(){if(!S.rsChain||S.phase!=="form")return;const ord=S.cars.filter(c=>c.mode==="form"&&c.slotK>=0).sort((a,b)=>a.slotK-b.slotK);
   for(const c of ord)if(c.rsRel!=null&&S.t>=c.rsRel){c.rsRel=null;c.rsGo=true;const t0=absAhead(c,mod(PIT_EXIT_S+20));c.stopAt=t0+mod(gridSlot(c.slotK).s-PIT_EXIT_S-20);}   // erst raus aus der Boxengasse, eine Runde fahren, dann auf den Startplatz
   const n=S.cars.filter(c=>c.onGrid).length;if(n!==S.rsN){S.rsN=n;S.rsLast=S.t;}
@@ -273,7 +284,7 @@ function raceStep(dt){t1Step();paceStep(dt);
     if(S.jump&&S.lightT>S.holdEnd){if(!S.jumped){S.jumpAt=S.lightT;S.jumpV=lognorm(5,0.45);S.jumpStop=Math.random()<0.35?rand(0.15,0.6):99;}const mv=S.lightT-S.jumpAt<S.jumpStop;S.jump.s+=(mv?S.jumpV:0)*dt;S.jump.pos=mod(S.jump.s);S.jump.v=mv?S.jumpV:0;S.jumped=true;}   // rollt los, während die Lichter noch brennen
     if(S.lightT>13&&!S.holdWarn){S.holdWarn=true;score(-20);addLog("Startverzögerung – Motoren überhitzen (−20)","bad");}}
   else if(S.phase==="racing"){S.raceT+=dt;S.evo=Math.min(1,S.raceT/200);
-    if(S.pitStart&&S.raceT-S.goT>5){const c=S.pitStart;S.pitStart=null;c.mode="race";c.pit={ph:"exit",goal:"out",timer:0,trap:true,waitU:0};c.stopAt=null;c.react=0;c.holdT=0;addLog(`${c.drv.code} startet aus der Boxengasse`);}
+    if(S.pitStart&&S.raceT-S.goT>5){const c=S.pitStart;S.pitStart=null;c.mode="race";c.pit={ph:"exit",goal:"out",timer:0,trap:true,waitU:0};if(c.lat<BOXLAT-2)c.garOut={ph:0};c.stopAt=null;c.react=0;c.holdT=0;addLog(`${c.drv.code} startet aus der Boxengasse`);}
     if(S.unlapOn&&!S.cars.some(c=>c.unlap&&!c.removed&&!c.retired)){S.unlapOn=false;addLog("Alle Überrundeten haben sich zurückgerundet","good");}
     if(S.flag.mode!=="sc"&&S.unlapOn){S.unlapOn=false;for(const c of S.cars)c.unlap=false;}
     const v=S.vscV;
@@ -296,7 +307,7 @@ function raceStep(dt){t1Step();paceStep(dt);
 function raceLine(c){
   if(S.phase!=="racing"||c.finished)return;
   const lap=Math.floor(c.s/L);c.noise=rand(-0.006,0.006);
-  if(c.lapStart!=null)c.lastLapT=S.raceT-c.lapStart;c.lapStart=S.raceT;c.tyreLaps=(c.tyreLaps||0)+1;
+  if(c.lapStart!=null)c.lastLapT=S.raceT-c.lapStart;c.lapStart=S.raceT;c.lineLap=lap;c.lineT=S.raceT;c.tyreLaps=(c.tyreLaps||0)+1;
   if(S.restart&&c===S.leader){S.restart=false;S.flag.mode="green";addLog("GREEN FLAG – RESTART","good");radio(c,"Grün, Grün, Grün! Volle Attacke.",true,true);}
   if(S.chequered||lap>=S.laps){
     if(!S.chequered){S.chequered=true;S.cheqT=S.t;addLog(`CHEQUERED FLAG – ${c.drv.code} überquert als Erster die Linie`,"flag");uiSession();radio(c,"Jaaa! Was für ein Rennen! Danke, Jungs!",false,true);}
@@ -368,7 +379,8 @@ function setNeutral(act){const m=S.flag.mode,race=S.type==="race";
   else if(act==="vscEnd"&&m==="vsc"){S.flag.mode="green";addLog("VSC ENDING – GREEN FLAG","good");}
   else if(act==="sc"&&race&&S.phase==="racing"&&(m==="green"||m==="vsc")){S.flag.mode="sc";S.sc={on:false,wait:0,inLap:false,s:0,pos:0,lat:0,v:0};S.restart=false;addLog("SAFETY CAR – wird auf die Strecke geschickt","flag");if(S.leader)radio(S.leader,"Safety Car, Safety Car. Delta halten, nicht überholen.",true,true);}
   else if(act==="scIn"&&m==="sc"&&!S.restart){ if(S.sc&&S.sc.on){S.sc.inLap=true;addLog("SAFETY CAR IN THIS LAP","flag");} else{S.sc=null;S.flag.mode="green";addLog("SAFETY CAR abbestellt – GREEN FLAG","good");} }
-  else if(act==="red"&&m!=="red"&&(S.started||race)){S.flag.mode="red";if(race&&S.phase==="racing")S.redOrder=S.cars.filter(c=>!c.removed&&!c.retired&&!c.crash&&!c.finished).sort((a,b)=>b.s-a.s);S.sc=null;S.restart=false;addLog("RED FLAG – Session unterbrochen","bad");if(S.leader)radio(S.leader,"Rote Flagge, rote Flagge. Langsam zurück in die Box.",true,true);
+  else if(act==="red"&&m!=="red"&&(S.started||race)){S.flag.mode="red";if(race&&S.phase==="racing"){S.redOrder=S.cars.filter(c=>!c.removed&&!c.retired&&!c.crash&&!c.finished).sort((a,b)=>b.s-a.s);
+      S.redSnap={atRed:S.redOrder.slice(),lastLap:S.redOrder.slice().sort((a,b)=>((b.lineLap||0)-(a.lineLap||0))||((a.lineT||0)-(b.lineT||0)))};S.redOrderSet=false;S.rsPending=false;}S.sc=null;S.restart=false;addLog("RED FLAG – Session unterbrochen","bad");if(S.leader)radio(S.leader,"Rote Flagge, rote Flagge. Langsam zurück in die Box.",true,true);
     if(race){if(S.phase==="racing")redRace();}
     else{S.pitExitOpen=false;for(const c of S.cars)if(c.mode==="out"||c.mode==="push"){if(c.pit)c.mode="in";else toIn(c);}}}
   else if(act==="restart"&&m==="red"){
