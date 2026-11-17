@@ -51,14 +51,107 @@ function startSession(d){
   uiSession();uiInbox();}
 
 /* ---- Hauptschritt ---- */
+/* Movement is proposed first. Pit traffic only commits the collision-free part of
+   that proposal; the contact solver never has to push a valid queue apart. */
+function pitMotionProtected(c){if(c.pit||c.garIn||c.garOut)return true;if(!c.wantPit)return false;
+  const approach=PIT_ROUTE?PIT_ROUTE.approach:140;return (PIT_ENTRY_S-c.pos+L)%L<=approach+CAR_L*2;}
+function pitMotionSnapshot(){
+  if(!S.cars.some(c=>!c.removed&&pitMotionProtected(c)))return null;
+  return S.cars.map(c=>({c,s:c.s,pos:c.pos,lat:c.lat,spin:c.spin||0,yaw:c.yaw||0,drift:c.drift||0,
+    v:c.v,mode:c.mode,pit:c.pit&&Object.assign({},c.pit),garIn:c.garIn&&Object.assign({},c.garIn),
+    garOut:c.garOut&&Object.assign({},c.garOut),inPit:c.inPit,stopAt:c.stopAt,stops:c.stops,
+    protected:pitMotionProtected(c),removed:c.removed}));}
+function pitMotionGuard(before,dt){if(!before)return;
+  const motions=before.filter(a=>!a.removed&&!a.c.removed&&(a.mode!=="garage"||a.c.mode!=="garage"||a.garIn||a.garOut)).map(a=>{
+    const c=a.c,b={s:c.s,pos:c.pos,lat:c.lat,spin:c.spin||0,yaw:c.yaw||0,drift:c.drift||0},q=carBox(a);
+    let centerSlope=0,angleSlope=0;
+    for(let k=Math.floor(Math.min(a.s,b.s)/DS);k<=Math.floor(Math.max(a.s,b.s)/DS);k++){
+      const i=((k%NU)+NU)%NU,j=(i+1)%NU;centerSlope=Math.max(centerSlope,Math.hypot(T.x[j]-T.x[i],T.y[j]-T.y[i])/DS);
+      angleSlope=Math.max(angleSlope,Math.abs(wrapA(T.ang[j]-T.ang[i]))/DS);}
+    const travel=Math.abs(b.s-a.s)*(centerSlope+(Math.max(Math.abs(a.lat),Math.abs(b.lat))+CAR_L)*angleSlope)+
+      Math.abs(b.lat-a.lat)+CAR_L*(Math.abs(wrapA(b.spin-a.spin))+Math.abs(b.yaw-a.yaw)+Math.abs(b.drift-a.drift));
+    return {a,b,c,q,travel,f:1,protected:a.protected||pitMotionProtected(c)};});
+  const pose=(m,t,f=m.f)=>{const u=t*f,a=m.a,b=m.b;return {s:a.s+(b.s-a.s)*u,lat:a.lat+(b.lat-a.lat)*u,
+    spin:a.spin+wrapA(b.spin-a.spin)*u,yaw:a.yaw+(b.yaw-a.yaw)*u,drift:a.drift+(b.drift-a.drift)*u};};
+  const pairs=[];
+  for(let i=0;i<motions.length;i++)for(let j=i+1;j<motions.length;j++){
+    const a=motions[i],b=motions[j];if(!a.protected&&!b.protected)continue;
+    if(Math.hypot(a.q.x-b.q.x,a.q.y-b.q.y)>18+a.travel+b.travel)continue;
+    // An already corrupt imported/spawned pose cannot be repaired by a forward movement constraint.
+    if(obbMTV(a.a,b.a)){S.pitPreexistingOverlaps=(S.pitPreexistingOverlaps||0)+1;continue;}
+    pairs.push([a,b]);}
+  const pairPadding=(a,b)=>{a.pads=a.pads||new Map();if(a.pads.has(b))return a.pads.get(b);
+    let pad=0.6;if(obbHit(a.a,b.a,pad)){let lo=0,hi=pad;for(let k=0;k<12;k++){const m=(lo+hi)/2;if(obbHit(a.a,b.a,m))hi=m;else lo=m;}pad=Math.max(0.00001,lo*0.5);}
+    a.pads.set(b,pad);return pad;};
+  const firstContact=(a,b,fa=a.f,fb=b.f)=>{
+    const pad=pairPadding(a,b),n=Math.max(2,Math.ceil((a.travel*fa+b.travel*fb)/(pad*1.75)));
+    // Inflation covers the complete interval between swept samples. For already
+    // close cars, adapt the margin so separating motion remains possible.
+    for(let i=1;i<=n;i++){const t=i/n;if(obbHit(pose(a,t,fa),pose(b,t,fb),pad))return (i-1)/n;}return null;};
+  const priority=m=>{const a=m.a;if(a.garOut||a.pit&&a.pit.ph==="svc")return 2;
+    // Before the pit split, the car in front retains priority over following race traffic.
+    // Main-track priority applies where an exiting car actually crosses into its lane.
+    return a.pit&&a.pit.ph==="exit"&&a.pos>=PIT_OUT_S-10&&a.pos<=PIT_EXIT_S+PIT_ROUTE.rejoin?1:0;};
+  // Each pass can only reduce movement. Rechecking all pairs propagates a stopped
+  // leader back through the queue without changing any car's starting position.
+  for(let pass=0;pass<12;pass++){
+    let changed=false;
+    for(const [a,b] of pairs){const hit=firstContact(a,b);if(hit==null)continue;
+      const pa=priority(a),pb=priority(b),d=delta(a.a,b.a);
+      let yieldCar=pa!==pb?(pa>pb?a:b):(d>=0?a:b),other=yieldCar===a?b:a;
+      let continued=false;
+      for(const m of [other,yieldCar]){const nearBay=m.a.pit&&m.a.pit.ph==="in"&&m.a.pit.goal==="service"&&m.a.stopAt!=null&&m.a.stopAt-m.a.s<30;
+        const leavingBay=m.a.pit&&(m.a.pit.ph==="exit"||m.a.pit.ph==="svc")&&m.a.lat<PLAT-0.5&&m.a.pos>PIT_ENTRY_S;
+        if(m.a.pit&&!nearBay&&!leavingBay)continue;const old=m.b;m.b=Object.assign({},old,{lat:m.a.lat,spin:m.a.spin,yaw:m.a.yaw,drift:m.a.drift});
+        if(firstContact(a,b)==null){m.adjusted=true;continued=true;changed=true;break;}m.b=old;}
+      if(continued)continue;
+      // If both cars are attempting a lateral move, keep both lanes while resolving forward priority.
+      for(const m of [other,yieldCar]){const nearBay=m.a.pit&&m.a.pit.ph==="in"&&m.a.pit.goal==="service"&&m.a.stopAt!=null&&m.a.stopAt-m.a.s<30,
+          leavingBay=m.a.pit&&(m.a.pit.ph==="exit"||m.a.pit.ph==="svc")&&m.a.lat<PLAT-0.5&&m.a.pos>PIT_ENTRY_S;
+        if(!m.a.pit||nearBay||leavingBay){m.b=Object.assign({},m.b,{lat:m.a.lat,spin:m.a.spin,yaw:m.a.yaw,drift:m.a.drift});m.adjusted=true;}}
+      const safe=f=>firstContact(yieldCar,other,f,other.f)==null;
+      if(safe(0)){
+        let lo=0,hi=yieldCar.f;for(let k=0;k<12;k++){const mid=(lo+hi)/2;if(safe(mid))lo=mid;else hi=mid;}
+        yieldCar.f=lo;changed=true;
+      }else{
+        // If the priority car would run into the waiting car, both brake before
+        // contact. The shared time limit preserves their original ordering.
+        const f=Math.max(0,hit-0.002);S.pitLastConflict={a:a.c.drv.code,b:b.c.drv.code,as:a.a.s,bs:b.a.s,al:a.a.lat,bl:b.a.lat,an:a.b,bn:b.b,fa:a.f,fb:b.f,pad:pairPadding(a,b)};a.f*=f;b.f*=f;changed=true;
+      }
+    }
+    if(!changed)break;
+  }
+  // Extremely dense chains can require more than the normal relaxation budget.
+  // Freeze their connected component at its valid starting poses, never push it.
+  const frozen=new Set();for(const [a,b] of pairs)if(firstContact(a,b)!=null){frozen.add(a);frozen.add(b);}
+  if(frozen.size){let changed=true;while(changed){changed=false;for(const [a,b] of pairs)if(frozen.has(a)!==frozen.has(b)){
+    const fa=frozen.has(a)?0:a.f,fb=frozen.has(b)?0:b.f;if(firstContact(a,b,fa,fb)!=null){frozen.add(a);frozen.add(b);changed=true;}}}
+    for(const m of frozen)m.f=0;}
+  for(const m of motions){if(m.f>=1&&!m.adjusted)continue;const c=m.c,a=m.a,p=pose(m,1);
+    c.s=p.s;c.pos=mod(p.s);c.lat=p.lat;c.spin=p.spin;c.yaw=p.yaw;c.drift=p.drift;if(m.f<1)c.v=0;c.latV=0;c.brk=true;c.brkOn=true;
+    if(a.pit&&(!c.pit||a.pit.ph!==c.pit.ph)&&!(a.pit.ph==="svc"&&c.pit&&c.pit.ph==="exit")){c.pit=Object.assign({},a.pit);c.inPit=a.inPit;c.stopAt=a.stopAt;c.stops=a.stops;c.mode=a.mode;}
+    for(const key of ["garIn","garOut"]){const old=a[key],now=c[key];if(old){c[key]=Object.assign({},old);
+      if(now&&old.ph===now.ph&&old.t!=null&&now.t!=null)c[key].t=old.t+(now.t-old.t)*m.f;}}
+    S.pitMotionStops=(S.pitMotionStops||0)+1;
+  }
+}
 function simStep(dt){
+  const n=Math.max(1,Math.ceil(dt/DT));if(n>1){const h=dt/n;for(let i=0;i<n;i++)simStepOnce(h);return;}simStepOnce(dt);}
+function simStepOnce(dt){
   S.t+=dt;wxStep(S.wx,dt);
   if(S.type==="race")raceStep(dt);else timedStep(dt);
   director(dt);moodStep(dt);debrisStep(dt);
+  const motion=pitMotionSnapshot();S._motionPending=!!motion;
   for(const c of S.cars){if(c.script)scriptStep(c,dt);if(c.impede||c.fakeImp)impedeStep(c,dt);}
+  for(const c of S.cars){c._pitPos=c.pos;c._pitLat=c.lat;c._pitV=c.v;}
   for(const c of S.cars)carStep(c,dt);
+  scStep(dt);hazardStep(dt);nukeStep(dt);pitMotionGuard(motion,dt);
+  S._pitGuardSolving=!!motion;deoverlap();S._pitGuardSolving=false;
+  // Race contacts can change another car's proposed path. Recheck those changes
+  // against the same valid starting poses before committing the frame.
+  pitMotionGuard(motion,dt);S._motionPending=false;
+  if(motion)for(const a of motion)if(!a.c.removed&&Math.floor(a.c.s/L)>Math.floor(a.s/L))onLine(a.c);
   if(S.type!=="race")for(const c of S.cars)secTick(c);
-  scStep(dt);hazardStep(dt);nukeStep(dt);deoverlap();
   redStep();
   if(S.type==="race"){let ld=null;if(S.flag.mode==="red"&&S.redOrder)ld=S.redOrder.find(c=>!c.removed&&!c.retired&&!c.finished);
     if(!ld)for(const c of S.cars)if(!c.removed&&!c.retired&&!c.finished&&c.mode!=="garage"&&(!ld||c.s>ld.s))ld=c;if(ld)S.leader=ld;}
@@ -135,6 +228,7 @@ function setSec(c,k,t){if(!(t>0))return;c.secT[k]=t;if(c.secPB[k]==null||t<c.sec
 function secTick(c){if(c.mode!=="push"||c.pit||c.secK==null)return;const k=sectorOf(c.pos);
   if(k===c.secK+1){const tc=S.t-(c.pos-SECB[k])/Math.max(c.v,5);setSec(c,c.secK,tc-c.secT0);c.secT0=tc;c.secK=k;c.secDoneAt=S.t;}}
 function onLine(c){
+  if(S._motionPending)return;
   if(c.towFor&&S.type!=="race"&&c.mode==="push"&&(delta(c,c.towFor)>0||c.towFor.pit||c.towFor.mode!=="push"&&c.towFor.mode!=="out")){c.towFor=null;}
   if(S.type==="race"){raceLine(c);return;}
   if(c.pit)return;

@@ -78,7 +78,60 @@ let BOX0=-125,L=0,DS=0,LAPT=0,TSCALE=1,TRACK=null,PIT_ENTRY_S=0,PIT_IN_S=0,PIT_O
 const TB={x0:0,y0:0,x1:1000,y1:600};
 const CORNERS=[];const SECB=[0,0,0,0];
 const cnm=c=>c.name||`Kurve ${c.num}`;
+/* ---- Ideallinie je Strecke ----
+   lim: Abstand der Linienmitte zur Streckenmitte (Asphalt ±16, weiße Linie ±17,5, Auto 5,1 breit)
+   kin/kout: nutzbarer Kerb innen am Scheitel bzw. außen am Ausgang; exit: Gewicht für Kurvenausgänge vor langen Geraden
+   Stadtkurse fahren mit Abstand zur Mauer und kaum Kerb */
+const LINE_CFG={_:{lim:14.2,kin:1.3,kout:0.9,exit:1.6},
+  monaco:{lim:12.4,kin:0.4,kout:0,exit:1.1},singapore:{lim:13.0,kin:0.6,kout:0.2,exit:1.4},baku:{lim:13.0,kin:0.5,kout:0.2,exit:2.0},
+  jeddah:{lim:13.2,kin:0.6,kout:0.2,exit:1.6},vegas:{lim:13.4,kin:0.6,kout:0.3,exit:2.0},madrid:{lim:13.4,kin:0.8,kout:0.4,exit:1.5},
+  miami:{lim:13.8,kin:1.0,kout:0.5,exit:1.8},montreal:{lim:13.8,kin:1.5,kout:0.6,exit:2.0},melbourne:{lim:14.0,kin:1.1,kout:0.7,exit:1.6},
+  monza:{lim:14.2,kin:1.6,kout:1.0,exit:2.4},spa:{lim:14.2,kin:1.3,kout:1.0,exit:2.0},rbr:{lim:14.2,kin:1.4,kout:1.1,exit:2.2},
+  silverstone:{lim:14.2,kin:1.3,kout:1.1,exit:1.7},suzuka:{lim:14.0,kin:1.2,kout:0.8,exit:1.5},hungaroring:{lim:14.0,kin:1.4,kout:0.9,exit:1.2},
+  zandvoort:{lim:13.8,kin:1.0,kout:0.6,exit:1.4},interlagos:{lim:14.2,kin:1.3,kout:1.0,exit:1.8},mexico:{lim:14.2,kin:1.3,kout:1.0,exit:2.2},
+  austin:{lim:14.2,kin:1.3,kout:1.0,exit:1.8},bahrain:{lim:14.2,kin:1.3,kout:1.2,exit:2.0},lusail:{lim:14.2,kin:1.2,kout:1.0,exit:1.6},
+  yas:{lim:14.2,kin:1.2,kout:1.0,exit:1.9},shanghai:{lim:14.2,kin:1.3,kout:1.0,exit:2.0},barcelona:{lim:14.2,kin:1.3,kout:1.0,exit:1.7},
+  imola:{lim:13.8,kin:1.4,kout:0.8,exit:1.6},nuerburgring:{lim:14.2,kin:1.3,kout:1.0,exit:1.6},hockenheim:{lim:14.2,kin:1.4,kout:1.0,exit:2.1},ring:{lim:14.0,kin:1.2,kout:0.9,exit:1.6}};
+/* Minimiert Σ w·κ² mit κ ≈ k + l″ (gefahrene Bahn mit seitlichem Versatz l), unter den Grenzen je Punkt.
+   Mehrstufig von grob nach fein, damit Kurvenkombinationen als Ganzes optimiert werden. */
+function raceLineOpt(k,smooth,W){const cfg=Object.assign({},LINE_CFG._,LINE_CFG[TRACK.key]||{});
+  const ks=smooth(smooth(k,Math.max(1,Math.round(18/DS))),Math.max(1,Math.round(12/DS))),zone=new Uint8Array(NU);for(let i=0;i<NU;i++)zone[i]=Math.abs(ks[i])>0.006?1:0;
+  /* Länge der Geraden nach der Kurvenzone, in der ein Punkt liegt (für die Gewichtung der Ausgänge) */
+  const after=new Float32Array(NU);
+  for(let i=0;i<NU;i++){if(!zone[i])continue;let j=i,n=0;while(zone[W(j)]&&n<NU){j++;n++;}let len=0;while(!zone[W(j)]&&len<2500){j++;len+=DS;}after[i]=len;}
+  const hi=new Float32Array(NU),lo=new Float32Array(NU),w=new Float32Array(NU);
+  for(let i=0;i<NU;i++){const z=zone[i],ins=Math.sign(ks[i]);
+    const kerbIn=z?cfg.kin:0,kerbOut=z?cfg.kout:0;
+    hi[i]=cfg.lim+(ins>0?kerbIn:kerbOut);lo[i]=-(cfg.lim+(ins<0?kerbIn:kerbOut));
+    if(TRACK.pitZones){const s=i*DS,inExit=mod(s-PIT_OUT_S)<PIT_EXIT_S-PIT_OUT_S+140,inEntry=mod(s-(PIT_ENTRY_S-130))<PIT_IN_S-PIT_ENTRY_S+130+20;
+      if(inExit||inEntry)lo[i]=Math.max(lo[i],-7);}   /* Boxenseite (−lat) an Ein- und Ausfahrt freihalten */
+    const exiting=z&&Math.abs(ks[W(i+Math.round(25/DS))])<Math.abs(ks[i]);w[i]=1+(exiting?cfg.exit*clamp(after[i]/500,0,1):0);}
+  /* grob → fein */
+  let lPrev=null,mPrev=0;
+  for(const [m,sweeps] of [[32,600],[16,400],[8,300],[4,220],[2,160]]){const N=Math.floor(NU/m),h=NU/N*DS,idx=new Int32Array(N),kk=new Float32Array(N),ww=new Float32Array(N),hh=new Float32Array(N),ll=new Float32Array(N),l=new Float32Array(N);
+    for(let j=0;j<N;j++){const a=Math.round(j*NU/N),b=Math.round((j+1)*NU/N);idx[j]=a;let sk=0,sw=0,mh=1e9,ml=1e9;
+      for(let i=a;i<b;i++){const ii=W(i);sk+=ks[ii];sw=Math.max(sw,w[ii]);mh=Math.min(mh,hi[ii]);ml=Math.min(ml,-lo[ii]);}
+      kk[j]=sk/(b-a);ww[j]=sw;hh[j]=mh;ll[j]=-ml;
+      if(lPrev){const f=a/NU*lPrev.length,i0=Math.floor(f)%lPrev.length,i1=(i0+1)%lPrev.length,t=f-Math.floor(f);l[j]=lPrev[i0]*(1-t)+lPrev[i1]*t;}
+      else l[j]=clamp(-Math.sign(kk[j])*0,ll[j],hh[j]);}
+    const ih2=1/(h*h),eps=4e-6*ih2*h;   /* leichte Steifigkeit gegen kleine Wackler */
+    for(let r=0;r<sweeps;r++)for(let i=0;i<N;i++){let num=0,den=0;
+      for(let d=-1;d<=1;d++){const j=(i+d+N)%N,jm=(j-1+N)%N,jp=(j+1)%N,a=0;   /* geometrische Näherung κ≈k+l″: außen anfahren, innen Scheitel, außen raus (der exakte Term würde Haarnadeln außen herum fahren) */
+        const kap=kk[j]+a*l[j]+(l[jm]-2*l[j]+l[jp])*ih2,b=d===0?a-2*ih2:ih2,c=kap-b*l[i];num+=ww[j]*b*c;den+=ww[j]*b*b;}
+      const jm=(i-1+N)%N,jp=(i+1)%N;num-=eps*(l[jm]+l[jp]);den+=2*eps;   /* winzige Glättung gegen numerisches Rauschen */
+      const opt=-num/den;l[i]=clamp(l[i]+(opt-l[i])*1.2,ll[i],hh[i]);}
+    lPrev=l;mPrev=m;}
+  {const Np=lPrev.length;for(let i=0;i<NU;i++){const f=i/NU*Np,i0=Math.floor(f)%Np,i1=(i0+1)%Np,t=f-Math.floor(f);T.line[i]=lPrev[i0]*(1-t)+lPrev[i1]*t;}}
+  {const sm=smooth(smooth(T.line,Math.max(1,Math.round(10/DS))),Math.max(1,Math.round(8/DS)));for(let i=0;i<NU;i++)T.line[i]=clamp(sm[i],lo[i],hi[i]);}
+  /* Krümmung der gefahrenen Linie (Grundlage für das Tempoprofil) */
+  T.kl=T.kl||new Float32Array(NU);const px=new Float32Array(NU),py=new Float32Array(NU);
+  for(let i=0;i<NU;i++){const nx=-Math.sin(T.ang[i])*SIDE,ny=Math.cos(T.ang[i])*SIDE;px[i]=T.x[i]+nx*T.line[i];py[i]=T.y[i]+ny*T.line[i];}
+  const st=Math.max(1,Math.round(6/DS)),kl=new Float32Array(NU);
+  for(let i=0;i<NU;i++){const a=W(i-st),b=W(i+st),a1=Math.atan2(py[i]-py[a],px[i]-px[a]),a2=Math.atan2(py[b]-py[i],px[b]-px[i]);let d=a2-a1;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
+    const len=Math.hypot(px[b]-px[i],py[b]-py[i])+Math.hypot(px[i]-px[a],py[i]-py[a]);kl[i]=d/Math.max(1e-6,len/2)*SIDE;}
+  const kls=smooth(smooth(kl,Math.max(2,Math.round(8/DS))),Math.max(2,Math.round(8/DS)));for(let i=0;i<NU;i++)T.kl[i]=kls[i];}
 function buildTrack(key){
+  TRACKS[key].pitZones=false;
   TRACK=TRACKS[key];TRACK.key=key;let PTS=TRACK.pts.map(p=>[p[0]*TRACK.sc,p[1]*TRACK.sc]);
   if(TRACK.real){ // längste Ausdehnung waagerecht legen, damit die Strecke den Monitor füllt
     let mx=0,my=0;for(const p of PTS){mx+=p[0];my+=p[1];}mx/=PTS.length;my/=PTS.length;
@@ -117,25 +170,15 @@ function buildTrack(key){
   SIDE=TRACK.side==="R"?-1:1;
   if(SIDE<0)for(let i=0;i<NU;i++)k[i]=-k[i];
   T.k.set(k);
-  const kl=smooth(k,Math.round(44/DS));
-  // Ideallinie: außen anbremsen, innen am Scheitel, außen heraustragen lassen
-  const kn=smooth(kl,Math.round(26/DS)),kw=smooth(smooth(k,Math.round(120/DS)),Math.round(90/DS)),lraw=new Float32Array(NU);
-  for(let i=0;i<NU;i++){const apex=10.5*Math.tanh(kn[i]/0.011),outer=-8.5*Math.tanh((kw[i]-kn[i])/0.0035)*(1-Math.min(1,Math.abs(kn[i])/0.009));lraw[i]=clamp(apex+outer,-11.5,11.5);}
-  const l2=smooth(smooth(lraw,Math.round(34/DS)),Math.round(22/DS));
-  // Optimierte Ideallinie: minimale Krümmung über die ganze Runde (Kurvenkombinationen werden zusammen durchfahren)
-  {const l=Float32Array.from(l2),nx=new Float32Array(NU),ny=new Float32Array(NU),LIM=11.5;
-    for(let i=0;i<NU;i++){nx[i]=-Math.sin(T.ang[i])*SIDE;ny[i]=Math.cos(T.ang[i])*SIDE;}
-    for(const[kk0,it]of[[70,60],[34,90],[16,120],[7,160]]){const kk=Math.max(2,Math.round(kk0/DS));
-      for(let r=0;r<it;r++)for(let i=0;i<NU;i++){const a=(i-kk+NU)%NU,b=(i+kk)%NU;
-        const mx=(T.x[a]+nx[a]*l[a]+T.x[b]+nx[b]*l[b])/2,my=(T.y[a]+ny[a]*l[a]+T.y[b]+ny[b]*l[b])/2;
-        const d=(mx-T.x[i])*nx[i]+(my-T.y[i])*ny[i];l[i]+=(clamp(d,-LIM,LIM)-l[i])*0.6;}}
-    const l3=smooth(l,Math.max(1,Math.round(8/DS)));for(let i=0;i<NU;i++)T.line[i]=clamp(0.8*l3[i]+0.2*l2[i],-LIM,LIM);}
-  const v=T.prof;
-  for(let i=0;i<NU;i++)v[i]=Math.min(VTOP,Math.sqrt(ALAT/Math.max(1e-4,Math.abs(k[i]))));
-  for(let r=0;r<2;r++)for(let i=NU-1;i>=0;i--)v[i]=Math.min(v[i],Math.sqrt(v[W(i+1)]**2+2*BRK*0.85*DS));
-  for(let r=0;r<2;r++)for(let i=0;i<NU;i++)v[W(i+1)]=Math.min(v[W(i+1)],Math.sqrt(v[i]**2+2*ACC*1.1*DS));
-  for(let i=0;i<NU;i++)LAPT+=DS/v[i];
-  TSCALE=TRACK.lapS/LAPT;
+  /* Ideallinie: pro Strecke als Linie minimaler Krümmung der gefahrenen Bahn optimiert (siehe raceLineOpt) */
+  raceLineOpt(k,smooth,W);
+  const calcProf=()=>{const v=T.prof;LAPT=0;
+    for(let i=0;i<NU;i++)v[i]=Math.min(VTOP,Math.sqrt(ALAT/Math.max(1e-4,Math.abs(T.k[i]))));   /* Kurventempo aus der Streckengeometrie: auf der weiten Ideallinie liegt das Auto damit sicher unter dem Grip-Limit (schnelleres Linien-Tempo ließ das Feld in Bremszonen auflaufen) */
+    for(let r=0;r<2;r++)for(let i=NU-1;i>=0;i--)v[i]=Math.min(v[i],Math.sqrt(v[W(i+1)]**2+2*BRK*0.85*DS));
+    for(let r=0;r<2;r++)for(let i=0;i<NU;i++)v[W(i+1)]=Math.min(v[W(i+1)],Math.sqrt(v[i]**2+2*ACC*1.1*DS));
+    for(let i=0;i<NU;i++)LAPT+=DS/v[i];
+    TSCALE=TRACK.lapS/LAPT;};
+  calcProf();
   const kd=T.k,detect=th=>{const out=[];let i=0;while(i<NU){if(Math.abs(kd[i])>th){let i0=i,best=i;
       while(i<NU&&Math.abs(kd[i])>th&&Math.sign(kd[i])===Math.sign(kd[i0])){if(Math.abs(kd[i])>Math.abs(kd[best]))best=i;i++;}
       if((i-i0)*DS>6)out.push({i0,i1:i-1,ia:best,s:best*DS,dir:Math.sign(kd[best]),kmax:Math.abs(kd[best])});}else i++;}return out;};
@@ -148,7 +191,9 @@ function buildTrack(key){
       if(i<0||i+1>=cs.length){ok=false;break;}b.push((cs[i].i1*DS+cs[i+1].i0*DS)/2);}
     if(ok&&b[0]<b[1]){SECB[1]=b[0];SECB[2]=b[1];TRACK.realSec=true;}}
   PIT_ENTRY_S=L-246;PIT_IN_S=L-160;PIT_OUT_S=160;PIT_EXIT_S=250;DEC_S=L-330;BOX0=-125;
-  try{if(typeof applyPitData==="function"){applyPitData();tagRunoff();buildZones();}}catch(e){}
+  try{if(typeof applyPitData==="function"){applyPitData();
+    TRACK.pitZones=true;raceLineOpt(k,smooth,W);calcProf();if(typeof refinePitApproach==="function")refinePitApproach();   /* Linie mit Boxenzonen neu: Platz zum Einfädeln an Ein- und Ausfahrt */
+    tagRunoff();buildZones();}}catch(e){}
 }
 buildTrack("ring");
 const mod=s=>((s%L)+L)%L;

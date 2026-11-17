@@ -550,7 +550,8 @@ document.querySelectorAll(".da button").forEach(b=>b.onclick=()=>{if(!S)return;c
 document.addEventListener("keydown",e=>{if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT")return;
   if(e.key==="Escape"&&R.inc)closeReplay();
   else if(R.inc){if(e.key===" "){e.preventDefault();R.playing=!R.playing;rpSync();}else if(e.key==="ArrowLeft")$("rpB").click();else if(e.key==="ArrowRight")$("rpF").click();}
-  else if(S&&!$("overlay").classList.contains("show")){if(e.key==="1"||e.key==="2"||e.key==="3")cycleSector(+e.key-1);else if(e.key===" "){e.preventDefault();setSpeed(UI.speed?0:1);}}});
+  else if(S&&!$("overlay").classList.contains("show")){if((e.key==="l"||e.key==="L")&&!e.ctrlKey&&!e.metaKey&&!e.altKey){UI.lineDbg=!UI.lineDbg;addLog(UI.lineDbg?"DEBUG: Ideallinie eingeblendet (Taste L)":"DEBUG: Ideallinie ausgeblendet","flag");}
+    else if(e.key==="1"||e.key==="2"||e.key==="3")cycleSector(+e.key-1);else if(e.key===" "){e.preventDefault();setSpeed(UI.speed?0:1);}}});
 
 const NPOST_=0;
 function ccSet(v){UI.cctvMan=v;$("ccAuto").classList.toggle("on",v==null);}

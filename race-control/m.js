@@ -165,29 +165,6 @@ function market(k,done){const reqs=[],notes=[],signed={};const pts=c=>k.points[c
   TEAM_KEYS.forEach(t=>k.roster[t].forEach((c,i)=>{const age=AGE[c]||25,ret=age>=44?0.55:age>=40?0.3:age>=37?0.15:0;
     if(Math.random()<ret){notes.push(`${drvName(c)} beendet seine Karriere (${TEAMS[t].name}).`);k.roster[t][i]=null;open.push(t);k.retired=k.retired||[];k.retired.push(c);}
     else if(k.drep[c]<38&&Math.random()<0.6){notes.push(`${TEAMS[t].name} trennt sich von ${drvName(c)} – Ruf ${Math.round(k.drep[c])}.`);k.roster[t][i]=null;open.push(t);}}));
-  /* Spitzenteams werben starke Fahrer aus dem Mittelfeld ab */
-  const ord=teamOrder(k);
-  ord.slice(0,5).forEach(t=>{const[a,b]=k.roster[t];if(a&&b){const lo=k.drep[a]<k.drep[b]?a:b;
-    const star=TEAM_KEYS.filter(x=>ord.indexOf(x)>ord.indexOf(t)+1).flatMap(x=>k.roster[x].filter(Boolean)).sort((p,q)=>k.drep[q]-k.drep[p])[0];
-    if(star&&k.drep[star]>k.drep[lo]+10&&Math.random()<0.5){const from=seatOf(k,star),rel=Math.random()<0.8?from:null;
-      reqs.push({type:"transfer",team:t,out:lo,inn:star,release:rel,ctx:`${TEAMS[t].name} will ${drvName(star)} (Ruf ${Math.round(k.drep[star])}) von ${TEAMS[from].name} holen.`+(rel?` ${TEAMS[from].name} hat die Freigabe schriftlich eingereicht.`:` Eine Freigabe von ${TEAMS[from].name} liegt nicht vor.`),
-        text:`Wechsel ${drvName(star)}: ${TEAMS[from].name} → ${TEAMS[t].name}, ${drvName(lo)} verliert sein Cockpit.`,outWhy:"muss gehen",
-        apply(){const i=k.roster[t].indexOf(lo),j=k.roster[from].indexOf(star);if(i<0||j<0)return;k.roster[t][i]=star;k.roster[from][j]=null;signed[star]=t;reqs.push({gen:fillReq(from),team:from});},
-        undo(){const i=k.roster[t].indexOf(star),j=k.roster[from].indexOf(null);if(i>=0&&j>=0){k.roster[t][i]=lo;k.roster[from][j]=star;}delete signed[star];
-          const q=reqs.findIndex(x=>x.gen&&x.team===from);if(q>=0)reqs.splice(q,1);}});}}});
-  /* Freie Cockpits über Anträge besetzen – jeder Vertrag wird bei der Rennleitung registriert */
-  function fillReq(t){const tried=[];const mk=()=>{const i=k.roster[t].indexOf(null);if(i<0)return null;
-      let inn=proposal(k,t,tried.concat(Object.keys(signed)),0.25);let dup=null;
-      if(Math.random()<0.12&&Object.keys(signed).length){inn=pick(Object.keys(signed));dup=signed[inn];}   // Doppelvertrag
-      if(!inn)return null;tried.push(inn);
-      return {type:"transfer",team:t,inn,dup,ctx:`Fahrermarkt ${k.year+1}: ${TEAMS[t].name} hat ein freies Cockpit.`,text:`Vertrag mit ${drvName(inn)} für ${k.year+1}.`,
-        apply(){if(dup)return;k.roster[t][i]=inn;signed[inn]=t;},undo(){if(k.roster[t][i]===inn)k.roster[t][i]=null;delete signed[inn];const nx=mk();if(nx)reqs.unshift(nx);},onReject:mk};};const g=mk;g.team=t;return g;}
-  [...new Set(open)].forEach(t=>k.roster[t].forEach(c=>{if(c===null)reqs.push({gen:fillReq(t),team:t});}));
-  /* Junioren aufrücken lassen: Racing Bulls nimmt einen Red-Bull-Junior, wenn einer mit Superlizenz bereit ist */
-  const jr=Object.keys(DB).find(c=>DB[c].home==="RBR"&&!seatOf(k,c)&&DB[c].role.includes("Junior")&&slOk(c));
-  if(jr&&Math.random()<0.6){const lo=k.roster.RCB.filter(Boolean).sort((a,b)=>k.drep[a]-k.drep[b])[0];if(lo){const i=k.roster.RCB.indexOf(lo),old=JSON.parse(JSON.stringify(k.roster));
-    reqs.push({type:"transfer",team:"RCB",out:lo,inn:jr,ctx:"Red Bull befördert einen Junior.",text:`${drvName(jr)} ersetzt ${drvName(lo)} bei Racing Bulls.`,outWhy:"muss für den Junior Platz machen",
-      apply(){k.roster.RCB[i]=jr;signed[jr]="RCB";},undo(){k.roster=old;}});}}
   const fin=()=>{TEAM_KEYS.forEach(t=>k.roster[t]=k.roster[t].map(c=>c||candidates(k,t,[]).find(slOk)));   // Notfall: Reserve mit Lizenz
     /* Nachwuchs entwickelt sich: F3 → F2, Punkte wandern */
     for(const c in DB){const d=DB[c];if(d.held||seatOf(k,c))continue;if(d.role.includes("F3")){d.sl=Math.min(60,d.sl+irand(5,28));d.role=d.role.replace("F3","F2");d.skill=Math.max(0.3,d.skill-0.12);}
@@ -198,10 +175,84 @@ function market(k,done){const reqs=[],notes=[],signed={};const pts=c=>k.points[c
     const m=$("modal");m.className="modal wide";
     m.innerHTML=`<h2>🆕 Starterfeld ${k.year}</h2><table class="res">${TEAM_KEYS.map(t=>`<tr><td><span style="color:${TEAMS[t].color}">■</span> ${TEAMS[t].name}</td><td>${k.roster[t].map(drvName).join(" · ")}</td><td>${k.pace[t].toFixed(2)} s</td></tr>`).join("")}</table>
       <button class="big go" id="nsGo">Saison ${k.year} starten</button>`;$("nsGo").onclick=done;};
-  const startReq=()=>runRequests(k,reqs,fin);
-  const m=$("modal");m.className="modal";m.innerHTML=`<h2>🔁 Fahrermarkt</h2>${notes.map(n=>`<div class="fbk mid">${esc(n)}</div>`).join("")||"<p class='hint'>Keine Rücktritte oder Entlassungen.</p>"}
-    <p class="hint">Alle neuen Verträge müssen von dir geprüft und registriert werden.</p><button class="big go" id="mkGo">Anträge prüfen (${reqs.length})</button>`;
-  $("overlay").classList.add("show");$("mkGo").onclick=startReq;}
+  marketBoard(k,notes,fin);}
+/* ================= Fahrermarkt-Dashboard =================
+   1) Übersicht: Cockpits je Team (sicher / wackelt / frei), wen die Teams wollen, wohin die Fahrer wollen
+   2) Rennleitung gibt jede Verhandlung frei oder lehnt ab (Superlizenz, Sperre, fremder Vertrag ohne Freigabe)
+   3) Verhandlungen in Runden: Teams bieten, Fahrer nehmen das beste Angebot; frei gewordene Cockpits ziehen Ketten nach sich */
+function mkStatus(k,t,c){if(!c)return {s:"frei",cls:"bad"};const age=AGE[c]||25,r=k.drep[c]||50,mate=k.roster[t].find(x=>x&&x!==c),mr=mate?k.drep[mate]||50:r;
+  if(r<45||r<mr-14)return {s:"wackelt",cls:"mid"};if(age>=38)return {s:"letzte Saison?",cls:"mid"};return {s:"sicher",cls:"ok"};}
+function mkDrvPref(k,c,t){const ord=teamOrder(k),i=ord.indexOf(t);return (10-i)*1.1+(DB[c]&&DB[c].home===t?2.5:0)+(k.money[t]||0)/90+(c.charCodeAt(0)*7+t.charCodeAt(1)*13)%10/8;}
+function mkTeamPref(k,t,c){const age=AGE[c]||25;return (k.drep[c]||50)+(DB[c]&&DB[c].home===t?6:DB[c]&&DB[c].home===PARTNER[t]?3:0)-Math.max(0,age-37)*2.5+(k.points[c]||0)*0.04;}
+function mkInterests(k){const ord=teamOrder(k),iv=[],seen=new Set();let id=0;
+  const add=(t,c,kind,out,why)=>{const key=t+c;if(seen.has(key)||!c)return;seen.add(key);const from=seatOf(k,c);
+    const release=from&&from!==t?(Math.random()<0.6||SISTER[t]===from):true;
+    iv.push({id:id++,team:t,drv:c,kind,out:out||null,from:from&&from!==t?from:null,release,why,int:clamp(Math.round(mkTeamPref(k,t,c)),5,99)});};
+  TEAM_KEYS.forEach(t=>{const open=k.roster[t].filter(c=>c===null).length;
+    if(open){const cs=candidates(k,t,[]).slice(0,3);cs.forEach(c=>add(t,c,"frei",null,"freies Cockpit"));
+      if(Math.random()<0.25){const bad=Object.keys(DB).find(c=>!seatOf(k,c)&&!slOk(c)&&(DB[c].home===t||DB[c].home===PARTNER[t]));if(bad)add(t,bad,"frei",null,"freies Cockpit (Junior)");}}
+    const i=ord.indexOf(t),[a,b]=k.roster[t];
+    if(a&&b){const lo=(k.drep[a]||50)<(k.drep[b]||50)?a:b;
+      const stars=TEAM_KEYS.filter(x=>ord.indexOf(x)>i).flatMap(x=>k.roster[x].filter(Boolean)).filter(c=>(k.drep[c]||50)>(k.drep[lo]||50)+8).sort((p,q)=>(k.drep[q]||50)-(k.drep[p]||50)).slice(0,i<5?2:1);
+      for(const st of stars)if(Math.random()<(i<5?0.5:0.22))add(t,st,"wechsel",lo,`Upgrade statt ${drvName(lo)}`);}});
+  return iv;}
+function mkValid(k,iv){const c=iv.drv;
+  if(k.banNow&&k.banNow.includes(c))return {ok:false,why:`${drvName(c)} ist gesperrt.`};
+  if(!slOk(c))return {ok:false,why:`${drvName(c)} hat keine Superlizenz (${slTxt(c)}).`};
+  if(iv.from&&!iv.release)return {ok:false,why:`${drvName(c)} steht bei ${TEAMS[iv.from].name} unter Vertrag – ohne Freigabe darf ${TEAMS[iv.team].name} nicht verhandeln.`};
+  return {ok:true,why:iv.from?`Freigabe von ${TEAMS[iv.from].name} liegt vor, Superlizenz ok.`:`Vertragsfrei, Superlizenz ok.`};}
+function marketBoard(k,notes,fin){const iv=mkInterests(k),dec={},m=$("modal");m.className="modal wide";$("overlay").classList.add("show");
+  const chip=(c,extra)=>`<span class="chip" style="display:inline-block;margin:1px 2px">${c}${extra?` <small style="opacity:.7">${extra}</small>`:""}</span>`;
+  const draw=()=>{const nDec=Object.keys(dec).length;
+    const teams=TEAM_KEYS.map(t=>{const want=iv.filter(x=>x.team===t).sort((a,b)=>b.int-a.int);
+      return `<tr><td><span style="color:${TEAMS[t].color}">■</span> <b>${TEAMS[t].name}</b></td>${k.roster[t].map(c=>{const st=mkStatus(k,t,c);return `<td>${c?`<b>${c}</b> `:""}<span class="fbk ${st.cls}" style="display:inline;padding:1px 6px;margin:0">${st.s}</span></td>`;}).join("")}
+        <td>${want.map(x=>chip(x.drv,x.int+"%")).join("")||'<span class="hint">–</span>'}</td></tr>`;}).join("");
+    const drivers=[...new Set(iv.map(x=>x.drv))].map(c=>{const ts=iv.filter(x=>x.drv===c).map(x=>x.team).sort((a,b)=>mkDrvPref(k,c,b)-mkDrvPref(k,c,a));const f=seatOf(k,c);
+      return `<tr><td><b>${c}</b> <small>${esc(drvName(c))}</small></td><td>${f?TEAMS[f].name:"vertragsfrei"}</td><td>${Math.round(k.drep[c]||50)}</td><td>${slOk(c)?"✓":"<b style='color:#e10600'>fehlt</b>"}</td><td>${ts.map((t,i)=>chip(t,i===0?"Favorit":"")).join("")}</td></tr>`;}).join("");
+    const reqs=iv.map(x=>{const d=dec[x.id];return `<tr><td><span style="color:${TEAMS[x.team].color}">■</span> ${TEAMS[x.team].name} → <b>${x.drv}</b></td><td>${esc(x.why)}</td><td>${slOk(x.drv)?"✓":(DB[x.drv]?DB[x.drv].sl+"/40":"–")}</td>
+      <td>${x.from?`${TEAMS[x.from].name} · ${x.release?"Freigabe ✓":"<b style='color:#e10600'>keine Freigabe</b>"}`:"frei"}</td><td>${k.banNow&&k.banNow.includes(x.drv)?"<b style='color:#e10600'>gesperrt</b>":"–"}</td>
+      <td style="white-space:nowrap"><button class="ghost" data-y="${x.id}" style="${d===true?"background:#173d29;border-color:#2fd16b":""}">✔ Freigeben</button> <button class="ghost" data-n="${x.id}" style="${d===false?"background:#3a1212;border-color:#e10600":""}">✘ Ablehnen</button></td></tr>`;}).join("");
+    m.innerHTML=`<h2>🔁 Fahrermarkt ${k.year+1}</h2>${notes.map(n=>`<div class="fbk mid">${esc(n)}</div>`).join("")}
+      <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px;margin-top:8px">
+        <div><h4 style="margin:4px 0">Teams & Cockpits</h4><table class="res"><tr><th>Team</th><th>Cockpit 1</th><th>Cockpit 2</th><th>will haben (Interesse)</th></tr>${teams}</table></div>
+        <div><h4 style="margin:4px 0">Fahrer am Markt</h4><table class="res"><tr><th>Fahrer</th><th>Vertrag</th><th>Ruf</th><th>Lizenz</th><th>Wunsch-Teams</th></tr>${drivers||"<tr><td colspan=5 class='hint'>Keine Bewegung am Markt.</td></tr>"}</table></div></div>
+      <h4 style="margin:12px 0 4px">Verhandlungen – Freigabe durch die Rennleitung <span class="hint">(${nDec}/${iv.length} entschieden)</span></h4>
+      <p class="hint" style="margin:0 0 6px">Prüfe: Superlizenz (40 Punkte oder bereits gehalten) · nicht gesperrt · Fahrer unter Vertrag nur mit Freigabe seines Teams. Nicht entschiedene Anfragen gelten als abgelehnt.</p>
+      <table class="res"><tr><th>Anfrage</th><th>Anlass</th><th>Superlizenz</th><th>Vertrag</th><th>Sperre</th><th></th></tr>${reqs||"<tr><td colspan=6 class='hint'>Keine Anfragen.</td></tr>"}</table>
+      <button class="big go" id="mkRun">Verhandlungen starten</button>`;
+    m.querySelectorAll("[data-y]").forEach(b=>b.onclick=()=>{dec[b.dataset.y]=true;draw();});
+    m.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{dec[b.dataset.n]=false;draw();});
+    $("mkRun").onclick=()=>marketRun(k,iv,dec,fin);};
+  draw();}
+function marketRun(k,iv,dec,fin){const log=[],moves=[],m=$("modal");let pts=0,okN=0;
+  for(const x of iv){const v=mkValid(k,x),yes=dec[x.id]===true,ok=yes===v.ok,p=ok?40:-40;pts+=p;if(ok)okN++;k.dec=k.dec||{ok:0,total:0};k.dec.total++;if(ok)k.dec.ok++;k.rep=clamp((k.rep==null?60:k.rep)+(ok?0.5:-2),0,100);
+    if(!FB_LIVE){k.lateRev=k.lateRev||[];k.lateRev.push({title:`Fahrermarkt: ${TEAMS[x.team].name} → ${drvName(x.drv)}`,ok,pts:p,explain:v.why,sess:"Rennleitung"});}
+    x.go=yes&&v.ok;if(yes&&!v.ok)log.push({r:0,t:`FIA kassiert die Freigabe ${TEAMS[x.team].name} → ${x.drv}: ${v.why}`,c:"bad"});}
+  k.score=(k.score||0)+pts;
+  /* Runden: Teams mit offenem Platz bieten dem besten freigegebenen Kandidaten, Fahrer nehmen das beste Angebot (bleiben ist auch eine Option) */
+  const tried={};for(let r=1;r<=6;r++){const offers={};let any=false;
+    for(const t of TEAM_KEYS){const slots=k.roster[t].map((c,i)=>c===null?i:-1).filter(i=>i>=0);
+      const upg=iv.filter(x=>x.go&&x.team===t&&x.kind==="wechsel"&&k.roster[t].includes(x.out)&&!(tried[t]||[]).includes(x.drv));
+      const freeC=iv.filter(x=>x.go&&x.team===t&&!(tried[t]||[]).includes(x.drv)&&seatOf(k,x.drv)!==t).sort((a,b)=>mkTeamPref(k,t,b.drv)-mkTeamPref(k,t,a.drv));
+      if(slots.length&&freeC.length){const x=freeC[0];(offers[x.drv]=offers[x.drv]||[]).push({t,slot:slots[0],x});(tried[t]=tried[t]||[]).push(x.drv);any=true;}
+      else if(!slots.length&&upg.length){const x=upg.sort((a,b)=>mkTeamPref(k,t,b.drv)-mkTeamPref(k,t,a.drv))[0];(offers[x.drv]=offers[x.drv]||[]).push({t,slot:k.roster[t].indexOf(x.out),x});(tried[t]=tried[t]||[]).push(x.drv);any=true;}}
+    if(!any)break;
+    for(const c in offers){const os=offers[c].sort((a,b)=>mkDrvPref(k,c,b.t)-mkDrvPref(k,c,a.t)),best=os[0],cur=seatOf(k,c),stay=cur?mkDrvPref(k,c,cur)+1.5:-99;
+      for(const o of os)log.push({r,t:`${TEAMS[o.t].name} bietet ${drvName(c)} einen Vertrag an.`});
+      if(mkDrvPref(k,c,best.t)>stay){const out=k.roster[best.t][best.slot];if(cur){const j=k.roster[cur].indexOf(c);k.roster[cur][j]=null;}
+        k.roster[best.t][best.slot]=c;moves.push({c,from:cur,to:best.t,out});
+        log.push({r,t:`✍ ${drvName(c)} unterschreibt bei ${TEAMS[best.t].name}${cur?` (kommt von ${TEAMS[cur].name})`:""}${out?` – ${drvName(out)} verliert sein Cockpit`:""}.`,c:"ok"});
+        for(const o of os.slice(1))log.push({r,t:`${drvName(c)} sagt ${TEAMS[o.t].name} ab.`,c:"mid"});}
+      else for(const o of os)log.push({r,t:`${drvName(c)} bleibt bei ${TEAMS[cur].name} und lehnt ${TEAMS[o.t].name} ab.`,c:"mid"});}}
+  const holes=TEAM_KEYS.filter(t=>k.roster[t].includes(null));
+  if(holes.length)log.push({r:99,t:`Ohne freigegebenen Kandidaten: ${holes.map(t=>TEAMS[t].name).join(", ")} – Notbesetzung mit eigener Reserve.`,c:"mid"});
+  m.className="modal wide";m.innerHTML=`<h2>🤝 Verhandlungen</h2><div id="mkLog" style="max-height:46vh;overflow:auto"></div>
+    <h4 style="margin:12px 0 4px">Wechsel</h4>${moves.length?`<table class="res"><tr><th>Fahrer</th><th>von</th><th>zu</th><th>verdrängt</th></tr>${moves.map(v=>`<tr><td><b>${v.c}</b> ${esc(drvName(v.c))}</td><td>${v.from?TEAMS[v.from].name:"vertragsfrei"}</td><td><span style="color:${TEAMS[v.to].color}">■</span> ${TEAMS[v.to].name}</td><td>${v.out?esc(drvName(v.out)):"–"}</td></tr>`).join("")}</table>`:"<p class='hint'>Keine Wechsel.</p>"}
+    ${FB_LIVE?`<div class="fbk ${pts>=0?"ok":"bad"}">Freigaben: ${okN}/${iv.length} richtig (${pts>0?"+":""}${pts})</div>`:`<div class="fbk mid">Entscheidungen registriert. Die Bewertung folgt mit dem nächsten Rennen.</div>`}
+    <button class="big go" id="mkFin">Weiter zum Starterfeld</button>`;
+  const box=$("mkLog");let i=0;const show=()=>{if(i>=log.length)return;const e=log[i++];const d=document.createElement("div");d.className="fbk "+(e.c||"");d.style.cssText="margin:3px 0;padding:4px 8px;opacity:0;transition:opacity .35s";
+    d.textContent=(e.r&&e.r<99?`Runde ${e.r}: `:"")+e.t;box.appendChild(d);requestAnimationFrame(()=>d.style.opacity=1);box.scrollTop=box.scrollHeight;setTimeout(show,420);};show();
+  $("mkFin").onclick=fin;}
 /* Gespeicherte Entwicklung der Nachwuchsfahrer wiederherstellen */
 function restoreDB(k){if(k&&k.dbx)for(const c in k.dbx)if(DB[c])Object.assign(DB[c],k.dbx[c]);}
 function standingsRows(k){const codes=new Set(Object.keys(k.points));DRIVERS.forEach(d=>codes.add(d.code));

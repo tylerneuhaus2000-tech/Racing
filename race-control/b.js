@@ -30,12 +30,17 @@ function garInStep(c,dt){const g=c.garIn;g.t+=dt;const u0=clamp(g.t/2.8,0,1),u=u
   const s=g.s0-9*Math.sin(A*u),l=g.l0+(GARLAT-g.l0)*(1-Math.cos(A*u)),ds=-9*Math.cos(A*u),dl=(GARLAT-g.l0)*Math.sin(A*u);
   c.s=s;c.pos=mod(s);c.lat=l;c.v=0;c.brk=false;c.latV=0;c.yaw=0;c.drift=0;
   if(Math.abs(ds)+Math.abs(dl)>1e-6)c.spin=wrapA(Math.atan2(SIDE*dl,ds)+Math.PI);
-  if(u0>=1){c.garIn=null;c.lat=GARLAT;c.spin=SIDE*Math.PI/2;if(c.mode!=="garage"&&c.pit)c.garOut={ph:0};}}
+  if(u0>=1){c.garIn=null;c.lat=GARLAT;c.spin=SIDE*Math.PI/2;
+    if(c.pit&&c.pit.goal==="garage"){c.pit=null;c.stopAt=null;c.speeding=0;c.mode="garage";onGarage(c);}
+    else if(c.mode!=="garage"&&c.pit)c.garOut={ph:0};}}
 function garOutStep(c,dt){const g=c.garOut;c.brk=false;c.latV=0;c.yaw=0;c.drift=0;
   if(g.ph===0){c.spin=SIDE*Math.PI/2;c.v=0;const edge=BOXLAT-1.5;
+    const moving=S.cars.find(o=>o!==c&&!o.removed&&o.garOut&&o.garOut.ph===1);
+    const next=S.cars.filter(o=>!o.removed&&o.garOut&&o.garOut.ph===0).sort((a,b)=>((PIT_OUT_S-a.pos+L)%L)-((PIT_OUT_S-b.pos+L)%L))[0];
+    if(moving||next!==c)return true;
     if(c.lat<edge){c.lat=Math.min(edge,c.lat+4*dt);return true;}   // aus der Garage bis an den Rand der Fast Lane vorrollen
     /* einbiegen erst, wenn niemand neben oder knapp hinter einem ist – auch keine Autos, die an der Ausfahrtsampel warten */
-    const busy=S.cars.some(o=>o!==c&&!o.removed&&o.pit&&o.mode!=="garage"&&!o.garIn&&o.lat>-35&&o.lat<-22&&delta(c,o)>-60&&delta(c,o)<16)||S.cars.some(o=>o!==c&&o.garOut&&o.garOut.ph===1&&Math.abs(delta(c,o))<24);
+    const busy=pitLaneReleaseBlocked(c)||S.cars.some(o=>o!==c&&o.garOut&&o.garOut.ph===1&&Math.abs(delta(c,o))<CAR_L+8);
     if(busy){g.wait=(g.wait||0)+dt;return true;}
     g.ph=1;g.t=0;g.s0=c.s;g.l0=c.lat;return true;}
   g.t+=dt;const T=2.2,u0=clamp(g.t/T,0,1),A=Math.PI/2,len=14;
@@ -43,6 +48,54 @@ function garOutStep(c,dt){const g=c.garOut;c.brk=false;c.latV=0;c.yaw=0;c.drift=
   c.v=(s-c.s)/dt;c.s=s;c.pos=mod(s);c.lat=l;c.spin=Math.atan2(SIDE*dl,Math.max(1e-6,ds));
   if(u0>=1){c.garOut=null;c.spin=0;c.lat=PLAT;c.v=Math.max(c.v,8);return false;}return true;}
 function bestLap(c){let b=null;for(const l of c.laps)if(!c.del.has(l.id)&&(b===null||l.t<b))b=l.t;return b;}
+function pitEase(u){u=clamp(u,0,1);return u*u*(3-2*u);}
+function pitApproachTarget(c,idx){return pitRouteApproachLatAt(c.pos);}
+function pitEntryTarget(c){const r=PIT_ROUTE||PITROUTES[TRACK.key]||PITROUTES.ring,along=(c.pos-PIT_ENTRY_S+L)%L;
+  if(along>L/2){const target=pitApproachTarget(c,sidx(c.pos));return target==null?lineAt(c.pos):target;}
+  return pitRouteEntryLatAt(c.pos);}
+function pitPathRisk(c,o,op,olat){const a=Object.assign({},c),b=Object.assign({},o,{s:op,pos:mod(op),lat:olat}),d=(op-c.pos+L)%L;
+  if(d>110||d>L/2)return false;
+  for(let u=0;u<=85;u+=5){a.s=c.s+u;a.pos=mod(a.s);b.s=op+u;b.pos=mod(b.s);
+    if(obbHit(a,b,2))return true;}return false;}
+function pitExitLatAt(pos,idx){return pitRouteExitLatAt(pos);}
+function pitExitTarget(c,idx){return pitExitLatAt(c.pos,idx);}
+function pitFlowCar(o){return !!(o.pit&&o.pit.ph!=="svc"&&!o.removed&&o.mode!=="garage");}
+function pitFollowingLimit(c,vT){if(!(c.pit||c.wantPit)||c.pit&&(c.pit.ph==="svc"||c.pit.ph==="hold")||c.mode==="garage")return vT;
+  let nearest=Infinity,frontV=0;for(const o of S.cars){if(o===c||!(o.pit||o.wantPit)||o.removed||o.mode==="garage")continue;
+    const parked=o.pit&&(o.pit.ph==="svc"||o.pit.ph==="hold"),olat=o._pitLat==null?o.lat:o._pitLat,
+      latGap=Math.abs(olat-c.lat),op=o._pitPos==null?o.pos:o._pitPos,d=(op-c.pos+L)%L;
+    if(parked){if(c.pit&&(c.pit.ph==="svc"||c.pit.ph==="hold")||latGap>12)continue;
+      // A serviced car occupies its bay, not the parallel through lane. Only brake
+      // for it when our present or commanded lateral corridor reaches that bay.
+      if(o.pit.ph==="svc"&&latGap>CAR_W+1.2&&Math.abs((c._tl==null?c.lat:c._tl)-olat)>CAR_W+1.2)continue;}
+    else if(c.pit&&o.pit&&latGap>7.2&&!(c.pit.ph==="in"&&latGap<14))continue;
+    if(d>0.05&&d<Math.min(900,L*0.45)){
+      if(!parked&&pitPathRisk(c,o,op,olat))return Math.min(vT,Math.max(0,(o._pitV==null?o.v:o._pitV)*0.55));
+      if(d<nearest){nearest=d;frontV=parked?0:Math.max(0,o._pitV==null?o.v:o._pitV);}}}
+  if(nearest===Infinity)return vT;const buffer=Math.max(c.pit?4:10,Math.min(14,c.v*0.3)),room=nearest-CAR_L-buffer,
+    safe=Math.sqrt(Math.max(0,frontV*frontV+2*BRK*0.72*room));return Math.min(vT,safe);}
+function pitQueueTargetOccupied(c){if(!c.pit||c.pit.goal!=="queue"||c.stopAt==null)return false;const target=mod(c.stopAt);
+  return S.cars.some(o=>o!==c&&pitFlowCar(o)&&Math.abs(delta({pos:target},{pos:o._pitPos==null?o.pos:o._pitPos}))<CAR_L+4&&
+    Math.abs((o._pitLat==null?o.lat:o._pitLat)-PLAT)<7.2);}
+function pitTravelTime(dist,v0,vmax,accel){if(dist<=0)return 0;v0=clamp(v0,0,vmax);const toLimit=Math.max(0,(vmax*vmax-v0*v0)/(2*accel));
+  if(dist<=toLimit)return (Math.sqrt(v0*v0+2*accel*dist)-v0)/accel;
+  return (vmax-v0)/accel+(dist-toLimit)/vmax;}
+function pitMergeBlocked(c){const route=PIT_ROUTE||PITROUTES[TRACK.key]||PITROUTES.ring,
+    end=PIT_EXIT_S+route.rejoin,distEnd=(end-c.pos+L)%L;if(distEnd>route.exit+route.rejoin+200)return false;
+  const toOut=(PIT_OUT_S-c.pos+L)%L,tOut=pitTravelTime(toOut,c.v,PITV,ACC),safe=1.55+(route.exit>=140?0.25:0),trackCars=S.cars.filter(o=>o!==c&&!o.removed&&!o.pit&&o.mode!=="garage"&&o.mode!=="grid");
+  for(let s=PIT_OUT_S;s<=end;s+=12){const pos=mod(s),idx=sidx(pos),pitLat=pitExitLatAt(pos,idx),lineLat=T.line[idx];
+    if(Math.abs(pitLat-lineLat)>CAR_W*2.1)continue;
+    const after=(s-PIT_OUT_S),fast=tOut+pitTravelTime(after,PITV,VTOP,ACC),slow=tOut+after/PITV;
+    for(const o of trackCars){const op=o._pitPos==null?o.pos:o._pitPos;let rel=(op-pos+L/2)%L;if(rel<0)rel+=L;rel-=L/2;
+      const ov=o._pitV==null?o.v:o._pitV;if(o.crash||ov<3){if(Math.abs(rel)<150)return true;continue;}
+      const passT=-rel/Math.max(8,ov);if(passT>=fast-safe&&passT<=slow+safe)return true;
+    }}
+  return false;}
+function pitLaneReleaseBlocked(c){for(const o of S.cars){if(o===c||!pitFlowCar(o))continue;
+    if(o.lat<-38||o.lat>-21)continue;const op=o._pitPos==null?o.pos:o._pitPos,d=(op-c.pos+L)%L,ov=Math.max(0,o._pitV==null?o.v:o._pitV);
+    if(d<=0.05||d<CAR_L+8)return true;
+    if(d>L*0.5&&!(o.pit.ph==="hold"&&ov<3)&&L-d<CAR_L+5+Math.max(0,ov-6)*1.5)return true;
+  }return false;}
 function wearRate(c){const life=S.type==="race"?(S.sprint?W.opts.laps:S.laps)*(c.tyre==="S"?0.42:c.tyre==="M"?0.68:c.tyre==="H"?1.0:0.8):30;
   let r=1/(life*L);if((c.tyre==="I"||c.tyre==="W")&&S.wx.wet<0.12)r*=4;return r;}
 function grip(c,idx){
@@ -122,6 +175,7 @@ function carStep(c,dt){
       if(dl<9&&d<(race?(c.atk?150:110):50))tow=true;
       if(c.towBy===o&&o.towFor===c&&d<130&&dl<10){tow=true;c.towTeam=0.3;}   // Teamkollege zieht im Windschatten
       let lane=dl<(o.spinT>0?9.8:CAR_W+0.8)||(tz&&!o.crash&&d>4&&d<CAR_L+14&&G0===0&&!isSlow(o,c)&&o.v>25&&!(o.spinT>0)&&!(o.rejoin>0)&&!o.giveBack);
+      if(!lane&&G0===0&&!c.ot&&!c.script&&!c.sFree&&d<70&&Math.abs(o.lat-lineAt(o.pos))<3.5&&Math.abs(o.lat-lineAt(o.pos)-(c.lat-T.line[idx]))<CAR_W+0.8)lane=true;   /* beide auf der Ideallinie: die eigene Linie führt durch ihn hindurch */
       if(o.crash&&o.crash.done&&dl>=CAR_W+0.8)lane=false;   // stehendes Wrack neben der Linie: einfach vorbei
       if(!lane&&noOT&&G0===0&&!nearStop&&!stuck(o)&&(S.phase!=="form"||S.restartGrid))lane=true;
       if(lane&&c.hitT!==o&&!(c.ram&&c.script&&c.script.B===o)&&!(c.sFree&&(c.busy===o||(c.script&&c.script.B===o)))){let de=d;
@@ -155,10 +209,14 @@ function carStep(c,dt){
   if(prof>VTOP*0.8&&!c.pit&&!neutral){ if(tow)vT*=race?(c.atk?1.06:1.028):c.towTeam>0?1.03:1.012; if(c.ot&&race&&c.ot.o.v>40)vT*=c.atk?1.11:1.075; if(c.omT>0)c.omT-=dt; }
   else if(tow&&ad<45&&Math.abs(T.k[idx])>0.008)vT*=0.975;
   vT*=ersMul(c,idx,prof,dt,neutral,race);
+  if(c.wantPit&&!c.pit){const pt=pitApproachTarget(c,sidx(c.pos));if(pt!=null&&Math.abs(c.lat-pt)>2)vT=Math.min(vT,18);const entryDist=(PIT_ENTRY_S-c.pos+L)%L;
+    if(entryDist<=(PIT_ROUTE||PITROUTES[TRACK.key]||PITROUTES.ring).approach+2){const lim=PITV*(c.speedArm||1),toLimit=(PIT_IN_S-c.pos+L)%L;
+      vT=Math.min(vT,Math.sqrt(lim*lim+2*BRK*0.72*Math.max(0,toLimit-CAR_L)));}}
   if(c.wantPit&&!c.pit&&c.pos>=PIT_ENTRY_S&&c.pos<(c.pitGoal==="queue"?PIT_IN_S+40:PIT_ENTRY_S+40)&&!(S.pitClosed&&c.pitGoal==="service"))startPit(c);
   if(c.pit)vT=pitCtl(c,vT,dt);
+  vT=pitFollowingLimit(c,vT);
   if(c.stopAt!=null){const dd=c.stopAt-c.s; vT=Math.min(vT,Math.sqrt(2*BRK*0.7*Math.max(0,dd-0.2)));
-    if(dd<0.6&&c.v<5){c.s=c.stopAt;c.v=0;c.pos=mod(c.s);c.latV=0;c.brk=false;arrive(c);return;}}
+    if(dd<0.6&&c.v<5&&!pitQueueTargetOccupied(c)){c.s=c.stopAt;c.v=0;c.pos=mod(c.s);c.latV=0;c.brk=false;arrive(c);return;}}
   const vFree=vT;
   if(ahead){const gap=ad-CAR_L,atk=c.ot||c.script||c.omT>0||vFree>ahead.v*1.05||ahead.v<30;
     const gm=(c.mode==="form"&&G0===0&&!nearStop)?6:(F.mode==="sc"&&G0===0)?7:(G0===1||nearStop||S.phase==="form"||!(S.type==="race"&&S.phase==="racing"))?2.4+(kk>0.04?10:tight?5:0):atk?(S.raceT-S.goT<45?4+0.06*c.v+(ahead.brk?0.04*c.v:0):3+0.03*c.v+(ahead.brk?0.05*c.v:0))+(kk>0.04?8:tight?4:0):4+0.15*c.v+(kk>0.04?9:tight?4:0);   // im Angriff dicht dran, aber mit tempoabhängigem Sicherheitsabstand
@@ -172,16 +230,16 @@ function carStep(c,dt){
   /* Gas/Bremse wie ein Fahrer: kleine Überschüsse durch Gaswegnehmen, echte Bremsung erst bei deutlichem Überschuss, dann bis zum Scheitel durchziehen */
   if(vT>=c.v){c.v=Math.min(vT,c.v+a*dt*Math.min(1,0.3+(vT-c.v)/2));if(c.brkOn&&(c.brkHold=(c.brkHold||0)+dt)>0.12)c.brkOn=false;}
   else{const over=c.v-vT;c.brkHold=0;
-    if(!c.brkOn&&over>(c.follow?0.8:Math.max(3.5,c.v*0.035)))c.brkOn=true;   // hinter einem langsameren Auto sofort bremsen, sonst erst Gas weg
+    if(!c.brkOn&&over>(c.pit?0.15:c.follow?0.8:Math.max(3.5,c.v*0.035)))c.brkOn=true;   // hinter einem langsameren Auto sofort bremsen, sonst erst Gas weg
     c.v=c.brkOn?Math.max(vT,c.v-BRK*dt):Math.max(vT,c.v-Math.min(COAST,over*4)*dt);}
   c.brk=!!c.brkOn;c.decel=c.v<v0-0.02;   // ERS rekuperiert bei jedem Verzögern, auch beim Gaswegnehmen
   const os=c.s; c.s+=c.v*dt; if(c.mode==="out"&&!c.pit)c.outDist+=c.v*dt;
   c.wear=Math.min(1.2,c.wear+c.v*dt*wearRate(c)); c.pos=mod(c.s);
   if(Math.floor(c.s/L)>Math.floor(os/L))onLine(c);
   // Quer
-  if(c.lb==null){let h=0;for(const ch of c.drv.code)h=(h*31+ch.charCodeAt(0))%997;c.lb=(h/997-0.5)*2.4;}
+  if(c.lb==null){let h=0;for(const ch of c.drv.code)h=(h*31+ch.charCodeAt(0))%997;c.lb=(h/997-0.5)*1.2;}
   let tl=T.line[idx]+(S.type==="race"&&!c.pit?c.lb*Math.min(1,Math.abs(T.k[idx])/0.012):0),rate=(race&&S.raceT-S.goT<12)?7:11,free=false;
-  if(c.pit){tl=c._tl;rate=24;}
+  if(c.pit){tl=c.pit.ph==="exit"?pitExitTarget(c):c._tl;rate=24;}
   else if(c.wide&&c.wide.exitStart!=null&&idx<c.wide.exitStart&&idx>c.wide.exitStart-60){}
   else if(c.wide){const w=c.wide;w.t+=dt;const A=w.a||0.5,H=w.h!=null?w.h:0.12,u=clamp(w.t/w.T,0,1),q=u<A?0.5-0.5*Math.cos(Math.PI*u/A):u<A+H?1:0.5+0.5*Math.cos(Math.PI*Math.min(1,(u-A-H)/Math.max(0.05,1-A-H)));
     tl=w.base*(1-q)+w.peak*q;rate=w.big?13+Math.random()*6:17;free=true;w.max=Math.max(w.max,Math.abs(c.lat));
@@ -190,28 +248,39 @@ function carStep(c,dt){
   else if(c.sLat!=null){tl=c.sLat;rate=c.sRate||16;free=c.sFree;}
   else{
     if(c.mode==="form")tl=(c.stopAt!=null&&c.stopAt-c.s<70)?c.gridLat:0;
-    else if(c.wantPit&&((PIT_ENTRY_S-c.pos+L)%L)<160)tl=-10;
+    else if(c.wantPit){const pt=pitApproachTarget(c,idx);if(pt!=null)tl=pt;}
     else if(c.holdT>0)tl=c.lat;
     else if(c.yieldT>0)tl=c.yieldSide*10.5;
     else if(c.defT>0&&c.defLat!=null)tl=c.defLat;
     if(F.mode==="sc"&&S.unlapOn&&!c.wantPit){tl=c.unlap?-7.5:Math.max(T.line[idx],4.5);c.ot=null;}
-    else if(!c.script&&!c.busy&&(!noOT||(ahead&&stuck(ahead)&&ahead!==S.sc)))tl=otCtl(c,ahead,ad,vFree,tl,dt); else if(noOT)c.ot=null;
-    tl=clamp(tl,-12.3,12.3);
-    if(c.yieldT<=0&&!c.ot){if(kk>0.034)tl=-Math.sign(T.k[idx])*3.5;else if(tz)tl=clamp(tl,-4.5,4.5);}
+    else if(!c.wantPit&&!c.script&&!c.busy&&(!noOT||(ahead&&stuck(ahead)&&ahead!==S.sc)))tl=otCtl(c,ahead,ad,vFree,tl,dt); else if(noOT||c.wantPit)c.ot=null;
+    if(c.wantPit){const pt=pitApproachTarget(c,idx);if(pt!=null)tl=pt;}
+    tl=clamp(tl,-15.8,15.8);
+    /* Platz lassen: neben oder leicht versetzt neben einem anderen Auto der Linie nur bis auf eine Wagenbreite plus Abstand folgen */
+    if(G0===0&&!c.pit)for(const o of S.cars){if(o===c||o.removed||o.mode==="garage"||o.pit||grp(o)!==0)continue;const d=delta(c,o),dl=o.lat-c.lat;
+      if(Math.abs(d)>CAR_L+8||Math.abs(dl)<2.2||Math.abs(dl)>14)continue;const room=o.lat-Math.sign(dl)*(CAR_W+1.8);
+      if(dl>0)tl=Math.min(tl,room);else tl=Math.max(tl,room);}
   }
   if(!c.pit&&!free)rate=Math.min(rate,Math.max(1.5,c.v*0.2));
   if((c.yieldT>0||c.ot)&&c.v<12)rate=Math.max(rate,6);   // im Stand neben ein Wrack rangieren
   if(c.ot&&c.ot.o.v<8&&!c.pit)rate=Math.max(rate,8);
+  const approachTarget=c.wantPit?pitApproachTarget(c,idx):null;
+  if(approachTarget!=null){tl=approachTarget;rate=24;}
   let nl;
-  if(free||c.pit)nl=c.lat+clamp(tl-c.lat,-rate*dt,rate*dt);
+  if(free||c.pit||approachTarget!=null)nl=c.lat+clamp(tl-c.lat,-rate*dt,rate*dt);
   else{/* Seitenführung mit Trägheit: Querbewegung baut sich auf und ab, statt von 0 auf volle Rate zu springen */
-    const lv=c.latV||0,des=clamp((tl-c.lat)*3.2,-rate,rate),la=LATACC*(c.v<12?2:1);let v2=lv+clamp(des-lv,-la*dt,la*dt);
-    nl=c.lat+v2*dt;if((tl-c.lat)*(tl-nl)<0&&Math.abs(tl-c.lat)<0.3)nl=tl;}
+    /* Vorsteuerung: Neigung der Ideallinie × Tempo, der Regler korrigiert nur die Abweichung */
+    const crowd=S.cars.some(o=>o!==c&&!o.removed&&o.mode!=="garage"&&grp(o)===G0&&Math.abs(delta(c,o))<CAR_L+12&&Math.abs(o.lat-c.lat)<10);   /* andere Autos seitlich in der Nähe: keine Vorsteuerung */
+    const onLine=crowd?0:clamp(1-Math.abs(tl-T.line[idx])/1.2,0,1),ff=(lineAt(c.pos+6)-lineAt(c.pos-6))/12*c.v*onLine;
+    const lv=c.latV||0,des=clamp(ff+(tl-c.lat)*(3.2+0.8*onLine),-rate-Math.abs(ff),rate+Math.abs(ff)),la=LATACC*(c.v<12?2:1)+Math.abs(ff)*2+onLine*12;
+    c.desLat=c.desLat==null?des:c.desLat+(des-c.desLat)*0.3;   /* Sollwert glätten: kein Nachlenken in jedem Frame */
+    let v2=lv+clamp(c.desLat-lv,-la*dt,la*dt);
+    nl=c.lat+v2*dt;}
   if(!free&&nl!==c.lat){for(const o of S.cars){if(o===c||o.removed||o.mode==="garage"||grp(o)!==G0)continue;
     if(Math.abs(delta(c,o))<CAR_L+(G0===0?7:1.5)){const n=Math.abs(nl-o.lat);if(n<CAR_W+0.7&&n<Math.abs(c.lat-o.lat)){nl=c.lat;break;}}}}
   c.latV=(nl-c.lat)/dt; c.lat=nl;
   c.yaw+=(clamp(c.v>8?Math.atan2(c.latV,c.v):0,-0.2,0.2)-c.yaw)*0.08;
-  {const kk=T.k[idx],ak=Math.abs(kk),aL=c.v*c.v*ak/ALAT,j=(idx+4)%NU,exiting=Math.abs(T.k[j])<ak*0.92,wl_=wetAt(c.pos),wetF=(1+wl_*1.6)*(tyreClass(c.tyre)==="dry"?1+wl_*3:1);let tg=0;   // Reibkreis: Längs- und Querkraft teilen sich den Grip
+  {const kk=T.k[idx],ak=Math.abs(kk),aL=c.v*c.v*Math.abs(T.kl?T.kl[idx]:kk)/ALAT,j=(idx+4)%NU,exiting=Math.abs(T.k[j])<ak*0.92,wl_=wetAt(c.pos),wetF=(1+wl_*1.6)*(tyreClass(c.tyre)==="dry"?1+wl_*3:1);let tg=0;   // Reibkreis: Längs- und Querkraft teilen sich den Grip
     if(!c.pit&&!c.crash&&c.spinT<=0&&c.v>25&&ak>0.004){
       if(!c.brk&&exiting&&aL>0.55)tg=Math.sign(kk)*Math.min(0.11,(aL-0.5)*0.22*(0.6+aggOf(c)*0.8)*wetF);           // Heck kommt beim Herausbeschleunigen
       else if(c.brk&&aL>0.7){tg=-Math.sign(kk)*Math.min(0.05,(aL-0.65)*0.12*wetF);if(aL>0.95&&!c.script)c.lat-=Math.sign(kk)*Math.min(2.5,(aL-0.95)*14)*dt;}}  // Bremsen in der Kurve: schiebt über die Vorderräder
@@ -235,6 +304,8 @@ function otCtl(c,ahead,ad,vFree,tl,dt){
     else if(c.ot.t>11||d>45){c.ot=null;c.otCool=4;}
     else tl=clamp(o.lat+c.ot.side*(o.spinT>0?11:7.4),-12.3,12.3);}
   return tl;}
+/* Ideallinie stufenlos an beliebiger Position (für die Vorsteuerung der Seitenführung) */
+function lineAt(pos){const p=mod(pos)/DS,i=Math.floor(p)%NU,t=p-Math.floor(p);return T.line[i]*(1-t)+T.line[(i+1)%NU]*t;}
 /* ---- Kontrollverlust nur dort, wo das Auto am Limit ist: beim Einlenken unter Bremse oder nach dem Scheitel beim Gasgeben ---- */
 function soloReady(c,co,idx){const k=c.soloArm;if(k.co&&k.co!==co){c.soloArm=null;return false;}if(!k.when)k.when=Math.random()<(k.crash?0.5:0.6)?"exit":"entry";
   const load=Math.abs(T.k[idx]||0)>=co.kmax*0.55;
@@ -305,7 +376,8 @@ function startPit(c){
   const g=c.pit.goal;
   if(g==="garage")c.stopAt=absAhead(c,mod(boxPos(c.drv.ti)+(c.drv.slot?8:-8)+9));
   else if(g==="service"){const mate=mateBusy(c);c.pit.stack=!!mate;
-    c.stopAt=absAhead(c,mod(boxPos(c.drv.ti)-(mate?17:0)));}
+    // Keep the stack clear of the adjacent box's pull-out arc while preserving an orderly queue.
+    c.stopAt=absAhead(c,mod(boxPos(c.drv.ti)-(mate?CAR_L+26:0)));}
   else if(g==="queue")c.stopAt=absAhead(c,PIT_OUT_S-6);
   else c.stopAt=null;
   if(c.speedArm){c.speeding=c.speedArm;c.speedArm=0;}
@@ -314,41 +386,59 @@ function mateBusy(c){return S.cars.find(o=>o!==c&&o.drv.ti===c.drv.ti&&o.pit&&o.
 function fastLaneCar(c,lo,hi){for(const o of S.cars){if(o===c||o.removed||!o.pit||o.lat<-35||o.lat>-22||o.v<3)continue;
   const d=delta(c,o);if(d>lo&&d<hi)return o;}return null;}
 function pitCtl(c,vT,dt){const p=c.pit;let tl=PLAT;
-  const inZone=c.pos>=PIT_IN_S||c.pos<=PIT_OUT_S, lim=PITV*(c.speeding||1);
+  if(p.goal==="service"&&p.stack){const mate=mateBusy(c);
+    // A team reservation follows physical queue order, including an order change on the approach.
+    if(mate&&mate.pit.ph==="in"&&delta(c,mate)<0){mate.pit.stack=true;mate.stopAt=absAhead(mate,mod(boxPos(c.drv.ti)-CAR_L-26));
+      p.stack=false;p.ph="in";c.stopAt=absAhead(c,boxPos(c.drv.ti));}}
+  const route=PIT_ROUTE||PITROUTES[TRACK.key]||PITROUTES.ring,inZone=c.pos>=PIT_IN_S||c.pos<=PIT_OUT_S, lim=PITV*(c.speeding||1);
   if(inZone)vT=Math.min(vT,lim);
-  else if(c.pos<PIT_IN_S&&c.pos>PIT_ENTRY_S-60)vT=Math.min(vT,Math.sqrt(lim*lim+2*BRK*0.8*(PIT_IN_S-c.pos)));
+  else if(p.ph==="in"){const toLimit=(PIT_IN_S-c.pos+L)%L;if(toLimit<L/2)vT=Math.min(vT,Math.sqrt(lim*lim+2*BRK*0.72*Math.max(0,toLimit-CAR_L)));}
   if(p.ph==="in"){
     if(!p.trap&&inZone){p.trap=true;if(c.speeding>1)reportSpeed(c,lim*KMH);}
-    if(c.stopAt!=null&&c.stopAt-c.s<18)tl=p.goal==="garage"||p.goal==="service"?BOXLAT:PLAT;
+    tl=pitEntryTarget(c);
+    const entrySlope=(pitEntryTarget({pos:mod(c.pos+4)})-pitEntryTarget({pos:mod(c.pos-4)}))/8;
+    vT=Math.min(vT,18/Math.max(0.1,Math.abs(entrySlope)));
+    if(Math.abs(c.lat-tl)>2)vT=Math.min(vT,18);
+    if((p.goal==="garage"||p.goal==="service")&&c.stopAt!=null&&!p.stack){const d=c.stopAt-c.s,span=p.goal==="service"?22:70;
+      // Bays are 24 m apart. Stay in the through lane past the preceding bay,
+      // then turn into our own stopping position at low speed.
+      if(p.goal==="service"&&d<30)vT=Math.min(vT,8);if(d<span){const q=pitEase((span-d)/span);tl=PLAT+(BOXLAT-PLAT)*q;}}
     if(p.goal==="through"&&c.pos>20&&c.pos<L/2)p.ph="exit";
-  }else if(p.ph==="hold"){vT=0;tl=BOXLAT;      // Double Stack: wartet hinter der Box, bis der Teamkollege weg ist
+  }else if(p.ph==="hold"){vT=0;tl=PLAT;      // Double Stack: wartet in der Fast Lane hinter der belegten Box
     if(!mateBusy(c)){p.ph="in";p.stack=false;c.stopAt=absAhead(c,boxPos(c.drv.ti));}
   }else if(p.ph==="svc"){vT=0;tl=BOXLAT;p.timer-=dt;
     if(p.timer<=0){let go=false;
       if(c.unsafeArm){p.waitU+=dt;const u=fastLaneCar(c,-25,-9);
-        if(u){go=true;c.unsafeArm=false;reportUnsafe(c,u,true);}else if(p.waitU>3)c.unsafeArm=false;}
-      else if(!fastLaneCar(c,-36,14)){go=true;const u=fastLaneCar(c,-54,-36);if(u&&S.type==="race"&&Math.random()<0.12)reportUnsafe(c,u,false);}
+        if(u){c.unsafeArm=false;reportUnsafe(c,u,true);}else if(p.waitU>3)c.unsafeArm=false;}
+      if(!pitLaneReleaseBlocked(c)){go=true;const u=fastLaneCar(c,-54,-36);if(u&&S.type==="race"&&Math.random()<0.12)reportUnsafe(c,u,false);}
       if(go){p.ph="exit";c.stops++;c.tyreLaps=0;c.relT=1.6;c.stopAt=S.flag.mode==="red"&&S.type==="race"?absAhead(c,PIT_OUT_S-6):null;}}
   }else if(p.ph==="exit"){
-    if(c.lat<-35)vT=Math.min(vT,14);
-    if(S.type!=="race"&&!p.gate&&c.stopAt==null&&c.pos>PIT_OUT_S-40&&c.pos<=PIT_OUT_S){ // Ampel am Boxenausgang: Abstand halten
-      if(p.wait==null)p.wait=rand(2,3);
-      if(!S.pitExitOpen||S.t-S.exitT<p.wait||S.cars.some(o=>o!==c&&o.pit&&o.pit.ph==="exit"&&!o.pit.gate&&delta(c,o)>0&&delta(c,o)<90))vT=Math.min(vT,Math.sqrt(2*BRK*0.7*Math.max(0,PIT_OUT_S-6-c.pos)));else{p.gate=true;S.exitT=S.t;}}
-    if(c.pos>PIT_OUT_S&&c.pos<L/2){   // Ausfahrtsspur: bis zum Ende der weißen Linie links davon bleiben, erst dann auf die Strecke
-      if(p.xk==null){const r=Math.random()/memW("pitline",-1);p.xk=r<0.02?2:r<0.055?1:0;if(p.xk)memAdd("pitline",-1);p.xmax=-99;}
-      const u=clamp((c.pos-PIT_OUT_S)/(PIT_EXIT_S-PIT_OUT_S),0,1),end=p.xk===1?-23.4+rand(-0.25,0.35):-24.6;
-      tl=c.pos>=PIT_EXIT_S||(p.xk===2&&u>0.5)?-10.5:-34+(end+34)*u;
-      if(c.pos<PIT_EXIT_S)p.xmax=Math.max(p.xmax,c.lat+CAR_W/2);
-      else if(p.xk&&!p.xrep){p.xrep=true;reportPitLine(c,p.xmax>PITLINE);}
-      if((c.pos>=PIT_EXIT_S&&c.lat>-15)||c.pos>PIT_EXIT_S+110){c.pit=null;c.inPit=false;c.speeding=0;c.holdT=0.5;c.cold=14;}}
+    // Follow the full exit corridor before accelerating onto the racing line.
+    const slope=(pitExitLatAt(mod(c.pos+4))-pitExitLatAt(mod(c.pos-4)))/8;
+    vT=Math.min(vT,PITV,18/Math.max(0.1,Math.abs(slope)));
+    if(Math.abs(c.lat-pitExitTarget(c))>2&&c.lat>BOXLAT+1)vT=Math.min(vT,18);
+    const holdS=mod(PIT_OUT_S-10),toHold=(holdS-c.pos+L)%L,beforeHold=toHold<L/2,open=S.type==="race"||S.pitExitOpen;
+    if(beforeHold){const blocked=!open||(S.flag.mode==="red"&&S.type==="race")||pitMergeBlocked(c);p.gate=!blocked;
+      if(blocked)vT=Math.min(vT,Math.sqrt(2*BRK*0.72*Math.max(0,toHold)));else p.gateAt=S.t;}
+    tl=pitExitTarget(c,sidx(c.pos));
+    if(c.pos>=PIT_OUT_S&&c.pos<=PIT_EXIT_S){
+      if(p.xk==null){const q=Math.random()/memW("pitline",-1);p.xk=q<0.02?2:q<0.055?1:0;if(p.xk)memAdd("pitline",-1);p.xmax=-99;}
+      p.xmax=Math.max(p.xmax,c.lat+CAR_W/2);
+    }else if(c.pos>PIT_EXIT_S&&!p.xrep){p.xrep=true;if(p.xk)reportPitLine(c,p.xmax>PITLINE);}
+    const merged=c.pos>=PIT_EXIT_S+route.rejoin&&Math.abs(c.lat-T.line[sidx(c.pos)])<2.2;
+    if(merged){c.pit=null;c.inPit=false;c.speeding=0;c.holdT=0.5;c.cold=14;}
   }
   c._tl=tl;return vT;}
 function arrive(c){const p=c.pit;
   if(c.mode==="form"){if(p||(S.rsChain&&!c.rsGo))return;
     if(S.rsChain&&c.slotK>0){const pr=S.cars.find(o=>o.slotK===c.slotK-1&&(o.mode==="form"||o.mode==="grid")&&!o.retired&&!o.removed);if(pr&&!pr.onGrid&&delta(c,pr)<0){c.stopAt+=L;return;}}c.mode="grid";c.stopAt=null;c.onGrid=true;return;}   // in der Boxengasse wartend ist man nicht auf dem Startplatz
   if(!p)return;
-  if(p.goal==="garage"){c.mode="garage";c.pit=null;c.stopAt=null;c.speeding=0;c.garIn={t:0,s0:c.s,l0:c.lat};onGarage(c);}
-  else if(p.goal==="service"&&p.ph==="in"&&p.stack){p.ph="hold";c.stopAt=null;c.lat=BOXLAT;addLog(`${c.drv.code} wartet hinter dem Teamkollegen (Double Stack)`);}
+  if(p.goal==="garage"){c.mode="in";c.stopAt=null;c.garIn={t:0,s0:c.s,l0:c.lat};}
+  else if(p.goal==="service"&&p.ph==="in"&&p.stack){p.ph="hold";c.stopAt=null;addLog(`${c.drv.code} wartet hinter dem Teamkollegen (Double Stack)`);}
+  else if(p.goal==="service"&&p.ph==="in"&&Math.abs(c.lat-BOXLAT)>1.0){
+    const mate=mateBusy(c),mateInWay=mate&&mate.pit.ph==="svc"&&delta(c,mate)>0&&delta(c,mate)<20;
+    if(!mateInWay)c.stopAt=absAhead(c,c.s+6);
+  }
   else if(p.goal==="service"&&p.ph==="in"){p.ph="svc";c.stopAt=null;p.T0=S.t;p.wait=0;p.work=0;p.rep=0;
     if(c.sgServe){c.sgServe=false;c.sgPending=false;p.timer=10;p.wait=10;addLog(`${c.drv.code} tritt 10s Stop-and-Go an`);return;}
     {const ps=pitStopVar(c);p.work=ps.work;if(ps.note==="LOSE"){c.looseWheel={t:rand(4,14)};}else if(ps.note){addLog(`${c.drv.code}: langsamer Stopp – ${ps.note} (${ps.work.toFixed(1)} s)`);if(Math.random()<0.6)radio(c,pick(["Was war da los?! Das hat ewig gedauert.","Langsamer Stopp, verdammt.","Komm schon, komm schon!"]));}}
@@ -379,7 +469,8 @@ function deoverlap(){const cs=S.cars,heavy=c=>c.crash||c.v<1||c.mode==="grid"?0.
   for(const c of cs){if(!isFinite(c.spin))c.spin=0;if(!isFinite(c.yaw))c.yaw=0;if(c.drift!=null&&!isFinite(c.drift))c.drift=0;}
   for(let pass=0;pass<10;pass++){let any=false;
   for(let x=0;x<cs.length;x++){const A=cs[x];if(A.removed||A.mode==="garage")continue;
-    for(let y=x+1;y<cs.length;y++){const B=cs[y];if(B.removed||B.mode==="garage"||grp(A)!==grp(B))continue;
+    for(let y=x+1;y<cs.length;y++){const B=cs[y];if(B.removed||B.mode==="garage")continue;
+      if(S._pitGuardSolving&&(pitMotionProtected(A)||pitMotionProtected(B)))continue;
       const m=obbMTV(A,B);if(!m)continue;any=true;if(pass===0){S.ovl++;if(!pairFree(A,B))contactHit(A,B,m);}
       const wa=heavy(A),wb=heavy(B),sum=wa+wb,d=m.d+0.02;
       pushCar(A,-m.x*d*wa/sum,-m.y*d*wa/sum);pushCar(B,m.x*d*wb/sum,m.y*d*wb/sum);
