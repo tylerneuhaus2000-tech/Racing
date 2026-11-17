@@ -270,13 +270,14 @@ function carStep(c,dt){
   if(free||c.pit||approachTarget!=null)nl=c.lat+clamp(tl-c.lat,-rate*dt,rate*dt);
   else{/* Seitenführung mit Trägheit: Querbewegung baut sich auf und ab, statt von 0 auf volle Rate zu springen */
     /* Vorsteuerung: Neigung der Ideallinie × Tempo, der Regler korrigiert nur die Abweichung */
-    const crowd=S.cars.some(o=>o!==c&&!o.removed&&o.mode!=="garage"&&grp(o)===G0&&Math.abs(delta(c,o))<CAR_L+12&&Math.abs(o.lat-c.lat)<10);   /* andere Autos seitlich in der Nähe: keine Vorsteuerung */
+    const crowd=S.cars.some(o=>o!==c&&!o.removed&&o.mode!=="garage"&&grp(o)===G0&&delta(c,o)>-(CAR_L+12)&&delta(c,o)<200&&Math.abs(o.lat-c.lat)<10);   /* Auto daneben oder bis 200 m voraus: keine Vorsteuerung, sonst Auffahrunfälle in Zügen */
     const onLine=crowd?0:clamp(1-Math.abs(tl-T.line[idx])/1.2,0,1),ff=(lineAt(c.pos+6)-lineAt(c.pos-6))/12*c.v*onLine;
     const lv=c.latV||0,des=clamp(ff+(tl-c.lat)*(3.2+0.8*onLine),-rate-Math.abs(ff),rate+Math.abs(ff)),la=LATACC*(c.v<12?2:1)+Math.abs(ff)*2+onLine*12;
     c.desLat=c.desLat==null?des:c.desLat+(des-c.desLat)*0.3;   /* Sollwert glätten: kein Nachlenken in jedem Frame */
     let v2=lv+clamp(c.desLat-lv,-la*dt,la*dt);
     nl=c.lat+v2*dt;}
-  if(!free&&nl!==c.lat){for(const o of S.cars){if(o===c||o.removed||o.mode==="garage"||grp(o)!==G0)continue;
+  const boxMerge=c.pit&&c.pit.ph==="in"&&c.pit.goal==="service";   /* einfädelnde Box-Autos nicht sperren, sonst Deadlock auf BOXLAT */
+  if(!free&&!boxMerge&&nl!==c.lat){for(const o of S.cars){if(o===c||o.removed||o.mode==="garage"||grp(o)!==G0)continue;
     if(Math.abs(delta(c,o))<CAR_L+(G0===0?7:1.5)){const n=Math.abs(nl-o.lat);if(n<CAR_W+0.7&&n<Math.abs(c.lat-o.lat)){nl=c.lat;break;}}}}
   c.latV=(nl-c.lat)/dt; c.lat=nl;
   c.yaw+=(clamp(c.v>8?Math.atan2(c.latV,c.v):0,-0.2,0.2)-c.yaw)*0.08;
@@ -399,7 +400,7 @@ function pitCtl(c,vT,dt){const p=c.pit;let tl=PLAT;
     const entrySlope=(pitEntryTarget({pos:mod(c.pos+4)})-pitEntryTarget({pos:mod(c.pos-4)}))/8;
     vT=Math.min(vT,18/Math.max(0.1,Math.abs(entrySlope)));
     if(Math.abs(c.lat-tl)>2)vT=Math.min(vT,18);
-    if((p.goal==="garage"||p.goal==="service")&&c.stopAt!=null&&!p.stack){const d=c.stopAt-c.s,span=p.goal==="service"?22:70;
+    if((p.goal==="garage"||p.goal==="service")&&c.stopAt!=null&&!p.stack){const d=c.stopAt-c.s,span=p.goal==="service"?10:70;
       // Bays are 24 m apart. Stay in the through lane past the preceding bay,
       // then turn into our own stopping position at low speed.
       if(p.goal==="service"&&d<30)vT=Math.min(vT,8);if(d<span){const q=pitEase((span-d)/span);tl=PLAT+(BOXLAT-PLAT)*q;}}
