@@ -46,6 +46,8 @@ function contactHit(A,B,n){if(A.mode==="grid"||B.mode==="grid"||A.mode==="garage
   markHit(A,B);S.contacts=(S.contacts||0)+1;
   const pt=contactPoint(A,B,n),sev=clamp((vrel-CONTACT_DMG)/55+0.08,0,0.75);
   A.sparks=Math.max(A.sparks||0,0.35);B.sparks=Math.max(B.sparks||0,0.35);
+  if(vrel>12){const d=delta(A,B),rear=d>0?A:B,front=d>0?B:A;   // Aufprall bremst den Auffahrenden immer, auch ohne Schaden
+    if(!rear.crash&&!rear.script){rear.v=Math.min(rear.v,front.v*0.9);rear.lockT=Math.max(rear.lockT||0,0.3);rear.wob=rear.wob||{t:0,T:0.7,amp:0.08*(Math.random()<0.5?1:-1)};rear.otCool=Math.max(rear.otCool||0,1.5);}}
   if(vrel>=CONTACT_DMG&&Math.random()<clamp((vrel-CONTACT_DMG)/160+0.04,0,0.18)){const fa=Math.random()<0.5;hitDamage(fa?A:B,fa?B:A,sev,pt);hitDamage(fa?B:A,fa?A:B,sev*0.6,pt);if(vrel>18){A.wob=A.wob||{t:0,T:0.8,amp:0.12*(Math.random()<0.5?1:-1)};B.wob=B.wob||{t:0,T:0.8,amp:0.12*(Math.random()<0.5?1:-1)};}}
   else if(Math.random()<0.4)spawnDeb(pt.x,pt.y,(va.x+vb.x)*0.4+rand(-6,6),(va.y+vb.y)*0.4+rand(-6,6),"cf",Math.random()<0.5?A:B);
   return vrel;}

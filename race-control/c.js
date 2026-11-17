@@ -83,7 +83,7 @@ function spinCar(c,rot,side,kind){c.spinKind=kind||null;c.spinHit=false;c.spinOu
 function soloEvent(c,co){const k=c.soloArm;c.soloArm=null;c.ot=null;
   if(co.ro==="wall"&&!k.crash&&k.kind!=="save"&&Math.random()<0.55)k.crash=true;else if(co.ro==="asphalt"&&k.crash&&Math.random()<0.5){k.crash=false;k.kind=null;}else if(co.ro==="gravel"&&!k.crash&&k.kind!=="save"&&Math.random()<0.4)k.kind="beach";
   if(k.crash){const race=S.type==="race";let sev=4;
-    if(race){const r=Math.random();sev=r<0.3?1:r<0.5?2:r<0.88?3:4;}
+    if(race){const r=Math.random();sev=r<0.32?1:r<0.58?2:r<0.95?3:4;}
     const wall=co.ro==="wall",ang=wall?rand(0.18,0.75):rand(0.2,0.55),spinSg=Math.random()<0.7?co.dir*SIDE:-co.dir*SIDE;
     c.crash={dir:-co.dir,rest:-co.dir*(sev===2?19.5:(sev===4&&race)?9:wall?rand(19.5,21.5):27.5),h0:T.ang[sidx(c.pos)]-SIDE*co.dir*ang,v0:Math.max(30,c.v),
       sv0:rand(0.4,5.5)*spinSg,grav:co.ro==="gravel"?rand(70,110):co.ro==="asphalt"?rand(22,40):rand(10,25),done:false,wall};c.retired=true;
@@ -253,15 +253,17 @@ function director(dt){
     if(Math.random()<dt*0.002*(w-0.15)*(S.om&&S.type==="race"?2:1)){c.soloArm={crash:Math.random()<0.5};break;}}}
   if(S.wantB>0){S.wantB-=dt;if(armBattle())S.wantB=0;}
   S.nextInc-=dt;if(S.nextInc>0)return;
-  S.nextInc=rand(24,40)*(W.real?1.6:1)/(1+0.7*w+0.012*Math.max(0,S.wx.windKmh-15))/(TRACK.key==="madrid"?2.2:1)/Math.sqrt(raceMood().chaos);
+  S.nextInc=rand(24,40)*(W.real?1.6:1)/(1+0.7*w+0.012*Math.max(0,S.wx.windKmh-15))/(TRACK.key==="madrid"?1.5:1)/Math.sqrt(raceMood().chaos);
   if(S.incidents.filter(i=>i.status==="open"||i.status==="rec").length>=4)return;
   const r=Math.random();
   if(TRACK.key==="madrid"&&r<0.35){armSolo();return;}
-  const G=S.type==="race"?[{k:"wide",w:0.1,f:armWide},{k:"battle",w:0.48,f:()=>{if(!armBattle())S.wantB=18;}},{k:"solo",w:0.2,f:armSolo},{k:"mech",w:S.hazCount<(W.real?4:2)?0.05:0,f:armMech},{k:"punct",w:0.04,f:armPuncture},{k:"odd",w:0.05,f:armOddity},{k:"none",w:0.08,f:()=>{}}]
-    :[{k:"wide",w:0.3,f:armWide},{k:"imp",w:0.25,f:()=>{if(!armImpede())armSolo();}},{k:"solo",w:0.35,f:armSolo},{k:"mech",w:S.crashes<1?0.06:0,f:()=>{if(armMech())S.crashes++;}},{k:"odd",w:0.04,f:armOddity}];
+  const G=S.type==="race"?[{k:"wide",w:0.1,f:armWide},{k:"battle",w:0.48,f:()=>{if(!armBattle())S.wantB=18;}},{k:"solo",w:0.2,f:armSolo},{k:"mech",w:S.hazCount<(W.real?4:2)&&!hazCool()?0.05:0,f:armMech},{k:"punct",w:hazCool()?0:0.04,f:armPuncture},{k:"odd",w:hazCool()||(S.oddN||0)>=3?0:0.025,f:armOddity},{k:"none",w:0.08,f:()=>{}}]
+    :[{k:"wide",w:0.3,f:armWide},{k:"imp",w:0.25,f:()=>{if(!armImpede())armSolo();}},{k:"solo",w:0.35,f:armSolo},{k:"mech",w:S.crashes<1?0.06:0,f:()=>{if(armMech())S.crashes++;}},{k:"odd",w:hazCool()||(S.oddN||0)>=3?0:0.02,f:armOddity}];
   for(const g of G)g.w*=memW("gen_"+g.k,-1);const g=wpick(G);memAdd("gen_"+g.k,-1);g.f();}
 /* Kleine Störungen ohne beteiligtes Auto – sorgen für Abwechslung */
-function armOddity(){if(S.hazard)return;const co=pick(CORNERS),pos=mod(co.s+rand(-40,40));if(pos<PIT_EXIT_S+80||pos>PIT_ENTRY_S-100)return;
+/* nach einer Gefahr eine Weile keine neuen Gefahren-Ereignisse der Regie (Zweikämpfe laufen weiter) */
+function hazCool(){return S.lastHazT!=null&&S.t-S.lastHazT<LAPT*2;}
+function armOddity(){if(S.hazard||hazCool())return;S.oddN=(S.oddN||0)+1;const co=pick(CORNERS),pos=mod(co.s+rand(-40,40));if(pos<PIT_EXIT_S+80||pos>PIT_ENTRY_S-100)return;
   const v=pick([[1,`Ein Hase läuft in ${cnm(co)} über die Strecke`],[1,`Werbebanner hat sich in ${cnm(co)} gelöst und liegt am Streckenrand`],[2,`Karbonteil liegt in ${cnm(co)} auf der Ideallinie – ein Marshal muss auf die Strecke`],[1,`Plastiktüte weht in ${cnm(co)} über die Strecke`],[2,`Flüssigkeit auf der Ideallinie in ${cnm(co)} – Posten streuen Bindemittel`]]);
   spawnHazard(v[0],pos,v[1],[],{deb:v[0]===2,dur:rand(14,22)});}
 

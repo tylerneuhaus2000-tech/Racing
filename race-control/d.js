@@ -297,8 +297,8 @@ function raceStep(dt){t1Step();paceStep(dt);
     for(const c of S.cars){ if(c.mode==="race"&&!c.pit&&!c.wantPit&&c.pos>=DEC_S&&c.pos<DEC_S+40){const lp=Math.floor(c.s/L);if(c.decLap!==lp){c.decLap=lp;raceStrategy(c);}}
       if(c.dmg&&c.ignoreDmg&&!c.pit&&c.mode==="race"&&S.t-c.dmgT>55){c.ignoreDmg=false;score(-50);addLog(`Frontflügel von ${c.drv.code} löst sich – keine schwarz-orange Flagge gezeigt (−50)`,"bad");
         if(!S.hazard)spawnHazard(2,c.pos,`Frontflügel von ${c.drv.code} liegt auf der Strecke – Marshals müssen auf die Strecke`,[],{deb:true});} }
-    if(!S.hazard&&S.flag.mode==="green"&&S.wx.rain>0.8&&S.wx.wet>0.7&&!S.chequered)
-      spawnHazard(S.wx.rain>0.94?4:S.wx.rain>0.86?3:2,-1,S.wx.rain>0.94?"Sintflut – Sicht gleich null, die Strecke steht unter Wasser":S.wx.rain>0.86?"Starkregen – Aquaplaning, Fahrer fordern ein Safety Car":"Heftiger Schauer – Gischt und Aquaplaning, Fahrer fordern Neutralisierung",[],{rain:true,dur:10});
+    if(!S.hazard&&S.flag.mode==="green"&&S.wx.rain>0.8&&S.wx.wet>0.7&&!S.chequered&&!(S.rainHazT!=null&&S.t-S.rainHazT<LAPT*2.5)&&(S.rainHazT=S.t))
+      spawnHazard(S.wx.rain>0.97?4:S.wx.rain>0.86?3:2,-1,S.wx.rain>0.97?"Sintflut – Sicht gleich null, die Strecke steht unter Wasser":S.wx.rain>0.86?"Starkregen – Aquaplaning, Fahrer fordern ein Safety Car":"Heftiger Schauer – Gischt und Aquaplaning, Fahrer fordern Neutralisierung",[],{rain:true,dur:10});
     else if(!S.hazard&&S.flag.mode==="green"&&!S.chequered&&S.aquaLog&&S.aquaLog.filter(t=>S.t-t<60).length>=3)
       spawnHazard(Math.random()<0.6?2:3,-1,"Drei Aquaplaning-Fälle in einer Minute – stehendes Wasser, Fahrer fordern eine Neutralisierung",[],{rain:true,dur:10});
     if(S.chequered&&!S.ended){
@@ -400,7 +400,7 @@ const HTXT={1:c=>`${c} steht in der Auslaufzone, Fahrer ausgestiegen. Bergung hi
 /* Bergungszeit: SC-Einsätze dauern rund eine Runde; mehrere Zwischenfälle kurz hintereinander verlängern deutlich */
 function hazDur(sev,extra){const base=extra&&extra.dur!=null?extra.dur:sev===4?rand(95,130):sev===3?Math.max(rand(40,52),LAPT*rand(0.75,1)):[0,rand(20,26),rand(26,34)][sev];
   S.hazLog=(S.hazLog||[]).filter(t=>S.t-t<LAPT*1.5);const mult=1+0.6*Math.min(3,S.hazLog.length);S.hazLog.push(S.t);return base*mult;}
-function spawnHazard(sev,pos,text,cars,extra){const h0=S.hazard,dur=hazDur(sev,extra);
+function spawnHazard(sev,pos,text,cars,extra){const h0=S.hazard,dur=hazDur(sev,extra);S.lastHazT=S.t;
   if(h0&&h0.nuke&&!(extra&&extra.nuke)){for(const c of cars||[])if(!h0.cars.includes(c))h0.cars.push(c);return;}
   if(h0&&!(extra&&extra.nuke)&&!(extra&&extra.rain)&&!h0.rain){mergeHazard(h0,sev,text,cars,extra,dur);return;}
   S.hazard=Object.assign({sev,pos,sector:pos>=0?sectorOf(pos):-1,text,t:0,handled:false,cleared:false,clearAt:0,clT:0,cars:cars||[],

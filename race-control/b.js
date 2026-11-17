@@ -161,18 +161,18 @@ function carStep(c,dt){
     if(dd<0.6&&c.v<5){c.s=c.stopAt;c.v=0;c.pos=mod(c.s);c.latV=0;c.brk=false;arrive(c);return;}}
   const vFree=vT;
   if(ahead){const gap=ad-CAR_L,atk=c.ot||c.script||c.omT>0||vFree>ahead.v*1.05||ahead.v<30;
-    const gm=(c.mode==="form"&&G0===0&&!nearStop)?6:(F.mode==="sc"&&G0===0)?7:(G0===1||nearStop||S.phase==="form"||atk||!(S.type==="race"&&S.phase==="racing"))?2.4+(kk>0.04?10:tight?5:0):4+0.15*c.v+(kk>0.04?9:tight?4:0);
+    const gm=(c.mode==="form"&&G0===0&&!nearStop)?6:(F.mode==="sc"&&G0===0)?7:(G0===1||nearStop||S.phase==="form"||!(S.type==="race"&&S.phase==="racing"))?2.4+(kk>0.04?10:tight?5:0):atk?(S.raceT-S.goT<45?4+0.06*c.v+(ahead.brk?0.04*c.v:0):3+0.03*c.v+(ahead.brk?0.05*c.v:0))+(kk>0.04?8:tight?4:0):4+0.15*c.v+(kk>0.04?9:tight?4:0);   // im Angriff dicht dran, aber mit tempoabhängigem Sicherheitsabstand
     const vl=gap>=gm?ahead.v+(gap-gm)*3.5:ahead.v-(gm-gap)*8;
     const vl2=(tz&&G0===0&&ahead.v>10&&gap>-6)?Math.max(vl,ahead.v*0.65):vl;
-    if(vl2<vT){vT=Math.max(0,vl2);c.blockT+=dt;c.blockBy=ahead;}else c.blockT=0;
+    if(vl2<vT){vT=Math.max(0,vl2);c.blockT+=dt;c.blockBy=ahead;c.follow=true;}else{c.blockT=0;c.follow=false;}
     if(ahead.v<8&&(c.ot&&c.ot.o===ahead||ahead.crash)&&gap>3&&ahead!==S.sc&&Math.abs(c.lat-ahead.lat)>CAR_W*0.6)vT=Math.max(vT,Math.min(16,vFree));
     else if(ahead.v<8&&ahead.crash&&ahead.crash.done)vT=Math.max(vT,Math.abs(c.lat-ahead.lat)>CAR_W*0.6?10:4);}   // um ein stehendes Auto herumrollen   // um ein stehendes Auto herumrollen
-  else c.blockT=0;
+  else{c.blockT=0;c.follow=false;}
   let a=ACC*(S.wx.wet>0.2?1-0.3*S.wx.wet:1); if(race&&S.raceT-S.goT<5)a*=c.launch;
   /* Gas/Bremse wie ein Fahrer: kleine Überschüsse durch Gaswegnehmen, echte Bremsung erst bei deutlichem Überschuss, dann bis zum Scheitel durchziehen */
   if(vT>=c.v){c.v=Math.min(vT,c.v+a*dt*Math.min(1,0.3+(vT-c.v)/2));if(c.brkOn&&(c.brkHold=(c.brkHold||0)+dt)>0.12)c.brkOn=false;}
   else{const over=c.v-vT;c.brkHold=0;
-    if(!c.brkOn&&over>Math.max(3.5,c.v*0.035))c.brkOn=true;
+    if(!c.brkOn&&over>(c.follow?0.8:Math.max(3.5,c.v*0.035)))c.brkOn=true;   // hinter einem langsameren Auto sofort bremsen, sonst erst Gas weg
     c.v=c.brkOn?Math.max(vT,c.v-BRK*dt):Math.max(vT,c.v-Math.min(COAST,over*4)*dt);}
   c.brk=!!c.brkOn;c.decel=c.v<v0-0.02;   // ERS rekuperiert bei jedem Verzögern, auch beim Gaswegnehmen
   const os=c.s; c.s+=c.v*dt; if(c.mode==="out"&&!c.pit)c.outDist+=c.v*dt;

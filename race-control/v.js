@@ -39,6 +39,7 @@ function cornerErr(c,co,ci){if(c.errCo===ci)return false;c.errCo=ci;drvState(c);
     if(Math.random()<0.4)radio(c,pick(["Vorderrad blockiert, Bremsplatten!","Verbremst, sorry.","Zu spät gebremst."]));chainCheck(c,sev);return false;}
   if(sev<0.76){c.wideArm={viol:Math.random()<0.5,big:Math.random()<0.45};return false;}      // durch die Auslaufzone / Track Limits
   if(sev<0.9){const sk=wpick([{k:null,w:2},{k:"off",w:1},{k:"beach",w:co.ro==="gravel"?1:0.2},{k:"save",w:1.2}].map(o=>(o.w*=memW("spin_"+o.k,-1),o))).k;memAdd("spin_"+sk,-1);c.soloArm={crash:false,kind:sk,err:true,chain:sev,co};return false;}
+  if(hazCool()&&Math.random()<0.75){c.soloArm={crash:false,kind:null,err:true,chain:sev,co};return false;}   // kurz nach einer Gefahr: eher Dreher als Abflug
   c.soloArm={crash:true,err:true,chain:sev,co};return false;}
 /* ---- Kettenreaktion: wer dahinter fährt, muss reagieren – Reaktionszeit ist variabel ---- */
 function chainCheck(src,sev){if(S.type!=="race")return;
