@@ -1,0 +1,221 @@
+{
+  "ts": "2026-10-09T09:32:28.606Z",
+  "run": "lambo-silberpfeil-tt-lap-01",
+  "reason": "lap-complete",
+  "lapComplete": true,
+  "actualDriveSeconds": 127.648,
+  "samples": 1084,
+  "fps": {
+    "min": 25,
+    "p50": 60,
+    "p95": 60,
+    "max": 61
+  },
+  "final": {
+    "ts": "2026-10-09T09:32:28.365Z",
+    "raceTime": 128.24166666671437,
+    "lap": 2,
+    "curLapTime": 0,
+    "lastLap": 128.24166666671437,
+    "lapValid": true,
+    "sector": 0,
+    "sectors": [
+      null,
+      null,
+      null
+    ],
+    "progress": 0.0004027230680995215,
+    "distM": 5082.282536062849,
+    "speedKmh": 123.64921785077661,
+    "speedMps": 34.34700495854906,
+    "targetKmh": 252,
+    "gear": 3,
+    "heading": 0.003291852001215233,
+    "yawRate": -2.3361118968326374e-47,
+    "steer": 0,
+    "steerCmd": -0.07589189465927006,
+    "latM": 0.5865108121858091,
+    "surface": 0,
+    "curvature": 1.7144550756481606e-12,
+    "accLong": 3.31771381149204,
+    "latAccel": -1.3641681883324154e-45,
+    "slipFront": 9.291956225553182e-48,
+    "slipRear": 1.1505794833095182e-47,
+    "damage": 0,
+    "wallContacts": 0,
+    "carContacts": 0,
+    "fuelKg": 69.58205557337337,
+    "tireWear": {
+      "front": 1,
+      "rear": 1,
+      "FL": 1,
+      "FR": 1,
+      "RL": 1,
+      "RR": 1
+    },
+    "fps": 48,
+    "focused": true,
+    "visibility": "visible",
+    "gameInput": {
+      "steer": 0,
+      "throttle": 1,
+      "brake": 0,
+      "keyW": true,
+      "keyS": false,
+      "keyA": false,
+      "keyD": false
+    },
+    "vehicle": "Lamborghini Huracán GT3",
+    "track": "Autodromo Silberpfeil",
+    "halfWidth": 8,
+    "kerbWidth": 1.4,
+    "sampleIdx": 1
+  },
+  "performanceMetrics": [
+    {
+      "name": "Timestamp",
+      "value": 134142.208934
+    },
+    {
+      "name": "AudioHandlers",
+      "value": 46
+    },
+    {
+      "name": "AudioWorkletProcessors",
+      "value": 0
+    },
+    {
+      "name": "Documents",
+      "value": 1
+    },
+    {
+      "name": "Frames",
+      "value": 1
+    },
+    {
+      "name": "JSEventListeners",
+      "value": 423
+    },
+    {
+      "name": "LayoutObjects",
+      "value": 44647
+    },
+    {
+      "name": "MediaKeySessions",
+      "value": 0
+    },
+    {
+      "name": "MediaKeys",
+      "value": 0
+    },
+    {
+      "name": "Nodes",
+      "value": 65913
+    },
+    {
+      "name": "Resources",
+      "value": 40
+    },
+    {
+      "name": "ContextLifecycleStateObservers",
+      "value": 13
+    },
+    {
+      "name": "V8PerContextDatas",
+      "value": 1
+    },
+    {
+      "name": "WorkerGlobalScopes",
+      "value": 0
+    },
+    {
+      "name": "UACSSResources",
+      "value": 0
+    },
+    {
+      "name": "RTCPeerConnections",
+      "value": 0
+    },
+    {
+      "name": "ResourceFetchers",
+      "value": 1
+    },
+    {
+      "name": "AdSubframes",
+      "value": 0
+    },
+    {
+      "name": "DetachedScriptStates",
+      "value": 0
+    },
+    {
+      "name": "ArrayBufferContents",
+      "value": 13166
+    },
+    {
+      "name": "LayoutCount",
+      "value": 10100
+    },
+    {
+      "name": "RecalcStyleCount",
+      "value": 13889
+    },
+    {
+      "name": "LayoutDuration",
+      "value": 3.661902
+    },
+    {
+      "name": "RecalcStyleDuration",
+      "value": 1.812218
+    },
+    {
+      "name": "DevToolsCommandDuration",
+      "value": 0.26987
+    },
+    {
+      "name": "ScriptDuration",
+      "value": 74.7745
+    },
+    {
+      "name": "V8CompileDuration",
+      "value": 0
+    },
+    {
+      "name": "TaskDuration",
+      "value": 88.548271
+    },
+    {
+      "name": "TaskOtherDuration",
+      "value": 8.029781
+    },
+    {
+      "name": "ThreadTime",
+      "value": 79.401498
+    },
+    {
+      "name": "ProcessTime",
+      "value": 1494.098505
+    },
+    {
+      "name": "JSHeapUsedSize",
+      "value": 68090548
+    },
+    {
+      "name": "JSHeapTotalSize",
+      "value": 125992960
+    },
+    {
+      "name": "FirstMeaningfulPaint",
+      "value": 130297.085916
+    },
+    {
+      "name": "DomContentLoaded",
+      "value": 130297.089853
+    },
+    {
+      "name": "NavigationStart",
+      "value": 130296.82544
+    }
+  ],
+  "screenshotCount": 39
+}

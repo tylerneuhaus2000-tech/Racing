@@ -1,0 +1,221 @@
+{
+  "ts": "2026-10-09T08:31:24.699Z",
+  "run": "ferrari-499p-shanghai-recovery-02",
+  "reason": "lap-complete",
+  "lapComplete": true,
+  "actualDriveSeconds": 187.835,
+  "samples": 1700,
+  "fps": {
+    "min": 23,
+    "p50": 60,
+    "p95": 60,
+    "max": 61
+  },
+  "final": {
+    "ts": "2026-10-09T08:31:24.543Z",
+    "raceTime": 205.2666666666443,
+    "lap": 2,
+    "curLapTime": 0.06666666666660603,
+    "lastLap": 205.1999999999777,
+    "lapValid": true,
+    "sector": 0,
+    "sectors": [
+      null,
+      null,
+      null
+    ],
+    "progress": 0.0005515279705747168,
+    "distM": 5475.443871050229,
+    "speedKmh": 186.56731594724903,
+    "speedMps": 51.824254429791395,
+    "targetKmh": 252,
+    "gear": 4,
+    "heading": -1.3455180145349563,
+    "yawRate": 8.676546159341732e-13,
+    "steer": 0,
+    "steerCmd": 0.0785434771839721,
+    "latM": -0.3903479465132714,
+    "surface": 0,
+    "curvature": 0.0021035900028800077,
+    "accLong": -0.5629431703800072,
+    "latAccel": 3.400330757915768e-11,
+    "slipFront": 1.0638067777284099e-13,
+    "slipRear": 1.5758974917318801e-13,
+    "damage": 0,
+    "wallContacts": 2,
+    "carContacts": 0,
+    "fuelKg": 69.62104133976395,
+    "tireWear": {
+      "front": 1,
+      "rear": 1,
+      "FL": 1,
+      "FR": 1,
+      "RL": 1,
+      "RR": 1
+    },
+    "fps": 60,
+    "focused": true,
+    "visibility": "visible",
+    "gameInput": {
+      "steer": 0,
+      "throttle": 1,
+      "brake": 0,
+      "keyW": true,
+      "keyS": false,
+      "keyA": false,
+      "keyD": false
+    },
+    "vehicle": "Ferrari 499P",
+    "track": "Shanghai International Circuit",
+    "halfWidth": 7.3,
+    "kerbWidth": 1.6,
+    "sampleIdx": 1
+  },
+  "performanceMetrics": [
+    {
+      "name": "Timestamp",
+      "value": 132271.600024
+    },
+    {
+      "name": "AudioHandlers",
+      "value": 32
+    },
+    {
+      "name": "AudioWorkletProcessors",
+      "value": 0
+    },
+    {
+      "name": "Documents",
+      "value": 1
+    },
+    {
+      "name": "Frames",
+      "value": 1
+    },
+    {
+      "name": "JSEventListeners",
+      "value": 369
+    },
+    {
+      "name": "LayoutObjects",
+      "value": 10594
+    },
+    {
+      "name": "MediaKeySessions",
+      "value": 0
+    },
+    {
+      "name": "MediaKeys",
+      "value": 0
+    },
+    {
+      "name": "Nodes",
+      "value": 20220
+    },
+    {
+      "name": "Resources",
+      "value": 41
+    },
+    {
+      "name": "ContextLifecycleStateObservers",
+      "value": 13
+    },
+    {
+      "name": "V8PerContextDatas",
+      "value": 1
+    },
+    {
+      "name": "WorkerGlobalScopes",
+      "value": 0
+    },
+    {
+      "name": "UACSSResources",
+      "value": 0
+    },
+    {
+      "name": "RTCPeerConnections",
+      "value": 0
+    },
+    {
+      "name": "ResourceFetchers",
+      "value": 1
+    },
+    {
+      "name": "AdSubframes",
+      "value": 0
+    },
+    {
+      "name": "DetachedScriptStates",
+      "value": 0
+    },
+    {
+      "name": "ArrayBufferContents",
+      "value": 2791
+    },
+    {
+      "name": "LayoutCount",
+      "value": 20726
+    },
+    {
+      "name": "RecalcStyleCount",
+      "value": 22449
+    },
+    {
+      "name": "LayoutDuration",
+      "value": 7.805738
+    },
+    {
+      "name": "RecalcStyleDuration",
+      "value": 4.641674
+    },
+    {
+      "name": "DevToolsCommandDuration",
+      "value": 0.503306
+    },
+    {
+      "name": "ScriptDuration",
+      "value": 27.700959
+    },
+    {
+      "name": "V8CompileDuration",
+      "value": 0
+    },
+    {
+      "name": "TaskDuration",
+      "value": 58.124306
+    },
+    {
+      "name": "TaskOtherDuration",
+      "value": 17.472629
+    },
+    {
+      "name": "ThreadTime",
+      "value": 54.343333
+    },
+    {
+      "name": "ProcessTime",
+      "value": 916.029285
+    },
+    {
+      "name": "JSHeapUsedSize",
+      "value": 27455296
+    },
+    {
+      "name": "JSHeapTotalSize",
+      "value": 56623104
+    },
+    {
+      "name": "FirstMeaningfulPaint",
+      "value": 130297.085916
+    },
+    {
+      "name": "DomContentLoaded",
+      "value": 130297.089853
+    },
+    {
+      "name": "NavigationStart",
+      "value": 130296.82544
+    }
+  ],
+  "screenshotCount": 63
+}

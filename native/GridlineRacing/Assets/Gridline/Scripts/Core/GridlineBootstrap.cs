@@ -22,17 +22,47 @@ namespace Gridline.Native
 
         private void Awake()
         {
-            Application.targetFrameRate = 120;
+            // GLB loading and QA telemetry must continue when the macOS window
+            // is behind the editor or terminal. This also keeps manual testing
+            // deterministic when focus changes during a drive.
+            Application.runInBackground = true;
+            Application.targetFrameRate = ReadTargetFrameRate();
             QualitySettings.vSyncCount = 0;
-            Time.fixedDeltaTime = 1f / 60f;
-            Time.maximumDeltaTime = 0.1f;
+            // Browser reference runs the car at 120 Hz while rendering can stay
+            // at 60 Hz on the iPad target.
+            Time.fixedDeltaTime = 1f / 120f;
+            Time.maximumDeltaTime = 0.08f;
 
             if (GetComponent<GridlineInputRouter>() == null)
             {
                 gameObject.AddComponent<GridlineInputRouter>();
             }
+            if (GetComponent<GridlinePerformanceProbe>() == null)
+            {
+                gameObject.AddComponent<GridlinePerformanceProbe>();
+            }
             GridlineRuntimeBuilder.BuildIfNeeded();
             GridlineGameState.ReturnToMenu();
+        }
+
+        private static int ReadTargetFrameRate()
+        {
+            string[] args = System.Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length; i += 1)
+            {
+                string argument = args[i];
+                string value = argument.StartsWith("-gridline-fps=", System.StringComparison.OrdinalIgnoreCase)
+                    ? argument.Substring("-gridline-fps=".Length)
+                    : argument.Equals("-gridline-fps", System.StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length
+                        ? args[i + 1]
+                        : string.Empty;
+                if (int.TryParse(value, out int requested) && requested >= 15 && requested <= 240)
+                {
+                    return requested;
+                }
+            }
+
+            return 60;
         }
     }
 }

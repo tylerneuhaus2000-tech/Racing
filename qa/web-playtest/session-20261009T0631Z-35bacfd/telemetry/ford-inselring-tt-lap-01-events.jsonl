@@ -1,0 +1,65 @@
+{"ts":"2026-10-09T09:33:05.897Z","type":"Runtime.consoleAPICalled","text":"[Ingenieur] Bereit. Groq: Nein (regelbasiert)","url":""}
+{"ts":"2026-10-09T09:33:05.899Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 1 for texture normalMap not yet supported.","url":""}
+{"ts":"2026-10-09T09:33:05.899Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 1 for texture normalMap not yet supported.","url":""}
+{"ts":"2026-10-09T09:33:05.899Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 1 for texture normalMap not yet supported.","url":""}
+{"ts":"2026-10-09T09:33:05.899Z","type":"Runtime.consoleAPICalled","text":"[Track] Texturen angepasst: 84 Materialien · Anisotropie 8","url":""}
+{"ts":"2026-10-09T09:33:05.900Z","type":"Runtime.consoleAPICalled","text":"[Track] GLB-Strecke geladen: assets/tracks/spa_francorchamps_2022.glb · Sky entfernt: 0 · Boden ausgeblendet: 2 · Asphalt-Ebene: ","url":""}
+{"ts":"2026-10-09T09:33:05.900Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T09:33:05.900Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 1 for texture normalMap not yet supported.","url":""}
+{"ts":"2026-10-09T09:33:05.900Z","type":"Runtime.consoleAPICalled","text":"[Track] Texturen angepasst: 58 Materialien · Anisotropie 8","url":""}
+{"ts":"2026-10-09T09:33:05.900Z","type":"Runtime.consoleAPICalled","text":"[Track] GLB-Strecke geladen: assets/tracks/monza_2020_layout.glb · Sky entfernt: 0 · Boden ausgeblendet: 0 · Asphalt-Ebene: ","url":""}
+{"ts":"2026-10-09T09:33:05.900Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T09:33:05.901Z","type":"Runtime.consoleAPICalled","text":"[Track] Texturen angepasst: 100 Materialien · Anisotropie 8","url":""}
+{"ts":"2026-10-09T09:33:05.901Z","type":"Runtime.consoleAPICalled","text":"[Track] GLB-Strecke geladen: assets/tracks/redbull_ring_2025_layout.glb · Sky entfernt: 0 · Boden ausgeblendet: 0 · Asphalt-Ebene: ","url":""}
+{"ts":"2026-10-09T09:33:05.901Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T09:33:05.901Z","type":"Runtime.consoleAPICalled","text":"[Track] Texturen angepasst: 94 Materialien · Anisotropie 8","url":""}
+{"ts":"2026-10-09T09:33:05.901Z","type":"Runtime.consoleAPICalled","text":"[Track] GLB-Strecke geladen: assets/tracks/kartbahn_lider.glb · Sky entfernt: 0 · Boden ausgeblendet: 26 · Asphalt-Ebene: true","url":""}
+{"ts":"2026-10-09T09:33:05.901Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T09:33:05.901Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 1 for texture normalMap not yet supported.","url":""}
+{"ts":"2026-10-09T09:33:05.902Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 1 for texture normalMap not yet supported.","url":""}
+{"ts":"2026-10-09T09:33:05.902Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 1 for texture normalMap not yet supported.","url":""}
+{"ts":"2026-10-09T09:33:05.902Z","type":"Runtime.consoleAPICalled","text":"[Track] Texturen angepasst: 67 Materialien · Anisotropie 8","url":""}
+{"ts":"2026-10-09T09:33:05.903Z","type":"Runtime.consoleAPICalled","text":"[Track] GLB-Strecke geladen: assets/tracks/silverstone_gp.glb · Sky entfernt: 0 · Boden ausgeblendet: 0 · Asphalt-Ebene: ","url":""}
+{"ts":"2026-10-09T09:33:05.903Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T09:33:05.904Z","type":"Runtime.consoleAPICalled","text":"[Track] Texturen angepasst: 154 Materialien · Anisotropie 8","url":""}
+{"ts":"2026-10-09T09:33:05.906Z","type":"Runtime.consoleAPICalled","text":"[Track] GLB-Strecke geladen: assets/tracks/shanghai_2018.glb · Sky entfernt: 0 · Boden ausgeblendet: 3 · Asphalt-Ebene: ","url":""}
+{"ts":"2026-10-09T09:33:05.907Z","type":"Runtime.consoleAPICalled","text":"[Track] Texturen angepasst: 154 Materialien · Anisotropie 8","url":""}
+{"ts":"2026-10-09T09:33:05.907Z","type":"Runtime.consoleAPICalled","text":"[Track] GLB-Strecke geladen: assets/tracks/shanghai_2018.glb · Sky entfernt: 0 · Boden ausgeblendet: 3 · Asphalt-Ebene: ","url":""}
+{"ts":"2026-10-09T09:33:05.908Z","type":"Runtime.consoleAPICalled","text":"[Gridline App] Keine lokale Usage-Bridge: Failed to fetch","url":""}
+{"ts":"2026-10-09T09:33:05.908Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T09:33:05.908Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T09:33:05.908Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T09:33:05.909Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T09:33:05.909Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T09:33:05.909Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T09:33:05.909Z","type":"Runtime.consoleAPICalled","text":"[Track flat] Closure gap 100m – prüfen","url":""}
+{"ts":"2026-10-09T09:33:05.909Z","type":"Runtime.exceptionThrown","errorNumber":1,"text":"TypeError: Cannot read properties of undefined (reading 'clone')\n    at Track._spawnAirfieldPlane (http://127.0.0.1:4177/gt3-web-racer.html:5993:34)\n    at addTemplate (http://127.0.0.1:4177/gt3-web-racer.html:5970:47)\n    at Track._buildAirfieldTraffic (http://127.0.0.1:4177/gt3-web-racer.html:5972:5)\n    at Track._buildTrackDetails (http://127.0.0.1:4177/gt3-web-racer.html:5934:38)\n    at Track.buildEnvironment (http://127.0.0.1:4177/gt3-web-racer.html:5723:10)\n    at new Track (http://127.0.0.1:4177/gt3-web-racer.html:4631:12)\n    at Object.buildScene (http://127.0.0.1:4177/gt3-web-racer.html:13749:16)\n    at Object.startRace (http://127.0.0.1:4177/gt3-web-racer.html:15611:10)\n    at Object._afterCarSelect (http://127.0.0.1:4177/gt3-web-racer.html:16353:12)\n    at btn.onclick (http://127.0.0.1:4177/gt3-web-racer.html:16344:14)","url":"","line":5992}
+{"ts":"2026-10-09T09:33:05.910Z","type":"Runtime.consoleAPICalled","text":"[Track flat] Closure gap 100m – prüfen","url":""}
+{"ts":"2026-10-09T09:33:05.910Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T09:33:05.911Z","type":"Runtime.consoleAPICalled","text":"[Track hockenheim-alt] Closure gap 125m – prüfen","url":""}
+{"ts":"2026-10-09T09:33:05.911Z","type":"Runtime.consoleAPICalled","text":"[Gridline App] Keine lokale Usage-Bridge: Failed to fetch","url":""}
+{"ts":"2026-10-09T09:33:05.911Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T09:33:05.911Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T09:33:05.912Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 1 for texture normalMap not yet supported.","url":""}
+{"ts":"2026-10-09T09:33:05.912Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 2 for texture normalMap not yet supported.","url":""}
+{"ts":"2026-10-09T09:33:05.912Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 1 for texture metalnessMap not yet supported.","url":""}
+{"ts":"2026-10-09T09:33:05.912Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 1 for texture roughnessMap not yet supported.","url":""}
+{"ts":"2026-10-09T09:33:05.912Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 1 for texture metalnessMap not yet supported.","url":""}
+{"ts":"2026-10-09T09:33:05.912Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 1 for texture roughnessMap not yet supported.","url":""}
+{"ts":"2026-10-09T09:33:05.914Z","type":"Log.entryAdded","text":"[DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o","url":"http://127.0.0.1:4177/gt3-web-racer.html"}
+{"ts":"2026-10-09T09:33:05.914Z","type":"Log.entryAdded","text":"[DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o","url":"http://127.0.0.1:4177/gt3-web-racer.html"}
+{"ts":"2026-10-09T09:33:05.914Z","type":"Log.entryAdded","errorNumber":4,"text":"Failed to load resource: the server responded with a status of 404 (File not found)","url":"http://127.0.0.1:4177/favicon.ico"}
+{"ts":"2026-10-09T09:33:05.914Z","type":"Log.entryAdded","errorNumber":5,"text":"Failed to load resource: net::ERR_CONNECTION_REFUSED","url":"http://127.0.0.1:4317/api/usage"}
+{"ts":"2026-10-09T09:33:05.915Z","type":"Log.entryAdded","errorNumber":6,"text":"Failed to load resource: net::ERR_CONNECTION_REFUSED","url":"http://127.0.0.1:4317/api/usage"}
+{"ts":"2026-10-09T09:33:05.922Z","type":"session-start","revision":"35bacfdc5a3eed67ead24acd97171d9cbb9c5924","environment":{"ua":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36","url":"http://127.0.0.1:4177/gt3-web-racer.html","focused":true,"visibility":"visible","canvas":[{"w":1020,"h":563,"css":{"x":0,"y":0,"width":1200,"height":663,"top":0,"right":1200,"bottom":663,"left":0}},{"w":170,"h":170,"css":{"x":1010,"y":290,"width":172,"height":172,"top":290,"right":1182,"bottom":462,"left":1010}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":300,"h":150,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":1280,"h":600,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}}],"gl":{"version":"WebGL 2.0 (OpenGL ES 3.0 Chromium)","renderer":"WebKit WebGL"},"car":5,"track":"inselring","totalLen":4899.926214060443}}
+{"ts":"2026-10-09T09:33:06.078Z","type":"input-desync","intended":["KeyW"],"actual":{"throttle":0,"brake":0,"steer":0,"keyW":true}}
+{"ts":"2026-10-09T09:33:26.983Z","type":"input-desync","intended":["KeyA","KeyW"],"actual":{"throttle":0,"brake":0,"steer":0.4983333333333333,"keyW":true}}
+{"ts":"2026-10-09T09:33:44.720Z","type":"input-desync","intended":["KeyW"],"actual":{"throttle":0,"brake":0,"steer":0,"keyW":true}}
+{"ts":"2026-10-09T09:33:45.745Z","type":"input-desync","intended":["KeyA","KeyW"],"actual":{"throttle":0,"brake":0,"steer":0,"keyW":true}}
+{"ts":"2026-10-09T09:33:47.831Z","type":"input-desync","intended":["KeyW"],"actual":{"throttle":0,"brake":0,"steer":0,"keyW":true}}
+{"ts":"2026-10-09T09:33:48.860Z","type":"input-desync","intended":["KeyA","KeyW"],"actual":{"throttle":0,"brake":0,"steer":0.4983333333333333,"keyW":true}}
+{"ts":"2026-10-09T09:34:33.909Z","type":"input-desync","intended":["KeyA","KeyW"],"actual":{"throttle":0,"brake":0,"steer":0,"keyW":true}}
+{"ts":"2026-10-09T09:34:35.973Z","type":"input-desync","intended":["KeyA","KeyW"],"actual":{"throttle":0,"brake":0,"steer":0,"keyW":true}}
+{"ts":"2026-10-09T09:34:36.995Z","type":"input-desync","intended":["KeyW"],"actual":{"throttle":0,"brake":0,"steer":0,"keyW":true}}
+{"ts":"2026-10-09T09:34:46.088Z","type":"input-desync","intended":["KeyW"],"actual":{"throttle":0.9133333333333333,"brake":0,"steer":0,"keyW":false}}
+{"ts":"2026-10-09T09:37:36.035Z","type":"session-end","reason":"time-limit","lapComplete":false,"summaryPath":"qa/web-playtest/session-20261009T0631Z-35bacfd/telemetry/ford-inselring-tt-lap-01-summary.json"}

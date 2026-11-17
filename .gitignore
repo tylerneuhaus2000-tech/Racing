@@ -25,3 +25,13 @@ native/**/*.pdb
 native/**/*.mdb
 native/**/*.opendb
 native/**/*.VC.db
+
+# Lokale Arbeitsreste, Build-Ausgaben und Playtest-Medien (nicht ins Repo – Pages würde sie veröffentlichen)
+tmp/
+MehrdistanzMac/build/
+qa/**/screenshots/
+qa/**/videos/
+# Xcode-Benutzerdaten und lokale Mehrdistanz-Datensicherungen (enthalten Personendaten – nie veröffentlichen)
+**/xcuserdata/
+MehrdistanzMac/**/mehrdistanz-backup-*.json
+MehrdistanzMac/**/mehrdistanz-results-*.csv

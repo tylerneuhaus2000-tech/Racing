@@ -1,0 +1,205 @@
+{
+  "ts": "2026-10-09T07:38:39.435Z",
+  "run": "race-ai-default-d60",
+  "reason": "time-limit",
+  "lapComplete": false,
+  "actualDriveSeconds": 270.136,
+  "samples": 2319,
+  "fps": {
+    "min": 2,
+    "p50": 60,
+    "p95": 60,
+    "max": 62
+  },
+  "final": {
+    "ts": "2026-10-09T07:38:39.206Z",
+    "raceTime": 253.19166666660072,
+    "lap": 1,
+    "curLapTime": 248.24166666660068,
+    "lastLap": null,
+    "lapValid": true,
+    "progress": 0.32855858411265537,
+    "distM": 2404.534512873872,
+    "speedKmh": 0.003973316029235605,
+    "speedMps": 0.0011036988970098904,
+    "targetKmh": 81.95267717226788,
+    "gear": 0,
+    "heading": -0.22577318573499366,
+    "yawRate": 4.864244959639299e-288,
+    "steer": 0,
+    "steerCmd": 0.12188227002055955,
+    "latM": 1.0178862410141372,
+    "surface": 0,
+    "curvature": 0.02412063427555402,
+    "accLong": 0.13244386764118685,
+    "latAccel": 1.4316704657736023e-284,
+    "slipFront": 1.728665626026108e-284,
+    "slipRear": 1.677203629328755e-284,
+    "damage": 0,
+    "wallContacts": 0,
+    "carContacts": 0,
+    "fuelKg": 69.83755652990125,
+    "tireWear": {
+      "front": 1,
+      "rear": 1,
+      "FL": 1,
+      "FR": 1,
+      "RL": 1,
+      "RR": 1
+    },
+    "fps": 60,
+    "focused": true,
+    "vehicle": "Ferrari 296 GT3",
+    "track": "Silverstone Circuit",
+    "halfWidth": 10,
+    "kerbWidth": 4,
+    "sampleIdx": 637
+  },
+  "performanceMetrics": [
+    {
+      "name": "Timestamp",
+      "value": 129106.340788
+    },
+    {
+      "name": "AudioHandlers",
+      "value": 28
+    },
+    {
+      "name": "AudioWorkletProcessors",
+      "value": 0
+    },
+    {
+      "name": "Documents",
+      "value": 1
+    },
+    {
+      "name": "Frames",
+      "value": 1
+    },
+    {
+      "name": "JSEventListeners",
+      "value": 360
+    },
+    {
+      "name": "LayoutObjects",
+      "value": 8160
+    },
+    {
+      "name": "MediaKeySessions",
+      "value": 0
+    },
+    {
+      "name": "MediaKeys",
+      "value": 0
+    },
+    {
+      "name": "Nodes",
+      "value": 17115
+    },
+    {
+      "name": "Resources",
+      "value": 41
+    },
+    {
+      "name": "ContextLifecycleStateObservers",
+      "value": 13
+    },
+    {
+      "name": "V8PerContextDatas",
+      "value": 1
+    },
+    {
+      "name": "WorkerGlobalScopes",
+      "value": 0
+    },
+    {
+      "name": "UACSSResources",
+      "value": 0
+    },
+    {
+      "name": "RTCPeerConnections",
+      "value": 0
+    },
+    {
+      "name": "ResourceFetchers",
+      "value": 1
+    },
+    {
+      "name": "AdSubframes",
+      "value": 0
+    },
+    {
+      "name": "DetachedScriptStates",
+      "value": 0
+    },
+    {
+      "name": "ArrayBufferContents",
+      "value": 1334
+    },
+    {
+      "name": "LayoutCount",
+      "value": 22671
+    },
+    {
+      "name": "RecalcStyleCount",
+      "value": 30487
+    },
+    {
+      "name": "LayoutDuration",
+      "value": 15.067717
+    },
+    {
+      "name": "RecalcStyleDuration",
+      "value": 6.620288
+    },
+    {
+      "name": "DevToolsCommandDuration",
+      "value": 1.186082
+    },
+    {
+      "name": "ScriptDuration",
+      "value": 69.281451
+    },
+    {
+      "name": "V8CompileDuration",
+      "value": 0
+    },
+    {
+      "name": "TaskDuration",
+      "value": 125.237682
+    },
+    {
+      "name": "TaskOtherDuration",
+      "value": 33.082144
+    },
+    {
+      "name": "ThreadTime",
+      "value": 94.203692
+    },
+    {
+      "name": "ProcessTime",
+      "value": 1028.597616
+    },
+    {
+      "name": "JSHeapUsedSize",
+      "value": 43617884
+    },
+    {
+      "name": "JSHeapTotalSize",
+      "value": 87506944
+    },
+    {
+      "name": "FirstMeaningfulPaint",
+      "value": 126046.077148
+    },
+    {
+      "name": "DomContentLoaded",
+      "value": 126046.563411
+    },
+    {
+      "name": "NavigationStart",
+      "value": 126043.696695
+    }
+  ],
+  "screenshotCount": 78
+}

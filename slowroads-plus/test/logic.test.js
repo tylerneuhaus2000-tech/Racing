@@ -1,0 +1,4 @@
+import test from 'node:test'; import assert from 'node:assert/strict'; import { safeStep, percentages, classifySurface } from '../src/core/logic.js'; import { Trip } from '../src/telemetry/trip.js';
+test('distance and teleport filtering',()=>{assert.equal(safeStep({x:0,y:0,z:0},{x:3,y:4,z:0}),5);assert.equal(safeStep({x:0,y:0,z:0},{x:999,y:0,z:0}),0)});
+test('surface percentages use distance',()=>{assert.deepEqual(percentages({road:90,offroad:10,other:0}),{road:90,offroad:10,other:0});assert.equal(classifySurface('grass'),'OFFROAD')});
+test('trip reset and stationary filtering',()=>{let t=0;const trip=new Trip(()=>t);trip.update({position:{x:0,y:0,z:0},surface:'road'});t=1000;trip.update({position:{x:0,y:0,z:0},surface:'road'});assert.equal(trip.snapshot().distance,0);t=2000;trip.update({position:{x:3,y:4,z:0},surface:'road'});assert.equal(trip.snapshot().distance,5);trip.reset();assert.equal(trip.snapshot().distance,0)});

@@ -1,0 +1,63 @@
+{"ts":"2026-10-09T08:11:54.781Z","type":"Runtime.consoleAPICalled","text":"[Ingenieur] Bereit. Groq: Nein (regelbasiert)","url":""}
+{"ts":"2026-10-09T08:11:54.792Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 1 for texture normalMap not yet supported.","url":""}
+{"ts":"2026-10-09T08:11:54.792Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 1 for texture normalMap not yet supported.","url":""}
+{"ts":"2026-10-09T08:11:54.793Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 1 for texture normalMap not yet supported.","url":""}
+{"ts":"2026-10-09T08:11:54.793Z","type":"Runtime.consoleAPICalled","text":"[Track] Texturen angepasst: 84 Materialien · Anisotropie 8","url":""}
+{"ts":"2026-10-09T08:11:54.794Z","type":"Runtime.consoleAPICalled","text":"[Track] GLB-Strecke geladen: assets/tracks/spa_francorchamps_2022.glb · Sky entfernt: 0 · Boden ausgeblendet: 2 · Asphalt-Ebene: ","url":""}
+{"ts":"2026-10-09T08:11:54.794Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T08:11:54.795Z","type":"Runtime.consoleAPICalled","text":"THREE.GLTFLoader: Custom UV set 1 for texture normalMap not yet supported.","url":""}
+{"ts":"2026-10-09T08:11:54.796Z","type":"Runtime.consoleAPICalled","text":"[Track] Texturen angepasst: 58 Materialien · Anisotropie 8","url":""}
+{"ts":"2026-10-09T08:11:54.796Z","type":"Runtime.consoleAPICalled","text":"[Track] GLB-Strecke geladen: assets/tracks/monza_2020_layout.glb · Sky entfernt: 0 · Boden ausgeblendet: 0 · Asphalt-Ebene: ","url":""}
+{"ts":"2026-10-09T08:11:54.797Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T08:11:54.797Z","type":"Runtime.consoleAPICalled","text":"[Track] Texturen angepasst: 100 Materialien · Anisotropie 8","url":""}
+{"ts":"2026-10-09T08:11:54.797Z","type":"Runtime.consoleAPICalled","text":"[Track] GLB-Strecke geladen: assets/tracks/redbull_ring_2025_layout.glb · Sky entfernt: 0 · Boden ausgeblendet: 0 · Asphalt-Ebene: ","url":""}
+{"ts":"2026-10-09T08:11:54.797Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T08:11:54.797Z","type":"Runtime.consoleAPICalled","text":"[Track] Texturen angepasst: 94 Materialien · Anisotropie 8","url":""}
+{"ts":"2026-10-09T08:11:54.797Z","type":"Runtime.consoleAPICalled","text":"[Track] GLB-Strecke geladen: assets/tracks/kartbahn_lider.glb · Sky entfernt: 0 · Boden ausgeblendet: 26 · Asphalt-Ebene: true","url":""}
+{"ts":"2026-10-09T08:11:54.800Z","type":"Log.entryAdded","text":"[DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o","url":"http://127.0.0.1:4177/gt3-web-racer.html"}
+{"ts":"2026-10-09T08:11:54.800Z","type":"Log.entryAdded","text":"[DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o","url":"http://127.0.0.1:4177/gt3-web-racer.html"}
+{"ts":"2026-10-09T08:11:54.800Z","type":"Log.entryAdded","errorNumber":1,"text":"Failed to load resource: the server responded with a status of 404 (File not found)","url":"http://127.0.0.1:4177/favicon.ico"}
+{"ts":"2026-10-09T08:11:54.809Z","type":"session-start","revision":"35bacfdc5a3eed67ead24acd97171d9cbb9c5924","environment":{"ua":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36","url":"http://127.0.0.1:4177/gt3-web-racer.html","focused":true,"visibility":"visible","canvas":[{"w":1020,"h":563,"css":{"x":0,"y":0,"width":1200,"height":663,"top":0,"right":1200,"bottom":663,"left":0}},{"w":170,"h":170,"css":{"x":1010,"y":290,"width":172,"height":172,"top":290,"right":1182,"bottom":462,"left":1010}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":150,"h":96,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":300,"h":150,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}},{"w":1280,"h":600,"css":{"x":0,"y":0,"width":0,"height":0,"top":0,"right":0,"bottom":0,"left":0}}],"gl":{"version":"WebGL 2.0 (OpenGL ES 3.0 Chromium)","renderer":"WebKit WebGL"},"car":25,"track":"kartbahn-lider","totalLen":531.5692079705059}}
+{"ts":"2026-10-09T08:11:54.955Z","type":"input-desync","intended":["KeyW"],"actual":{"throttle":0,"brake":0,"steer":0,"keyW":true}}
+{"ts":"2026-10-09T08:12:01.303Z","type":"off-track","latM":4.705453461038257,"speedKmh":40.935834851635086}
+{"ts":"2026-10-09T08:12:04.550Z","type":"input-desync","intended":["KeyD","KeyW"],"actual":{"throttle":0.43666666666666665,"brake":0,"steer":0,"keyW":false}}
+{"ts":"2026-10-09T08:12:06.719Z","type":"off-track","latM":6.253962493845572,"speedKmh":8.641373290034341}
+{"ts":"2026-10-09T08:12:12.197Z","type":"off-track","latM":5.617718321182822,"speedKmh":2.152371725723243}
+{"ts":"2026-10-09T08:12:17.478Z","type":"off-track","latM":4.745555424136004,"speedKmh":2.1060768336340656}
+{"ts":"2026-10-09T08:12:18.974Z","type":"stalled-recovery","progress":0.10856905070802977,"distM":73.23387076636283,"speedKmh":2.1257851317906864}
+{"ts":"2026-10-09T08:12:22.647Z","type":"off-track","latM":4.825712447937393,"speedKmh":20.500992476419803}
+{"ts":"2026-10-09T08:12:27.792Z","type":"off-track","latM":4.739075155627206,"speedKmh":2.198688599533284}
+{"ts":"2026-10-09T08:12:29.426Z","type":"stalled-recovery","progress":0.13050626289277234,"distM":92.35312111147434,"speedKmh":2.2000070759429846}
+{"ts":"2026-10-09T08:12:35.287Z","type":"off-track","latM":-4.9491713856206285,"speedKmh":40.75714587190319}
+{"ts":"2026-10-09T08:12:40.495Z","type":"off-track","latM":8.22230497561215,"speedKmh":2.0423044613348122}
+{"ts":"2026-10-09T08:12:45.763Z","type":"off-track","latM":8.611880261966881,"speedKmh":2.1134933625182604}
+{"ts":"2026-10-09T08:12:50.926Z","type":"off-track","latM":9.347423731905636,"speedKmh":2.176582597626043}
+{"ts":"2026-10-09T08:12:51.833Z","type":"stalled-recovery","progress":0.23017544515026855,"distM":151.34850744059534,"speedKmh":1.4546421551813955}
+{"ts":"2026-10-09T08:12:51.990Z","type":"input-desync","intended":["KeyE","KeyW"],"actual":{"throttle":0,"brake":0,"steer":0,"keyW":true}}
+{"ts":"2026-10-09T08:12:56.516Z","type":"off-track","latM":4.818745138184993,"speedKmh":35.52597654200359}
+{"ts":"2026-10-09T08:13:01.717Z","type":"extreme-yaw","speedKmh":27.342522697437964,"latM":-0.005417848318366888,"yawRate":1.725380727304133,"wallContacts":0,"damage":0}
+{"ts":"2026-10-09T08:13:21.596Z","type":"extreme-yaw","speedKmh":43.391864991815524,"latM":1.9372231214724236,"yawRate":1.3564165275196496,"wallContacts":0,"damage":0}
+{"ts":"2026-10-09T08:13:26.761Z","type":"off-track","latM":-7.377198096286721,"speedKmh":2.0010453222618976}
+{"ts":"2026-10-09T08:13:31.897Z","type":"off-track","latM":-9.525368546056841,"speedKmh":2.044079954901033}
+{"ts":"2026-10-09T08:13:32.116Z","type":"stalled-recovery","progress":0.7831050103618915,"distM":431.86137083977627,"speedKmh":1.2024535464149997}
+{"ts":"2026-10-09T08:13:37.018Z","type":"off-track","latM":5.4845020333448025,"speedKmh":2.0092273422701457}
+{"ts":"2026-10-09T08:13:41.685Z","type":"stalled-recovery","progress":0.793155096816087,"distM":443.00613176494335,"speedKmh":1.6488875876715527}
+{"ts":"2026-10-09T08:13:43.135Z","type":"extreme-yaw","speedKmh":10.480315087530958,"latM":0.6586603129162361,"yawRate":1.3562581469142974,"wallContacts":0,"damage":0}
+{"ts":"2026-10-09T08:13:48.476Z","type":"extreme-yaw","speedKmh":22.86303626488801,"latM":1.860927641545743,"yawRate":-1.391679067625899,"wallContacts":0,"damage":0}
+{"ts":"2026-10-09T08:13:54.908Z","type":"off-track","latM":7.4068278147824405,"speedKmh":1.8138347015875749}
+{"ts":"2026-10-09T08:14:04.505Z","type":"off-track","latM":5.14910486806105,"speedKmh":1.878432311992226}
+{"ts":"2026-10-09T08:14:47.786Z","type":"off-track","latM":9.646401891031363,"speedKmh":18.330456194375493}
+{"ts":"2026-10-09T08:14:53.344Z","type":"extreme-yaw","speedKmh":28.810794386267297,"latM":-1.3371187500369492,"yawRate":-1.5227793573613435,"wallContacts":0,"damage":0}
+{"ts":"2026-10-09T08:14:58.720Z","type":"off-track","latM":6.870927479113227,"speedKmh":1.883083847064018}
+{"ts":"2026-10-09T08:15:03.866Z","type":"off-track","latM":6.843199135358534,"speedKmh":2.1087267472024185}
+{"ts":"2026-10-09T08:15:09.108Z","type":"off-track","latM":5.973123254404764,"speedKmh":2.087862125394134}
+{"ts":"2026-10-09T08:15:14.328Z","type":"off-track","latM":5.265115285255856,"speedKmh":1.9357904642794457}
+{"ts":"2026-10-09T08:15:19.642Z","type":"off-track","latM":4.979218490891845,"speedKmh":1.8720914002761129}
+{"ts":"2026-10-09T08:15:24.788Z","type":"off-track","latM":5.344646608275669,"speedKmh":1.9076808522004434}
+{"ts":"2026-10-09T08:15:29.983Z","type":"off-track","latM":6.2672585120540605,"speedKmh":2.006627325480877}
+{"ts":"2026-10-09T08:15:35.166Z","type":"off-track","latM":7.74902323072813,"speedKmh":2.205959315687952}
+{"ts":"2026-10-09T08:15:39.977Z","type":"stalled-recovery","progress":0.8982202852487806,"distM":617.5992428394502,"speedKmh":1.352806165916026}
+{"ts":"2026-10-09T08:15:42.171Z","type":"extreme-yaw","speedKmh":17.099026434044106,"latM":-2.2460753447737805,"yawRate":1.6358330979078994,"wallContacts":0,"damage":0}
+{"ts":"2026-10-09T08:15:47.586Z","type":"extreme-yaw","speedKmh":31.053806147821096,"latM":0.7010838488918842,"yawRate":1.5317072951608113,"wallContacts":0,"damage":0}
+{"ts":"2026-10-09T08:15:48.487Z","type":"Runtime.consoleAPICalled","text":"[FB] saveBestLap skip: nicht eingeloggt","url":""}
+{"ts":"2026-10-09T08:15:48.731Z","type":"session-end","reason":"lap-complete","lapComplete":true,"summaryPath":"qa/web-playtest/session-20261009T0631Z-35bacfd/telemetry/kart-lider-bumper-tt-lap-01-summary.json"}

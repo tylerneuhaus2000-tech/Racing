@@ -24,6 +24,13 @@ namespace Gridline.Native.Editor
             Directory.CreateDirectory("Builds/Windows");
             BuildPipeline.BuildPlayer(Scenes, "Builds/Windows/Gridline.exe", BuildTarget.StandaloneWindows64, BuildOptions.None);
         }
+
+        [MenuItem("Gridline/Build/iPad iOS Xcode")]
+        public static void BuildIOS()
+        {
+            Directory.CreateDirectory("Builds/iOS");
+            BuildPipeline.BuildPlayer(Scenes, "Builds/iOS/Gridline-iOS", BuildTarget.iOS, BuildOptions.None);
+        }
     }
 }
 #endif

@@ -1,0 +1,221 @@
+{
+  "ts": "2026-10-09T08:15:48.721Z",
+  "run": "kart-lider-bumper-tt-lap-01",
+  "reason": "lap-complete",
+  "lapComplete": true,
+  "actualDriveSeconds": 233.911,
+  "samples": 1399,
+  "fps": {
+    "min": 7,
+    "p50": 60,
+    "p95": 60,
+    "max": 61
+  },
+  "final": {
+    "ts": "2026-10-09T08:15:48.574Z",
+    "raceTime": 233.33333333328545,
+    "lap": 2,
+    "curLapTime": 0.01666666666665151,
+    "lastLap": 233.3166666666188,
+    "lapValid": true,
+    "sector": 0,
+    "sectors": [
+      null,
+      null,
+      null
+    ],
+    "progress": 0,
+    "distM": 666.9663114296812,
+    "speedKmh": 32.627486779040204,
+    "speedMps": 9.063190771955613,
+    "targetKmh": 64.8,
+    "gear": 4,
+    "heading": 3.5247553715348423,
+    "yawRate": -1.461785002254513,
+    "steer": -0.45020491552622394,
+    "steerCmd": -1,
+    "latM": 1.9965929860357665,
+    "surface": 0,
+    "curvature": 0.2473195951008031,
+    "accLong": -0.3424512351632414,
+    "latAccel": -7.845528931343119,
+    "slipFront": 0.3369591826456796,
+    "slipRear": 0.0514095869929559,
+    "damage": 0,
+    "wallContacts": 0,
+    "carContacts": 0,
+    "fuelKg": 69.64606558449749,
+    "tireWear": {
+      "front": 1,
+      "rear": 1,
+      "FL": 1,
+      "FR": 1,
+      "RL": 1,
+      "RR": 1
+    },
+    "fps": 60,
+    "focused": true,
+    "visibility": "visible",
+    "gameInput": {
+      "steer": -1,
+      "throttle": 1,
+      "brake": 0,
+      "keyW": true,
+      "keyS": false,
+      "keyA": false,
+      "keyD": true
+    },
+    "vehicle": "Leihkart (mit Ramschutz)",
+    "track": "Kartbahn Lider",
+    "halfWidth": 2.5,
+    "kerbWidth": 1.4,
+    "sampleIdx": 0
+  },
+  "performanceMetrics": [
+    {
+      "name": "Timestamp",
+      "value": 131335.642475
+    },
+    {
+      "name": "AudioHandlers",
+      "value": 30
+    },
+    {
+      "name": "AudioWorkletProcessors",
+      "value": 0
+    },
+    {
+      "name": "Documents",
+      "value": 1
+    },
+    {
+      "name": "Frames",
+      "value": 1
+    },
+    {
+      "name": "JSEventListeners",
+      "value": 354
+    },
+    {
+      "name": "LayoutObjects",
+      "value": 10179
+    },
+    {
+      "name": "MediaKeySessions",
+      "value": 0
+    },
+    {
+      "name": "MediaKeys",
+      "value": 0
+    },
+    {
+      "name": "Nodes",
+      "value": 19148
+    },
+    {
+      "name": "Resources",
+      "value": 41
+    },
+    {
+      "name": "ContextLifecycleStateObservers",
+      "value": 13
+    },
+    {
+      "name": "V8PerContextDatas",
+      "value": 1
+    },
+    {
+      "name": "WorkerGlobalScopes",
+      "value": 0
+    },
+    {
+      "name": "UACSSResources",
+      "value": 0
+    },
+    {
+      "name": "RTCPeerConnections",
+      "value": 0
+    },
+    {
+      "name": "ResourceFetchers",
+      "value": 1
+    },
+    {
+      "name": "AdSubframes",
+      "value": 0
+    },
+    {
+      "name": "DetachedScriptStates",
+      "value": 0
+    },
+    {
+      "name": "ArrayBufferContents",
+      "value": 1787
+    },
+    {
+      "name": "LayoutCount",
+      "value": 17040
+    },
+    {
+      "name": "RecalcStyleCount",
+      "value": 24084
+    },
+    {
+      "name": "LayoutDuration",
+      "value": 11.390254
+    },
+    {
+      "name": "RecalcStyleDuration",
+      "value": 5.216828
+    },
+    {
+      "name": "DevToolsCommandDuration",
+      "value": 0.505978
+    },
+    {
+      "name": "ScriptDuration",
+      "value": 105.933753
+    },
+    {
+      "name": "V8CompileDuration",
+      "value": 0
+    },
+    {
+      "name": "TaskDuration",
+      "value": 143.056859
+    },
+    {
+      "name": "TaskOtherDuration",
+      "value": 20.010046
+    },
+    {
+      "name": "ThreadTime",
+      "value": 109.585511
+    },
+    {
+      "name": "ProcessTime",
+      "value": 556.753305
+    },
+    {
+      "name": "JSHeapUsedSize",
+      "value": 46877848
+    },
+    {
+      "name": "JSHeapTotalSize",
+      "value": 91750400
+    },
+    {
+      "name": "FirstMeaningfulPaint",
+      "value": 130297.085916
+    },
+    {
+      "name": "DomContentLoaded",
+      "value": 130297.089853
+    },
+    {
+      "name": "NavigationStart",
+      "value": 130296.82544
+    }
+  ],
+  "screenshotCount": 92
+}

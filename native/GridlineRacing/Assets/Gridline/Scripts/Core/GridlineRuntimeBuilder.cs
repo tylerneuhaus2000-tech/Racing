@@ -1,371 +1,341 @@
-using System.Collections.Generic;
 using GLTFast;
 using UnityEngine;
 
 namespace Gridline.Native
 {
+    // Builds one real driving slice: browser centerline + browser physics + the
+    // original Monza GLB. There is deliberately no visible road fallback.
     public static class GridlineRuntimeBuilder
     {
-        private const string SceneRootName = "Gridline Prototype Scene";
+        private const string SceneRootName = "Gridline Race World";
+        private static readonly Vector3 MonzaMeshOffset = new Vector3(-226.06f, -199.83f, 348.01f);
+        private static readonly Vector3 SilverstoneMeshOffset = new Vector3(-46.24f, 7.21f, 89.70f);
 
         public static GridlineVehicleController Vehicle { get; private set; }
         public static GridlineTrackData Track { get; private set; }
         public static GridlineLapSystem LapSystem { get; private set; }
+        public static GridlineTimeTrialSession TimeTrial { get; private set; }
+        public static GridlineRaceSession Race { get; private set; }
 
         public static void BuildIfNeeded()
         {
-            if (GameObject.Find(SceneRootName) != null)
+            if (GameObject.Find(SceneRootName) != null) return;
+
+            GameObject world = new GameObject(SceneRootName);
+            bool testFacility = HasArgument("-gridline-testpad");
+            bool silverstoneTrack = HasArgument("-gridline-track=silverstone");
+            Track = testFacility
+                ? GridlineTrackData.CreateVehicleTestFacility()
+                : GridlineTrackData.Load(silverstoneTrack
+                    ? "Tracks/silverstone-gp"
+                    : "Tracks/monza");
+            if (Track == null) return;
+
+            if (!testFacility)
             {
-                return;
+                Debug.Log($"Gridline {Track.name} configuration: officialDirection=clockwise "
+                    + $"centerlineTraversal={(Track.reverseDirection ? "reversed" : "source-order")} "
+                    + $"startFinishIndex=0 gridSourcePct={Track.startGridPct:0.0} "
+                    + $"gridRuntimePct={(Track.reverseDirection ? 100f - Track.startGridPct : Track.startGridPct):0.0} "
+                    + "checkpoints=ordered-0-to-11 sectors=1-4-8 wrongWay=direction-sensitive");
             }
 
-            GameObject sceneRoot = new GameObject(SceneRootName);
+            ConfigureWorldLighting(world.transform);
+            if (testFacility) CreateVehicleTestFacilityVisual(world.transform, Track);
+            else if (silverstoneTrack) CreateSilverstoneVisual(world.transform);
+            else CreateMonzaVisual(world.transform);
 
-            Material asphalt = CreateMaterial("Gridline Asphalt", new Color(0.055f, 0.061f, 0.068f));
-            Material grass = CreateMaterial("Gridline Grass", new Color(0.08f, 0.24f, 0.11f));
-            Material curbRed = CreateMaterial("Gridline Curb Red", new Color(0.8f, 0.04f, 0.04f));
-            Material curbWhite = CreateMaterial("Gridline Curb White", new Color(0.92f, 0.9f, 0.84f));
-            Material line = CreateMaterial("Gridline Track Line", new Color(0.95f, 0.88f, 0.18f));
-            Material body = CreateMaterial("Gridline Prototype Red", new Color(0.86f, 0.05f, 0.08f));
-            Material carbon = CreateMaterial("Gridline Carbon", new Color(0.018f, 0.02f, 0.025f));
-            Material glass = CreateMaterial("Gridline Glass", new Color(0.09f, 0.16f, 0.22f));
-            Material tire = CreateMaterial("Gridline Tire", new Color(0.006f, 0.006f, 0.007f));
+            // Start close enough for the four physical suspension rays to reach
+            // the real road immediately. The previous 1.25 m offset put the
+            // ray ends above the GLB asphalt (the car fell through at S/F).
+            // The QA driver still waits for contact before applying throttle.
+            // Reversing the closed spline also mirrors the grid percentage.
+            // Monza's browser data places the grid at 100% (the final
+            // sample before the start/finish anchor); in reverse that same
+            // physical start position is 0% of the reversed spline.
+            float startGridPct = Track.reverseDirection
+                ? 100f - Track.startGridPct
+                : Track.startGridPct;
+            int startIndex = startGridPct > 0f
+                ? Mathf.Clamp(Mathf.RoundToInt((startGridPct / 100f) * (Track.points.Length - 1)), 0, Track.points.Length - 1)
+                : 0;
+            Vector3 spawn = Track.Point(startIndex) + Vector3.up * 0.45f;
+            Quaternion rotation = Quaternion.LookRotation(Track.Forward(startIndex), Vector3.up);
+            Vehicle = CreateVehicle(world.transform, spawn, rotation, "Player · Ferrari 296 GT3");
 
-            CreateLighting(sceneRoot.transform);
-            Track = GridlineTrackData.Load("Tracks/silverstone-gp");
-            CreateTrack(sceneRoot.transform, Track, grass, asphalt, curbRed, curbWhite, line);
-            Vector3 spawnPosition = Track != null ? Track.Point(0) + Vector3.up * 0.65f : new Vector3(0f, 0.62f, -26f);
-            Quaternion spawnRotation = Track != null ? Quaternion.LookRotation(Track.Forward(0), Vector3.up) : Quaternion.identity;
-            Vehicle = CreateCar(sceneRoot.transform, body, carbon, glass, tire, spawnPosition, spawnRotation);
-            LapSystem = sceneRoot.AddComponent<GridlineLapSystem>();
+            LapSystem = world.AddComponent<GridlineLapSystem>();
             LapSystem.Configure(Vehicle, Track);
-            CreateCamera(sceneRoot.transform, Vehicle.transform);
-            CreateHud(sceneRoot.transform, Vehicle, LapSystem);
-            sceneRoot.AddComponent<GridlineTouchControls>();
-        }
+            Race = world.AddComponent<GridlineRaceSession>();
+            Race.Configure(Vehicle, Track, LapSystem);
+            TimeTrial = world.AddComponent<GridlineTimeTrialSession>();
+            TimeTrial.Configure(Vehicle, LapSystem);
 
-        private static Material CreateMaterial(string name, Color color)
-        {
-            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-            if (shader == null)
+            if (Race.Enabled)
             {
-                shader = Shader.Find("Standard");
+                CreateRaceCars(world.transform, Race, startIndex, rotation);
             }
 
-            if (shader == null)
-            {
-                shader = Shader.Find("Diffuse");
-            }
+            GridlineQaDriver qaDriver = world.AddComponent<GridlineQaDriver>();
+            qaDriver.Configure(Vehicle, Track, LapSystem);
+            GridlineLapRulesQa rulesQa = world.AddComponent<GridlineLapRulesQa>();
+            rulesQa.Configure(Vehicle, Track, LapSystem);
+            GridlineVehicleDynamicsQa vehicleQa = world.AddComponent<GridlineVehicleDynamicsQa>();
+            vehicleQa.Configure(Vehicle, Track);
+            GridlineTyreForceQa tyreForceQa = world.AddComponent<GridlineTyreForceQa>();
+            tyreForceQa.Configure(Vehicle, Track);
+            GridlineGrassRegressionQa grassQa = world.AddComponent<GridlineGrassRegressionQa>();
+            grassQa.Configure(Vehicle, Track);
+            GridlineSurfaceInteractionQa surfaceQa = world.AddComponent<GridlineSurfaceInteractionQa>();
+            surfaceQa.Configure();
+            GridlineSpawnSurfaceQa spawnQa = world.AddComponent<GridlineSpawnSurfaceQa>();
+            spawnQa.Configure(Track);
 
-            Material material = new Material(shader)
-            {
-                name = name,
-                color = color
-            };
-            return material;
+            CreateCamera(world.transform, Vehicle.transform);
+            CreateHud(world.transform, Vehicle, LapSystem, TimeTrial, Race);
+            world.AddComponent<GridlineTouchControls>();
         }
 
-        private static void CreateLighting(Transform parent)
+        private static bool HasArgument(string expected)
         {
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.22f, 0.25f, 0.3f);
-            RenderSettings.ambientIntensity = 1.1f;
+            string[] args = System.Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length; i += 1)
+            {
+                if (string.Equals(args[i], expected, System.StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
+        }
+
+        private static void ConfigureWorldLighting(Transform parent)
+        {
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color(0.25f, 0.36f, 0.52f);
+            RenderSettings.ambientEquatorColor = new Color(0.18f, 0.20f, 0.22f);
+            RenderSettings.ambientGroundColor = new Color(0.06f, 0.09f, 0.05f);
+            RenderSettings.ambientIntensity = 0.86f;
             RenderSettings.fog = true;
-            RenderSettings.fogColor = new Color(0.47f, 0.61f, 0.76f);
-            RenderSettings.fogStartDistance = 80f;
-            RenderSettings.fogEndDistance = 650f;
+            RenderSettings.fogColor = new Color(0.55f, 0.67f, 0.80f);
+            RenderSettings.fogStartDistance = 260f;
+            RenderSettings.fogEndDistance = 2100f;
 
-            GameObject sun = new GameObject("Sun");
-            sun.transform.SetParent(parent);
-            sun.transform.rotation = Quaternion.Euler(48f, -35f, 0f);
-            Light light = sun.AddComponent<Light>();
-            light.type = LightType.Directional;
-            light.intensity = 1.25f;
-            light.color = new Color(1f, 0.95f, 0.86f);
+            GameObject sunObject = new GameObject("Monza Sun");
+            sunObject.transform.SetParent(parent);
+            sunObject.transform.rotation = Quaternion.Euler(42f, -32f, 0f);
+            Light sun = sunObject.AddComponent<Light>();
+            sun.type = LightType.Directional;
+            sun.intensity = 1.05f;
+            sun.color = new Color(1f, 0.96f, 0.88f);
+            sun.shadows = LightShadows.Soft;
+            sun.shadowStrength = 0.72f;
         }
 
-        private static void CreateTrack(
-            Transform parent,
-            GridlineTrackData track,
-            Material grass,
-            Material asphalt,
-            Material curbRed,
-            Material curbWhite,
-            Material line)
+        private static void CreateMonzaVisual(Transform parent)
         {
-            if (track != null)
-            {
-                CreateSilverstoneTrack(parent, track, grass, asphalt, curbRed, curbWhite, line);
-                return;
-            }
+            GameObject holder = new GameObject("Monza · original GLB");
+            holder.transform.SetParent(parent);
+            holder.transform.localPosition = MonzaMeshOffset;
+            holder.transform.localScale = Vector3.one;
 
-            GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            ground.name = "Ground";
-            ground.transform.SetParent(parent);
-            ground.transform.position = Vector3.zero;
-            ground.transform.localScale = new Vector3(22f, 1f, 16f);
-            ground.GetComponent<Renderer>().sharedMaterial = grass;
+            GltfAsset asset = holder.AddComponent<GltfAsset>();
+            asset.StreamingAsset = true;
+            asset.Url = "Content/Tracks/Monza_2020.glb";
 
-            CreateCube("Main Straight", parent, new Vector3(0f, 0.025f, -26f), new Vector3(112f, 0.05f, 15f), asphalt, false);
-            CreateCube("Back Straight", parent, new Vector3(0f, 0.025f, 26f), new Vector3(112f, 0.05f, 15f), asphalt, false);
-            CreateCube("West Turn Pad", parent, new Vector3(-56f, 0.025f, 0f), new Vector3(15f, 0.05f, 67f), asphalt, false);
-            CreateCube("East Turn Pad", parent, new Vector3(56f, 0.025f, 0f), new Vector3(15f, 0.05f, 67f), asphalt, false);
-            CreateCube("Start Finish", parent, new Vector3(0f, 0.07f, -26f), new Vector3(0.45f, 0.05f, 15.2f), curbWhite, false);
-
-            for (int i = -50; i <= 50; i += 10)
-            {
-                CreateCube("Center Line A", parent, new Vector3(i, 0.08f, -26f), new Vector3(4.5f, 0.05f, 0.25f), line, false);
-                CreateCube("Center Line B", parent, new Vector3(i, 0.08f, 26f), new Vector3(4.5f, 0.05f, 0.25f), line, false);
-            }
-
-            for (int i = 0; i < 28; i++)
-            {
-                float x = -68f + i * 5f;
-                Material material = i % 2 == 0 ? curbRed : curbWhite;
-                CreateCube("South Outside Curb", parent, new Vector3(x, 0.09f, -34f), new Vector3(3.5f, 0.08f, 0.9f), material, false);
-                CreateCube("North Outside Curb", parent, new Vector3(x, 0.09f, 34f), new Vector3(3.5f, 0.08f, 0.9f), material, false);
-            }
-
-            for (int i = 0; i < 14; i++)
-            {
-                float z = -32f + i * 5f;
-                Material material = i % 2 == 0 ? curbRed : curbWhite;
-                CreateCube("West Outside Curb", parent, new Vector3(-64f, 0.09f, z), new Vector3(0.9f, 0.08f, 3.5f), material, false);
-                CreateCube("East Outside Curb", parent, new Vector3(64f, 0.09f, z), new Vector3(0.9f, 0.08f, 3.5f), material, false);
-            }
+            GridlineRuntimeModelMonitor monitor = holder.AddComponent<GridlineRuntimeModelMonitor>();
+            monitor.Asset = asset;
+            monitor.Kind = GridlineRuntimeModelMonitor.ModelKind.Track;
+            monitor.AssetUrl = asset.Url;
+            monitor.SourceLabel = "original Autodromo Nazionale Monza GLB";
+            monitor.TextureFolder = "Monza";
         }
 
-        private static void CreateSilverstoneTrack(
-            Transform parent,
-            GridlineTrackData track,
-            Material grass,
-            Material asphalt,
-            Material curbRed,
-            Material curbWhite,
-            Material line)
+        private static void CreateSilverstoneVisual(Transform parent)
         {
-            GameObject importedTrack = LoadImportedModel("Content/Tracks/Silverstone_GP", parent, "Silverstone Visual Track");
-            bool hasImportedTrack = importedTrack != null;
-            if (hasImportedTrack)
-            {
-                importedTrack.transform.localPosition = new Vector3(-46.24f, 7.21f, 89.7f);
-            }
-            if (hasImportedTrack)
-            {
-                GridlineRuntimeModelMonitor monitor = importedTrack.AddComponent<GridlineRuntimeModelMonitor>();
-                monitor.Asset = importedTrack.GetComponent<GltfAsset>();
-                monitor.HideFallbackWhenReady = false;
-            }
+            GameObject holder = new GameObject("Silverstone GP · Unity-compatible source GLB");
+            holder.transform.SetParent(parent);
+            holder.transform.localPosition = SilverstoneMeshOffset;
+            holder.transform.localScale = Vector3.one;
 
-            if (!hasImportedTrack)
-            {
-                GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
-                ground.name = "Silverstone Terrain";
-                ground.transform.SetParent(parent);
-                ground.transform.position = new Vector3(0f, -0.2f, 0f);
-                ground.transform.localScale = new Vector3(115f, 1f, 115f);
-                ground.GetComponent<Renderer>().sharedMaterial = grass;
-            }
-            else
-            {
-                GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
-                ground.name = "Silverstone Terrain Fallback";
-                ground.transform.SetParent(parent);
-                ground.transform.position = new Vector3(0f, -0.25f, 0f);
-                ground.transform.localScale = new Vector3(115f, 1f, 115f);
-                ground.GetComponent<Renderer>().sharedMaterial = grass;
-            }
+            GltfAsset asset = holder.AddComponent<GltfAsset>();
+            asset.StreamingAsset = true;
+            asset.Url = "Content/Tracks/Silverstone_GP.glb";
 
-            List<Vector3> roadVertices = new List<Vector3>(track.points.Length * 4);
-            List<int> roadTriangles = new List<int>(track.points.Length * 6);
-            List<Vector3> boundaryVertices = new List<Vector3>(track.points.Length * 8);
-            List<int> boundaryTriangles = new List<int>(track.points.Length * 12);
+            GridlineRuntimeModelMonitor monitor = holder.AddComponent<GridlineRuntimeModelMonitor>();
+            monitor.Asset = asset;
+            monitor.Kind = GridlineRuntimeModelMonitor.ModelKind.Track;
+            monitor.AssetUrl = asset.Url;
+            monitor.SourceLabel = "Unity-compatible Silverstone GP source derivative (geometry/textures identical)";
+            monitor.TextureFolder = "Silverstone";
+        }
+
+        private static void CreateVehicleTestFacilityVisual(Transform parent, GridlineTrackData track)
+        {
+            Material asphalt = CreateFacilityMaterial("Test facility asphalt", new Color(0.11f, 0.13f, 0.15f));
+            Material painted = CreateFacilityMaterial("Test facility markings", new Color(0.88f, 0.90f, 0.86f));
+            Material yellow = CreateFacilityMaterial("Test facility yellow", new Color(0.92f, 0.64f, 0.06f));
+            Material kerb = CreateFacilityMaterial("Test facility kerb", new Color(0.72f, 0.08f, 0.06f));
+            Material cone = CreateFacilityMaterial("Test facility cones", new Color(1.0f, 0.27f, 0.04f));
+
+            GameObject baseObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            baseObject.name = "Vehicle Dynamics Facility · 800m x 450m asphalt pad";
+            baseObject.transform.SetParent(parent, false);
+            baseObject.transform.position = new Vector3(0f, -0.30f, 0f);
+            baseObject.transform.localScale = new Vector3(820f, 0.5f, 460f);
+            baseObject.GetComponent<Renderer>().sharedMaterial = asphalt;
+            GridlineTrackSurfaceTag surfaceTag = baseObject.AddComponent<GridlineTrackSurfaceTag>();
+            surfaceTag.Surface = GridlineSurface.Track;
 
             for (int i = 0; i < track.points.Length; i += 1)
             {
-                Vector3 current = track.Point(i);
-                Vector3 next = track.Point(i + 1);
-                Vector3 segment = next - current;
-                float length = Vector3.ProjectOnPlane(segment, Vector3.up).magnitude;
-                if (length < 0.1f)
-                {
-                    continue;
-                }
-
-                Vector3 forward = new Vector3(segment.x, 0f, segment.z).normalized;
-                Vector3 right = new Vector3(forward.z, 0f, -forward.x);
-                Vector3 currentLeft = current - right * track.halfWidth + Vector3.up * 0.02f;
-                Vector3 currentRight = current + right * track.halfWidth + Vector3.up * 0.02f;
-                Vector3 nextLeft = next - right * track.halfWidth + Vector3.up * 0.02f;
-                Vector3 nextRight = next + right * track.halfWidth + Vector3.up * 0.02f;
-                AddQuad(roadVertices, roadTriangles, currentLeft, currentRight, nextLeft, nextRight);
-
-                Vector3 boundaryLeftA = current - right * (track.halfWidth + 0.45f) + Vector3.up * 0.11f;
-                Vector3 boundaryLeftB = current - right * (track.halfWidth + 1.15f) + Vector3.up * 0.11f;
-                Vector3 boundaryLeftC = next - right * (track.halfWidth + 0.45f) + Vector3.up * 0.11f;
-                Vector3 boundaryLeftD = next - right * (track.halfWidth + 1.15f) + Vector3.up * 0.11f;
-                Vector3 boundaryRightA = current + right * (track.halfWidth + 0.45f) + Vector3.up * 0.11f;
-                Vector3 boundaryRightB = current + right * (track.halfWidth + 1.15f) + Vector3.up * 0.11f;
-                Vector3 boundaryRightC = next + right * (track.halfWidth + 0.45f) + Vector3.up * 0.11f;
-                Vector3 boundaryRightD = next + right * (track.halfWidth + 1.15f) + Vector3.up * 0.11f;
-                AddQuad(boundaryVertices, boundaryTriangles, boundaryLeftA, boundaryLeftB, boundaryLeftC, boundaryLeftD);
-                AddQuad(boundaryVertices, boundaryTriangles, boundaryRightB, boundaryRightA, boundaryRightD, boundaryRightC);
+                Vector3 a = track.Point(i) + Vector3.up * 0.012f;
+                Vector3 b = track.Point(i + 1) + Vector3.up * 0.012f;
+                Vector3 delta = b - a;
+                delta.y = 0f;
+                if (delta.sqrMagnitude < 0.01f) continue;
+                GameObject mark = CreateFacilityCube(
+                    $"Handling loop centerline {i:000}", (a + b) * 0.5f,
+                    new Vector3(0.12f, 0.025f, delta.magnitude),
+                    Quaternion.LookRotation(delta.normalized, Vector3.up), painted, parent);
+                RemoveCollider(mark);
             }
 
-            GameObject roadMesh = CreateMeshObject("Silverstone Road Physics", parent, roadVertices, roadTriangles, asphalt, true);
-            GameObject boundaryMesh = CreateMeshObject("Silverstone Boundary Physics", parent, boundaryVertices, boundaryTriangles, curbRed, true);
-            if (hasImportedTrack)
+            CreateFacilityLine(new Vector3(-330f, 0.03f, -188f), new Vector3(330f, 0.03f, -188f),
+                painted, parent, 0.16f);
+            CreateFacilityLine(new Vector3(-330f, 0.03f, 188f), new Vector3(330f, 0.03f, 188f),
+                painted, parent, 0.16f);
+            CreateFacilityLine(new Vector3(-330f, 0.03f, -15f), new Vector3(330f, 0.03f, -15f),
+                yellow, parent, 0.10f);
+            CreateFacilityLine(new Vector3(-330f, 0.03f, 15f), new Vector3(330f, 0.03f, 15f),
+                yellow, parent, 0.10f);
+
+            CreateFacilityRing(new Vector3(-125f, 0.04f, 55f), 68f, painted, parent);
+            CreateFacilityRing(new Vector3(125f, 0.04f, 55f), 68f, painted, parent);
+            CreateFacilityRing(new Vector3(-125f, 0.045f, 55f), 73f, kerb, parent);
+            CreateFacilityRing(new Vector3(125f, 0.045f, 55f), 73f, kerb, parent);
+
+            for (int i = 0; i < 12; i += 1)
             {
-                GridlineRuntimeModelMonitor monitor = importedTrack.GetComponent<GridlineRuntimeModelMonitor>();
-                monitor.FallbackRenderers = new[]
-                {
-                    roadMesh.GetComponent<Renderer>(),
-                    boundaryMesh.GetComponent<Renderer>()
-                };
+                float x = -240f + i * 40f;
+                float z = i % 2 == 0 ? -45f : 45f;
+                GameObject obstacle = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                obstacle.name = $"Slalom cone {i + 1}";
+                obstacle.transform.SetParent(parent, false);
+                obstacle.transform.position = new Vector3(x, 0.42f, z);
+                obstacle.transform.localScale = new Vector3(0.75f, 0.42f, 0.75f);
+                obstacle.GetComponent<Renderer>().sharedMaterial = cone;
+                GridlineTrackSurfaceTag obstacleTag = obstacle.AddComponent<GridlineTrackSurfaceTag>();
+                obstacleTag.Surface = GridlineSurface.Barrier;
             }
 
-            Vector3 start = track.Point(0) + Vector3.up * 0.16f;
-            Quaternion startRotation = Quaternion.LookRotation(track.Forward(0), Vector3.up);
-            CreateCube("Silverstone Start Finish", parent, start,
-                new Vector3(track.halfWidth * 2f, 0.04f, 0.45f), line, false,
-                startRotation * Quaternion.Euler(0f, 90f, 0f));
+            Debug.Log("Gridline vehicle test facility built: 820m x 460m pad, loop, skidpads, slalom and measurement lanes");
         }
 
-        private static void AddQuad(List<Vector3> vertices, List<int> triangles, Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+        private static Material CreateFacilityMaterial(string name, Color color)
         {
-            int start = vertices.Count;
-            vertices.Add(a);
-            vertices.Add(b);
-            vertices.Add(c);
-            vertices.Add(d);
-            triangles.Add(start);
-            triangles.Add(start + 2);
-            triangles.Add(start + 1);
-            triangles.Add(start + 1);
-            triangles.Add(start + 2);
-            triangles.Add(start + 3);
-        }
-
-        private static GameObject CreateMeshObject(
-            string name,
-            Transform parent,
-            List<Vector3> vertices,
-            List<int> triangles,
-            Material material,
-            bool collision)
-        {
-            GameObject meshObject = new GameObject(name);
-            meshObject.transform.SetParent(parent);
-            Mesh mesh = new Mesh { name = name };
-            mesh.SetVertices(vertices);
-            mesh.SetTriangles(triangles, 0);
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-            meshObject.AddComponent<MeshFilter>().sharedMesh = mesh;
-            meshObject.AddComponent<MeshRenderer>().sharedMaterial = material;
-            if (collision)
+            Shader shader = Resources.Load<Shader>("Graphics/Shaders/Built-In/GridlineLitColor")
+                ?? Resources.Load<Shader>("Graphics/Shaders/Built-In/GridlineFlatColor")
+                ?? Shader.Find("Universal Render Pipeline/Lit")
+                ?? Shader.Find("Standard")
+                ?? Shader.Find("Unlit/Color");
+            if (shader == null)
             {
-                meshObject.AddComponent<MeshCollider>().sharedMesh = mesh;
+                Debug.LogError($"Gridline test facility shader missing: {name}");
+                return null;
             }
-
-            return meshObject;
+            Material material = new Material(shader) { name = name, color = color };
+            if (material.HasProperty("_TextureMix")) material.SetFloat("_TextureMix", 0f);
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
+            if (material.HasProperty("_Color")) material.SetColor("_Color", color);
+            return material;
         }
 
-        private static GridlineVehicleController CreateCar(
-            Transform parent,
-            Material body,
-            Material carbon,
-            Material glass,
-            Material tire,
-            Vector3 spawnPosition,
-            Quaternion spawnRotation)
+        private static GameObject CreateFacilityCube(string name, Vector3 position, Vector3 scale,
+            Quaternion rotation, Material material, Transform parent)
         {
-            GameObject car = new GameObject("Gridline Prototype GT");
+            GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cube.name = name;
+            cube.transform.SetParent(parent, false);
+            cube.transform.SetPositionAndRotation(position, rotation);
+            cube.transform.localScale = scale;
+            cube.GetComponent<Renderer>().sharedMaterial = material;
+            return cube;
+        }
+
+        private static void CreateFacilityLine(Vector3 start, Vector3 end, Material material,
+            Transform parent, float width)
+        {
+            Vector3 delta = end - start;
+            GameObject line = CreateFacilityCube("Test facility measurement line", (start + end) * 0.5f,
+                new Vector3(width, 0.025f, delta.magnitude),
+                Quaternion.LookRotation(delta.normalized, Vector3.up), material, parent);
+            RemoveCollider(line);
+        }
+
+        private static void CreateFacilityRing(Vector3 center, float radius, Material material, Transform parent)
+        {
+            const int count = 48;
+            for (int i = 0; i < count; i += 1)
+            {
+                float a = i * Mathf.PI * 2f / count;
+                float b = (i + 1) * Mathf.PI * 2f / count;
+                Vector3 start = center + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * radius;
+                Vector3 end = center + new Vector3(Mathf.Cos(b), 0f, Mathf.Sin(b)) * radius;
+                CreateFacilityLine(start, end, material, parent, 0.12f);
+            }
+        }
+
+        private static void RemoveCollider(GameObject objectToClean)
+        {
+            Collider collider = objectToClean.GetComponent<Collider>();
+            if (collider != null) Object.Destroy(collider);
+        }
+
+        private static GridlineVehicleController CreateVehicle(Transform parent, Vector3 spawn,
+            Quaternion rotation, string vehicleName)
+        {
+            GameObject car = new GameObject(vehicleName);
             car.transform.SetParent(parent);
-            car.transform.SetPositionAndRotation(spawnPosition, spawnRotation);
-
-            Rigidbody rigidbody = car.AddComponent<Rigidbody>();
-            rigidbody.mass = 1225f;
-            rigidbody.linearDamping = 0.02f;
-            rigidbody.angularDamping = 1.35f;
-            rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
-            rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-
-            BoxCollider collider = car.AddComponent<BoxCollider>();
-            collider.center = new Vector3(0f, 0.35f, 0f);
-            collider.size = new Vector3(1.95f, 0.8f, 4.1f);
-
-            GameObject importedCar = LoadImportedModel("Content/Vehicles/Ferrari_296_GT3", car.transform, "Ferrari 296 GT3");
-            Transform frontLeftPivot = null;
-            Transform frontRightPivot = null;
-            Transform rearLeftPivot = null;
-            Transform rearRightPivot = null;
-            if (importedCar != null)
-            {
-                importedCar.transform.localScale = Vector3.one * 100f;
-                importedCar.transform.localPosition = Vector3.zero;
-                GridlineRuntimeModelMonitor monitor = importedCar.AddComponent<GridlineRuntimeModelMonitor>();
-                monitor.Asset = importedCar.GetComponent<GltfAsset>();
-            }
-            else
-            {
-                CreateCube("Body", car.transform, new Vector3(0f, 0.36f, 0f), new Vector3(2.05f, 0.5f, 4.2f), body, true);
-                CreateCube("Cabin", car.transform, new Vector3(0f, 0.78f, -0.35f), new Vector3(1.35f, 0.55f, 1.35f), glass, true);
-                CreateCube("Front Splitter", car.transform, new Vector3(0f, 0.2f, 2.22f), new Vector3(2.25f, 0.12f, 0.28f), carbon, true);
-                CreateCube("Rear Wing", car.transform, new Vector3(0f, 0.93f, -2.12f), new Vector3(2.35f, 0.12f, 0.36f), carbon, true);
-
-                frontLeftPivot = CreateWheel(car.transform, "Front Left Wheel", new Vector3(-1.08f, 0.22f, 1.38f), tire);
-                frontRightPivot = CreateWheel(car.transform, "Front Right Wheel", new Vector3(1.08f, 0.22f, 1.38f), tire);
-                rearLeftPivot = CreateWheel(car.transform, "Rear Left Wheel", new Vector3(-1.08f, 0.22f, -1.38f), tire);
-                rearRightPivot = CreateWheel(car.transform, "Rear Right Wheel", new Vector3(1.08f, 0.22f, -1.38f), tire);
-            }
+            car.transform.SetPositionAndRotation(spawn, rotation);
 
             GridlineVehicleController controller = car.AddComponent<GridlineVehicleController>();
-            controller.FrontWheelSteerPivots = frontLeftPivot == null ? null : new[] { frontLeftPivot, frontRightPivot };
-            controller.WheelSpinNodes = frontLeftPivot == null ? null : new[]
-            {
-                frontLeftPivot.GetChild(0), frontRightPivot.GetChild(0),
-                rearLeftPivot.GetChild(0), rearRightPivot.GetChild(0)
-            };
-            controller.ConfigureSpawnPose(spawnPosition, spawnRotation);
-            controller.ResetCar();
+            controller.Configure(Track, spawn, rotation);
+
+            GameObject holder = new GameObject(vehicleName + " · original Ferrari GLB");
+            holder.transform.SetParent(car.transform);
+            holder.transform.localPosition = Vector3.zero;
+            // The GLB's rendered nose already matches the Rigidbody's +Z
+            // direction after glTFast's coordinate conversion. Rotating it
+            // again made the car drive correctly while looking backwards.
+            holder.transform.localRotation = Quaternion.identity;
+            holder.transform.localScale = new Vector3(-100f, 100f, 100f);
+
+            GltfAsset asset = holder.AddComponent<GltfAsset>();
+            asset.StreamingAsset = true;
+            asset.Url = "Content/Vehicles/Ferrari_296_GT3.glb";
+
+            GridlineRuntimeModelMonitor monitor = holder.AddComponent<GridlineRuntimeModelMonitor>();
+            monitor.Asset = asset;
+            monitor.Vehicle = controller;
+            monitor.Kind = GridlineRuntimeModelMonitor.ModelKind.Vehicle;
             return controller;
         }
 
-        private static GameObject LoadImportedModel(string resourcePath, Transform parent, string instanceName)
+        private static void CreateRaceCars(Transform parent, GridlineRaceSession race,
+            int playerStartIndex, Quaternion playerRotation)
         {
-            GameObject instance = new GameObject(instanceName);
-            instance.transform.SetParent(parent);
-            GltfAsset asset = instance.AddComponent<GltfAsset>();
-            string relativePath = resourcePath + ".glb";
-            asset.StreamingAsset = true;
-            asset.Url = relativePath;
-            instance.name = instanceName;
-            return instance;
-        }
-
-        private static Transform CreateWheel(Transform parent, string name, Vector3 localPosition, Material material)
-        {
-            GameObject pivot = new GameObject(name + " Pivot");
-            pivot.transform.SetParent(parent);
-            pivot.transform.localPosition = localPosition;
-            pivot.transform.localRotation = Quaternion.identity;
-
-            GameObject spinNode = new GameObject(name + " Spin");
-            spinNode.transform.SetParent(pivot.transform);
-            spinNode.transform.localPosition = Vector3.zero;
-            spinNode.transform.localRotation = Quaternion.identity;
-
-            GameObject wheel = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            wheel.name = name;
-            wheel.transform.SetParent(spinNode.transform);
-            wheel.transform.localPosition = Vector3.zero;
-            wheel.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
-            wheel.transform.localScale = new Vector3(0.46f, 0.2f, 0.46f);
-            wheel.GetComponent<Renderer>().sharedMaterial = material;
-            RemoveCollider(wheel);
-
-            return pivot.transform;
+            for (int i = 0; i < race.DesiredAiCount; i += 1)
+            {
+                int index = playerStartIndex + 14 + i * 12;
+                Vector3 forward = Track.Forward(index);
+                Vector3 side = new Vector3(forward.z, 0f, -forward.x).normalized;
+                float lateral = i % 2 == 0 ? -3.2f : 3.2f;
+                Vector3 spawn = Track.Point(index) + side * lateral + Vector3.up * 0.45f;
+                Quaternion rotation = Quaternion.LookRotation(forward, Vector3.up);
+                GridlineVehicleController aiVehicle = CreateVehicle(parent, spawn, rotation,
+                    $"AI {i + 1} · Ferrari 296 GT3");
+                GridlineAiDriver ai = aiVehicle.gameObject.AddComponent<GridlineAiDriver>();
+                ai.Configure(aiVehicle, Track, race, $"AI {i + 1}",
+                    Mathf.Clamp(0.98f - i * 0.055f, 0.74f, 0.98f));
+                race.RegisterAi(ai);
+            }
         }
 
         private static void CreateCamera(Transform parent, Transform target)
@@ -373,51 +343,34 @@ namespace Gridline.Native
             GameObject cameraObject = new GameObject("Chase Camera");
             cameraObject.transform.SetParent(parent);
             Camera camera = cameraObject.AddComponent<Camera>();
-            camera.fieldOfView = 62f;
+            camera.fieldOfView = 58f;
             camera.nearClipPlane = 0.05f;
-            camera.farClipPlane = 700f;
+            // The imported Silverstone GLB contains several million visible
+            // vertices. Keep the actual track/collision untouched, but bound
+            // the camera work to a useful driving distance for Apple Silicon
+            // and iPad instead of asking Metal to shade the whole circuit.
+            camera.farClipPlane = Application.isMobilePlatform ? 780f : 1200f;
+            camera.allowHDR = false;
+            camera.allowMSAA = false;
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = new Color(0.42f, 0.58f, 0.75f);
+            camera.backgroundColor = new Color(0.55f, 0.67f, 0.80f);
+            RenderSettings.fogEndDistance = camera.farClipPlane;
             cameraObject.AddComponent<AudioListener>();
 
             GridlineCameraRig rig = cameraObject.AddComponent<GridlineCameraRig>();
             rig.Target = target;
         }
 
-        private static void CreateHud(Transform parent, GridlineVehicleController vehicle, GridlineLapSystem lapSystem)
+        private static void CreateHud(Transform parent, GridlineVehicleController vehicle,
+            GridlineLapSystem lapSystem, GridlineTimeTrialSession timeTrial, GridlineRaceSession race)
         {
-            GameObject hudObject = new GameObject("Gridline Debug HUD");
+            GameObject hudObject = new GameObject("Gridline Race HUD");
             hudObject.transform.SetParent(parent);
             GridlineDebugHud hud = hudObject.AddComponent<GridlineDebugHud>();
             hud.Vehicle = vehicle;
             hud.LapSystem = lapSystem;
-        }
-
-        private static GameObject CreateCube(string name, Transform parent, Vector3 localPosition, Vector3 localScale, Material material, bool visualOnly, Quaternion? localRotation = null)
-        {
-            GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cube.name = name;
-            cube.transform.SetParent(parent);
-            cube.transform.localPosition = localPosition;
-            cube.transform.localRotation = localRotation ?? Quaternion.identity;
-            cube.transform.localScale = localScale;
-            cube.GetComponent<Renderer>().sharedMaterial = material;
-
-            if (visualOnly)
-            {
-                RemoveCollider(cube);
-            }
-
-            return cube;
-        }
-
-        private static void RemoveCollider(GameObject gameObject)
-        {
-            Collider collider = gameObject.GetComponent<Collider>();
-            if (collider != null)
-            {
-                UnityEngine.Object.Destroy(collider);
-            }
+            hud.TimeTrial = timeTrial;
+            hud.Race = race;
         }
     }
 }

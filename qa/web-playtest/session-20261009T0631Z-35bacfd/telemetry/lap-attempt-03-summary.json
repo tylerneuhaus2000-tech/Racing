@@ -1,0 +1,56 @@
+{
+  "ts": "2026-10-09T06:54:04.936Z",
+  "elapsedMs": 241829,
+  "lapDone": false,
+  "videoWritten": true,
+  "focus": true,
+  "mode": "tt",
+  "state": "race",
+  "vehicle": "Ferrari 296 GT3",
+  "track": "Silverstone Circuit",
+  "lap": 1,
+  "lapValid": true,
+  "lastLap": 196.58333333331888,
+  "bestLap": null,
+  "progress": 0.18861142126035965,
+  "distanceM": 6937.750355885274,
+  "maxSpeedKmh": 121.70271037607256,
+  "wallContacts": 0,
+  "damage": {
+    "front": 0,
+    "rear": 0,
+    "left": 0,
+    "right": 0,
+    "engine": 0,
+    "susp": {
+      "FL": 0,
+      "FR": 0,
+      "RL": 0,
+      "RR": 0
+    }
+  },
+  "stuck": 0,
+  "fps": "58 FPS",
+  "jsMetrics": [
+    {
+      "name": "Nodes",
+      "value": 11871
+    },
+    {
+      "name": "LayoutDuration",
+      "value": 5.247225
+    },
+    {
+      "name": "ScriptDuration",
+      "value": 26.799143
+    },
+    {
+      "name": "TaskDuration",
+      "value": 56.001328
+    },
+    {
+      "name": "JSHeapUsedSize",
+      "value": 30289548
+    }
+  ]
+}

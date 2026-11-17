@@ -5,6 +5,7 @@ const sourcePath = path.resolve('assets/tracks.js');
 const outputPath = path.resolve(
   'native/GridlineRacing/Assets/Resources/Tracks/silverstone-gp.json'
 );
+const unityMirrorOriginX = -46.24;
 const source = fs.readFileSync(sourcePath, 'utf8');
 const entryStart = source.indexOf('id: "silverstone-gp"');
 if (entryStart < 0) throw new Error('Silverstone entry not found');
@@ -32,7 +33,17 @@ const track = {
   source: 'assets/tracks.js',
   halfWidth: 10,
   lengthMeters: 5891,
-  points: points.map(([x, z, y]) => ({ x, y, z }))
+  // glTFast imports glTF's right-handed coordinates with an X inversion.
+  // Mirror the logical data at export time so it remains aligned with the
+  // unchanged original GLB in Unity world space. The mirrored source order
+  // is already the official clockwise Unity traversal.
+  reverseDirection: false,
+  startGridPct: 99,
+  points: points.map(([x, z, y]) => ({
+    x: 2 * unityMirrorOriginX - x,
+    y,
+    z
+  }))
 };
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });

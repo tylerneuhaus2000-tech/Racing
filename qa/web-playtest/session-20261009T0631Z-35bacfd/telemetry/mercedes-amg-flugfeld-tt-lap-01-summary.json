@@ -1,0 +1,221 @@
+{
+  "ts": "2026-10-09T09:25:58.873Z",
+  "run": "mercedes-amg-flugfeld-tt-lap-01",
+  "reason": "lap-complete",
+  "lapComplete": true,
+  "actualDriveSeconds": 86.822,
+  "samples": 799,
+  "fps": {
+    "min": 25,
+    "p50": 60,
+    "p95": 60,
+    "max": 60
+  },
+  "final": {
+    "ts": "2026-10-09T09:25:58.743Z",
+    "raceTime": 99.43333333335853,
+    "lap": 2,
+    "curLapTime": 0.06666666666671972,
+    "lastLap": 99.36666666669181,
+    "lapValid": true,
+    "sector": 0,
+    "sectors": [
+      null,
+      null,
+      null
+    ],
+    "progress": 0.0006598727944670888,
+    "distM": 4212.85001339985,
+    "speedKmh": 164.2130241292586,
+    "speedMps": 45.61472892479405,
+    "targetKmh": 252,
+    "gear": 4,
+    "heading": -4.6620278015029,
+    "yawRate": 0.14020855573590638,
+    "steer": 0,
+    "steerCmd": -0.0765046694537633,
+    "latM": -0.7429387566363914,
+    "surface": 0,
+    "curvature": 0.00013968876208274794,
+    "accLong": 2.924767699667207,
+    "latAccel": 3.256712503562869,
+    "slipFront": 0.03463816406660336,
+    "slipRear": 0.04325391090310464,
+    "damage": 0,
+    "wallContacts": 0,
+    "carContacts": 0,
+    "fuelKg": 69.72645251046173,
+    "tireWear": {
+      "front": 1,
+      "rear": 1,
+      "FL": 1,
+      "FR": 1,
+      "RL": 1,
+      "RR": 1
+    },
+    "fps": 60,
+    "focused": true,
+    "visibility": "visible",
+    "gameInput": {
+      "steer": 0,
+      "throttle": 1,
+      "brake": 0,
+      "keyW": true,
+      "keyS": false,
+      "keyA": false,
+      "keyD": false
+    },
+    "vehicle": "Mercedes-AMG GT3",
+    "track": "Flugfeld Nord",
+    "halfWidth": 10,
+    "kerbWidth": 1.4,
+    "sampleIdx": 1
+  },
+  "performanceMetrics": [
+    {
+      "name": "Timestamp",
+      "value": 133752.488683
+    },
+    {
+      "name": "AudioHandlers",
+      "value": 28
+    },
+    {
+      "name": "AudioWorkletProcessors",
+      "value": 0
+    },
+    {
+      "name": "Documents",
+      "value": 1
+    },
+    {
+      "name": "Frames",
+      "value": 1
+    },
+    {
+      "name": "JSEventListeners",
+      "value": 365
+    },
+    {
+      "name": "LayoutObjects",
+      "value": 6535
+    },
+    {
+      "name": "MediaKeySessions",
+      "value": 0
+    },
+    {
+      "name": "MediaKeys",
+      "value": 0
+    },
+    {
+      "name": "Nodes",
+      "value": 15197
+    },
+    {
+      "name": "Resources",
+      "value": 41
+    },
+    {
+      "name": "ContextLifecycleStateObservers",
+      "value": 13
+    },
+    {
+      "name": "V8PerContextDatas",
+      "value": 1
+    },
+    {
+      "name": "WorkerGlobalScopes",
+      "value": 0
+    },
+    {
+      "name": "UACSSResources",
+      "value": 0
+    },
+    {
+      "name": "RTCPeerConnections",
+      "value": 0
+    },
+    {
+      "name": "ResourceFetchers",
+      "value": 1
+    },
+    {
+      "name": "AdSubframes",
+      "value": 0
+    },
+    {
+      "name": "DetachedScriptStates",
+      "value": 0
+    },
+    {
+      "name": "ArrayBufferContents",
+      "value": 4466
+    },
+    {
+      "name": "LayoutCount",
+      "value": 8918
+    },
+    {
+      "name": "RecalcStyleCount",
+      "value": 10354
+    },
+    {
+      "name": "LayoutDuration",
+      "value": 3.212058
+    },
+    {
+      "name": "RecalcStyleDuration",
+      "value": 1.777801
+    },
+    {
+      "name": "DevToolsCommandDuration",
+      "value": 0.223857
+    },
+    {
+      "name": "ScriptDuration",
+      "value": 13.481776
+    },
+    {
+      "name": "V8CompileDuration",
+      "value": 0
+    },
+    {
+      "name": "TaskDuration",
+      "value": 26.270973
+    },
+    {
+      "name": "TaskOtherDuration",
+      "value": 7.575481
+    },
+    {
+      "name": "ThreadTime",
+      "value": 24.395837
+    },
+    {
+      "name": "ProcessTime",
+      "value": 1296.113638
+    },
+    {
+      "name": "JSHeapUsedSize",
+      "value": 30938792
+    },
+    {
+      "name": "JSHeapTotalSize",
+      "value": 58982400
+    },
+    {
+      "name": "FirstMeaningfulPaint",
+      "value": 130297.085916
+    },
+    {
+      "name": "DomContentLoaded",
+      "value": 130297.089853
+    },
+    {
+      "name": "NavigationStart",
+      "value": 130296.82544
+    }
+  ],
+  "screenshotCount": 28
+}

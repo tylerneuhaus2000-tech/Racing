@@ -1,0 +1,276 @@
+// !$*UTF8*$!
+{
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B10000012000000000000001 /* MehrdistanzNativeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000012000000000000011 /* MehrdistanzNativeApp.swift */; };
+		B10000012000000000000002 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000012000000000000012 /* Models.swift */; };
+		B10000012000000000000003 /* BDSMehrdistanzRuleEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000012000000000000013 /* BDSMehrdistanzRuleEngine.swift */; };
+		B10000012000000000000004 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000012000000000000014 /* AppStore.swift */; };
+		B10000012000000000000005 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000012000000000000015 /* RootView.swift */; };
+		B10000012000000000000006 /* OverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000012000000000000016 /* OverviewView.swift */; };
+		B10000012000000000000007 /* EntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000012000000000000017 /* EntryView.swift */; };
+		B10000012000000000000008 /* MembersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000012000000000000018 /* MembersView.swift */; };
+		B10000012000000000000009 /* RankingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000012000000000000019 /* RankingView.swift */; };
+		B1000001200000000000000A /* MemberDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001200000000000001A /* MemberDetailView.swift */; };
+		B1000001200000000000000B /* mehrdistanz-backup-1789481673677.json in Resources */ = {isa = PBXBuildFile; fileRef = B1000001200000000000001B /* mehrdistanz-backup-1789481673677.json */; };
+		B1000001200000000000000C /* mehrdistanz-results-1789481664282.csv in Resources */ = {isa = PBXBuildFile; fileRef = B1000001200000000000001C /* mehrdistanz-results-1789481664282.csv */; };
+		B1000001200000000000000D /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001200000000000001D /* AppTheme.swift */; };
+		B1000001200000000000000E /* RulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001200000000000001E /* RulesView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B10000012000000000000010 /* MehrdistanzNative.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MehrdistanzNative.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000012000000000000011 /* MehrdistanzNativeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MehrdistanzNativeApp.swift; sourceTree = "<group>"; };
+		B10000012000000000000012 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		B10000012000000000000013 /* BDSMehrdistanzRuleEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BDSMehrdistanzRuleEngine.swift; sourceTree = "<group>"; };
+		B10000012000000000000014 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
+		B10000012000000000000015 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		B10000012000000000000016 /* OverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewView.swift; sourceTree = "<group>"; };
+		B10000012000000000000017 /* EntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryView.swift; sourceTree = "<group>"; };
+		B10000012000000000000018 /* MembersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembersView.swift; sourceTree = "<group>"; };
+		B10000012000000000000019 /* RankingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingView.swift; sourceTree = "<group>"; };
+		B1000001200000000000001A /* MemberDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemberDetailView.swift; sourceTree = "<group>"; };
+		B1000001200000000000001B /* mehrdistanz-backup-1789481673677.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "mehrdistanz-backup-1789481673677.json"; sourceTree = "<group>"; };
+		B1000001200000000000001C /* mehrdistanz-results-1789481664282.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = "mehrdistanz-results-1789481664282.csv"; sourceTree = "<group>"; };
+		B1000001200000000000001D /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		B1000001200000000000001E /* RulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B10000012000000000000020 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		B10000012000000000000030 = {
+			isa = PBXGroup;
+			children = (
+				B10000012000000000000031 /* MehrdistanzNative */,
+				B10000012000000000000032 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B10000012000000000000031 /* MehrdistanzNative */ = {
+			isa = PBXGroup;
+			children = (
+				B10000012000000000000011 /* MehrdistanzNativeApp.swift */,
+				B10000012000000000000012 /* Models.swift */,
+				B10000012000000000000013 /* BDSMehrdistanzRuleEngine.swift */,
+				B1000001200000000000001D /* AppTheme.swift */,
+				B10000012000000000000014 /* AppStore.swift */,
+				B10000012000000000000015 /* RootView.swift */,
+				B10000012000000000000016 /* OverviewView.swift */,
+				B10000012000000000000017 /* EntryView.swift */,
+				B10000012000000000000018 /* MembersView.swift */,
+				B10000012000000000000019 /* RankingView.swift */,
+				B1000001200000000000001A /* MemberDetailView.swift */,
+				B1000001200000000000001E /* RulesView.swift */,
+				B1000001200000000000001B /* mehrdistanz-backup-1789481673677.json */,
+				B1000001200000000000001C /* mehrdistanz-results-1789481664282.csv */,
+			);
+			path = MehrdistanzNative;
+			sourceTree = "<group>";
+		};
+		B10000012000000000000032 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B10000012000000000000010 /* MehrdistanzNative.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B10000012000000000000040 /* MehrdistanzNative */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B10000012000000000000060 /* Build configuration list for PBXNativeTarget "MehrdistanzNative" */;
+			buildPhases = (
+				B10000012000000000000021 /* Sources */,
+				B10000012000000000000020 /* Frameworks */,
+				B10000012000000000000022 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MehrdistanzNative;
+			productName = MehrdistanzNative;
+			productReference = B10000012000000000000010 /* MehrdistanzNative.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B10000012000000000000050 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					B10000012000000000000040 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+				};
+			};
+			buildConfigurationList = B10000012000000000000061 /* Build configuration list for PBXProject "MehrdistanzNative" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = B10000012000000000000030;
+			productRefGroup = B10000012000000000000032 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B10000012000000000000040 /* MehrdistanzNative */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B10000012000000000000022 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1000001200000000000000B /* mehrdistanz-backup-1789481673677.json in Resources */,
+				B1000001200000000000000C /* mehrdistanz-results-1789481664282.csv in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B10000012000000000000021 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B10000012000000000000001 /* MehrdistanzNativeApp.swift in Sources */,
+				B10000012000000000000002 /* Models.swift in Sources */,
+				B10000012000000000000003 /* BDSMehrdistanzRuleEngine.swift in Sources */,
+				B10000012000000000000004 /* AppStore.swift in Sources */,
+				B10000012000000000000005 /* RootView.swift in Sources */,
+				B10000012000000000000006 /* OverviewView.swift in Sources */,
+				B10000012000000000000007 /* EntryView.swift in Sources */,
+				B10000012000000000000008 /* MembersView.swift in Sources */,
+				B10000012000000000000009 /* RankingView.swift in Sources */,
+				B1000001200000000000000A /* MemberDetailView.swift in Sources */,
+				B1000001200000000000000D /* AppTheme.swift in Sources */,
+				B1000001200000000000000E /* RulesView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		B10000012000000000000070 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		B10000012000000000000071 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		B10000012000000000000072 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Mehrdistanz;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = local.personal.MehrdistanzMac;
+				PRODUCT_NAME = Mehrdistanz;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		B10000012000000000000073 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Mehrdistanz;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = local.personal.MehrdistanzMac;
+				PRODUCT_NAME = Mehrdistanz;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B10000012000000000000060 /* Build configuration list for PBXNativeTarget "MehrdistanzNative" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B10000012000000000000072 /* Debug */,
+				B10000012000000000000073 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B10000012000000000000061 /* Build configuration list for PBXProject "MehrdistanzNative" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B10000012000000000000070 /* Debug */,
+				B10000012000000000000071 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B10000012000000000000050 /* Project object */;
+}

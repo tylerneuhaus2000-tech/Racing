@@ -1,0 +1,221 @@
+{
+  "ts": "2026-10-09T08:10:54.112Z",
+  "run": "porsche-redbull-tt-lap-01",
+  "reason": "lap-complete",
+  "lapComplete": true,
+  "actualDriveSeconds": 122.718,
+  "samples": 1134,
+  "fps": {
+    "min": 50,
+    "p50": 60,
+    "p95": 60,
+    "max": 60
+  },
+  "final": {
+    "ts": "2026-10-09T08:10:53.858Z",
+    "raceTime": 137.55000000003923,
+    "lap": 2,
+    "curLapTime": 0,
+    "lastLap": 137.55000000003923,
+    "lapValid": true,
+    "sector": 0,
+    "sectors": [
+      null,
+      null,
+      null
+    ],
+    "progress": 0,
+    "distM": 4055.4689178874796,
+    "speedKmh": 222.27246037197975,
+    "speedMps": 61.74235010332771,
+    "targetKmh": 252,
+    "gear": 5,
+    "heading": -4.421495012611294,
+    "yawRate": 2.010214727235462e-14,
+    "steer": 0,
+    "steerCmd": -0.05692445339941943,
+    "latM": 0.38119938471451953,
+    "surface": 0,
+    "curvature": 0.00010338948578484682,
+    "accLong": 1.194894184269559,
+    "latAccel": -2.9254704662928573e-12,
+    "slipFront": 1.1259683167693422e-14,
+    "slipRear": 1.0405848088665862e-14,
+    "damage": 0,
+    "wallContacts": 0,
+    "carContacts": 0,
+    "fuelKg": 69.7163244628424,
+    "tireWear": {
+      "front": 1,
+      "rear": 1,
+      "FL": 1,
+      "FR": 1,
+      "RL": 1,
+      "RR": 1
+    },
+    "fps": 60,
+    "focused": true,
+    "visibility": "visible",
+    "gameInput": {
+      "steer": 0,
+      "throttle": 1,
+      "brake": 0,
+      "keyW": true,
+      "keyS": false,
+      "keyA": false,
+      "keyD": false
+    },
+    "vehicle": "Porsche 911 GT3 R",
+    "track": "Red Bull Ring",
+    "halfWidth": 8.2,
+    "kerbWidth": 2.5,
+    "sampleIdx": 0
+  },
+  "performanceMetrics": [
+    {
+      "name": "Timestamp",
+      "value": 131041.030229
+    },
+    {
+      "name": "AudioHandlers",
+      "value": 28
+    },
+    {
+      "name": "AudioWorkletProcessors",
+      "value": 0
+    },
+    {
+      "name": "Documents",
+      "value": 1
+    },
+    {
+      "name": "Frames",
+      "value": 1
+    },
+    {
+      "name": "JSEventListeners",
+      "value": 361
+    },
+    {
+      "name": "LayoutObjects",
+      "value": 2205
+    },
+    {
+      "name": "MediaKeySessions",
+      "value": 0
+    },
+    {
+      "name": "MediaKeys",
+      "value": 0
+    },
+    {
+      "name": "Nodes",
+      "value": 9175
+    },
+    {
+      "name": "Resources",
+      "value": 41
+    },
+    {
+      "name": "ContextLifecycleStateObservers",
+      "value": 13
+    },
+    {
+      "name": "V8PerContextDatas",
+      "value": 1
+    },
+    {
+      "name": "WorkerGlobalScopes",
+      "value": 0
+    },
+    {
+      "name": "UACSSResources",
+      "value": 0
+    },
+    {
+      "name": "RTCPeerConnections",
+      "value": 0
+    },
+    {
+      "name": "ResourceFetchers",
+      "value": 1
+    },
+    {
+      "name": "AdSubframes",
+      "value": 0
+    },
+    {
+      "name": "DetachedScriptStates",
+      "value": 0
+    },
+    {
+      "name": "ArrayBufferContents",
+      "value": 1208
+    },
+    {
+      "name": "LayoutCount",
+      "value": 13106
+    },
+    {
+      "name": "RecalcStyleCount",
+      "value": 13783
+    },
+    {
+      "name": "LayoutDuration",
+      "value": 4.7159
+    },
+    {
+      "name": "RecalcStyleDuration",
+      "value": 1.987259
+    },
+    {
+      "name": "DevToolsCommandDuration",
+      "value": 0.351806
+    },
+    {
+      "name": "ScriptDuration",
+      "value": 12.02963
+    },
+    {
+      "name": "V8CompileDuration",
+      "value": 0
+    },
+    {
+      "name": "TaskDuration",
+      "value": 27.575833
+    },
+    {
+      "name": "TaskOtherDuration",
+      "value": 8.491238
+    },
+    {
+      "name": "ThreadTime",
+      "value": 26.890678
+    },
+    {
+      "name": "ProcessTime",
+      "value": 407.796691
+    },
+    {
+      "name": "JSHeapUsedSize",
+      "value": 16651592
+    },
+    {
+      "name": "JSHeapTotalSize",
+      "value": 31719424
+    },
+    {
+      "name": "FirstMeaningfulPaint",
+      "value": 130297.085916
+    },
+    {
+      "name": "DomContentLoaded",
+      "value": 130297.089853
+    },
+    {
+      "name": "NavigationStart",
+      "value": 130296.82544
+    }
+  ],
+  "screenshotCount": 37
+}

@@ -1,0 +1,210 @@
+{
+  "ts": "2026-10-09T07:25:29.003Z",
+  "run": "lap-attempt-05",
+  "reason": "lap-complete",
+  "lapComplete": true,
+  "actualDriveSeconds": 199.552,
+  "samples": 1827,
+  "fps": {
+    "min": 52,
+    "p50": 60,
+    "p95": 60,
+    "max": 62
+  },
+  "final": {
+    "ts": "2026-10-09T07:25:28.564Z",
+    "raceTime": 202.88333333331315,
+    "lap": 2,
+    "curLapTime": 0.03333333333330302,
+    "lastLap": 202.84999999997984,
+    "lapValid": true,
+    "sector": 0,
+    "sectors": [
+      null,
+      null,
+      null
+    ],
+    "progress": 0,
+    "distM": 5854.800218968585,
+    "speedKmh": 116.78449133219459,
+    "speedMps": 32.44013648116516,
+    "targetKmh": 122.17461275083743,
+    "gear": 3,
+    "heading": -3.8414985462334084,
+    "yawRate": -0.000044661494210787445,
+    "steer": 0,
+    "steerCmd": -0.03956541594156489,
+    "latM": 0.5082862799352098,
+    "surface": 0,
+    "curvature": 0.010853081698457183,
+    "accLong": -0.38696545770120644,
+    "latAccel": -0.21671282942521689,
+    "slipFront": 0.0009487562365657305,
+    "slipRear": 0.0009634659519226822,
+    "damage": 0,
+    "wallContacts": 0,
+    "carContacts": 0,
+    "fuelKg": 69.60412371785733,
+    "tireWear": {
+      "front": 1,
+      "rear": 1,
+      "FL": 1,
+      "FR": 1,
+      "RL": 1,
+      "RR": 1
+    },
+    "fps": 60,
+    "focused": true,
+    "vehicle": "Ferrari 296 GT3",
+    "track": "Silverstone Circuit",
+    "halfWidth": 10,
+    "sampleIdx": 0
+  },
+  "performanceMetrics": [
+    {
+      "name": "Timestamp",
+      "value": 128315.881969
+    },
+    {
+      "name": "AudioHandlers",
+      "value": 30
+    },
+    {
+      "name": "AudioWorkletProcessors",
+      "value": 0
+    },
+    {
+      "name": "Documents",
+      "value": 1
+    },
+    {
+      "name": "Frames",
+      "value": 1
+    },
+    {
+      "name": "JSEventListeners",
+      "value": 378
+    },
+    {
+      "name": "LayoutObjects",
+      "value": 18181
+    },
+    {
+      "name": "MediaKeySessions",
+      "value": 0
+    },
+    {
+      "name": "MediaKeys",
+      "value": 0
+    },
+    {
+      "name": "Nodes",
+      "value": 30261
+    },
+    {
+      "name": "Resources",
+      "value": 41
+    },
+    {
+      "name": "ContextLifecycleStateObservers",
+      "value": 13
+    },
+    {
+      "name": "V8PerContextDatas",
+      "value": 1
+    },
+    {
+      "name": "WorkerGlobalScopes",
+      "value": 0
+    },
+    {
+      "name": "UACSSResources",
+      "value": 0
+    },
+    {
+      "name": "RTCPeerConnections",
+      "value": 0
+    },
+    {
+      "name": "ResourceFetchers",
+      "value": 1
+    },
+    {
+      "name": "AdSubframes",
+      "value": 0
+    },
+    {
+      "name": "DetachedScriptStates",
+      "value": 0
+    },
+    {
+      "name": "ArrayBufferContents",
+      "value": 448
+    },
+    {
+      "name": "LayoutCount",
+      "value": 22395
+    },
+    {
+      "name": "RecalcStyleCount",
+      "value": 22883
+    },
+    {
+      "name": "LayoutDuration",
+      "value": 8.210911
+    },
+    {
+      "name": "RecalcStyleDuration",
+      "value": 4.294852
+    },
+    {
+      "name": "DevToolsCommandDuration",
+      "value": 0.571621
+    },
+    {
+      "name": "ScriptDuration",
+      "value": 30.288559
+    },
+    {
+      "name": "V8CompileDuration",
+      "value": 0
+    },
+    {
+      "name": "TaskDuration",
+      "value": 61.068808
+    },
+    {
+      "name": "TaskOtherDuration",
+      "value": 17.702865
+    },
+    {
+      "name": "ThreadTime",
+      "value": 53.020279
+    },
+    {
+      "name": "ProcessTime",
+      "value": 759.249081
+    },
+    {
+      "name": "JSHeapUsedSize",
+      "value": 14672204
+    },
+    {
+      "name": "JSHeapTotalSize",
+      "value": 73400320
+    },
+    {
+      "name": "FirstMeaningfulPaint",
+      "value": 126046.077148
+    },
+    {
+      "name": "DomContentLoaded",
+      "value": 126046.563411
+    },
+    {
+      "name": "NavigationStart",
+      "value": 126043.696695
+    }
+  ],
+  "screenshotCount": 62
+}
