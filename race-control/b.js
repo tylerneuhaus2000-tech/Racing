@@ -295,7 +295,7 @@ function crashStep(c,dt){const k=c.crash,idx=sidx(c.pos);
   if(!k.hit&&!k.done&&Math.abs(k.sv0)<2.5&&c.v>3){const m=Math.atan2(SIDE*dl,Math.max(0.001,ds0)),tg=m*0.85+k.rotAcc;c.spin+=wrapA(tg-c.spin)*Math.min(1,2.2*dt)*(1-Math.abs(k.sv0)/2.5);}
   c.yaw*=0.9;c.brk=true;c.latV=0;if(c.v>20){if(off)c.dustT=0.25;else c.lockT=0.2;}
   if(c.v<1){c.v=0;k.done=true;k.sv0=0;}
-  if(k.done&&!k.hit&&!k.mech&&!k.soft){k.soft=true;if(Math.random()<0.6)breakPart(c,"floor");if(Math.random()<0.5)breakPart(c,"fw"+(Math.random()<0.5?"L":"R"));}
+  if(k.done&&!k.hit&&!k.mech&&!k.soft){k.soft=true;if(Math.random()<0.15)breakPart(c,"floor");if(Math.random()<0.1)breakPart(c,"fw"+(Math.random()<0.5?"L":"R"));}
   if(k.done&&Math.abs(c.lat)<15.5&&!k.mech&&!S.cars.some(o=>o!==c&&!o.removed&&Math.abs(delta(o,c))<CAR_L+2&&Math.abs(o.lat-c.lat)<CAR_W+1.5)){c.lat+=Math.sign(c.lat||k.dir)*2.5*dt;}   // Wrack rollt noch an den Rand, Fahrbahn bleibt frei
 }
 

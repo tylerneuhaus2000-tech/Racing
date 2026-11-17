@@ -1,6 +1,6 @@
 /* Soak-Test Schadensmodell: zählt pro Rennen breakPart-/spawnDeb-Aufrufe.
    Aufruf: node tools/race-control-damage-soak.mjs [--track madrid] [--races 3] [--laps 12] [--wx rain|dry]
-   Exit-Code 1, wenn ein Rennen keine Teile verliert. */
+   Exit-Code 1, wenn auf einer Strecke über alle Rennen kein Teil abbricht oder ein Rennen gar keine Trümmer hat. */
 import vm from "node:vm";
 import { loadGame, countCalls, autopilot } from "./race-control-harness.mjs";
 
@@ -30,8 +30,9 @@ for (const cfg of configs) {
     const row = { ...cnt, recDmg, steps, ovl: G.S.ovl };
     for (const k in tot) tot[k] += row[k] || 0;
     console.log(`${cfg.track.padEnd(10)} ${cfg.wx.padEnd(5)} Rennen ${r + 1}: breakPart=${row.breakPart} spawnDeb=${row.spawnDeb} hitDamage=${row.hitDamage} wallDamage=${row.wallDamage} collide=${row.collide} kontakte=${G.S.contacts||0} puncture=${row.puncture} Schadensframes(REC)=${recDmg} steps=${steps}`);
-    if (!row.breakPart || !row.spawnDeb) fail = true;
+    if (!row.spawnDeb) fail = true;
   }
+  if (!tot.breakPart) fail = true;
   console.log(`  Σ ${cfg.track}/${cfg.wx}: breakPart=${tot.breakPart} spawnDeb=${tot.spawnDeb} (Ø ${(tot.breakPart / races).toFixed(1)} / ${(tot.spawnDeb / races).toFixed(1)} pro Rennen)\n`);
 }
 if (fail) { console.error("FEHLER: mindestens ein Rennen ohne abgebrochene Teile/Trümmer"); process.exit(1); }

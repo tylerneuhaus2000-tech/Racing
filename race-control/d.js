@@ -83,44 +83,7 @@ function radioAmbient(dt){S.radT=(S.radT||0)+dt;if(S.radT<1)return;S.radT=0;radi
   if(S.type!=="race"){const b=run.filter(c=>c.mode==="push"&&c.blockT>0.7);if(b.length&&Math.random()<0.5)radio(pick(b),pick(["Verkehr! Verkehr!","Der steht mir mitten im Weg!"]));
     const o=run.filter(c=>c.mode==="out");if(o.length&&Math.random()<0.05)radio(pick(o),pick(["Bereite die Reifen vor. Freie Strecke hinter dir.","Push-Runde jetzt. Alles was geht."]),true);}
 }
-function radioChatter(){
-  if(Math.random()>0.2)return;
-  const live=S.cars.filter(c=>!c.removed&&!c.crash&&!c.pit&&c.mode!=="garage"&&c.mode!=="grid"&&!c.finished);if(!live.length)return;
-  const c=pick(live),P=a=>pick(a),co=cnm(pick(CORNERS)),sec=irand(1,3),ft=x=>x.toFixed(1).replace(".",",");
-  if(S.type==="race"&&S.phase==="racing"){
-    const ord=S.cars.filter(x=>!x.removed&&!x.retired&&!x.finished).sort((a,b)=>b.s-a.s),i=ord.indexOf(c),pos=i+1,up=ord[i-1],dn=ord[i+1],spd=L/LAPT;
-    const gu=up?(up.s-c.s)/spd:0,gd=dn?(c.s-dn.s)/spd:0,lapsLeft=S.laps-Math.floor(c.s/L)-1,m=S.flag.mode,age=Math.round(c.wear*(S.laps*0.6));
-    if(m==="sc"||m==="vsc"){radio(c,P(["Reifen warm halten, Bremsen warm halten.","Delta positiv. Abstand zum Vordermann nicht zu groß werden lassen.",`Wir bleiben draußen. ${lapsLeft} Runden noch nach dem Restart.`,"Achte beim Restart auf den Führenden, kein Überholen vor der Linie."]),true);
-      if(Math.random()<0.4)radio(c,P(["Wie lange bleibt das Safety Car noch draußen?","Die Reifen sind eiskalt. Das wird ein heikler Restart.","Was ist da vorne passiert?"]));return;}
-    const r=Math.random();
-    if(r<0.14&&up&&dn)radio(c,`P${pos}. ${up.drv.code} ${ft(gu)} Sekunden vor dir, ${dn.drv.code} ${ft(gd)} dahinter.`,true);
-    else if(r<0.24)radio(c,c.wear<0.3?P(["Die Reifen fühlen sich gut an. Ich kann noch pushen.","Balance ist okay, Grip ist da."]):c.wear<0.7?P(["Die Hinterreifen bauen langsam ab.","Ich bekomme Graining vorne links.","Traktion aus den langsamen Kurven wird schlechter."]):P(["Vorne links ist am Ende. Ich rutsche nur noch.","Diese Reifen sind durch. Wann kommen wir rein?","Ich habe hinten keinen Grip mehr."]));
-    else if(r<0.32)radio(c,P([`Untersteuern in ${co}. Könnt ihr mir beim Frontflügel helfen?`,"Das Heck ist nervös am Kurveneingang.",`Das Auto springt über den Kerb in ${co}.`,"Bremsbalance einen Klick nach hinten.","Das Auto fühlt sich gut an. Weiter so.","Ich habe Vibrationen von vorne rechts."]));
-    else if(r<0.42&&c.blockT>1.2&&c.blockBy&&c.blockBy.drv)radio(c,P([`Ich hänge hinter ${c.blockBy.drv.code} fest. In der verwirbelten Luft geht nichts.`,`${c.blockBy.drv.code} ist auf den Geraden zu schnell. Ich komme nicht ran.`,`Ich bin viel schneller als ${c.blockBy.drv.code}. Können wir etwas über die Strategie machen?`]));
-    else if(r<0.52){const pl=c.plan[0],lapNo=Math.floor(c.s/L)+1;
-      radio(c,pl&&pl.lap-lapNo>0&&pl.lap-lapNo<=3?P([`Boxenfenster öffnet in ${pl.lap-lapNo} Runde${pl.lap-lapNo>1?"n":""}. Plan A.`,`Noch ${pl.lap-lapNo} Runde${pl.lap-lapNo>1?"n":""} bis zum Stopp. Reifen schonen.`,`Wir verlängern den Stint, wenn die Zeiten halten. Ziel: Runde ${pl.lap}.`])
-        :c.stops>0?P([`Wir fahren durch bis zum Ende. ${lapsLeft} Runden noch.`,`Reifen sind ${age} Runden alt. Das reicht bis ins Ziel.`,"Plan A läuft. Kopf runter."])
-        :P(["Wir sind auf Plan A.","Wir schauen uns Plan B an. Sag uns, wie die Reifen sind.",`Ziel-Rundenzeit halten. ${lapsLeft} Runden noch.`]),true);}
-    else if(r<0.6)radio(c,P([`Energie managen in Sektor ${sec}.`,`Lift and Coast vor ${co}.`,"Batterie ist voll. Overtake verfügbar, wenn du in der Sekunde bist.","Bremstemperaturen vorne hoch. Etwas früher vom Gas.","Motor-Modus 6. Wir brauchen die Kühlung."]),true);
-    else if(r<0.68&&pos===1&&dn)radio(c,gd>3?P([`Vorsprung ${ft(gd)} Sekunden. Alles unter Kontrolle.`,`Du bist drei Zehntel schneller als ${dn.drv.code}. Reifen einteilen.`]):P([`${dn.drv.code} ist auf ${ft(gd)} dran. Keine Fehler jetzt.`,`Abstand ${ft(gd)}. Er hat Overtake, verteidige innen.`]),true);
-    else if(r<0.76&&dn&&gd<1.2)radio(c,P([`${dn.drv.code} dahinter in der Sekunde. Er bekommt Overtake.`,`Auto hinter dir: ${dn.drv.code}, frischere Reifen.`,`Verteidige gegen ${dn.drv.code}, aber verliere keine Zeit.`]),true);
-    else if(r<0.82&&S.wx.eta<150&&S.wx.rain<0.03)radio(c,P([`Regen in etwa ${Math.round(S.wx.eta/10)*10} Sekunden erwartet. Sag uns, wie die Strecke ist.`,"Radar zeigt eine Zelle im Anflug. Wir halten die Inters bereit.","Es kommt Regen. Bleib erst mal draußen."]),true);
-    else if(r<0.88&&lapsLeft<=2&&lapsLeft>=0)radio(c,lapsLeft===0?P(["Letzte Runde. Bring es heim.",`Letzte Runde, P${pos}. Keine Risiken.`]):P(["Zwei Runden noch. Alles geben.",`Noch ${lapsLeft+1} Runden. ${up?up.drv.code+" ist "+ft(gu)+" vor dir.":"Kopf runter."}`]),true);
-    else if(r<0.93&&c.strikes>0)radio(c,`Achte auf die Track Limits in ${co}. Du hast ${c.strikes} Verwarnung${c.strikes>1?"en":""}.`,true);
-    else if(r<0.97){radio(c,P(["Wie ist der Abstand nach hinten?","Wer ist das Auto vor mir?","Auf welcher Position bin ich?"]));
-      radio(c,up?`P${pos}. Vor dir ${up.drv.code}, ${ft(gu)} Sekunden.`:`P${pos}. Freie Fahrt vor dir.`,true,true);}
-    else radio(c,P(["Trinken nicht vergessen.","Gute Runde. Genau so weiter.",`Sektor ${sec} war persönliche Bestzeit.`,"Kopf runter, das Rennen ist noch lang."]),true);
-  }else if(S.type!=="race"&&S.started&&!S.chequered){
-    const ord=timedOrder(),pos=ord.indexOf(c)+1,b=bestLap(c),b0=bestLap(ord[0]),gap=b&&b0?(b-b0)*TSCALE:0,r=Math.random(),q=S.type==="q";
-    if(r<0.2&&b)radio(c,pos===1?P(["P1 im Moment. Die anderen kommen noch.","Du bist vorne. Reifen sparen, wenn es reicht."]):`P${pos}, ${gap.toFixed(3).replace(".",",")} auf ${ord[0].drv.code}.`,true);
-    else if(r<0.35&&q&&S.cut<99&&b)radio(c,pos>S.cut?P([`P${pos}, du bist draußen. Wir brauchen noch eine Runde.`,`Im Moment nicht weiter. Es fehlen ${((b-bestLap(ord[S.cut-1]))*TSCALE).toFixed(3).replace(".",",")}.`]):pos>S.cut-3?P([`P${pos}, du bist auf der Kippe.`,"Das wird eng. Wir gehen noch mal raus."]):P(["Das sollte reichen. Wir bleiben in der Garage.","Wir sind durch. Reifensatz gespart."]),true);
-    else if(r<0.5)radio(c,P([`Zeit verloren in ${co}. Da liegt noch was.`,`Sektor ${sec} war gut. Die Strecke wird schneller.`,"Die Strecke entwickelt sich. Die letzte Runde zählt.",`Achte auf den Wind in ${co}.`,"Reifentemperatur vorne noch zu niedrig. Eine Aufwärmrunde mehr."]),true);
-    else if(r<0.65)radio(c,P([`Ich hatte Untersteuern in ${co}.`,"Das Heck war im letzten Sektor unruhig.","Die Reifen waren am Ende der Runde vorbei.","Das war eine saubere Runde. Mehr geht nicht.","Ich habe am Kerb etwas Zeit liegen lassen.",`Kleiner Verbremser in ${co}.`]));
-    else if(r<0.78)radio(c,P(["Box diese Runde. Wir wechseln auf frische Softs.","Abkühlrunde, dann noch ein Versuch.","Lass die Autos auf schneller Runde vorbei, nicht auf der Linie bleiben.",`Verkehr voraus in ${co}. Lücke lassen.`,"Wir gehen mit dem Feld raus. Platz suchen."]),true);
-    else if(r<0.88&&S.clock<LAPT*2.5)radio(c,P(["Letzter Versuch. Du schaffst es noch über die Linie.","Die Uhr läuft ab. Diese Runde muss sitzen.","Zielflagge kommt gleich. Runde zu Ende fahren."]),true);
-    else if(S.wx.eta<120&&S.wx.rain<0.03)radio(c,P(["Regen ist im Anflug. Jetzt die Zeit setzen.","Radar zeigt Regen in zwei Minuten. Wir gehen sofort raus."]),true);
-    else radio(c,P(["Wie ist die Balance?","Alles in Ordnung mit dem Auto?",`Wir haben den Frontflügel um einen Klick angepasst.`]),true);
-  }}
+function radioChatter(){if(typeof rChatter==="function")rChatter();}   /* Funk-Plauderei kommt aus der zentralen Funk-Datenbank (r.js) */
 /* ---- Zeit-Sessions (FP / Quali) ---- */
 function timedOrder(){return S.cars.slice().sort((a,b)=>{const x=bestLap(a),y=bestLap(b);
   if(a.dsq!==b.dsq)return a.dsq?1:-1; if(x==null&&y==null)return a.i-b.i; if(x==null)return 1; if(y==null)return -1; return x-y;});}
@@ -307,7 +270,7 @@ function raceStep(dt){t1Step();paceStep(dt);
 function raceLine(c){
   if(S.phase!=="racing"||c.finished)return;
   const lap=Math.floor(c.s/L);c.noise=rand(-0.006,0.006);
-  if(c.lapStart!=null)c.lastLapT=S.raceT-c.lapStart;c.lapStart=S.raceT;c.lineLap=lap;c.lineT=S.raceT;c.tyreLaps=(c.tyreLaps||0)+1;
+  if(c.lapStart!=null){c.lastLapT=S.raceT-c.lapStart;if(c.bestLapR==null||c.lastLapT<c.bestLapR)c.bestLapR=c.lastLapT;}c.lapStart=S.raceT;c.lineLap=lap;c.lineT=S.raceT;c.tyreLaps=(c.tyreLaps||0)+1;
   if(S.restart&&c===S.leader){S.restart=false;S.flag.mode="green";addLog("GREEN FLAG – RESTART","good");radio(c,"Grün, Grün, Grün! Volle Attacke.",true,true);}
   if(S.chequered||lap>=S.laps){
     if(!S.chequered){S.chequered=true;S.cheqT=S.t;addLog(`CHEQUERED FLAG – ${c.drv.code} überquert als Erster die Linie`,"flag");uiSession();radio(c,"Jaaa! Was für ein Rennen! Danke, Jungs!",false,true);}

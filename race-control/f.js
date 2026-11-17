@@ -9,8 +9,12 @@ function focusCar(c){if(!c)return;UI.sel=c.i;UI.feedAuto=false;$("feedAuto").cla
 function carInText(t){if(!S)return null;let best=null,bi=1e9;for(const c of S.cars){const k=t.indexOf(c.drv.code);if(k>=0&&k<bi&&/[^A-Za-zÄÖÜäöü]/.test((t[k-1]||" ")+(t[k+3]||" "))){bi=k;best=c;}}return best;}
 $("log").addEventListener("click",e=>{const m=e.target.closest(".msg");if(m&&S)focusCar(carInText(m.textContent));});
 $("radio").addEventListener("click",e=>{const m=e.target.closest(".msg");if(m&&S)focusCar(carInText(m.textContent));});
-function radio(c,t,eng,force){const now=S?S.t:0;t=spiceRadio(c,t,eng);if(t==null)return;
-  if(!force&&UI.radios.slice(0,12).some(m=>m.t.slice(0,15)===t.slice(0,15)))return;   // keine Wiederholungen kurz hintereinanderif(!force&&UI.lastRadio!=null&&now-UI.lastRadio<2.5&&now>=UI.lastRadio)return;UI.lastRadio=now;
+function radio(c,t,eng,force){const now=S?S.t:0;if(!c||!c.drv)return;
+  /* keine Wiederholungen kurz hintereinander, Mindestpause zwischen Funksprüchen, kein Widerspruch zu kurz davor Gesagtem */
+  if(!force&&UI.radios.slice(0,12).some(m=>m.t.slice(0,15)===t.slice(0,15)))return;
+  if(!force&&UI.lastRadio!=null&&now-UI.lastRadio<2.5&&now>=UI.lastRadio)return;
+  if(typeof radioConflicts==="function"&&radioConflicts(c,t,force))return;
+  t=spiceRadio(c,t,eng);if(t==null)return;UI.lastRadio=now;if(typeof radioRemember==="function")radioRemember(c,t);
   sndEvent("radio");UI.radios.unshift({c:c.drv,t,eng:!!eng});if(UI.radios.length>40)UI.radios.pop();
   $("radio").innerHTML=UI.radios.map(m=>`<div class="msg">${m.eng?'<small>BOX →</small>':''}<b style="color:${m.c.color}">${m.c.code}</b>${m.eng?"":' <small>📻</small>'} ${esc(m.t)}</div>`).join("");}
 function setAlert(cls,t){const a=$("alert");a.className="alert "+cls;a.textContent=t;}

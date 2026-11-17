@@ -25,14 +25,14 @@ function dmgEffects(c){const m=c.dp||0,b=k=>m&DP[k]?1:0;
   if((b("fwL")+b("fwR")+b("nose"))&&!c.wantPit&&Math.random()<0.7)c.wantPit=true;}
 function dmgClear(c){const lost=c.dp||0;c.dp=0;c.dmul=1;c.limp=0;return lost;}
 /* Treffer zwischen zwei Autos: Ort ergibt sich aus der Geometrie */
-function hitDamage(c,o,sev,pt){if(!c||c.removed)return;const B=carBox(o),L=pt?localOf(c,pt.x,pt.y):localOf(c,B.x,B.y),side=L.ly>=0?"R":"L";const out=[];
+function hitDamage(c,o,sev,pt){if(!c||c.removed)return;sev*=DMG_SCALE;const B=carBox(o),L=pt?localOf(c,pt.x,pt.y):localOf(c,B.x,B.y),side=L.ly>=0?"R":"L";const out=[];
   if(Math.abs(L.lx)>Math.abs(L.ly)*1.4){
     if(L.lx>0){if(sev>0.28)out.push("fw"+side);if(sev>0.55&&Math.random()<0.6)out.push("fw"+(side==="L"?"R":"L"));if(sev>0.6&&Math.random()<0.45)out.push("nose");if(sev>0.85&&Math.random()<0.35)out.push((Math.random()<0.6?"sF":"wF")+side);}
     else{if(sev>0.35&&Math.random()<sev)out.push("rw");if(Math.random()<sev*0.35)out.push("floor");if(sev>0.75&&Math.random()<0.3)out.push((Math.random()<0.6?"sR":"wR")+side);}}
   else{const ax=L.lx>0?"F":"R";if(Math.random()<sev*0.55)out.push((Math.random()<0.7?"s":"w")+ax+side);if(Math.random()<0.45*sev+0.05)out.push("sp"+side);if(ax==="F"&&Math.random()<0.35)out.push("fw"+side);}
   for(const k of out)breakPart(c,k);return out;}
 /* ---- Kontakt aus der Überlappungsauflösung (deoverlap): Schließgeschwindigkeit entlang der Trennachse entscheidet ---- */
-const CONTACT_MIN=4,CONTACT_DMG=28;
+const CONTACT_MIN=4,CONTACT_DMG=40,DMG_SCALE=0.4;   // DMG_SCALE: allgemeine Haltbarkeit (kleiner = robuster)
 function carVel(c){const q=posXY(c.s,c.lat),ca=Math.cos(q.ang),sa=Math.sin(q.ang),lv=(c.latV||0)*SIDE;return {x:c.v*ca-lv*sa,y:c.v*sa+lv*ca};}
 function boxVerts(c){const b=carBox(c),out=[];for(const[sx,sy]of[[1,1],[1,-1],[-1,1],[-1,-1]]){const lx=sx*BOX_HX,ly=sy*BOX_HY;out.push([b.x+lx*b.c-ly*b.s,b.y+lx*b.s+ly*b.c]);}return out;}
 /* Kontaktpunkt: Mittel der am tiefsten eindringenden Ecken beider Autos (n zeigt von A nach B) */
@@ -48,7 +48,7 @@ function contactHit(A,B,n){if(A.mode==="grid"||B.mode==="grid"||A.mode==="garage
   A.sparks=Math.max(A.sparks||0,0.35);B.sparks=Math.max(B.sparks||0,0.35);
   if(vrel>12){const d=delta(A,B),rear=d>0?A:B,front=d>0?B:A;   // Aufprall bremst den Auffahrenden immer, auch ohne Schaden
     if(!rear.crash&&!rear.script){rear.v=Math.min(rear.v,front.v*0.9);rear.lockT=Math.max(rear.lockT||0,0.3);rear.wob=rear.wob||{t:0,T:0.7,amp:0.08*(Math.random()<0.5?1:-1)};rear.otCool=Math.max(rear.otCool||0,1.5);}}
-  if(vrel>=CONTACT_DMG&&Math.random()<clamp((vrel-CONTACT_DMG)/160+0.04,0,0.18)){const fa=Math.random()<0.5;hitDamage(fa?A:B,fa?B:A,sev,pt);hitDamage(fa?B:A,fa?A:B,sev*0.6,pt);if(vrel>18){A.wob=A.wob||{t:0,T:0.8,amp:0.12*(Math.random()<0.5?1:-1)};B.wob=B.wob||{t:0,T:0.8,amp:0.12*(Math.random()<0.5?1:-1)};}}
+  if(vrel>=CONTACT_DMG&&Math.random()<clamp((vrel-CONTACT_DMG)/300+0.02,0,0.08)){const fa=Math.random()<0.5;hitDamage(fa?A:B,fa?B:A,sev,pt);hitDamage(fa?B:A,fa?A:B,sev*0.6,pt);if(vrel>18){A.wob=A.wob||{t:0,T:0.8,amp:0.12*(Math.random()<0.5?1:-1)};B.wob=B.wob||{t:0,T:0.8,amp:0.12*(Math.random()<0.5?1:-1)};}}
   else if(Math.random()<0.4)spawnDeb(pt.x,pt.y,(va.x+vb.x)*0.4+rand(-6,6),(va.y+vb.y)*0.4+rand(-6,6),"cf",Math.random()<0.5?A:B);
   return vrel;}
 /* Reifenschaden: Rad w (0 VL, 1 VR, 2 HL, 3 HR), Gummifetzen fliegen weg */
@@ -72,7 +72,7 @@ function blowout(c){const w=irand(0,3),ax=w<2?"F":"R",sd=w%2?"R":"L",sy=w%2?1:-1
 function dbgBreak(c){if(!c||c.removed)return null;const free=Object.keys(DP).filter(k=>k!=="tyre"&&!((c.dp||0)&DP[k]));if(!c.punct)free.push("tyre");if(!free.length)return null;
   const k=pick(free);if(k==="tyre")puncture(c,null,true);else breakPart(c,k);addLog(`[DEV] ${c.drv.code}: ${DP_TXT[k]}`,"flag");return k;}
 /* Mauereinschlag: Seite zur Mauer bekommt es ab */
-function wallDamage(c,sev,latDir){const side=latDir*SIDE>0?"R":"L",out=[];
+function wallDamage(c,sev,latDir){const side=latDir*SIDE>0?"R":"L",out=[];sev*=0.6;if(Math.random()>0.35+0.6*sev)return out;
   if(Math.random()<0.6)out.push("fw"+side);if(sev>0.4&&Math.random()<0.5)out.push("sF"+side);if(sev>0.55&&Math.random()<0.35)out.push("wF"+side);
   if(sev>0.5&&Math.random()<0.4)out.push(pick(["sR","wR"])+side);if(Math.random()<0.4)out.push("sp"+side);if(sev>0.7&&Math.random()<0.4)out.push("rw");
   for(const k of out)breakPart(c,k);return out;}
