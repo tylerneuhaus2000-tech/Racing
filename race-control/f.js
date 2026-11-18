@@ -203,7 +203,9 @@ function reviewHtml(){const r=W.review||[];if(!r.length)return "";const bad=r.fi
     ${bad.length?bad.sort((a,b)=>a.pts-b.pts).slice(0,10).map(x=>`<div><b class="r">✘ ${esc(x.title)}</b> (${x.pts>0?"+":""}${x.pts}) · ${x.sess}<br><span class="hint">${esc(x.explain)}</span></div>`).join(""):`<div class="hint">Keine Fehlentscheidung – stark.</div>`}</div>`;}
 function standingsHtml(k){
   const dr=standingsRows(k);
-  const tm={};if(k.tpoints)TEAM_KEYS.forEach(t=>tm[t]=k.tpoints[t]||0);else dr.forEach(x=>{tm[x.d.team]=(tm[x.d.team]||0)+x.p;});const ts=Object.keys(tm).sort((a,b)=>tm[b]-tm[a]);
+  const tm=typeof rebuildConstructorPoints==="function"?rebuildConstructorPoints(k):Object.fromEntries(TEAM_KEYS.map(t=>[t,0]));
+  if(typeof rebuildConstructorPoints!=="function")dr.forEach(x=>{tm[x.d.team]=(tm[x.d.team]||0)+x.p;});
+  const ts=Object.keys(tm).sort((a,b)=>tm[b]-tm[a]);
   return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div><h4>Fahrer-WM</h4><table class="res"><tr><th></th><th>Fahrer</th><th>Pkt.</th><th title="Strafpunkte – ab 12 ein Rennen Sperre">SP</th></tr>${dr.map((x,i)=>`<tr><td>${i+1}</td><td><span style="color:${x.d.color}">■</span> ${esc(x.d.name)}</td><td><b>${x.p}</b></td><td>${(k.lic&&k.lic[x.d.code])||""}</td></tr>`).join("")}</table></div>
     <div><h4>Konstrukteurs-WM</h4><table class="res">${ts.map((t,i)=>`<tr><td>${i+1}</td><td><span style="color:${TEAMS[t].color}">■</span> ${TEAMS[t].name}</td><td><b>${tm[t]}</b></td></tr>`).join("")}</table>
     <h4>Bisherige Rennen</h4><div class="hint">${(Array.isArray(k.history)?k.history:[]).map((r,i)=>`${i+1}. ${esc(TRACKS[r.track]?TRACKS[r.track].name:r.track)}: ${esc((r.top||[]).join(" · "))}`).join("<br>")||"Noch keine Rennresultate."}</div></div></div>`;}

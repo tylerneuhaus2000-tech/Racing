@@ -145,7 +145,7 @@ function mgmtBeforeRound(k,go){initMgmt(k);k.temp={};k.banNow=[];
 function radioNote(t){try{addLog(t,"flag");}catch(e){}}
 
 /* ---- Saisonende: Preisgeld, Upgrades, Fahrermarkt ---- */
-function teamOrder(k){return TEAM_KEYS.slice().sort((a,b)=>(k.tpoints[b]||0)-(k.tpoints[a]||0));}
+function teamOrder(k){rebuildConstructorPoints(k);return TEAM_KEYS.slice().sort((a,b)=>(k.tpoints[b]||0)-(k.tpoints[a]||0));}
 function offseason(k,done){initMgmt(k);const ord=teamOrder(k),rows=[];
   const eff={MER:1.1,FER:1.05,MCL:1.1,RBR:1.05,AMR:1.0,AUD:1.05,CAD:0.95,ALP:0.95,WIL:1.0,HAA:0.9,RCB:0.95};
   ord.forEach((t,i)=>{const money=PRIZE[i]+30,old=k.pace[t];k.money[t]=money;
@@ -255,6 +255,15 @@ function marketRun(k,iv,dec,fin){const log=[],moves=[],m=$("modal");let pts=0,ok
   $("mkFin").onclick=fin;}
 /* Gespeicherte Entwicklung der Nachwuchsfahrer wiederherstellen */
 function restoreDB(k){if(k&&k.dbx)for(const c in k.dbx)if(DB[c])Object.assign(DB[c],k.dbx[c]);}
+function rebuildConstructorPoints(k){
+  if(!k)return {};
+  const totals=Object.fromEntries(TEAM_KEYS.map(t=>[t,0]));
+  const rosterTeam={};
+  if(k.roster)TEAM_KEYS.forEach(t=>(k.roster[t]||[]).forEach(code=>{if(code)rosterTeam[k.temp&&k.temp[code]||code]=t;}));
+  DRIVERS.forEach(d=>{const t=rosterTeam[d.code]||d.team;if(totals[t]!=null)totals[t]+=Number(k.points&&k.points[d.code])||0;});
+  k.tpoints=totals;
+  return totals;
+}
 function standingsRows(k){const codes=new Set(Object.keys(k.points));DRIVERS.forEach(d=>codes.add(d.code));
   return [...codes].map(c=>{const cur=DRIVERS.find(d=>d.code===c),t=cur?cur.team:(k.roster&&seatOf(k,c))||(DB[c]&&DB[c].home)||"MER";
     return {d:{code:c,name:drvName(c),color:TEAMS[t].color,team:t},p:k.points[c]||0};}).sort((a,b)=>b.p-a.p);}
