@@ -18,7 +18,7 @@ function newWeekend(opts,career){mkWeekend(opts,career);nextSession();}
 const PTS_TAB=[25,18,15,12,10,8,6,4,2,1];
 function awardPoints(){const k=W.career;if(!k)return;k.score=W.score;k.dec={ok:W.dec.ok,total:W.dec.total};
   const cl=W.results;const frac=!S.aborted?1:(S.leader?S.leader.s/L:0)/S.laps,fac=frac>=0.75||!S.aborted?1:frac>=0.25?0.5:(S.leader&&S.leader.s/L>=2?0.25:0);W.ptsFac=fac;
-  if(typeof recordChampionshipPoints==="function")recordChampionshipPoints(k,cl,PTS_TAB.map(p=>p*fac),"race");
+  if(typeof recordChampionshipPoints==="function")recordChampionshipPoints(k,cl,(typeof championshipPointsTable==="function"?championshipPointsTable(k,"race"):PTS_TAB).map(p=>p*fac),"race");
   mgmtRaceDone(cl,k);collectReviews(k);k.history.push({track:TRACK.key,top:cl.slice(0,3).map(c=>c.drv.code)});k.round++;}
 function nextSession(){W.idx++;startSession(W.defs[W.idx]);}
 function startSession(d){
@@ -514,7 +514,7 @@ function classification(){
   return fin.concat(out,S.cars.filter(c=>c.dsq));}
 const SPR_TAB=[8,7,6,5,4,3,2,1];
 function finishRace(){W.results=classification();
-  if(S.sprint){const k=W.career;if(k){if(typeof recordChampionshipPoints==="function")recordChampionshipPoints(k,W.results,SPR_TAB,"sprint");k.score=W.score;k.dec={ok:W.dec.ok,total:W.dec.total};}
+  if(S.sprint){const k=W.career;if(k){if(typeof recordChampionshipPoints==="function")recordChampionshipPoints(k,W.results,typeof championshipPointsTable==="function"?championshipPointsTable(k,"sprint"):SPR_TAB,"sprint");k.score=W.score;k.dec={ok:W.dec.ok,total:W.dec.total};}
     uiSprintResults();return;}
   scrutiny(()=>{awardPoints();uiResults();});}
 function hearingInfo(inc){const A=inc.cars[0],B=inc.cars[1],a=A.drv.code,b=B?B.drv.code:"";let s=[],tel="";

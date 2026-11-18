@@ -29,6 +29,7 @@ function cornerErr(c,co,ci){if(c.errCo===ci)return false;c.errCo=ci;drvState(c);
   if(c.dmg)p*=1.8;if(c.fightT>0||c.atk)p*=2.4;if(c.mode==="push")p*=1.4; // Schaden, Zweikampf, Quali-Runde
   if(race&&S.laps-Math.floor(c.s/L)<=5)p*=1.3;                           // Druck am Ende
   if(co.kmax>0.02)p*=1.4;if(co.ro==="wall")p*=0.8;                       // enge Kurve; an der Mauer fährt man vorsichtiger
+  const safetyEffect=W&&W.career&&W.career.preseasonEffects&&Number(W.career.preseasonEffects.errorRateMultiplier);if(Number.isFinite(safetyEffect)&&safetyEffect>0)p*=safetyEffect;
   if(S.flag.mode!=="green")p*=0.1;
   if(Math.random()>p)return false;
   const sev=Math.min(1,heavy()*(co.ro==="wall"?1.15:1)*(1+wl*0.4)*(tc==="dry"?1+wl*1.3:1)),out=-co.dir;(S.errs=S.errs||[]).push(sev);

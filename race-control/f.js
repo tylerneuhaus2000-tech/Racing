@@ -211,9 +211,10 @@ function standingsHtml(k){
     <div><h4>Konstrukteurs-WM</h4><table class="res">${ts.map((t,i)=>`<tr><td>${i+1}</td><td><span style="color:${TEAMS[t].color}">■</span> ${TEAMS[t].name}</td><td><b>${tm[t]}</b></td></tr>`).join("")}</table>
     ${historyNote}<h4>Bisherige Rennen</h4><div class="hint">${(Array.isArray(k.history)?k.history:[]).map((r,i)=>`${i+1}. ${esc(TRACKS[r.track]?TRACKS[r.track].name:r.track)}: ${esc((r.top||[]).join(" · "))}`).join("<br>")||"Noch keine Rennresultate."}</div></div></div>`;}
 function uiResults(){const cl=W.results,win=cl[0],acc=W.dec.total?Math.round(100*W.dec.ok/W.dec.total):0,wt=win.finT+win.penSec,k=W.career,season=k&&k.type==="season";
+  const pointsTable=season&&typeof championshipPointsTable==="function"?championshipPointsTable(k,"race"):PTS_TAB;
   let title="Zurück auf die Kartbahn 🛞";if(acc>=90&&W.score>0)title="FIA-Rennleiter-Niveau 🏆";else if(acc>=75)title="Solider Steward 👍";else if(acc>=55)title="Praktikant in der Race Control 📋";
   const rows=cl.map((c,i)=>{let g=c.dsq?"DSQ":"DNF";if(c.finished&&!c.dsq)g=i===0?"Sieger":c.finLaps<win.finLaps?`+${win.finLaps-c.finLaps} Rd.`:"+"+(c.finT+c.penSec-wt).toFixed(1)+"s";
-    return `<tr><td>${c.finished&&!c.dsq?i+1:"–"}</td><td><span style="color:${c.drv.color}">■</span> ${esc(c.drv.name)}</td><td>${TEAMS[c.drv.team].name}</td><td>${g}</td><td>${c.stops}</td><td>${c.penTot?"+"+c.penTot+"s":""}</td><td>${c.finished&&!c.dsq&&i<10?PTS_TAB[i]*(W.ptsFac==null?1:W.ptsFac):""}</td></tr>`;}).join("");
+    return `<tr><td>${c.finished&&!c.dsq?i+1:"–"}</td><td><span style="color:${c.drv.color}">■</span> ${esc(c.drv.name)}</td><td>${TEAMS[c.drv.team].name}</td><td>${g}</td><td>${c.stops}</td><td>${c.penTot?"+"+c.penTot+"s":""}</td><td>${c.finished&&!c.dsq&&i<pointsTable.length?pointsTable[i]*(W.ptsFac==null?1:W.ptsFac):""}</td></tr>`;}).join("");
   if(k&&k.lateRev&&k.lateRev.length){W.review=(W.review||[]).concat(k.lateRev);k.lateRev=[];}
   const rt=rdRating();if(k&&k.roster&&k.rdRound!==k.round){k.rdRound=k.round;k.rd=k.rd||[];k.rd.push(rt.total);k.rep=clamp((k.rep==null?60:k.rep)+(rt.total-70)/12,0,100);}
   const fired=season&&k.rep!=null&&k.rep<25;
@@ -240,8 +241,9 @@ function uiHearing(){const list=S.incidents.filter(i=>i.status==="deferred"),don
   $("overlay").classList.add("show");
   m.querySelectorAll("[data-h]").forEach(b=>b.onclick=()=>{const inc=S.incidents.find(x=>x.id===+b.dataset.h);inc.heard=true;openReplay(inc,true);});}
 function uiSprintResults(){const cl=W.results,win=cl[0],wt=win.finT+win.penSec;
+  const pointsTable=W.career&&typeof championshipPointsTable==="function"?championshipPointsTable(W.career,"sprint"):SPR_TAB;
   const rows=cl.map((c,i)=>{let g=c.dsq?"DSQ":"DNF";if(c.finished&&!c.dsq)g=i===0?"Sieger":c.finLaps<win.finLaps?`+${win.finLaps-c.finLaps} Rd.`:"+"+(c.finT+c.penSec-wt).toFixed(1)+"s";
-    return `<tr><td>${c.finished&&!c.dsq?i+1:"–"}</td><td><span style="color:${c.drv.color}">■</span> ${esc(c.drv.name)}</td><td>${TEAMS[c.drv.team].name}</td><td>${g}</td><td>${c.penTot?"+"+c.penTot+"s":""}</td><td>${c.finished&&!c.dsq&&i<8?SPR_TAB[i]:""}</td></tr>`;}).join("");
+    return `<tr><td>${c.finished&&!c.dsq?i+1:"–"}</td><td><span style="color:${c.drv.color}">■</span> ${esc(c.drv.name)}</td><td>${TEAMS[c.drv.team].name}</td><td>${g}</td><td>${c.penTot?"+"+c.penTot+"s":""}</td><td>${c.finished&&!c.dsq&&i<pointsTable.length?pointsTable[i]:""}</td></tr>`;}).join("");
   const m=$("modal");m.className="modal";
   m.innerHTML=`<h2>${esc(TRACK.name)} – Sprint beendet</h2><table class="res"><tr><th>P</th><th>Fahrer</th><th>Team</th><th>Abstand</th><th>Strafen</th><th>Pkt.</th></tr>${rows}</table>
     <button class="big go" id="spNext">Weiter zum Qualifying</button>`;
@@ -263,6 +265,7 @@ function saveRoundPending(){const k=W.career;const data=JSON.parse(JSON.stringif
   writeSave("auto",data,`Saison · vor Lauf ${k.round+1}/${k.cal.length} · ${TRACKS[k.cal[k.round]].name}`);}
 function loadGame(data){const byCode=a=>a.map(c=>DRIVERS.find(d=>d.code===c)).filter(Boolean);
   UI.logs=[];UI.radios=[];$("radio").innerHTML="";$("log").innerHTML="";$("overlay").classList.remove("show");
+  if(data.seasonTransition){CAREER=data.career;OPTS=data.opts;FB_LIVE=!!(OPTS&&OPTS.fb);restoreDB(CAREER);applyRoster(CAREER);if(CAREER.preseasonTest)CAREER.preseasonTest.running=false;openSeasonTransition(CAREER,()=>{$("overlay").classList.remove("show");startRound();},data.seasonTransition);return;}
   if(data.pending){CAREER=data.career;OPTS=data.opts;FB_LIVE=!!(OPTS&&OPTS.fb);startRound();return;}
   CAREER=data.career;OPTS=data.opts;FB_LIVE=!!(OPTS&&OPTS.fb);restoreDB(CAREER);applyRoster(CAREER);setTrack(data.track);mkWeekend(data.opts,data.career);
   W.score=data.score;W.dec=data.dec;W.grid=byCode(data.grid);W.sgrid=byCode(data.sgrid||[]);W.q=byCode(data.q);W.gridTail=byCode(data.gridTail);W.drop=data.drop||{};W.review=data.review||[];W.qOut=data.qOut||[];W.docs=data.docs||[];W.wk=data.wk||null;W.idx=data.idx-1;

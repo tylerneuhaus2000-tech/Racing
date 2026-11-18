@@ -44,7 +44,7 @@ function garOutStep(c,dt){const g=c.garOut;c.brk=false;c.latV=0;c.yaw=0;c.drift=
   if(u0>=1){c.garOut=null;c.spin=0;c.lat=PLAT;c.v=Math.max(c.v,8);return false;}return true;}
 function bestLap(c){let b=null;for(const l of c.laps)if(!c.del.has(l.id)&&(b===null||l.t<b))b=l.t;return b;}
 function wearRate(c){const life=S.type==="race"?(S.sprint?W.opts.laps:S.laps)*(c.tyre==="S"?0.42:c.tyre==="M"?0.68:c.tyre==="H"?1.0:0.8):30;
-  let r=1/(life*L);if((c.tyre==="I"||c.tyre==="W")&&S.wx.wet<0.12)r*=4;return r;}
+  let r=1/(life*L);if((c.tyre==="I"||c.tyre==="W")&&S.wx.wet<0.12)r*=4;const testWear=W&&W.career&&W.career.preseasonEffects&&Number(W.career.preseasonEffects.tyreWearMultiplier);if(Number.isFinite(testWear)&&testWear>0)r*=testWear;return r;}
 function grip(c,idx){
   const wl=wetAt(c.pos);
   let g=(1-c.drv.perf*(S.type==="race"?0.017:0.0085)+(c.form||0))*tyreGrip(c.tyre,c.wear,wl)*(1+0.006*S.evo)*(1+c.noise);
