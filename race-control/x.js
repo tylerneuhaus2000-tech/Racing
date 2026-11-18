@@ -76,10 +76,8 @@ const PITROUTES={
   nuerburgring:{approach:180,entry:140,exit:110,rejoin:115,entryLat:-23.0,exitLat:-24.5},
   hockenheim:{approach:190,entry:150,exit:120,rejoin:125,entryLat:-23.0,exitLat:-24.4}
 };
-// Kompaktere Boxengasse: Die bisherigen Streckenabstände ließen die Pit-Road
-// optisch unverhältnismäßig lang wirken. Einfahrtsbogen und Ausfahrt bleiben
-// flüssig, während die gezeichnete Boxengasse auf etwa die halbe Länge schrumpft.
-const PIT_ROUTE_SCALE=0.52;
+// Die Boxeneinfahrt ist kompakter; die Ausfahrt behält ihr ursprüngliches Profil.
+const PIT_ENTRY_SCALE=0.52;
 let PIT_ROUTE=PITROUTES.ring;
 const pitEase=u=>{u=clamp(u,0,1);return u*u*(3-2*u);};
 const pitRouteLineAt=pos=>T.line[sidx(((pos%L)+L)%L)];
@@ -94,17 +92,16 @@ function pitRouteRoadLatAt(pos){const s=((pos%L)+L)%L;return s>=PIT_ENTRY_S?pitR
 function pitRouteEntryBoundaryAt(pos){return pitRouteEntryLatAt(pos)-4+10.5;}
 function pitRouteExitBoundaryAt(pos){return pitRouteExitLatAt(pos)-4+10.5;}
 function applyPitData(){const d=PITDATA[TRACK.key],base=PITROUTES[TRACK.key]||PITROUTES.ring,r=TRACK.len?L/TRACK.len:1,
-    route=PIT_ROUTE=Object.assign({},base,{approach:base.approach*r*0.75,entry:base.entry*r*PIT_ROUTE_SCALE,exit:base.exit*r*PIT_ROUTE_SCALE,rejoin:base.rejoin*r*PIT_ROUTE_SCALE});TRACK.pitLim=d&&typeof d[2]==="number"&&d[3]!=="T1"?d[2]:80;
+    route=PIT_ROUTE=Object.assign({},base,{approach:base.approach*r*0.75,entry:base.entry*r*PIT_ENTRY_SCALE,exit:base.exit*r,rejoin:base.rejoin*r});TRACK.pitLim=d&&typeof d[2]==="number"&&d[3]!=="T1"?d[2]:80;
   if(!d||!TRACK.len){PIT_IN_S=PIT_ENTRY_S+route.entry;PIT_OUT_S=Math.max(0,PIT_EXIT_S-route.exit);finalizePitRoute(route);return;}
-  const last=CORNERS[CORNERS.length-1],first=CORNERS[0],X=PITX[TRACK.key],box0=X&&X.box!=null?X.box*r:BOX0,
-    boxExitFloor=Math.max(0,box0+24*(TEAM_KEYS.length-1)+70);
+  const last=CORNERS[CORNERS.length-1],first=CORNERS[0];
   const maxEn=last?Math.max(246,L-last.i1*DS-25):246,maxEx=first?Math.max(250,first.i0*DS-25):250;
-  const en=clamp(d[0]*r*PIT_ROUTE_SCALE,120,maxEn),ex=d[3]==="T1"&&first?first.i1*DS+60:Math.max(boxExitFloor+35,clamp(d[1]*r*PIT_ROUTE_SCALE,120,maxEx));   // Baku: Ausfahrtsspur läuft links durch Kurve 1
+  const en=clamp(d[0]*r*PIT_ENTRY_SCALE,120,maxEn),ex=d[3]==="T1"&&first?first.i1*DS+60:clamp(d[1]*r,210,maxEx);   // Baku: Ausfahrtsspur läuft links durch Kurve 1
   PIT_ENTRY_S=L-en;PIT_EXIT_S=ex;PIT_IN_S=PIT_ENTRY_S+route.entry;PIT_OUT_S=Math.max(0,PIT_EXIT_S-route.exit);DEC_S=PIT_ENTRY_S-route.approach;BOX0=-125;
-  if(!X){finalizePitRoute(route);return;}
+  const X=PITX[TRACK.key];if(!X){finalizePitRoute(route);return;}
   if(X.enC){const c=CORNERS[CORNERS.length-X.enC];if(c)PIT_ENTRY_S=c.i0*DS-X.enPre*r;}
-  if(X.en)PIT_ENTRY_S=L-X.en*r*PIT_ROUTE_SCALE;
-  if(X.ex==="T1"&&first)PIT_EXIT_S=first.i1*DS+X.exPost*r*PIT_ROUTE_SCALE;
+  if(X.en)PIT_ENTRY_S=L-X.en*r*PIT_ENTRY_SCALE;
+  if(X.ex==="T1"&&first)PIT_EXIT_S=first.i1*DS+X.exPost*r;
   if(X.box!=null){BOX0=X.box*r;PIT_IN_S=Math.min(PIT_IN_S,L+BOX0-40);}
   PIT_IN_S=Math.min(PIT_IN_S,PIT_ENTRY_S+route.entry);
   PIT_OUT_S=Math.max(0,PIT_EXIT_S-route.exit);finalizePitRoute(route);}
