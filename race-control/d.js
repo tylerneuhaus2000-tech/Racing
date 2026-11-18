@@ -402,7 +402,7 @@ function hazardStep(dt){const h=S.hazard;
     else if(h.rain?(S.wx.rain<0.5&&S.t>=h.clearAt):S.t>=h.clearAt){
       const left=S.cars.filter(c=>!c.removed&&c.retired&&c.crash&&!c.pit&&!h.cars.includes(c));   // „Strecke frei“ nur, wenn wirklich kein Wrack mehr dasteht
       if(left.length){h.cars.push(...left);h.clearAt=S.t+rand(18,28)*left.length;addLog(`Bergung läuft weiter – auch ${left.map(c=>c.drv.code).join(", ")} muss noch weggeräumt werden`,"flag");}
-      else{h.cleared=true;h.clT=0;h.cars.forEach(c=>c.removed=true);addLog("TRACK CLEAR","good");}}
+      else{h.cleared=true;h.clT=0;h.cars.forEach(c=>{if(W.preseasonTestState&&c.crash){c.removed=false;c.retired=false;c.crash=null;c.v=0;c.dmg=0;c.ignoreDmg=false;c.punct=false;c.wantPit=false;c.pit=null;placeGarage(c);c.nextOut=(S.dur-S.clock)+rand(45,100);addLog(`${c.drv.code} nach Unfall in die Box gebracht – Reparatur läuft`);}else c.removed=true;});addLog("TRACK CLEAR","good");}}
     else setAlert("",`${h.rep?"Bergung und Reparatur der Barriere":"Bergung läuft"}${where} – ${h.rain?"warten bis der Regen nachlässt":"noch ca. "+Math.max(0,Math.ceil(h.clearAt-S.t))+"s"}. Empfehlung: aktuelle Maßnahme beibehalten.`);
   }else{h.clT+=dt;
     const back=r===0||(S.flag.mode==="sc"&&(S.restart||(S.sc&&S.sc.inLap)));
@@ -566,4 +566,5 @@ function closeSession(){
     for(const i of S.incidents)if(i.status==="open"){i.status="deferred";}
     if(S.incidents.some(i=>i.status==="deferred")){uiHearing();return;}
     finishRace();return;}
+  if(W.preseasonTestState){finishPreseasonTestBlock();return;}
   nextSession();}

@@ -256,7 +256,7 @@ function writeSave(slot,data,name){try{const s=loadSaves(),entry={name,date:new 
 function delSave(slot){try{const s=loadSaves();delete s[slot];localStorage.setItem(SAVEKEY,JSON.stringify(s));if(window.RCCloud)window.RCCloud.remove(slot);}catch(e){}}
 function saveName(){const k=W.career;return (k&&k.type==="season"?`Saison · Lauf ${k.round+1}/${k.cal.length}`:"Einzelrennen")+` · ${TRACK.name} · ${W.defs[W.idx]?W.defs[W.idx].name:""}`;}
 function snapshotSave(){const codes=a=>a.map(d=>d.code);
-  W.snap=JSON.parse(JSON.stringify({v:1,opts:W.opts,track:TRACK.key,idx:W.idx,grid:codes(W.grid),sgrid:codes(W.sgrid||[]),q:codes(W.q),gridTail:codes(W.gridTail),drop:W.drop,score:W.score,dec:W.dec,career:W.career,review:W.review||[],qOut:W.qOut||[],docs:W.docs||[]}));
+  W.snap=JSON.parse(JSON.stringify({v:1,opts:W.opts,track:TRACK.key,idx:W.idx,grid:codes(W.grid),sgrid:codes(W.sgrid||[]),q:codes(W.q),gridTail:codes(W.gridTail),drop:W.drop,score:W.score,dec:W.dec,career:W.career,review:W.review||[],qOut:W.qOut||[],docs:W.docs||[],preseasonTestState:W.preseasonTestState||null}));
   if(!W.wk)W.wk=JSON.parse(JSON.stringify(W.snap));W.snap.wk=W.wk;
   W.snapName=saveName();writeSave("auto",W.snap,W.snapName);}
 function liveSave(){if(!W||!W.snap)return;const lv=liveState();if(!lv)return;W.liveSnap=JSON.parse(JSON.stringify(Object.assign({},W.snap,{live:lv,score:W.score,dec:W.dec,career:W.career,review:W.review||[]})));
@@ -266,6 +266,7 @@ function saveRoundPending(){const k=W.career;const data=JSON.parse(JSON.stringif
 function loadGame(data){const byCode=a=>a.map(c=>DRIVERS.find(d=>d.code===c)).filter(Boolean);
   UI.logs=[];UI.radios=[];$("radio").innerHTML="";$("log").innerHTML="";$("overlay").classList.remove("show");
   if(data.seasonTransition){CAREER=data.career;OPTS=data.opts;FB_LIVE=!!(OPTS&&OPTS.fb);restoreDB(CAREER);applyRoster(CAREER);if(CAREER.preseasonTest)CAREER.preseasonTest.running=false;openSeasonTransition(CAREER,()=>{$("overlay").classList.remove("show");startRound();},data.seasonTransition);return;}
+  if(data.preseasonTestState){CAREER=data.career;OPTS=data.opts;FB_LIVE=!!(OPTS&&OPTS.fb);restoreDB(CAREER);applyRoster(CAREER);setTrack(data.track);mkWeekend(data.opts,data.career);W.defs=[{type:"fp",name:`Testtag ${Math.floor(data.preseasonTestState.blockIndex/2)+1} · ${data.preseasonTestState.blockIndex%2?"Nachmittag":"Vormittag"}`,dur:3600/TSCALE}];W.preseasonTestState=data.preseasonTestState;W.idx=data.idx-1;W.grid=byCode(data.grid);W.sgrid=byCode(data.sgrid||[]);W.q=byCode(data.q);W.gridTail=byCode(data.gridTail);W.drop=data.drop||{};W.review=data.review||[];W.qOut=data.qOut||[];W.docs=data.docs||[];nextSession();if(data.live){W.score=data.score;W.dec=data.dec;applyLive(data.live);}score(0);setSpeed(1);return;}
   if(data.pending){CAREER=data.career;OPTS=data.opts;FB_LIVE=!!(OPTS&&OPTS.fb);startRound();return;}
   CAREER=data.career;OPTS=data.opts;FB_LIVE=!!(OPTS&&OPTS.fb);restoreDB(CAREER);applyRoster(CAREER);setTrack(data.track);mkWeekend(data.opts,data.career);
   W.score=data.score;W.dec=data.dec;W.grid=byCode(data.grid);W.sgrid=byCode(data.sgrid||[]);W.q=byCode(data.q);W.gridTail=byCode(data.gridTail);W.drop=data.drop||{};W.review=data.review||[];W.qOut=data.qOut||[];W.docs=data.docs||[];W.wk=data.wk||null;W.idx=data.idx-1;
