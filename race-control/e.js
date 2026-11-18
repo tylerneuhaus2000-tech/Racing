@@ -5,7 +5,7 @@ function mkPath(latFn,i0,i1,close,into){const p=into||new Path2D();
     const x=T.x[j]-Math.sin(T.ang[j])*lat,y=T.y[j]+Math.cos(T.ang[j])*lat;if(i===i0)p.moveTo(x,y);else p.lineTo(x,y);}
   if(close)p.closePath();return p;}
 let P;function buildPaths(){
-  const iE=Math.ceil(PIT_ENTRY_S/DS),iI=sidx(PIT_IN_S),iO=sidx(PIT_OUT_S)+NU,iX=sidx(PIT_EXIT_S+PIT_ROUTE.rejoin)+NU;
+  const iE=Math.ceil(PIT_ENTRY_S/DS),iI=sidx(PIT_IN_S),iO=sidx(PIT_OUT_S)+NU,iX=sidx(PIT_EXIT_S)+NU;
   const pl=i=>pitRouteRoadLatAt(i*DS),boundaryIn=i=>pitRouteEntryBoundaryAt(i*DS),boundaryOut=i=>pitRouteExitBoundaryAt(i*DS);
   const kerb=new Path2D();
   for(const c of CORNERS){if(c.s>PIT_ENTRY_S-40||c.s<PIT_EXIT_S)continue;mkPath(19,c.i0-6,c.i1+6,false,kerb);mkPath(-19,c.i0-6,c.i1+6,false,kerb);}
@@ -19,7 +19,7 @@ let P;function buildPaths(){
   for(let k=0;k<420&&trees.length<230;k++){const j=Math.floor(rnd()*NU),lat=(rnd()<0.5?-1:1)*(52+rnd()*85),x=T.x[j]-Math.sin(T.ang[j])*lat,y=T.y[j]+Math.cos(T.ang[j])*lat;let ok=true;
     for(let i=0;i<NU;i+=3){const dx=T.x[i]-x,dy=T.y[i]+0-y;if(dx*dx+dy*dy<50*50){ok=false;break;}}
     if(ok)trees.push([x,y,3+rnd()*3.5,rnd()]);}
-  const pxLine=mkPath(boundaryOut,iO+2,iX),peLine=mkPath(boundaryIn,iE+1,iI-2),fastSep=mkPath(pl,iI+2,iO-2);
+  const pxLine=mkPath(PIT_EXIT_LINE,iO+6,iX),peLine=mkPath(boundaryIn,iE+1,iI-2),fastSep=mkPath(pl,iI+2,iO-2);
   return {runA,rwall,pxLine,peLine,fastSep,gravel,stands,trees,bld:mkPath(i=>pitRouteRoadLatAt(i*DS)-25,iI+10,iO-10),center:mkPath(0,0,NU-1,true),sec:[0,1,2].map(k=>mkPath(0,Math.floor(SECB[k]/DS),Math.floor(SECB[k+1]/DS)+1)),kerb,
     pit:mkPath(pl,iE,iX),gar:mkPath(i=>pitRouteRoadLatAt(i*DS)-17,iI+10,iO-10),wall:mkPath(i=>pitRouteRoadLatAt(i*DS)+11.5,iI+4,iO-4),line:mkPath(i=>T.line[((i%NU)+NU)%NU],0,NU-1,true)};}
 P=buildPaths();

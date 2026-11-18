@@ -349,11 +349,11 @@ function pitCtl(c,vT,dt){const p=c.pit;let tl=PLAT;
       if(!S.pitExitOpen||S.t-S.exitT<p.wait||S.cars.some(o=>o!==c&&o.pit&&o.pit.ph==="exit"&&!o.pit.gate&&delta(c,o)>0&&delta(c,o)<90))vT=Math.min(vT,Math.sqrt(2*BRK*0.7*Math.max(0,PIT_OUT_S-6-c.pos)));else{p.gate=true;S.exitT=S.t;}}
     if(c.pos>PIT_OUT_S&&c.pos<L/2){   // Ausfahrtsspur: der Streckenlinie folgend bis zum Ende der weißen Linie
       if(p.xk==null){const r=Math.random()/memW("pitline",-1);p.xk=r<0.02?2:r<0.055?1:0;if(p.xk)memAdd("pitline",-1);p.xmax=-99;}
-      const lineEnd=PIT_EXIT_S+PIT_ROUTE.rejoin,u=clamp((c.pos-PIT_OUT_S)/Math.max(1,PIT_EXIT_S-PIT_OUT_S),0,1);
+      const lineEnd=PIT_EXIT_S,u=clamp((c.pos-PIT_OUT_S)/Math.max(1,PIT_EXIT_S-PIT_OUT_S),0,1);
       if(p.xk===1&&c.pos<PIT_EXIT_S)tl+=0.8;else if(p.xk===2&&u>0.5)tl+=7;
       if(c.pos<=lineEnd)p.xmax=Math.max(p.xmax,c.lat+CAR_W/2-pitRouteExitBoundaryAt(c.pos));
       else if(p.xk&&!p.xrep){p.xrep=true;reportPitLine(c,p.xmax>0);}
-      if((c.pos>=lineEnd&&c.lat>-17)||c.pos>lineEnd+20){c.pit=null;c.inPit=false;c.speeding=0;c.holdT=0.5;c.cold=14;}}
+      if((c.pos>=lineEnd&&c.lat>-15)||c.pos>lineEnd+110){c.pit=null;c.inPit=false;c.speeding=0;c.holdT=0.5;c.cold=14;}}
   }
   c._tl=tl;return vT;}
 function arrive(c){const p=c.pit;

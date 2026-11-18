@@ -78,6 +78,7 @@ const PITROUTES={
 };
 // Die Boxeneinfahrt ist kompakter; die Ausfahrt behält ihr ursprüngliches Profil.
 const PIT_ENTRY_SCALE=0.52;
+const PIT_EXIT_LINE=-20.2;
 let PIT_ROUTE=PITROUTES.ring;
 const pitEase=u=>{u=clamp(u,0,1);return u*u*(3-2*u);};
 const pitRouteLineAt=pos=>T.line[sidx(((pos%L)+L)%L)];
@@ -85,26 +86,26 @@ function pitRouteApproachLatAt(pos){const r=PIT_ROUTE,d=(PIT_ENTRY_S-(((pos%L)+L
   const u=pitEase((r.approach-d)/r.approach),line=pitRouteLineAt(pos);return line+(r.entryLat-line)*u;}
 function pitRouteEntryLatAt(pos){const s=((pos%L)+L)%L,along=(s-PIT_ENTRY_S+L)%L,span=Math.max(1,PIT_IN_S-PIT_ENTRY_S);
   if(along>=span)return PLAT;return PIT_ROUTE.entryLat+(PLAT-PIT_ROUTE.entryLat)*pitEase(along/span);}
-function pitRouteExitLatAt(pos){const s=((pos%L)+L)%L,r=PIT_ROUTE;if(s>=PIT_ENTRY_S)return PLAT;
-  if(s<PIT_OUT_S)return PLAT;if(s<=PIT_EXIT_S)return PLAT+(r.exitLat-PLAT)*pitEase((s-PIT_OUT_S)/Math.max(1,PIT_EXIT_S-PIT_OUT_S));
-  if(s<=PIT_EXIT_S+r.rejoin)return r.exitLat+(pitRouteLineAt(s)-r.exitLat)*pitEase((s-PIT_EXIT_S)/Math.max(1,r.rejoin));return pitRouteLineAt(s);}
-function pitRouteRoadLatAt(pos){const s=((pos%L)+L)%L;return s>=PIT_ENTRY_S?pitRouteEntryLatAt(s)-4:pitRouteExitLatAt(s)-4;}
+function pitRouteExitLatAt(pos){const s=((pos%L)+L)%L;if(s>=PIT_ENTRY_S||s<=PIT_OUT_S)return PLAT;
+  if(s<=PIT_EXIT_S)return -34+9.4*((s-PIT_OUT_S)/Math.max(1,PIT_EXIT_S-PIT_OUT_S));return pitRouteLineAt(s);}
+function pitRouteRoadLatAt(pos){const s=((pos%L)+L)%L;if(s>=PIT_ENTRY_S)return pitRouteEntryLatAt(s)-4;
+  return s<=PIT_OUT_S?PLAT-4:pitRouteExitLatAt(s);}
 function pitRouteEntryBoundaryAt(pos){return pitRouteEntryLatAt(pos)-4+10.5;}
-function pitRouteExitBoundaryAt(pos){return pitRouteExitLatAt(pos)-4+10.5;}
+function pitRouteExitBoundaryAt(pos){const s=((pos%L)+L)%L;return s<=PIT_EXIT_S+0.1?PIT_EXIT_LINE:pitRouteLineAt(s)+CAR_W/2;}
 function applyPitData(){const d=PITDATA[TRACK.key],base=PITROUTES[TRACK.key]||PITROUTES.ring,r=TRACK.len?L/TRACK.len:1,
     route=PIT_ROUTE=Object.assign({},base,{approach:base.approach*r*0.75,entry:base.entry*r*PIT_ENTRY_SCALE,exit:base.exit*r,rejoin:base.rejoin*r});TRACK.pitLim=d&&typeof d[2]==="number"&&d[3]!=="T1"?d[2]:80;
-  if(!d||!TRACK.len){PIT_IN_S=PIT_ENTRY_S+route.entry;PIT_OUT_S=Math.max(0,PIT_EXIT_S-route.exit);finalizePitRoute(route);return;}
+  if(!d||!TRACK.len){PIT_IN_S=PIT_ENTRY_S+route.entry;PIT_OUT_S=Math.min(PIT_EXIT_S-60,160);finalizePitRoute(route);return;}
   const last=CORNERS[CORNERS.length-1],first=CORNERS[0];
   const maxEn=last?Math.max(246,L-last.i1*DS-25):246,maxEx=first?Math.max(250,first.i0*DS-25):250;
   const en=clamp(d[0]*r*PIT_ENTRY_SCALE,120,maxEn),ex=d[3]==="T1"&&first?first.i1*DS+60:clamp(d[1]*r,210,maxEx);   // Baku: Ausfahrtsspur läuft links durch Kurve 1
-  PIT_ENTRY_S=L-en;PIT_EXIT_S=ex;PIT_IN_S=PIT_ENTRY_S+route.entry;PIT_OUT_S=Math.max(0,PIT_EXIT_S-route.exit);DEC_S=PIT_ENTRY_S-route.approach;BOX0=-125;
+  PIT_ENTRY_S=L-en;PIT_EXIT_S=ex;PIT_IN_S=PIT_ENTRY_S+route.entry;PIT_OUT_S=Math.min(PIT_EXIT_S-60,160);DEC_S=PIT_ENTRY_S-route.approach;BOX0=-125;
   const X=PITX[TRACK.key];if(!X){finalizePitRoute(route);return;}
   if(X.enC){const c=CORNERS[CORNERS.length-X.enC];if(c)PIT_ENTRY_S=c.i0*DS-X.enPre*r;}
   if(X.en)PIT_ENTRY_S=L-X.en*r*PIT_ENTRY_SCALE;
   if(X.ex==="T1"&&first)PIT_EXIT_S=first.i1*DS+X.exPost*r;
   if(X.box!=null){BOX0=X.box*r;PIT_IN_S=Math.min(PIT_IN_S,L+BOX0-40);}
   PIT_IN_S=Math.min(PIT_IN_S,PIT_ENTRY_S+route.entry);
-  PIT_OUT_S=Math.max(0,PIT_EXIT_S-route.exit);finalizePitRoute(route);}
+  PIT_OUT_S=Math.min(PIT_EXIT_S-60,160);finalizePitRoute(route);}
 function finalizePitRoute(route){const first=L+BOX0,last=first+24*(TEAM_KEYS.length-1),minPitOut=Math.max(0,last-L+25);PIT_IN_S=Math.min(PIT_IN_S,first-70);
   PIT_ENTRY_S=Math.min(PIT_ENTRY_S,PIT_IN_S-route.entry);route.entry=PIT_IN_S-PIT_ENTRY_S;
   PIT_OUT_S=Math.max(minPitOut,Math.min(PIT_OUT_S,PIT_EXIT_S-30));
