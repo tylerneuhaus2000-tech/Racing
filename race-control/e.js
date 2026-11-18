@@ -5,9 +5,8 @@ function mkPath(latFn,i0,i1,close,into){const p=into||new Path2D();
     const x=T.x[j]-Math.sin(T.ang[j])*lat,y=T.y[j]+Math.cos(T.ang[j])*lat;if(i===i0)p.moveTo(x,y);else p.lineTo(x,y);}
   if(close)p.closePath();return p;}
 let P;function buildPaths(){
-  const iE=Math.ceil(PIT_ENTRY_S/DS),iI=sidx(PIT_IN_S),iO=sidx(PIT_OUT_S)+NU,iX=sidx(PIT_EXIT_S)+NU,
-    iR=sidx(PIT_EXIT_S+PIT_ROUTE.rejoin)+NU;
-  const pl=i=>pitRouteRoadLatAt(i*DS);
+  const iE=sidx(PIT_ENTRY_S),iI=sidx(PIT_IN_S),iO=sidx(PIT_OUT_S)+NU,iX=sidx(PIT_EXIT_S)+NU;
+  const pl=i=>i<iI?-17-17*(i-iE)/(iI-iE):i>iO?-34+9.4*(i-iO)/(iX-iO):-34;
   const kerb=new Path2D();
   for(const c of CORNERS){if(c.s>PIT_ENTRY_S-40||c.s<PIT_EXIT_S)continue;mkPath(19,c.i0-6,c.i1+6,false,kerb);mkPath(-19,c.i0-6,c.i1+6,false,kerb);}
   // Umgebung: Kiesbetten außen an den Kurven, Tribünen, Boxengebäude, Bäume
@@ -20,9 +19,9 @@ let P;function buildPaths(){
   for(let k=0;k<420&&trees.length<230;k++){const j=Math.floor(rnd()*NU),lat=(rnd()<0.5?-1:1)*(52+rnd()*85),x=T.x[j]-Math.sin(T.ang[j])*lat,y=T.y[j]+Math.cos(T.ang[j])*lat;let ok=true;
     for(let i=0;i<NU;i+=3){const dx=T.x[i]-x,dy=T.y[i]+0-y;if(dx*dx+dy*dy<50*50){ok=false;break;}}
     if(ok)trees.push([x,y,3+rnd()*3.5,rnd()]);}
-  const pxLine=mkPath(PITLINE,iO+6,iX),peLine=mkPath(i=>pitRouteEntryLatAt(i*DS)+6.5,iE+1,iI-2);
+  const pxLine=mkPath(PITLINE,iO+6,iX),peLine=mkPath(PITLINE,iE+8,iI-2);
   return {runA,rwall,pxLine,peLine,gravel,stands,trees,bld:mkPath(-60,iI+10,iO-10),center:mkPath(0,0,NU-1,true),sec:[0,1,2].map(k=>mkPath(0,Math.floor(SECB[k]/DS),Math.floor(SECB[k+1]/DS)+1)),kerb,
-    pit:mkPath(pl,iE,iR),gar:mkPath(-51,iI+10,iO-10),wall:mkPath(-22.5,iI+4,iO-4),line:mkPath(i=>T.line[((i%NU)+NU)%NU],0,NU-1,true)};}
+    pit:mkPath(pl,iE,iX),gar:mkPath(-51,iI+10,iO-10),wall:mkPath(-22.5,iI+4,iO-4),line:mkPath(i=>T.line[((i%NU)+NU)%NU],0,NU-1,true)};}
 P=buildPaths();
 const NIGHT=new Set(["bahrain","jeddah","singapore","vegas","lusail","yas"]);
 const TEAM2={MER:"#101418",MCL:"#101418",FER:"#fff200",RBR:"#ffd000",HAA:"#e6002b",ALP:"#0093cc",WIL:"#ffffff",RCB:"#ffffff",AUD:"#111111",AMR:"#cedc00",CAD:"#ffffff"};
@@ -91,12 +90,6 @@ function drawScene(ctx,W,H,cam,fr,roster,opt){
   drawPuddles(ctx,fr);
   if(fr.nk)drawNukeGround(ctx,fr);
   drawDebris(ctx,fr);
-  if(typeof UI!=="undefined"&&UI.lineDbg){   /* Debug: Ideallinie, Scheitelpunkte und Abweichung jedes Autos (Taste L) */
-    ctx.save();ctx.lineWidth=Math.max(0.9,2.2/cam.z);ctx.strokeStyle="rgba(70,255,150,.95)";ctx.stroke(P.line);
-    ctx.fillStyle="#ffd400";for(const c of CORNERS){const q=posXY(c.ia*DS,T.line[c.ia]);ctx.beginPath();ctx.arc(q.x,q.y,Math.max(1.4,3.5/cam.z),0,7);ctx.fill();}
-    ctx.lineWidth=Math.max(0.6,1.6/cam.z);ctx.strokeStyle="rgba(255,90,90,.9)";ctx.beginPath();
-    for(let k=0;k<roster.length;k++){const o=k*5;if(!(fr.a[o+4]&1))continue;const s_=fr.a[o],la=fr.a[o+1],ix=sidx(mod(s_)),p1=posXY(s_,la),p2=posXY(s_,T.line[ix]);ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);}
-    ctx.stroke();ctx.restore();}
   if(opt.marks&&cam.z>1.2){ctx.lineWidth=0.9;ctx.strokeStyle="rgba(8,8,8,0.4)";ctx.beginPath();for(const m of MARKS){ctx.moveTo(m[0],m[1]);ctx.lineTo(m[2],m[3]);}ctx.stroke();}
   st(P.wall,1.4,"#c9ced6");
   // Start/Ziel + Boxen
@@ -134,7 +127,7 @@ function drawScene(ctx,W,H,cam,fr,roster,opt){
   for(let k=0;k<n;k++){const o=k*5,fl=fr.a[o+4];if(!(fl&1))continue;
     const q=posXY(fr.a[o],fr.a[o+1]);ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.ang+fr.a[o+2]);
     if(cam.z<1.25){const sc=Math.max(1,1.05/cam.z);ctx.scale(sc,sc);}
-    {const ix=sidx(mod(fr.a[o])),kk=T.k[ix],v=Math.abs(fr.a[o+3]),r=clamp(v*v*Math.abs(T.kl?T.kl[ix]:kk)/ALAT,0,1.2);
+    {const ix=sidx(mod(fr.a[o])),kk=T.k[ix],v=Math.abs(fr.a[o+3]),r=clamp(v*v*Math.abs(kk)/ALAT,0,1.2);
       CARDYN.roll=(fl&128)||(fl&16)?0:-Math.sign(kk*SIDE)*r;CARDYN.steer=(fl&128)?0:clamp(kk*SIDE*16,-0.42,0.42);CARDYN.brk=(fl&4)&&v>30;CARDYN.v=v;CARDYN.dm=fr.e&&fr.e.length>=(k+1)*5?fr.e[k*5+3]|(fr.e[k*5+4]<<8):0;CARDYN.pw=(fl>>22)&3;CARDYN.t=fr.t||0;}
     drawCarShape(ctx,roster[k].drv.color,fl,cam.z,roster[k].drv,wet>0.25&&Math.sin(fr.t*14)>0);
     if((fl&128)&&fr.a[o+3]<0&&cam.z>1.5){const el=-fr.a[o+3];drawCrew(ctx,fl,((fl>>14)&63)/63,roster[k].drv,fr.t);ctx.restore();
