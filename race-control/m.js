@@ -264,15 +264,17 @@ function processCareerRetirements(k,notes){
   k.retired=k.retired.filter(x=>typeof x==="string").concat(k.retired.filter(x=>typeof x==="object"));
   return open;
 }
+function showNextSeasonGrid(k,done){const m=$("modal");m.className="modal wide";
+  m.innerHTML=`<h2>🆕 Starterfeld ${k.year}</h2><p class="hint">Die Teams stehen fest. Lege jetzt Strecken, Reihenfolge und Sprintwochenenden für die neue Saison fest.</p><table class="res">${TEAM_KEYS.map(t=>`<tr><td><span style="color:${TEAMS[t].color}">■</span> ${TEAMS[t].name}</td><td>${k.roster[t].map(drvName).join(" · ")}</td><td>${k.pace[t].toFixed(2)} s</td></tr>`).join("")}</table>
+      <button class="big go" id="nsGo">Rennkalender für Saison ${k.year} festlegen</button>`;
+  $("overlay").classList.add("show");$("nsGo").onclick=()=>menuSetup("season",k,done,()=>showNextSeasonGrid(k,done));}
 function market(k,done){const notes=[];
   processCareerRetirements(k,notes);
   const fin=()=>{developDriverPoolForSeason(k);fillVacancies(k);
     for(const c in DB)if(seatOf(k,c)&&!DB[c].held)DB[c].held=true;
     k.dbx={};for(const c in DB)k.dbx[c]={sl:DB[c].sl,held:DB[c].held,role:DB[c].role,skill:DB[c].skill,ageGame:DB[c].ageGame,developmentElapsed:DB[c].developmentElapsed,skillRatingHundredths:DB[c].skillRatingHundredths,licenseSource:DB[c].licenseSource,simulatedLicenseApproved:DB[c].simulatedLicenseApproved,licenseApprovalYear:DB[c].licenseApprovalYear};
     k.year++;k.season++;k.round=0;k.rd=[];k.rdRound=null;k.points={};k.tpoints={};k.pointLedger={schemaVersion:1,legacyDrivers:{},legacyConstructors:{},legacyStatus:"complete",events:[]};k.history=[];k.mevents={};k.revert=[];
-    const m=$("modal");m.className="modal wide";
-    m.innerHTML=`<h2>🆕 Starterfeld ${k.year}</h2><table class="res">${TEAM_KEYS.map(t=>`<tr><td><span style="color:${TEAMS[t].color}">■</span> ${TEAMS[t].name}</td><td>${k.roster[t].map(drvName).join(" · ")}</td><td>${k.pace[t].toFixed(2)} s</td></tr>`).join("")}</table>
-      <button class="big go" id="nsGo">Saison ${k.year} starten</button>`;$("nsGo").onclick=done;};
+    showNextSeasonGrid(k,done);};
   autonomousMarket(k,notes,fin);}
 /* ================= Fahrermarkt-Dashboard =================
    1) Übersicht: Cockpits je Team (sicher / wackelt / frei), wen die Teams wollen, wohin die Fahrer wollen

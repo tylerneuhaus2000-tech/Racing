@@ -342,19 +342,23 @@ function drawPreview(cv,key){buildTrack(key);const c=cv.getContext("2d"),W=cv.wi
   c.lineWidth=20/Math.max(z,0.12)*0.42;c.strokeStyle="#39414d";c.stroke();c.lineWidth=20/Math.max(z,0.12)*0.2;c.strokeStyle="#f2f4f6";c.stroke();
   for(let k=0;k<3;k++){const i=Math.floor(k*NU/3),p={x:T.x[i],y:T.y[i]};c.fillStyle=k?"#ffd400":"#e10600";c.beginPath();c.arc(p.x,p.y,(k?5:8)/z,0,7);c.fill();}
   c.restore();}
-function menuSetup(type){
+function menuSetup(type,continuingCareer=null,onComplete=null,onCancel=null){
   const m=$("modal"),season=type==="season";m.className="modal hero";
-  let seasonRaces=season?CALENDAR.map(key=>({track:key,format:SPRINTS.includes(key)?"sprint":"full"})):[];
+  let seasonRaces=[];
+  if(season)seasonRaces=continuingCareer&&Array.isArray(continuingCareer.cal)&&continuingCareer.cal.length
+    ?continuingCareer.cal.map((track,i)=>({track:TRACKS[track]?track:CALENDAR[i%CALENDAR.length],format:seasonWeekendFormat(continuingCareer,i,OPTS)}))
+    :CALENDAR.map(key=>({track:key,format:SPRINTS.includes(key)?"sprint":"full"}));
+  const savedOpts=continuingCareer?(OPTS||{}):null;
   let previewRound=0;
   m.innerHTML=heroTop(season?"Stelle deine Saison zusammen: Wähle Strecken, Reihenfolge und Wochenendformat für jedes Rennen.":"Einzelrennen: ein Wochenende auf der Strecke deiner Wahl.")+`<div class="hero-body">
     <div class="setup"><div>
       ${season?`<label class="field"><span>Saisonlänge</span><div class="season-length"><input id="oCal" type="range" min="1" max="${CALENDAR.length}" value="${CALENDAR.length}" step="1" aria-label="Anzahl der Saisonrennen"><output id="oCalCount">${CALENDAR.length} Rennen</output></div><small class="field-note">Danach legst du Strecke, Reihenfolge und Format pro Rennen fest.</small></label>`
         :`<label class="field"><span>Strecke</span><select id="oTrack">${trackOptions()}</select></label>`}
       ${season?"":`<label class="field"><span>Wochenende</span><select id="oFmt"><option value="full">Training + Qualifying + Rennen</option><option value="sprint">Sprint-Wochenende (FP · Sprint-Quali · Sprint · Quali · Rennen)</option><option value="quali">Qualifying + Rennen</option><option value="race">Nur Rennen</option></select></label>`}
-      <label class="field"><span>Session-Längen</span><select id="oMode"><option value="short">Kurz</option><option value="real">Realistisch (FP 60 · Q 18/15/12 Min.)</option></select></label>
-      <label class="field"><span>Renndistanz</span><select id="oLaps"><option value="8">8 Runden</option><option value="12" selected>12 Runden</option><option value="18">18 Runden</option><option value="30">30 Runden</option><option value="full">Volle Distanz</option></select></label>
-      <label class="field"><span>Feedback</span><select id="oFb"><option value="0">Erst nach dem Rennen (realistisch)</option><option value="1">Sofort nach jeder Entscheidung</option></select></label>
-      <label class="field"><span>Wetter</span><select id="oWx"><option value="rand">Zufall</option><option value="dry">Trocken</option><option value="wet">Regen kommt</option></select></label>
+      <label class="field"><span>Session-Längen</span><select id="oMode"><option value="short"${!savedOpts||savedOpts.mode!=="real"?" selected":""}>Kurz</option><option value="real"${savedOpts?.mode==="real"?" selected":""}>Realistisch (FP 60 · Q 18/15/12 Min.)</option></select></label>
+      <label class="field"><span>Renndistanz</span><select id="oLaps"><option value="8"${savedOpts?.lapsSel==="8"?" selected":""}>8 Runden</option><option value="12"${!savedOpts||savedOpts.lapsSel==="12"?" selected":""}>12 Runden</option><option value="18"${savedOpts?.lapsSel==="18"?" selected":""}>18 Runden</option><option value="30"${savedOpts?.lapsSel==="30"?" selected":""}>30 Runden</option><option value="full"${savedOpts?.lapsSel==="full"?" selected":""}>Volle Distanz</option></select></label>
+      <label class="field"><span>Feedback</span><select id="oFb"><option value="0"${!savedOpts||!savedOpts.fb?" selected":""}>Erst nach dem Rennen (realistisch)</option><option value="1"${savedOpts?.fb?" selected":""}>Sofort nach jeder Entscheidung</option></select></label>
+      <label class="field"><span>Wetter</span><select id="oWx"><option value="rand"${!savedOpts||savedOpts.wx==="rand"?" selected":""}>Zufall</option><option value="dry"${savedOpts?.wx==="dry"?" selected":""}>Trocken</option><option value="wet"${savedOpts?.wx==="wet"?" selected":""}>Regen kommt</option></select></label>
     </div><div>
       ${season?`<div class="prev"><canvas id="pvCv" width="760" height="300"></canvas><div id="pvInfo"></div>
         <section class="calendar-editor" aria-label="Saisonkalender"><div class="schedule-head"><b>Dein Rennkalender</b><span id="seasonSummary" aria-live="polite"></span></div>
@@ -396,6 +400,7 @@ function menuSetup(type){
     $("oCalCount").textContent=`${seasonRaces.length} Rennen`;
   };
   if(season){
+    $("oCal").value=seasonRaces.length;
     $("oCal").oninput=()=>{
       const wanted=+$("oCal").value;
       while(seasonRaces.length>wanted)seasonRaces.pop();
@@ -440,9 +445,10 @@ function menuSetup(type){
     renderTemplates();
   }else{$("oTrack").onchange=upd;upd();}
   $("oMode").onchange=e=>{$("oLaps").value=e.target.value==="real"?"full":"12";};
-  $("backBtn").onclick=menuMain;
+  $("backBtn").onclick=onCancel||menuMain;
   $("goBtn").onclick=()=>{
     FB_LIVE=$("oFb").value==="1";OPTS={fb:FB_LIVE,wx:$("oWx").value,mode:$("oMode").value,format:season?"full":$("oFmt").value,lapsSel:$("oLaps").value};
+    if(continuingCareer){continuingCareer.cal=seasonRaces.map(r=>r.track);continuingCareer.formats=seasonRaces.map(r=>r.format);continuingCareer.sprints=seasonRaces.map(r=>r.format==="sprint");CAREER=continuingCareer;$("overlay").classList.remove("show");if(onComplete)onComplete();else startRound();return;}
     CAREER={type,cal:season?seasonRaces.map(r=>r.track):[$("oTrack").value],formats:season?seasonRaces.map(r=>r.format):[],sprints:season?seasonRaces.map(r=>r.format==="sprint"):[],round:0,points:{},lic:{},history:[],score:0,dec:{ok:0,total:0},rep:60};
     $("overlay").classList.remove("show");startRound();
   };
