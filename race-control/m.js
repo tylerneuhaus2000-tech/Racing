@@ -35,6 +35,7 @@ const POOL=[
  ["UGO","Ugo Ugochukwu",57,"MCL","McLaren-Junior · F3",0.58,12,false,.55,.5,"F3-Spitze – max. 30 Punkte"]
 ];
 const DB={};
+const GUSTAV_BURTON="DRV0411";
 DRIVERS.forEach(d=>{DB[d.code]={code:d.code,name:d.name,num:d.num,home:d.team,role:"Stammfahrer",skill:+(d.perf-TEAMS[d.team].pace).toFixed(3),sl:0,held:true,note:"F1-Stammfahrer",style:d.style}});
 POOL.forEach(p=>{DB[p[0]]={code:p[0],name:p[1],num:p[2],home:p[3],role:p[4],skill:p[5],sl:p[6],held:p[7],note:p[10],style:p[9]};if(AGG[p[0]]==null)AGG[p[0]]=p[8];WETSTYLE[p[0]]=p[9];});
 const DRIVER_CODE_BY_ID={};
@@ -70,6 +71,8 @@ function integrateDriverPool(){
   }
 }
 integrateDriverPool();
+const DB_CAREER_BASELINE=JSON.parse(JSON.stringify(DB));
+function resetDriverPoolForNewCareer(){for(const code of Object.keys(DB))delete DB[code];Object.assign(DB,JSON.parse(JSON.stringify(DB_CAREER_BASELINE)));}
 const BASE_ROSTER={};DRIVERS.forEach(d=>{(BASE_ROSTER[d.team]=BASE_ROSTER[d.team]||[])[d.slot]=d.code;});
 const BASE_PACE={};TEAM_KEYS.forEach(t=>BASE_PACE[t]=TEAMS[t].pace);
 const AGE={ALO:45,HAM:41,HUL:39,BOT:37,PER:36,SAI:32,OCO:30,GAS:30,VER:29,LEC:29,RUS:28,ALB:30,NOR:27,STR:28,PIA:25,COL:23,LAW:24,HAD:22,BOR:22,BEA:21,ANT:20,LIN:19};
@@ -77,24 +80,30 @@ for(const c in DB)if(DB[c].ageGame!=null&&AGE[c]==null)AGE[c]=DB[c].ageGame;
 const SISTER={RBR:"RCB",RCB:"RBR"};
 const PRIZE=[140,131,122,113,104,95,86,77,68,59,50];
 
-const slOk=code=>{const d=DB[code];if(!d)return false;if(d.held||d.simulatedLicenseApproved)return true;const r=d.sourceRecord;if(!r)return d.sl>=40;
+const slOk=(code,k)=>{const d=DB[code];if(!d)return false;if(code===GUSTAV_BURTON&&k&&k.burtonArc&&k.burtonArc.active)return true;if(d.held||d.simulatedLicenseApproved)return true;const r=d.sourceRecord;if(!r)return d.sl>=40;
   const minWait=Number(r.f1_min_wait_seasons_game)||0,minSkill=Number(r.f1_min_skill_game)||0;
   return d.sl>=40&&(d.developmentElapsed||0)>=minWait&&(d.skillRatingHundredths||0)>=minSkill*100;};
 const slTxt=code=>{const d=DB[code];return d.held?"Superlizenz vorhanden":`${d.sl} Punkte`+(d.sl>=40?" – reicht":" – zu wenig (40 nötig)");};
 function seatOf(k,code){for(const t of TEAM_KEYS)if(k.roster[t]&&k.roster[t].includes(code))return t;return null;}
 function drvName(code){return DB[code]?DB[code].name:code;}
-function initMgmt(k){const fresh=!k.roster;if(fresh){k.roster=JSON.parse(JSON.stringify(BASE_ROSTER));k.pace=Object.assign({},BASE_PACE);k.money={};k.tpoints={};k.pointLedger={schemaVersion:1,legacyDrivers:{},legacyConstructors:{},legacyStatus:"complete",events:[]};
+function initMgmt(k){const fresh=!k.roster;if(fresh){resetDriverPoolForNewCareer();k.roster=JSON.parse(JSON.stringify(BASE_ROSTER));k.pace=Object.assign({},BASE_PACE);k.money={};k.tpoints={};k.pointLedger={schemaVersion:1,legacyDrivers:{},legacyConstructors:{},legacyStatus:"complete",events:[]};
     k.season=k.season||1;k.year=k.year||2026;k.licLog=k.licLog||[];k.drep={};k.revert=[];k.mevents={};k.reqLog=[];
     for(const c in DB)k.drep[c]=clamp(Math.round(78-DB[c].skill*110),20,95);
-    k.drep.VER=96;k.drep.NOR=88;k.drep.LEC=88;k.drep.HAM=84;k.drep.ALO=82;k.drep.RUS=86;k.drep.PIA=86;k.drep.ANT=84;}
+    k.drep.VER=96;k.drep.NOR=88;k.drep.LEC=88;k.drep.HAM=84;k.drep.ALO=82;k.drep.RUS=86;k.drep.PIA=86;k.drep.ANT=84;
+    if(DB[GUSTAV_BURTON]&&Math.random()<0.72){const team=TEAM_KEYS.slice().sort((a,b)=>BASE_PACE[b]-BASE_PACE[a])[0],slots=k.roster[team]||[],slot=slots.map((code,i)=>({code,i,pace:DB[code]?.skill??1})).sort((a,b)=>b.pace-a.pace)[0];
+      if(slot){slots[slot.i]=GUSTAV_BURTON;k.burtonArc={active:true,driver:GUSTAV_BURTON,team,startedTeam:team,startedYear:k.year,stage:0,seasonStarts:0,seasonWins:0,moves:[],source:"alternate_career_simulation"};k.drep[GUSTAV_BURTON]=Math.max(k.drep[GUSTAV_BURTON]||0,72);}}
+  }
   k.contracts=k.contracts||{};k.transferHistory=k.transferHistory||[];k.relationships=k.relationships||{};
   for(const t of TEAM_KEYS)for(const c of k.roster[t]||[])if(c&&!k.contracts[c]){const d=DB[c]||{};k.contracts[c]={team:t,startYear:k.year||2026,endYear:d.contractEnd||null,salary:d.salary||0,releaseFee:d.releaseFee||0,basis:d.sourceRecord&&d.sourceRecord.contract_reported_status||"unknown",status:"active"};}
+  if(k.burtonArc?.active&&!k.burtonArc.debutLogged){const a=k.burtonArc;k.transferHistory.push({id:`${k.year||2026}:career_story:${GUSTAV_BURTON}`,year:k.year||2026,season:k.season||1,type:"career_story_debut",driver:GUSTAV_BURTON,from:null,to:a.team,status:"confirmed",reason:"alternate_career_simulation"});
+    marketEvent(k,"career_story_debut",GUSTAV_BURTON,a.team,`Alternative Karriere-Simulation: Gustav Burton bekommt bei ${TEAMS[a.team].name} eine Rookie-Chance. Seine F1-Laufbahn hier ist eine Spielgeschichte, keine Aussage über seine reale Lizenz oder Verpflichtung.` ,"confirmed");a.debutLogged=true;}
 }
 /* Kader in DRIVERS übernehmen (DRIVERS wird an Ort und Stelle neu gefüllt) */
 function applyRoster(k){if(!k)return;initMgmt(k);const sub=k.temp||{};
   TEAM_KEYS.forEach(t=>TEAMS[t].pace=k.pace[t]);
   const list=[];TEAM_KEYS.forEach((t,ti)=>(k.roster[t]||[]).forEach((code0,slot)=>{if(!code0)return;const code=sub[code0]||code0,d=DB[code];if(!d)return;
-    list.push({code,name:d.name,num:d.num,team:t,ti,slot,color:TEAMS[t].color,perf:TEAMS[t].pace+d.skill,style:d.style==null?0.5:d.style});}));
+    const mate=(k.roster[t]||[]).find(other=>other&&other!==code),storyPace=code===GUSTAV_BURTON&&k.burtonArc?.active&&k.burtonArc.team===t&&DB[mate]?Math.min(d.skill,DB[mate].skill-0.025):d.skill;
+    list.push({code,name:d.name,num:d.num,team:t,ti,slot,color:TEAMS[t].color,perf:TEAMS[t].pace+storyPace,style:d.style==null?0.5:d.style});}));
   DRIVERS.length=0;list.forEach(x=>DRIVERS.push(x));}
 function curAbs(k){const key=k.cal[Math.min(k.round,k.cal.length-1)];return (k.season-1)*CALENDAR.length+Math.max(0,CALENDAR.indexOf(key));}
 function licSum(k,code){const now=curAbs(k);return k.licLog.filter(e=>e.c===code&&!e.void&&now-e.abs<CALENDAR.length).reduce((a,e)=>a+e.n,0);}
@@ -107,13 +116,15 @@ function mgmtRaceDone(cl,k){if(!k||!k.roster)return;const exp=cl.slice().sort((a
     const key=`${code}:${team}`,rel=k.relationships[key]||{teamInterest:DB[code]&&DB[code].home===team?68:50,driverInterest:DB[code]&&DB[code].home===team?65:50};
     const resultDelta=clamp((e-pos)*0.35+(c.dsq?-3:0),-4,4);rel.teamInterest=clamp(rel.teamInterest+resultDelta,0,100);rel.driverInterest=clamp(rel.driverInterest+clamp(resultDelta*0.65,-3,3),0,100);rel.updatedRound=k.round||0;k.relationships[key]=rel;
     k.tpoints[c.drv.team]=k.tpoints[c.drv.team]||0;});
+  const arc=k.burtonArc;if(arc?.active){const gus=cl.find(c=>c.drv.code===GUSTAV_BURTON),mate=gus&&cl.find(c=>c!==gus&&c.drv.team===gus.drv.team);if(gus&&mate){arc.seasonStarts=(arc.seasonStarts||0)+1;
+      if(gus.finished&&!gus.dsq&&(!mate.finished||mate.dsq||cl.indexOf(gus)<cl.indexOf(mate)))arc.seasonWins=(arc.seasonWins||0)+1;}}
   TEAM_KEYS.forEach(t=>{const ms=cl.filter(c=>c.drv.team===t);if(ms.length===2){const[a,b]=ms,ia=cl.indexOf(a),ib=cl.indexOf(b);const w=ia<ib?a:b,l=ia<ib?b:a;k.drep[w.drv.code]+=0.6;k.drep[l.drv.code]-=0.6;}});
   updateMarketIntel(k,cl);const panel=typeof document!=="undefined"&&document.getElementById("driverMarketPanel");if(panel&&panel.classList.contains("open"))renderDriverMarket();}
 
 /* ---- Anträge an die Rennleitung ---- */
 function checkReq(k,r){const inn=r.inn;
   if(k.banNow&&k.banNow.includes(inn))return {ok:false,why:`${drvName(inn)} ist für dieses Rennen gesperrt (12 Strafpunkte) – er darf auch nicht als Ersatz fahren.`};
-  if(!slOk(inn))return {ok:false,why:`${drvName(inn)} hat keine Superlizenz: ${slTxt(inn)}. Ohne 40 Punkte in drei Jahren darf er kein Rennen fahren.`};
+  if(!slOk(inn,k))return {ok:false,why:`${drvName(inn)} hat keine Superlizenz: ${slTxt(inn)}. Ohne 40 Punkte in drei Jahren darf er kein Rennen fahren.`};
   const s=seatOf(k,inn);
   if(s&&s!==r.team&&r.release===s)return {ok:true,why:`${drvName(inn)} ist bei ${TEAMS[s].name} unter Vertrag, die Freigabe liegt vor – Wechsel zulässig (Superlizenz: ${slTxt(inn)}).`};
   if(s&&s!==r.team&&!(r.type==="swap"&&SISTER[r.team]===s))return {ok:false,why:`${drvName(inn)} hat einen laufenden Stammvertrag bei ${TEAMS[s].name}. Ein Wechsel ist nur mit Freigabe beider Teams und als Tausch möglich.`};
@@ -152,7 +163,7 @@ function registerGeneratedDriver(row){const code=row.driver_id;if(DB[code])retur
   DRIVER_CODE_BY_ID[code]=code;AGE[code]=DB[code].ageGame;AGG[code]=0.55;WETSTYLE[code]=0.5;return code;}
 function generateNextGeneration(k){
   const year=Number(k.year)||2026;k.generationProcessedYears=k.generationProcessedYears||[];if(k.generationProcessedYears.includes(year))return;
-  k.generatedDrivers=k.generatedDrivers||[];const free=candidates(k,"MER",[]).filter(slOk).length,youth=Object.keys(DB).filter(c=>{const age=DB[c].ageGame||AGE[c]||25;return age<25&&slOk(c)&&!retiredRecord(k,c);}).length;
+  k.generatedDrivers=k.generatedDrivers||[];const free=candidates(k,"MER",[]).filter(c=>slOk(c,k)).length,youth=Object.keys(DB).filter(c=>{const age=DB[c].ageGame||AGE[c]||25;return age<25&&slOk(c,k)&&!retiredRecord(k,c);}).length;
   if(free<20||youth<25){const names=["Mika","Luca","Noah","Theo","Enzo","Alex","Rafael","Oliver","Elias","Kai","Leo","Matteo","Finn","Nico","Arvid","Sam","Jules","Robin","Ibrahim","Daniel"],surnames=["Andersson","Moreau","Rossi","Silva","Novak","Weber","Costa","Tanaka","Meyer","Petrov","Dubois","Khan","Walsh","Lind","Garcia","Bianchi","Fischer","Sato","Müller","Olsen"],nations=["SWE","FRA","ITA","BRA","AUT","DEU","PRT","JPN","CHE","CZE","ESP","GBR","DNK","NOR","NLD","USA"],academies=["RBR","FER","MCL","MER","ALP","AMR","WIL","AUD","CAD","HAA","RCB"];
     const existing=new Set(k.generatedDrivers.map(d=>d.driver_id));for(let i=0;i<3;i++){let seq=1;while(existing.has(`GEN${year}${String(seq).padStart(2,"0")}`))seq++;const id=`GEN${year}${String(seq).padStart(2,"0")}`;existing.add(id);
       const skill=56+Math.floor(Math.random()*14),potential=Math.min(94,skill+15+Math.floor(Math.random()*12)),age=16+Math.floor(Math.random()*5),team=academies[Math.floor(Math.random()*academies.length)],idx=Math.floor(Math.random()*names.length);
@@ -164,7 +175,7 @@ function generateNextGeneration(k){
 }
 function candidates(k,team,excl){const free=Object.keys(DB).filter(c=>{const rr=retiredRecord(k,c),eligibleComeback=rr&&(Number(k.year||2026)-Number(rr.year||2026)>=3)&&(DB[c].ageGame||0)<44;
     return !seatOf(k,c)&&!(excl||[]).includes(c)&&!(k.banNow||[]).includes(c)&&(!(k.retired||[]).includes(c)||eligibleComeback)&&(!rr||eligibleComeback);});
-  const w=c=>{const d=DB[c];return (d.home===team?0:d.home===PARTNER[team]?1:2)*100+(slOk(c)?0:50)-k.drep[c]*0.3;};
+  const w=c=>{const d=DB[c];return (d.home===team?0:d.home===PARTNER[team]?1:2)*100+(slOk(c,k)?0:50)-k.drep[c]*0.3;};
   return free.sort((a,b)=>w(a)-w(b));}
 /* Teams machen manchmal Fehler im Antrag – die Rennleitung muss es merken */
 function proposal(k,team,excl){const cs=candidates(k,team,excl).filter(slOk);return cs[0]||null;}
@@ -292,7 +303,7 @@ function updateMarketIntel(k,classification=[]){
     const contract=weak&&k.contracts&&k.contracts[weak],due=contract&&contract.endYear&&contract.endYear<=(k.year||2026)+1;
     const performance=classification.filter(c=>c.drv.team===t).reduce((a,c)=>a+(c.finished&&!c.dsq?Math.max(0,21-classification.indexOf(c)):0),0);
     const urgency=due?"renew_or_replace":!mate||!weak?"open_seat":(k.drep[weak]||50)<42?"performance_review":"monitor";
-    const options=Object.keys(DB).filter(c=>!seatOf(k,c)&&!(k.retired||[]).includes(c)&&!(k.banNow||[]).includes(c)&&slOk(c))
+    const options=Object.keys(DB).filter(c=>!seatOf(k,c)&&!(k.retired||[]).includes(c)&&!(k.banNow||[]).includes(c)&&slOk(c,k))
       .map(c=>({driver:c,score:mkTeamPref(k,t,c)+(DB[c].academy===t?7:0),license:true})).sort((a,b)=>b.score-a.score).slice(0,5);
     k.teamPlans[t]={updatedYear:k.year||2026,updatedRound:k.round||0,urgency,targets:options,performanceSignal:performance,
       confidence:clamp(Math.round(48+(due?25:0)+Math.max(0,55-(k.drep[weak]||50))*0.7),10,95)};
@@ -317,30 +328,46 @@ function updateMarketIntel(k,classification=[]){
   k.marketPlan={year:(k.year||2026)+1,items:forecast};
 }
 function mkInterests(k){const ord=teamOrder(k),iv=[],seen=new Set();let id=0;
-  const add=(t,c,kind,out,why)=>{const key=t+c;if(seen.has(key)||!c||!slOk(c))return;seen.add(key);const from=seatOf(k,c);
+  const add=(t,c,kind,out,why)=>{const key=t+c;if(seen.has(key)||!c||!slOk(c,k))return;seen.add(key);const from=seatOf(k,c);
     const release=from&&from!==t?(Math.random()<0.6||SISTER[t]===from):true;
     iv.push({id:id++,team:t,drv:c,kind,out:out||null,from:from&&from!==t?from:null,release,why,int:clamp(Math.round(mkTeamPref(k,t,c)),5,99)});};
   TEAM_KEYS.forEach(t=>{const open=k.roster[t].filter(c=>c===null).length;
     if(open){const cs=candidates(k,t,[]).slice(0,3);cs.forEach(c=>add(t,c,"frei",null,"freies Cockpit"));
-      if(Math.random()<0.25){const bad=Object.keys(DB).find(c=>!seatOf(k,c)&&!slOk(c)&&(DB[c].home===t||DB[c].home===PARTNER[t]));if(bad)add(t,bad,"frei",null,"freies Cockpit (Junior)");}}
+      if(Math.random()<0.25){const bad=Object.keys(DB).find(c=>!seatOf(k,c)&&!slOk(c,k)&&(DB[c].home===t||DB[c].home===PARTNER[t]));if(bad)add(t,bad,"frei",null,"freies Cockpit (Junior)");}}
     const i=ord.indexOf(t),[a,b]=k.roster[t];
     if(a&&b){const lo=(k.drep[a]||50)<(k.drep[b]||50)?a:b;
-      const stars=TEAM_KEYS.filter(x=>ord.indexOf(x)>i).flatMap(x=>k.roster[x].filter(Boolean)).filter(c=>(k.drep[c]||50)>(k.drep[lo]||50)+8).sort((p,q)=>(k.drep[q]||50)-(k.drep[p]||50)).slice(0,i<5?2:1);
+    const stars=TEAM_KEYS.filter(x=>ord.indexOf(x)>i).flatMap(x=>k.roster[x].filter(Boolean)).filter(c=>(!k.burtonArc?.active||c!==GUSTAV_BURTON)&&(k.drep[c]||50)>(k.drep[lo]||50)+8).sort((p,q)=>(k.drep[q]||50)-(k.drep[p]||50)).slice(0,i<5?2:1);
       for(const st of stars)if(Math.random()<(i<5?0.5:0.22))add(t,st,"wechsel",lo,`Upgrade statt ${drvName(lo)}`);}});
   return iv;}
 function transferFeeMillions(k,code){const ct=k.contracts&&k.contracts[code],end=Number(ct&&ct.endYear||0);if(!end||end<(k.year||2026)+1)return 0;const amount=Number(ct&&ct.releaseFee||DB[code]&&DB[code].releaseFee)||0;return amount>1000?amount/1e6:amount;}
 function mkValid(k,iv){const c=iv.drv;
   if(k.banNow&&k.banNow.includes(c))return {ok:false,why:`${drvName(c)} ist gesperrt.`};
-  if(!slOk(c))return {ok:false,why:`${drvName(c)} hat keine Superlizenz (${slTxt(c)}).`};
+  if(!slOk(c,k))return {ok:false,why:`${drvName(c)} hat keine Superlizenz (${slTxt(c)}).`};
   if(seatOf(k,c)!==null&&iv.team===seatOf(k,c))return {ok:false,why:`${drvName(c)} ist bereits für ${TEAMS[iv.team].name} registriert.`};
   const fee=transferFeeMillions(k,c),budget=Number(k.money&&k.money[iv.team])||160,payroll=teamPayroll(k,iv.team,iv.out||null),salary=annualSalaryMillions(c);
   if(payroll+salary+fee>budget*0.8)return {ok:false,why:`${TEAMS[iv.team].name} kann Vertrag und Gehalt von ${drvName(c)} mit dem verfügbaren Transferbudget nicht finanzieren.`};
   return {ok:true,why:iv.from?`Vertrag wird im Transferfenster durch eine gegenseitige Vereinbarung abgelöst.`:`Vertragsfrei und für den Einsatz zugelassen.`};}
+function progressGustavBurtonCareer(k){const a=k.burtonArc;if(!a?.active)return;const year=k.year||2026;if(a.lastAdvanceYear===year)return;a.lastAdvanceYear=year;
+  const starts=a.seasonStarts||0,wins=a.seasonWins||0,needed=Math.min(6,Math.max(4,Math.ceil((k.cal||[]).length*0.35))),dominant=starts>=needed&&wins/Math.max(1,starts)>=0.55;
+  a.seasonStarts=0;a.seasonWins=0;if(!dominant)return;
+  const ranking=TEAM_KEYS.slice().sort((x,y)=>(Number(k.pace?.[y]??BASE_PACE[y])||0)-(Number(k.pace?.[x]??BASE_PACE[x])||0)),at=ranking.indexOf(a.team);
+  if(at<=0){a.titleContender=true;marketEvent(k,"career_story_contender",GUSTAV_BURTON,a.team,`Nach seinem schrittweisen Aufstieg ist Gustav Burton jetzt bei ${TEAMS[a.team].name} ein möglicher Titelkandidat. Ein WM-Titel bleibt offen und hängt von den Saisonergebnissen ab.`,"confirmed");return;}
+  const to=ranking[at-1],from=a.team,fromSlot=(k.roster[from]||[]).indexOf(GUSTAV_BURTON),lineup=k.roster[to]||[];
+  if(fromSlot<0||!lineup.length)return;
+  const target=lineup.map((code,i)=>({code,i,rep:k.drep[code]||50})).filter(x=>x.code).sort((x,y)=>x.rep-y.rep)[0];if(!target)return;
+  k.roster[from][fromSlot]=target.code;k.roster[to][target.i]=GUSTAV_BURTON;
+  k.contracts=k.contracts||{};const gus=DB[GUSTAV_BURTON]||{},other=DB[target.code]||{};
+  k.contracts[GUSTAV_BURTON]={team:to,startYear:year+1,endYear:year+2,salary:gus.salary||0,releaseFee:gus.releaseFee||0,basis:"alternate_career_simulation",status:"active"};
+  k.contracts[target.code]={team:from,startYear:year+1,endYear:year+2,salary:other.salary||0,releaseFee:other.releaseFee||0,basis:"simulated_driver_exchange",status:"active"};
+  a.moves=a.moves||[];a.moves.push({year:year+1,from,to,teammateWinRate:wins/starts});a.team=to;a.stage=(a.stage||0)+1;
+  k.transferHistory=k.transferHistory||[];k.transferHistory.push({id:`${year+1}:career_story:${GUSTAV_BURTON}:${to}`,year:year+1,season:(k.season||1)+1,type:"career_story_promotion",driver:GUSTAV_BURTON,from,to,status:"confirmed",reason:`beat teammate in ${Math.round(wins/starts*100)}% of starts`});
+  marketEvent(k,"career_story_promotion",GUSTAV_BURTON,to,`Gustav Burton gewinnt ${Math.round(wins/starts*100)}% seiner Teamduelle bei ${TEAMS[from].name} und steigt eine Stufe auf: ${TEAMS[from].name} → ${TEAMS[to].name}.`,"confirmed");
+}
 function autonomousDriverExchange(k){
   const windowId=`${k.season||1}:${k.year||2026}`;k.exchangeWindows=k.exchangeWindows||[];if(k.exchangeWindows.includes(windowId))return false;k.exchangeWindows.push(windowId);
   if(Math.random()>0.12)return false;ensureMarketPersonalities(k);const teams=shuffle(TEAM_KEYS.filter(t=>t!=="RBR"&&t!=="RCB"));
   for(let ai=0;ai<teams.length;ai++)for(let bi=ai+1;bi<teams.length;bi++){const a=teams[ai],b=teams[bi];for(const ca of (k.roster[a]||[]))for(const cb of (k.roster[b]||[])){
-    if(!ca||!cb||!slOk(ca)||!slOk(cb)||k.banNow?.includes(ca)||k.banNow?.includes(cb))continue;
+    if(!ca||!cb||!slOk(ca,k)||!slOk(cb,k)||k.banNow?.includes(ca)||k.banNow?.includes(cb)||(k.burtonArc?.active&&(ca===GUSTAV_BURTON||cb===GUSTAV_BURTON)))continue;
     const teamA=mkTeamPref(k,a,cb)-mkTeamPref(k,a,ca),teamB=mkTeamPref(k,b,ca)-mkTeamPref(k,b,cb),driverA=mkDrvPref(k,ca,b)-mkDrvPref(k,ca,a),driverB=mkDrvPref(k,cb,a)-mkDrvPref(k,cb,b);
     if(teamA<0.5||teamB<0.5||driverA<0.15||driverB<0.15)continue;
     const feeA=transferFeeMillions(k,cb),feeB=transferFeeMillions(k,ca),payA=teamPayroll(k,a,ca)+annualSalaryMillions(cb)+feeA,payB=teamPayroll(k,b,cb)+annualSalaryMillions(ca)+feeB;
@@ -358,6 +385,7 @@ function autonomousMarket(k,notes,fin){
   const windowId=`${k.season||1}:${k.year||2026}`;k.processedTransferWindows=k.processedTransferWindows||[];
   if(k.processedTransferWindows.includes(windowId)){fin();return;}
   updateTeamMarketReputation(k);
+  progressGustavBurtonCareer(k);
   autonomousDriverExchange(k);
   const iv=mkInterests(k),dec=Object.fromEntries(iv.map(x=>[x.id,true]));
   k.marketPlan={year:(k.year||2026)+1,items:iv.map(x=>({team:x.team,driver:x.drv,interest:x.int,
@@ -368,7 +396,7 @@ function autonomousMarket(k,notes,fin){
 }
 function fillVacancies(k,log=[]){
   k.contracts=k.contracts||{};k.transferHistory=k.transferHistory||[];
-  for(const t of TEAM_KEYS){let slot;while((slot=(k.roster[t]||[]).indexOf(null))>=0){const cap=(Number(k.money&&k.money[t])||160)*0.8,candidate=candidates(k,t,[]).find(c=>slOk(c)&&teamPayroll(k,t)+annualSalaryMillions(c)<=cap);if(!candidate){log.push({r:99,t:`${TEAMS[t].name}: Kein lizenzierter und finanzierbarer Fahrer verfügbar; Cockpit bleibt kontrolliert frei.`,c:"mid"});break;}
+  for(const t of TEAM_KEYS){let slot;while((slot=(k.roster[t]||[]).indexOf(null))>=0){const cap=(Number(k.money&&k.money[t])||160)*0.8,candidate=candidates(k,t,[]).find(c=>slOk(c,k)&&teamPayroll(k,t)+annualSalaryMillions(c)<=cap);if(!candidate){log.push({r:99,t:`${TEAMS[t].name}: Kein lizenzierter und finanzierbarer Fahrer verfügbar; Cockpit bleibt kontrolliert frei.`,c:"mid"});break;}
       const retired=retiredRecord(k,candidate),from=seatOf(k,candidate),d=DB[candidate]||{};k.roster[t][slot]=candidate;
       if(retired){k.retired=k.retired.filter(x=>x!==retired);log.push({r:99,t:`${drvName(candidate)} kehrt nach mindestens drei Jahren Pause zurück und unterschreibt bei ${TEAMS[t].name}.`,c:"ok"});}
       else log.push({r:99,t:`${drvName(candidate)} übernimmt als zulässige Notverpflichtung ein freies Cockpit bei ${TEAMS[t].name}.`,c:"ok"});
@@ -468,14 +496,14 @@ function renderDriverMarket(){const k=marketCareer(),nav=document.getElementById
     const rel=k&&k.relationships||{};
     body.innerHTML=`<p class="hint">Teaminteresse und Fahrerinteresse werden getrennt gespeichert (0–100). Der Verlauf hält die letzten zwölf bewerteten Rennwochenenden fest.</p><table class="res"><tr><th>Fahrer</th><th>Team</th><th>Teaminteresse</th><th>Fahrerinteresse</th><th>Trend</th></tr>${Object.entries(rel).slice(0,250).map(([key,v])=>{const [c,t]=key.split(":"),h=v.history||[],first=h[0],last=h[h.length-1],trend=first&&last?`${last.driverInterest-first.driverInterest>=0?"+":""}${Math.round(last.driverInterest-first.driverInterest)} Fahrer`+` · ${last.teamInterest-first.teamInterest>=0?"+":""}${Math.round(last.teamInterest-first.teamInterest)} Team`:"–";return `<tr><td>${marketText(DB[c]?.name||c)}</td><td>${marketText(TEAMS[t]?.name||t)}</td><td>${v.teamInterest??"–"}/100</td><td>${v.driverInterest??"–"}/100</td><td>${marketText(trend)}</td></tr>`;}).join("")||'<tr><td colspan="5" class="hint">Beziehungsdaten werden im nächsten Transferzyklus aufgebaut.</td></tr>'}</table>`;
   }else if(MARKET_TAB==="Driver Database"){
-    const all=Object.values(DB),selected=all.find(d=>d.code===MARKET_PROFILE)||null,career=k||{},tiers=[...new Set(all.map(d=>d.sourceRecord?.development_tier_game).filter(Boolean))].sort(),nations=[...new Set(all.map(d=>d.nationality||d.sourceRecord?.nationality_ioc).filter(Boolean))].sort(),academies=[...new Set(all.map(d=>d.academy).filter(Boolean))].sort();
+    const all=Object.values(DB).sort((a,b)=>a.code===GUSTAV_BURTON?-1:b.code===GUSTAV_BURTON?1:0),selected=all.find(d=>d.code===MARKET_PROFILE)||null,career=k||{},tiers=[...new Set(all.map(d=>d.sourceRecord?.development_tier_game).filter(Boolean))].sort(),nations=[...new Set(all.map(d=>d.nationality||d.sourceRecord?.nationality_ioc).filter(Boolean))].sort(),academies=[...new Set(all.map(d=>d.academy).filter(Boolean))].sort();
     const filterSelect=(id,label,value,options)=>`<label class="market-filter">${label}<select id="${id}"><option value="all">Alle</option>${options.map(x=>`<option value="${marketText(x)}" ${value===x?"selected":""}>${marketText(x)}</option>`).join("")}</select></label>`;
     const rows=all.filter(d=>{const r=d.sourceRecord||{},age=Number(d.ageGame??AGE[d.code]??0),skill=Number(d.skillRatingHundredths??d.initialSkillRating*100??0)/100,potential=Number(d.potentialHundredths||0)/100,rep=Number(r.reputation_game||career.drep&&career.drep[d.code]||0),held=d.held||Number(d.sl||0)>=40,contract=career.contracts&&career.contracts[d.code],seat=seatOf(career,d.code),available=!seat&&!(career.banNow||[]).includes(d.code)&&!(career.retired||[]).some(x=>x===d.code||x&&x.code===d.code);
       const q=normDriverName(MARKET_QUERY),match=!q||normDriverName(`${d.name} ${d.code} ${d.nationality||""} ${d.academy||""}`).includes(q);
-      const contracted=!!contract||!!d.contractEnd;return match&&(MARKET_TIER==="all"||r.development_tier_game===MARKET_TIER)&&(MARKET_NATION==="all"||(d.nationality||r.nationality_ioc)===MARKET_NATION)&&(MARKET_LICENSE==="all"||(MARKET_LICENSE==="eligible"?slOk(d.code):!slOk(d.code)))&&(MARKET_AVAILABLE==="all"||(MARKET_AVAILABLE==="available"?available:!available))&&(!MARKET_AGE||age>=Number(MARKET_AGE))&&(!MARKET_SKILL||skill>=Number(MARKET_SKILL))&&(!MARKET_POTENTIAL||potential>=Number(MARKET_POTENTIAL))&&(!MARKET_REPUTATION||rep>=Number(MARKET_REPUTATION))&&(MARKET_ACADEMY==="all"||d.academy===MARKET_ACADEMY)&&(MARKET_CONTRACT==="all"||(MARKET_CONTRACT==="signed"?contracted:!contracted));}).slice(0,240);
+      const contracted=!!contract||!!d.contractEnd;return match&&(MARKET_TIER==="all"||r.development_tier_game===MARKET_TIER)&&(MARKET_NATION==="all"||(d.nationality||r.nationality_ioc)===MARKET_NATION)&&(MARKET_LICENSE==="all"||(MARKET_LICENSE==="eligible"?slOk(d.code,career):!slOk(d.code,career)))&&(MARKET_AVAILABLE==="all"||(MARKET_AVAILABLE==="available"?available:!available))&&(!MARKET_AGE||age>=Number(MARKET_AGE))&&(!MARKET_SKILL||skill>=Number(MARKET_SKILL))&&(!MARKET_POTENTIAL||potential>=Number(MARKET_POTENTIAL))&&(!MARKET_REPUTATION||rep>=Number(MARKET_REPUTATION))&&(MARKET_ACADEMY==="all"||d.academy===MARKET_ACADEMY)&&(MARKET_CONTRACT==="all"||(MARKET_CONTRACT==="signed"?contracted:!contracted));}).slice(0,240);
     const profile=selected?(()=>{const r=selected.sourceRecord||{},contract=career.contracts&&career.contracts[selected.code],seat=seatOf(career,selected.code),rels=Object.entries(career.relationships||{}).filter(([key])=>key.startsWith(`${selected.code}:`)),hist=(career.transferHistory||[]).filter(e=>e.driver===selected.code).slice(-8).reverse(),interest=(career.marketPlan?.items||[]).filter(x=>x.driver===selected.code);return `<section class="market-profile"><h4>${marketText(selected.name)} · ${marketText(selected.id||selected.code)}</h4><div class="hint">${marketText(r.development_tier_game||selected.role)} · ${marketText(selected.nationality||"Nationalität unbekannt")} · Alter ${marketText(selected.ageGame??"unbekannt")}</div><div class="market-profile-grid"><span>Aktuelles Team: <b>${marketText(seat?TEAMS[seat]?.name:"Kein Cockpit")}</b></span><span>Skill / Potential: <b>${Number(selected.skillRatingHundredths||0)/100} / ${Number(selected.potentialHundredths||0)/100}</b></span><span>Karriere: <b>${marketText(selected.role||"unbekannt")}</b></span><span>Vertrag: <b>${contract?`${marketText(contract.status)} bis ${marketText(contract.endYear||"offen")}`:"kein aktiver Simulationsvertrag"}</b></span><span>Lizenz: <b>${marketText(selected.licenseEvidence||selected.note||"unbekannt")}</b></span><span>Ambition/Verfügbarkeit: <b>${marketText(r.transfer_availability_game||"unbekannt")}</b></span><span>Akademie: <b>${marketText(selected.academy||"keine Zuordnung")}</b></span><span>Frühester F1-Einstieg: <b>${marketText(r.f1_earliest_projected_season_game||"nicht prognostiziert")}</b></span><span>Interessierte Teams: <b>${marketText(interest.map(x=>TEAMS[x.team]?.name||x.team).join(", ")||"keine gespeicherte Shortlist")}</b></span></div><p class="hint">Entwicklung: ${marketText(selected.licenseSource||r.development_model_basis_game||"Quelldaten")}; Datenstatus: ${marketText(r.bio_status||"game estimate")}</p><b>Teambeziehungen</b>${rels.map(([key,v])=>`<div class="hint">${marketText(TEAMS[key.split(":")[1]]?.name||key.split(":")[1])}: Team ${v.teamInterest??"–"}/100 · Fahrer ${v.driverInterest??"–"}/100</div>`).join("")||'<div class="hint">Noch keine individuelle Beziehung gespeichert.</div>'}<b>Transferhistorie</b>${hist.map(e=>`<div class="hint">${marketText(e.year)} · ${marketText(e.type)} · ${marketText(e.from?TEAMS[e.from]?.name:"frei")} → ${marketText(e.to?TEAMS[e.to]?.name:"Karriereende")}</div>`).join("")||'<div class="hint">Keine Einträge.</div>'}</section>`;})():"<p class='hint'>Fahrer auswählen, um das gespeicherte Profil zu öffnen.</p>";
     const nums=[["marketAge","Alter ab",MARKET_AGE],["marketSkill","Skill ab",MARKET_SKILL],["marketPotential","Potential ab",MARKET_POTENTIAL],["marketRep","Reputation ab",MARKET_REPUTATION]].map(([id,l,v])=>`<label class="market-filter">${l}<input id="${id}" type="number" min="0" max="100" value="${marketText(v)}"></label>`).join("");
-    body.innerHTML=`<input id="marketSearch" value="${marketText(MARKET_QUERY)}" placeholder="Name, Code, Nationalität, Akademie" style="width:min(360px,90%);padding:7px;background:#1b222b;border:1px solid #3a4452;border-radius:6px"><div class="market-filters">${filterSelect("marketTier","Serie",MARKET_TIER,tiers)}${filterSelect("marketNation","Nationalität",MARKET_NATION,nations)}${filterSelect("marketLicense","Lizenz",MARKET_LICENSE,["eligible","ineligible"])}${filterSelect("marketAvailable","Verfügbarkeit",MARKET_AVAILABLE,["available","unavailable"])}${filterSelect("marketAcademy","Akademie",MARKET_ACADEMY,academies)}${filterSelect("marketContract","Vertrag",MARKET_CONTRACT,["signed","unsigned"])}${nums}</div><p class="hint">${all.length} Profile · ${rows.length} Treffer angezeigt (max. 240)</p>${profile}<table class="res"><tr><th>Fahrer</th><th>Serie</th><th>Alter</th><th>Skill</th><th>Potential</th><th>Nation</th><th>Lizenz</th></tr>${rows.map(d=>`<tr data-driver="${marketText(d.code)}" style="cursor:pointer"><td>${marketText(d.name)} <small>${marketText(d.id||d.code)}</small></td><td>${marketText(d.sourceRecord?.development_tier_game||d.role)}</td><td>${marketText(d.ageGame??"–")}</td><td>${Number(d.skillRatingHundredths||0)/100||"–"}</td><td>${Number(d.potentialHundredths||0)/100||"–"}</td><td>${marketText(d.nationality||"–")}</td><td>${d.held||d.sl>=40?"zulässig":"offen"}</td></tr>`).join("")}</table>`;
+    body.innerHTML=`<input id="marketSearch" value="${marketText(MARKET_QUERY)}" placeholder="Name, Code, Nationalität, Akademie" style="width:min(360px,90%);padding:7px;background:#1b222b;border:1px solid #3a4452;border-radius:6px"><div class="market-filters">${filterSelect("marketTier","Serie",MARKET_TIER,tiers)}${filterSelect("marketNation","Nationalität",MARKET_NATION,nations)}${filterSelect("marketLicense","Lizenz",MARKET_LICENSE,["eligible","ineligible"])}${filterSelect("marketAvailable","Verfügbarkeit",MARKET_AVAILABLE,["available","unavailable"])}${filterSelect("marketAcademy","Akademie",MARKET_ACADEMY,academies)}${filterSelect("marketContract","Vertrag",MARKET_CONTRACT,["signed","unsigned"])}${nums}</div><p class="hint">${all.length} Profile · ${rows.length} Treffer angezeigt (max. 240)</p>${profile}<table class="res"><tr><th>Fahrer</th><th>Serie</th><th>Alter</th><th>Skill</th><th>Potential</th><th>Nation</th><th>Lizenz</th></tr>${rows.map(d=>`<tr data-driver="${marketText(d.code)}" style="cursor:pointer"><td>${marketText(d.name)} <small>${marketText(d.id||d.code)}</small>${d.code===GUSTAV_BURTON?`<small style="display:block;color:#8fc4ff">${career.burtonArc?.active?`Karrierepfad aktiv · Start bei ${marketText(TEAMS[career.burtonArc.startedTeam]?.name||"Nachwuchsteam")}`:"Karriereprospekt"}</small>`:""}</td><td>${marketText(d.sourceRecord?.development_tier_game||d.role)}</td><td>${marketText(d.ageGame??"–")}</td><td>${Number(d.skillRatingHundredths||0)/100||"–"}</td><td>${Number(d.potentialHundredths||0)/100||"–"}</td><td>${marketText(d.nationality||"–")}</td><td>${slOk(d.code,career)?"zulässig":"offen"}</td></tr>`).join("")}</table>`;
     body.querySelector("#marketSearch").oninput=e=>{MARKET_QUERY=e.target.value;renderDriverMarket();const q=body.querySelector("#marketSearch");q.focus();q.setSelectionRange(q.value.length,q.value.length);};
     [["marketTier",v=>MARKET_TIER=v],["marketNation",v=>MARKET_NATION=v],["marketLicense",v=>MARKET_LICENSE=v],["marketAvailable",v=>MARKET_AVAILABLE=v],["marketAcademy",v=>MARKET_ACADEMY=v],["marketContract",v=>MARKET_CONTRACT=v],["marketAge",v=>MARKET_AGE=v],["marketSkill",v=>MARKET_SKILL=v],["marketPotential",v=>MARKET_POTENTIAL=v],["marketRep",v=>MARKET_REPUTATION=v]].forEach(([id,set])=>body.querySelector(`#${id}`).onchange=e=>{set(e.target.value);renderDriverMarket();});
     body.querySelectorAll("[data-driver]").forEach(row=>row.onclick=()=>{MARKET_PROFILE=row.dataset.driver;renderDriverMarket();});
