@@ -336,11 +336,11 @@ function cycleSector(i){S.sec[i]=(S.sec[i]+1)%3;
 function allGreen(){S.sec=[0,0,0];addLog("ALLE SEKTOREN GRÜN","good");uiFlags();}
 function redRace(){for(const c of S.cars){if(c.removed||c.crash||c.finished||c.mode==="garage"||c.mode==="grid")continue;
   if(c.pit){if(c.pit.ph==="exit"&&c.pos<PIT_OUT_S-10)c.stopAt=absAhead(c,PIT_OUT_S-6);}else{c.wantPit=true;c.pitGoal="queue";}}}
-function setNeutral(act){const m=S.flag.mode,race=S.type==="race";
+function setNeutral(act){const m=S.flag.mode,race=S.type==="race",testRun=!!W.preseasonTestState&&S.type!=="race"&&S.started&&!S.chequered;
   if(act==="vsc"&&m==="green"){S.flag.mode="vsc";addLog("VIRTUAL SAFETY CAR DEPLOYED","flag");if(S.leader)radio(S.leader,"VSC, VSC. Delta positiv halten.",true,true);
     if(race&&S.phase==="racing"&&Math.random()<0.6){const cs=S.cars.filter(c=>c.mode==="race"&&!c.pit&&!c.removed&&!c.finished);if(cs.length)S.vscV={c:pick(cs),t:0,bad:Math.random()<0.55};}}
   else if(act==="vscEnd"&&m==="vsc"){S.flag.mode="green";addLog("VSC ENDING – GREEN FLAG","good");}
-  else if(act==="sc"&&race&&S.phase==="racing"&&(m==="green"||m==="vsc")){S.flag.mode="sc";S.sc={on:false,wait:0,inLap:false,s:0,pos:0,lat:0,v:0};S.restart=false;addLog("SAFETY CAR – wird auf die Strecke geschickt","flag");if(S.leader)radio(S.leader,"Safety Car, Safety Car. Delta halten, nicht überholen.",true,true);}
+  else if(act==="sc"&&((race&&S.phase==="racing")||testRun)&&(m==="green"||m==="vsc")){S.flag.mode="sc";S.sc={on:false,wait:0,inLap:false,s:0,pos:0,lat:0,v:0};S.restart=false;addLog("SAFETY CAR – wird auf die Strecke geschickt","flag");if(S.leader)radio(S.leader,"Safety Car, Safety Car. Delta halten, nicht überholen.",true,true);}
   else if(act==="scIn"&&m==="sc"&&!S.restart){ if(S.sc&&S.sc.on){S.sc.inLap=true;addLog("SAFETY CAR IN THIS LAP","flag");} else{S.sc=null;S.flag.mode="green";addLog("SAFETY CAR abbestellt – GREEN FLAG","good");} }
   else if(act==="red"&&m!=="red"&&(S.started||race)){S.flag.mode="red";if(race&&S.phase==="racing"){S.redOrder=S.cars.filter(c=>!c.removed&&!c.retired&&!c.crash&&!c.finished).sort((a,b)=>b.s-a.s);
       S.redSnap={atRed:S.redOrder.slice(),lastLap:S.redOrder.slice().sort((a,b)=>((b.lineLap||0)-(a.lineLap||0))||((a.lineT||0)-(b.lineT||0)))};S.redOrderSet=false;S.rsPending=false;}S.sc=null;S.restart=false;addLog("RED FLAG – Session unterbrochen","bad");if(S.leader)radio(S.leader,"Rote Flagge, rote Flagge. Langsam zurück in die Box.",true,true);
@@ -513,7 +513,7 @@ function classification(){
   const out=S.cars.filter(c=>!c.finished&&!c.dsq).sort((a,b)=>b.s-a.s);
   return fin.concat(out,S.cars.filter(c=>c.dsq));}
 const SPR_TAB=[8,7,6,5,4,3,2,1];
-function finishRace(){W.results=classification();
+function finishRace(){W.results=classification();if(W.preseasonTestState&&W.preseasonTestState.startPractice){showPreseasonStartPracticeResult();return;}
   if(S.sprint){const k=W.career;if(k){if(typeof recordChampionshipPoints==="function")recordChampionshipPoints(k,W.results,typeof championshipPointsTable==="function"?championshipPointsTable(k,"sprint"):SPR_TAB,"sprint");k.score=W.score;k.dec={ok:W.dec.ok,total:W.dec.total};}
     uiSprintResults();return;}
   scrutiny(()=>{awardPoints();uiResults();});}

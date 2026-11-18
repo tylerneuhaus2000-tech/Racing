@@ -284,4 +284,4 @@ function scStep(dt){const sc=S.sc;if(!sc)return;
   const idx=sidx(sc.pos),vT=T.prof[idx]*0.62;
   sc.v=vT>sc.v?Math.min(vT,sc.v+ACC*dt):Math.max(vT,sc.v-BRK*dt);
   sc.s+=sc.v*dt;sc.pos=mod(sc.s);sc.lat+=clamp((S.unlapOn?6:T.line[idx]*0.5)-sc.lat,-10*dt,10*dt);
-  if(sc.inLap&&sc.pos>=PIT_ENTRY_S&&sc.pos<PIT_ENTRY_S+40){S.sc=null;S.restart=true;addLog("SAFETY CAR IN THE PIT LANE – Restart an der Linie","flag");}}
+  if(sc.inLap&&sc.pos>=PIT_ENTRY_S&&sc.pos<PIT_ENTRY_S+40){S.sc=null;if(W.preseasonTestState){S.restart=false;S.flag.mode="green";addLog("SAFETY CAR IN – GREEN FLAG","good");uiFlags();}else{S.restart=true;addLog("SAFETY CAR IN THE PIT LANE – Restart an der Linie","flag");}}}

@@ -311,6 +311,12 @@ function startPreseasonTestBlock(k,done){
   mkWeekend(opts,k);W.preseasonTestState={blockIndex:block,activeCodes:active,track,skipTeam};W.defs=[{type:"fp",name:`Testtag ${day+1} · ${half?"Nachmittag":"Vormittag"}`,dur:3600/TSCALE}];W.idx=-1;
   UI.logs=[];UI.radios=[];$("log").innerHTML="";$("radio").innerHTML="";$("overlay").classList.remove("show");saveSeasonTransition(k,"testing");nextSession();score(0);setSpeed(1);
 }
+function startPreseasonStartPractice(k){
+  const state=W.preseasonTestState;if(!state||S.started)return;const block=state.blockIndex,day=Math.floor(block/2),half=block%2;
+  const opts=Object.assign({},W.opts,{format:"race",laps:2,banned:W.banned||[]});setTrack(state.track);mkWeekend(opts,k);W.preseasonTestState=Object.assign({},state,{startPractice:true});W.defs=[{type:"race",name:`Startübung · Testtag ${day+1} · ${half?"Nachmittag":"Vormittag"}`}];W.idx=-1;
+  UI.logs=[];UI.radios=[];$("log").innerHTML="";$("radio").innerHTML="";saveSeasonTransition(k,"testing");nextSession();score(0);setSpeed(1);
+}
+function showPreseasonStartPracticeResult(){const m=$("modal"),start=W.results[0],laps=W.results.reduce((n,c)=>n+(c.finLaps||0),0);W.preseasonTestState.startPractice=false;m.className="modal";m.innerHTML=`<h2>Startübung abgeschlossen</h2><p class="hint">${W.results.length} Autos · ${laps} gefahrene Runden · ${start?`bestes Ergebnis: ${esc(start.drv.code)}`:""}. Es gibt keine Meisterschaftspunkte für Teststarts.</p><p class="hint">Jetzt geht das Testprogramm mit schnellen Runden, Long Runs und Boxenstopps weiter.</p><button class="big go" id="resumeTrackTest">Streckentest fortsetzen</button>`;$("overlay").classList.add("show");$("resumeTrackTest").onclick=()=>startPreseasonTestBlock(W.career,()=>{});}
 function finishPreseasonTestBlock(){
   const test=W.career.preseasonTest,state=W.preseasonTestState,block=state.blockIndex,day=Math.floor(block/2),cars=S.cars.filter(c=>!c.noStart),laps=cars.reduce((n,c)=>n+c.laps.length,0),incidents=S.incidents.length;
   test.blockIndex=block+1;test.blockReports=test.blockReports||[];test.blockReports[block]={day:day+1,half:block%2?"Nachmittag":"Vormittag",track:state.track,cars:cars.length,laps,incidents,active:state.activeCodes.slice()};

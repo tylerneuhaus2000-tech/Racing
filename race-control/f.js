@@ -26,7 +26,7 @@ function uiSession(){
   $("chips").innerHTML=W.defs.map((d,i)=>`<span class="chip ${i===W.idx?"cur":i<W.idx?"done":""}">${d.name}</span>`).join("");
   const a=$("actions");let h="",info="";const n=openIncs();
   if(S.type!=="race"){
-    if(!S.started){info="Autos warten in der Garage. Du gibst die Session frei.";h=`<button class="big go" data-a="open">Boxenausfahrt öffnen</button>`+(S.type==="fp"?`<button class="big" style="background:#3a3f48" data-a="skip">Training überspringen</button>`:"");}
+    if(!S.started){info="Autos warten in der Garage. Du gibst die Session frei.";h=`<button class="big go" data-a="open">Boxenausfahrt öffnen</button>`+(W.preseasonTestState&&S.type==="fp"?`<button class="big" data-a="testStart">Startübung fahren</button>`:"")+(S.type==="fp"?`<button class="big" style="background:#3a3f48" data-a="skip">Training überspringen</button>`:"");}
     else if(!S.chequered){info="Session läuft. Bei 0:00 fällt die Zielflagge automatisch – angefangene Runden zählen noch.";h=`<button class="big" style="background:#3a3f48" data-a="cheq">Vorzeitig abwinken</button>`;}
     else if(!S.ended){info="Zielflagge. Autos beenden ihre Runde und fahren in die Box.";}
     else{info=n?`Erst ${n} offene Vorfälle entscheiden.`:"Alle Autos in der Box.";h=`<button class="big go" data-a="close" ${n?"disabled":""}>${S.name} abschließen</button>`;}
@@ -41,7 +41,7 @@ function uiSession(){
   }
   $("sessInfo").textContent=info;a.innerHTML=h;
   a.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const k=b.dataset.a;
-    if(k==="open")openPitExit();else if(k==="skip"||k==="close")closeSession();else if(k==="cheq"){S.clock=0;chequer();}
+    if(k==="open")openPitExit();else if(k==="skip"||k==="close")closeSession();else if(k==="testStart")startPreseasonStartPractice(W.career);else if(k==="cheq"){S.clock=0;chequer();}
     else if(k==="form")startFormation();else if(k==="lights")startLights();else if(k==="go"){if(S.holdReady)lightsOut();}else if(k==="abort")abortStart();else if(k==="scstart")startBehindSC();uiSession();});
   $("towerTitle").textContent=S.type==="race"?"Zeitnahme · Rennen":`Zeitnahme · ${S.name}`;
   uiFlags();}
@@ -50,12 +50,12 @@ function nbNeed(race){const h=S.hazard,m=S.flag.mode,n={vsc:0,sc:0,red:0,sec:[0,
   if(h.handled&&h.cleared){if(m==="red")n.red=1;else if(m==="sc"){if(!S.restart&&!(S.sc&&S.sc.inLap))n.sc=1;}else if(m==="vsc")n.vsc=1;else for(let i=0;i<3;i++)if(S.sec[i])n.sec[i]=1;}
   return n;}
 function uiFlags(){
-  const m=S.flag.mode,race=S.type==="race"&&S.phase==="racing",need=nbNeed(race);
+  const m=S.flag.mode,race=S.type==="race"&&S.phase==="racing",testRun=!!W.preseasonTestState&&S.type!=="race"&&S.started&&!S.chequered,neutralizationAllowed=race||testRun,need=nbNeed(race);
   for(let i=0;i<3;i++){const b=$("sec"+i),v=S.sec[i];b.className="sb"+(v===1?" y1":v===2?" y2":"")+(need.sec[i]?" need":"");b.innerHTML=`S${i+1}<small>${v===0?"GRÜN":v===1?"GELB":"DOPPELGELB"}</small>`;}
   /* ein Knopf pro Kategorie: Beschriftung und Aktion wechseln mit dem Zustand */
   const st={vsc:m==="vsc"?{act:"vscEnd",t:"VSC BEENDEN",on:1}:{act:"vsc",t:"VSC",en:m==="green"},
     sc:m==="sc"?(S.restart||(S.sc&&S.sc.inLap)?{act:"",t:"SC KOMMT REIN",on:1,sub:"RESTART FOLGT"}:{act:"scIn",t:S.sc&&S.sc.on?"SC IN THIS LAP":"SC ABBESTELLEN",on:1})
-      :{act:"sc",t:"SAFETY CAR",en:race&&(m==="green"||m==="vsc")},
+      :{act:"sc",t:"SAFETY CAR",en:neutralizationAllowed&&(m==="green"||m==="vsc")},
     red:m==="red"?{act:"restart",t:race?"NEUSTART FLIEGEND":"NEUSTART",on:1,sub:"ROTE FLAGGE AKTIV"}:{act:"red",t:"ROTE FLAGGE",en:S.started||race}};
   document.querySelectorAll(".nb button").forEach(b=>{const g=b.dataset.g,x=st[g];if(!x)return;const nd=!!need[g]&&!!x.act;
     const sub=nd?"EMPFOHLEN":x.sub||(x.on?"AKTIV":"");const h=`<span>${x.t}</span><small>${sub}</small>`;if(b._h!==h){b._h=h;b.innerHTML=h;}
@@ -266,7 +266,7 @@ function saveRoundPending(){const k=W.career;const data=JSON.parse(JSON.stringif
 function loadGame(data){const byCode=a=>a.map(c=>DRIVERS.find(d=>d.code===c)).filter(Boolean);
   UI.logs=[];UI.radios=[];$("radio").innerHTML="";$("log").innerHTML="";$("overlay").classList.remove("show");
   if(data.seasonTransition){CAREER=data.career;OPTS=data.opts;FB_LIVE=!!(OPTS&&OPTS.fb);restoreDB(CAREER);applyRoster(CAREER);if(CAREER.preseasonTest)CAREER.preseasonTest.running=false;openSeasonTransition(CAREER,()=>{$("overlay").classList.remove("show");startRound();},data.seasonTransition);return;}
-  if(data.preseasonTestState){CAREER=data.career;OPTS=data.opts;FB_LIVE=!!(OPTS&&OPTS.fb);restoreDB(CAREER);applyRoster(CAREER);setTrack(data.track);mkWeekend(data.opts,data.career);W.defs=[{type:"fp",name:`Testtag ${Math.floor(data.preseasonTestState.blockIndex/2)+1} · ${data.preseasonTestState.blockIndex%2?"Nachmittag":"Vormittag"}`,dur:3600/TSCALE}];W.preseasonTestState=data.preseasonTestState;W.idx=data.idx-1;W.grid=byCode(data.grid);W.sgrid=byCode(data.sgrid||[]);W.q=byCode(data.q);W.gridTail=byCode(data.gridTail);W.drop=data.drop||{};W.review=data.review||[];W.qOut=data.qOut||[];W.docs=data.docs||[];nextSession();if(data.live){W.score=data.score;W.dec=data.dec;applyLive(data.live);}score(0);setSpeed(1);return;}
+  if(data.preseasonTestState){CAREER=data.career;OPTS=data.opts;FB_LIVE=!!(OPTS&&OPTS.fb);restoreDB(CAREER);applyRoster(CAREER);setTrack(data.track);mkWeekend(data.opts,data.career);const day=Math.floor(data.preseasonTestState.blockIndex/2)+1,half=data.preseasonTestState.blockIndex%2?"Nachmittag":"Vormittag";W.defs=data.preseasonTestState.startPractice?[{type:"race",name:`Startübung · Testtag ${day} · ${half}`}]:[{type:"fp",name:`Testtag ${day} · ${half}`,dur:3600/TSCALE}];W.preseasonTestState=data.preseasonTestState;W.idx=data.idx-1;W.grid=byCode(data.grid);W.sgrid=byCode(data.sgrid||[]);W.q=byCode(data.q);W.gridTail=byCode(data.gridTail);W.drop=data.drop||{};W.review=data.review||[];W.qOut=data.qOut||[];W.docs=data.docs||[];nextSession();if(data.live){W.score=data.score;W.dec=data.dec;applyLive(data.live);}score(0);setSpeed(1);return;}
   if(data.pending){CAREER=data.career;OPTS=data.opts;FB_LIVE=!!(OPTS&&OPTS.fb);startRound();return;}
   CAREER=data.career;OPTS=data.opts;FB_LIVE=!!(OPTS&&OPTS.fb);restoreDB(CAREER);applyRoster(CAREER);setTrack(data.track);mkWeekend(data.opts,data.career);
   W.score=data.score;W.dec=data.dec;W.grid=byCode(data.grid);W.sgrid=byCode(data.sgrid||[]);W.q=byCode(data.q);W.gridTail=byCode(data.gridTail);W.drop=data.drop||{};W.review=data.review||[];W.qOut=data.qOut||[];W.docs=data.docs||[];W.wk=data.wk||null;W.idx=data.idx-1;
