@@ -24,7 +24,7 @@ function mkCar(drv,i){return {i,drv,s:0,pos:0,lat:0,latV:0,v:0,spin:0,inPit:fals
   crash:null,spinT:0,spinDir:1,removed:false,retired:false,finished:false,finT:0,finLaps:0,stopAt:null,wantPit:false,pitGoal:null,
   plan:[],used:new Set(),nextTyre:null,react:0,launch:1,decLap:-99,sparks:0,brk:false,rogue:false,unsafeArm:false,speedArm:0,speeding:0,
   lastCo:-1,_tl:0,onGrid:false,yaw:0,spinH0:0,cold:0,slotK:i,unlap:false,unlapPh:0,lic:0,lockT:0,relT:0,rejoin:0,spinT0:2.6,spinSide:0,dustT:0};}
-function placeGarage(c){c.inPit=true;c.mode="garage";c.lat=GARLAT;c.s=boxPos(c.drv.ti)+(c.drv.slot?8:-8);c.pos=mod(c.s);c.v=0;c.pit=null;c.stopAt=null;c.spin=SIDE*Math.PI/2;c.yaw=0;c.drift=0;c.garIn=null;c.garOut=null;}
+function placeGarage(c){c.inPit=true;c.mode="garage";c.lat=GARLAT;c.s=boxPos(c.drv.ti)+(c.drv.slot?6:-6);c.pos=mod(c.s);c.v=0;c.pit=null;c.stopAt=null;c.spin=SIDE*Math.PI/2;c.yaw=0;c.drift=0;c.garIn=null;c.garOut=null;}
 /* Garage: Autos stehen quer, Nase zur Boxengasse. Rein: vor der Box halten, rückwärts im Bogen hineinschieben. Raus: erst wenn die Fast Lane frei ist, im Bogen einbiegen */
 function garInStep(c,dt){const g=c.garIn;g.t+=dt;const u0=clamp(g.t/2.8,0,1),u=u0*u0*(3-2*u0),A=Math.PI/2;
   const s=g.s0-9*Math.sin(A*u),l=g.l0+(GARLAT-g.l0)*(1-Math.cos(A*u)),ds=-9*Math.cos(A*u),dl=(GARLAT-g.l0)*Math.sin(A*u);
@@ -35,9 +35,12 @@ function garInStep(c,dt){const g=c.garIn;g.t+=dt;const u0=clamp(g.t/2.8,0,1),u=u
     else if(c.mode!=="garage"&&c.pit)c.garOut={ph:0};}}
 function garOutStep(c,dt){const g=c.garOut;c.brk=false;c.latV=0;c.yaw=0;c.drift=0;
   if(g.ph===0){c.spin=SIDE*Math.PI/2;c.v=0;const edge=BOXLAT-1.5;
+    // Older saved queues may still be parked across the neighbour's turning envelope.
+    if(g.staged==null){g.staged=true;g.parkBack=c.lat>GARLAT+0.1;}
+    if(g.parkBack){const target=mod(boxPos(c.drv.ti)+(c.drv.slot?6:-6));c.s+=clamp(delta(c,{pos:target}),-2*dt,2*dt);c.pos=mod(c.s);c.lat=Math.max(GARLAT,c.lat-4*dt);if(c.lat<=GARLAT)g.parkBack=false;return true;}
     const moving=S.cars.find(o=>o!==c&&!o.removed&&o.garOut&&o.garOut.ph===1);
     const next=S.cars.filter(o=>!o.removed&&o.garOut&&o.garOut.ph===0).sort((a,b)=>((PIT_OUT_S-a.pos+L)%L)-((PIT_OUT_S-b.pos+L)%L))[0];
-    if(moving||next!==c)return true;
+    if(moving||next!==c||pitLaneReleaseBlocked(c))return true;
     if(c.lat<edge){c.lat=Math.min(edge,c.lat+4*dt);return true;}   // aus der Garage bis an den Rand der Fast Lane vorrollen
     /* einbiegen erst, wenn niemand neben oder knapp hinter einem ist – auch keine Autos, die an der Ausfahrtsampel warten */
     const busy=pitLaneReleaseBlocked(c)||S.cars.some(o=>o!==c&&o.garOut&&o.garOut.ph===1&&Math.abs(delta(c,o))<CAR_L+8);
@@ -375,7 +378,7 @@ function crashStep(c,dt){const k=c.crash,idx=sidx(c.pos);
 function startPit(c){
   c.pit={ph:"in",goal:c.pitGoal||"garage",timer:0,trap:false,waitU:0};c.inPit=true;c.wantPit=false;c.ot=null;c.yieldT=0;
   const g=c.pit.goal;
-  if(g==="garage")c.stopAt=absAhead(c,mod(boxPos(c.drv.ti)+(c.drv.slot?8:-8)+9));
+  if(g==="garage")c.stopAt=absAhead(c,mod(boxPos(c.drv.ti)+(c.drv.slot?6:-6)+9));
   else if(g==="service"){const mate=mateBusy(c);c.pit.stack=!!mate;
     // Keep the stack clear of the adjacent box's pull-out arc while preserving an orderly queue.
     c.stopAt=absAhead(c,mod(boxPos(c.drv.ti)-(mate?CAR_L+26:0)));}

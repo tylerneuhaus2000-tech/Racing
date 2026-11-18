@@ -102,13 +102,13 @@ function pitMotionGuard(before,dt){if(!before)return;
       let continued=false;
       for(const m of [other,yieldCar]){const nearBay=m.a.pit&&m.a.pit.ph==="in"&&m.a.pit.goal==="service"&&m.a.stopAt!=null&&m.a.stopAt-m.a.s<30;
         const leavingBay=m.a.pit&&(m.a.pit.ph==="exit"||m.a.pit.ph==="svc")&&m.a.lat<PLAT-0.5&&m.a.pos>PIT_ENTRY_S;
-        if(m.a.pit&&!nearBay&&!leavingBay)continue;const old=m.b;m.b=Object.assign({},old,{lat:m.a.lat,spin:m.a.spin,yaw:m.a.yaw,drift:m.a.drift});
+        if(m.a.garOut||m.a.garIn||m.a.pit&&!nearBay&&!leavingBay)continue;const old=m.b;m.b=Object.assign({},old,{lat:m.a.lat,spin:m.a.spin,yaw:m.a.yaw,drift:m.a.drift});
         if(firstContact(a,b)==null){m.adjusted=true;continued=true;changed=true;break;}m.b=old;}
       if(continued)continue;
       // If both cars are attempting a lateral move, keep both lanes while resolving forward priority.
       for(const m of [other,yieldCar]){const nearBay=m.a.pit&&m.a.pit.ph==="in"&&m.a.pit.goal==="service"&&m.a.stopAt!=null&&m.a.stopAt-m.a.s<30,
           leavingBay=m.a.pit&&(m.a.pit.ph==="exit"||m.a.pit.ph==="svc")&&m.a.lat<PLAT-0.5&&m.a.pos>PIT_ENTRY_S;
-        if(!m.a.pit||nearBay||leavingBay){m.b=Object.assign({},m.b,{lat:m.a.lat,spin:m.a.spin,yaw:m.a.yaw,drift:m.a.drift});m.adjusted=true;}}
+        if(!m.a.garOut&&!m.a.garIn&&(!m.a.pit||nearBay||leavingBay)){m.b=Object.assign({},m.b,{lat:m.a.lat,spin:m.a.spin,yaw:m.a.yaw,drift:m.a.drift});m.adjusted=true;}}
       const safe=f=>firstContact(yieldCar,other,f,other.f)==null;
       if(safe(0)){
         let lo=0,hi=yieldCar.f;for(let k=0;k<12;k++){const mid=(lo+hi)/2;if(safe(mid))lo=mid;else hi=mid;}

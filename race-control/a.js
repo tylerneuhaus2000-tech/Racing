@@ -50,7 +50,7 @@ const fmtClock=s=>{s=Math.max(0,s);const m=Math.floor(s/60);return m+":"+String(
 const PITLINE=-20.2;   // weiße Linie an der Boxenausfahrt (lat)
 const HW=16, LINE_OUT=17.5, CAR_L=15, CAR_W=5.1, TL_OFF=LINE_OUT+CAR_W/2;
 const VTOP=170, ALAT=52, ACC=48, BRK=140, PITV=40, KMH=2.0;
-const PLAT=-30, BOXLAT=-39, GARLAT=-46, DT=1/30;
+const PLAT=-30, BOXLAT=-39, GARLAT=-56, DT=1/30;
 const COAST=24, LATACC=38;   // Verzögerung beim Gaswegnehmen; maximale Querbeschleunigung der Seitenführung
 
 /* ============ Strecken ============ */

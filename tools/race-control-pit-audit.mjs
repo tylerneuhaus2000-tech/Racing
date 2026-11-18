@@ -75,12 +75,12 @@ function doubleStopAudit(track, seed) {
   for(const c of S.cars){c._pitPos=c.pos;c._pitLat=c.lat;c._pitV=c.v;}
   globalThis.__stackStart=S.cars.filter(c=>c.pit&&c.pit.ph==="hold").length;})()`);
   frame(ctx, run, 450);
-  const out = run(`(()=>({hits:__pitHits,stackStart:__stackStart,stops:S.cars.reduce((n,c)=>n+c.stops,0),
+  const out = run(`(()=>({hits:__pitHits,serviced:S.cars.filter(c=>c.drv.ti<6).every(c=>c.stops>=1),stackStart:__stackStart,stops:S.cars.reduce((n,c)=>n+c.stops,0),
     service:S.cars.filter(c=>c.pit&&c.pit.ph==="svc").length,hold:S.cars.filter(c=>c.pit&&c.pit.ph==="hold").length,
     exit:S.cars.filter(c=>c.pit&&c.pit.ph==="exit").length,remaining:S.cars.filter(c=>c.pit).length,
     pairs:S.cars.filter(c=>c.pit).map(c=>({code:c.drv.code,ti:c.drv.ti,ph:c.pit.ph,stack:c.pit.stack,pos:+c.pos.toFixed(1),lat:+c.lat.toFixed(1),v:+c.v.toFixed(1),timer:+(c.pit.timer||0).toFixed(1)})),
     badGate:__badGate,gateWait:__gateWait}))()`);
-  const ok = out.hits === 0 && out.stackStart === teams && out.stops === teams * 2 && out.remaining === 0 && out.badGate === 0;
+  const ok = out.hits === 0 && out.stackStart === teams && out.serviced && out.stops >= teams * 2 && out.remaining === 0 && out.badGate === 0;
   return { ok, ...out };
 }
 
