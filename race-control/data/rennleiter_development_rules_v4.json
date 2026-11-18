@@ -1,0 +1,16 @@
+{
+  "schema_version": 4,
+  "base_season": 2026,
+  "skill_storage": "integer hundredths internally; initial f1_skill_game and potential_game are integer points",
+  "update": "Once at completion of each season, increment elapsed_seasons and simulation age together. If new age >= development_decline_start_age_game, subtract development_decline_per_season_game, floor at 0. Otherwise add development_gain_per_season_game, capped at potential_game. Store integer hundredths to avoid rounding drift; display rounded values only. Never modify real birth dates or source fields.",
+  "f1_readiness": "For a prospective F1 newcomer, elapsed_seasons >= f1_min_wait_seasons_game AND unrounded skill >= f1_min_skill_game. Existing F1 seats are not automatically removed by this recruitment rule.",
+  "other_required_gates": [
+    "FIA license eligibility (f1_entry_gate_game; unknown is not automatic approval)",
+    "contract and transfer availability",
+    "team reputation and budget",
+    "career availability / retirement"
+  ],
+  "f4_rule": "F4-only tier has calibrated baseline readiness after 10–15 completed seasons. Academy affiliation, transfers, or training bonuses must not bypass f1_min_wait_seasons_game. Other tiers use highest recorded experience, so historical F4 participation alone is not a lock.",
+  "projection": "The CSV projected ready season is conditional on uninterrupted model development; it is not a verified real license or guarantee of a contract. Blank projection means threshold never reached in the baseline simulation.",
+  "age": "If real age is missing, development_start_age_game is a simulation assumption only, explicitly labelled in development_age_basis_game."
+}

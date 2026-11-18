@@ -69,7 +69,7 @@ const PITROUTES={
   austin:{approach:180,entry:85,exit:110,rejoin:115,entryLat:-23.0,exitLat:-24.5},
   mexico:{approach:190,entry:150,exit:125,rejoin:130,entryLat:-24.5,exitLat:-24.5},
   interlagos:{approach:225,entry:175,exit:130,rejoin:135,entryLat:-21.5,exitLat:-24.2},
-  vegas:{approach:170,entry:135,exit:105,rejoin:110,entryLat:-22.5,exitLat:-24.4},
+  vegas:{approach:170,entry:135,exit:140,rejoin:230,entryLat:-22.5,exitLat:-24.4},
   lusail:{approach:185,entry:145,exit:125,rejoin:130,entryLat:-23.0,exitLat:-24.5},
   yas:{approach:210,entry:165,exit:150,rejoin:150,entryLat:-21.5,exitLat:-24.2},
   imola:{approach:195,entry:150,exit:125,rejoin:130,entryLat:-22.5,exitLat:-24.3},
@@ -95,20 +95,23 @@ function applyPitData(){const d=PITDATA[TRACK.key],base=PITROUTES[TRACK.key]||PI
   const last=CORNERS[CORNERS.length-1],first=CORNERS[0];
   const maxEn=last?Math.max(246,L-last.i1*DS-25):246,maxEx=first?Math.max(250,first.i0*DS-25):250;
   const en=clamp(d[0]*r,200,maxEn),ex=d[3]==="T1"&&first?first.i1*DS+60:clamp(d[1]*r,210,maxEx);   // Baku: Ausfahrtsspur läuft links durch Kurve 1
-  PIT_ENTRY_S=L-en;PIT_EXIT_S=ex;PIT_IN_S=PIT_ENTRY_S+route.entry;PIT_OUT_S=Math.min(PIT_EXIT_S-route.exit,160);DEC_S=PIT_ENTRY_S-route.approach;BOX0=-125;
+  PIT_ENTRY_S=L-en;PIT_EXIT_S=ex;PIT_IN_S=PIT_ENTRY_S+route.entry;PIT_OUT_S=Math.max(0,PIT_EXIT_S-route.exit);DEC_S=PIT_ENTRY_S-route.approach;BOX0=-125;
   const X=PITX[TRACK.key];if(!X){finalizePitRoute(route);return;}
   if(X.enC){const c=CORNERS[CORNERS.length-X.enC];if(c)PIT_ENTRY_S=c.i0*DS-X.enPre*r;}
   if(X.en)PIT_ENTRY_S=L-X.en*r;
   if(X.ex==="T1"&&first)PIT_EXIT_S=first.i1*DS+X.exPost*r;
   if(X.box!=null){BOX0=X.box*r;PIT_IN_S=Math.min(PIT_IN_S,L+BOX0-40);}
   PIT_IN_S=Math.min(PIT_IN_S,PIT_ENTRY_S+route.entry);
-  PIT_OUT_S=Math.max(0,Math.min(PIT_OUT_S,PIT_EXIT_S-30));finalizePitRoute(route);}
-function finalizePitRoute(route){const first=L+BOX0,last=first+24*(TEAM_KEYS.length-1);PIT_IN_S=Math.min(PIT_IN_S,first-70);
+  PIT_OUT_S=Math.max(0,PIT_EXIT_S-route.exit);finalizePitRoute(route);}
+function finalizePitRoute(route){const first=L+BOX0,last=first+24*(TEAM_KEYS.length-1),minPitOut=Math.max(0,last-L+25);PIT_IN_S=Math.min(PIT_IN_S,first-70);
   PIT_ENTRY_S=Math.min(PIT_ENTRY_S,PIT_IN_S-route.entry);route.entry=PIT_IN_S-PIT_ENTRY_S;
-  if(last>=L)PIT_OUT_S=Math.max(PIT_OUT_S,last-L+25);PIT_OUT_S=Math.max(0,Math.min(PIT_OUT_S,PIT_EXIT_S-30));
+  PIT_OUT_S=Math.max(minPitOut,Math.min(PIT_OUT_S,PIT_EXIT_S-30));
   route.exit=PIT_EXIT_S-PIT_OUT_S;DEC_S=PIT_ENTRY_S-route.approach;}
 /* Sonderfälle: Monaco – Boxen auf der Geraden vor Ste Dévote; Silverstone – F1-Boxengasse (Wing): Einfahrt vor Vale, Ausfahrt außen an Farm */
-const PITX={monaco:{en:330,box:-280},silverstone:{enC:3,enPre:15,ex:"T1",exPost:25}};
+const PITX={monaco:{en:330,box:-280},silverstone:{enC:3,enPre:15,ex:"T1",exPost:25},
+  // Las Vegas: the FIA plan places Pit Lane Ends at the sweeping exit beside the garages;
+  // the separated lane continues through the first-corner exit to the SC2 merge line.
+  vegas:{ex:"T1",exPost:35}};
 
 /* ---- Stewards-Panel ---- */
 const STEW_POOL=["Hannes Vogt","Claire Moreau","Rafael Ortega","Ingrid Holm","Kenji Sato","Marta Rossi","David Okafor","Lena Brandt"];

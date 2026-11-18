@@ -206,9 +206,10 @@ function standingsHtml(k){
   const tm=typeof rebuildConstructorPoints==="function"?rebuildConstructorPoints(k):Object.fromEntries(TEAM_KEYS.map(t=>[t,0]));
   if(typeof rebuildConstructorPoints!=="function")dr.forEach(x=>{tm[x.d.team]=(tm[x.d.team]||0)+x.p;});
   const ts=Object.keys(tm).sort((a,b)=>tm[b]-tm[a]);
+  const historyNote=k.pointLedger&&k.pointLedger.legacyStatus!=="complete"?`<p class="hint">Ältere Konstrukteurspunkte wurden unverändert übernommen. Ihre damalige Fahrer-Team-Zuordnung ist im Spielstand nicht vollständig gespeichert und wurde nicht nachträglich erfunden.</p>`:"";
   return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div><h4>Fahrer-WM</h4><table class="res"><tr><th></th><th>Fahrer</th><th>Pkt.</th><th title="Strafpunkte – ab 12 ein Rennen Sperre">SP</th></tr>${dr.map((x,i)=>`<tr><td>${i+1}</td><td><span style="color:${x.d.color}">■</span> ${esc(x.d.name)}</td><td><b>${x.p}</b></td><td>${(k.lic&&k.lic[x.d.code])||""}</td></tr>`).join("")}</table></div>
     <div><h4>Konstrukteurs-WM</h4><table class="res">${ts.map((t,i)=>`<tr><td>${i+1}</td><td><span style="color:${TEAMS[t].color}">■</span> ${TEAMS[t].name}</td><td><b>${tm[t]}</b></td></tr>`).join("")}</table>
-    <h4>Bisherige Rennen</h4><div class="hint">${(Array.isArray(k.history)?k.history:[]).map((r,i)=>`${i+1}. ${esc(TRACKS[r.track]?TRACKS[r.track].name:r.track)}: ${esc((r.top||[]).join(" · "))}`).join("<br>")||"Noch keine Rennresultate."}</div></div></div>`;}
+    ${historyNote}<h4>Bisherige Rennen</h4><div class="hint">${(Array.isArray(k.history)?k.history:[]).map((r,i)=>`${i+1}. ${esc(TRACKS[r.track]?TRACKS[r.track].name:r.track)}: ${esc((r.top||[]).join(" · "))}`).join("<br>")||"Noch keine Rennresultate."}</div></div></div>`;}
 function uiResults(){const cl=W.results,win=cl[0],acc=W.dec.total?Math.round(100*W.dec.ok/W.dec.total):0,wt=win.finT+win.penSec,k=W.career,season=k&&k.type==="season";
   let title="Zurück auf die Kartbahn 🛞";if(acc>=90&&W.score>0)title="FIA-Rennleiter-Niveau 🏆";else if(acc>=75)title="Solider Steward 👍";else if(acc>=55)title="Praktikant in der Race Control 📋";
   const rows=cl.map((c,i)=>{let g=c.dsq?"DSQ":"DNF";if(c.finished&&!c.dsq)g=i===0?"Sieger":c.finLaps<win.finLaps?`+${win.finLaps-c.finLaps} Rd.`:"+"+(c.finT+c.penSec-wt).toFixed(1)+"s";

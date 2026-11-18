@@ -27,6 +27,13 @@
     "test:ai": "node tools/ai-drive-audit.cjs",
     "test:rc-damage": "node tools/race-control-damage-soak.mjs",
     "test:rc-nuke": "node tools/race-control-nuke-test.mjs",
+    "test:rc-pit-exit": "node tools/race-control-pit-exit-profile-audit.mjs",
+    "test:rc-transfers": "node tools/race-control-transfer-audit.mjs",
+    "test:rc-driver-pool": "node tools/race-control-driver-pool-audit.mjs",
+    "test:rc-career-soak": "node tools/race-control-career-soak.mjs",
+    "test:rc-market-regression": "node tools/race-control-market-regression.mjs",
+    "test:rc-market": "npm run test:rc-driver-pool && npm run test:rc-transfers && npm run test:rc-market-regression && npm run test:rc-career-soak",
+    "import:rc-driver-pool": "node tools/import-race-control-driver-pool.mjs",
     "rc:bump": "node tools/race-control-bump-version.mjs",
     "load:local": "node tools/safe-load-test.mjs --base http://127.0.0.1:8787"
   },

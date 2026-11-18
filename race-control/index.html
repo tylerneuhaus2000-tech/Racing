@@ -95,6 +95,9 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;background:va
 .overlay.show{display:flex}
 .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:660px;width:100%;max-height:94vh;overflow:auto;padding:16px}
 .modal.wide{max-width:1250px}
+.market-dash{position:fixed;z-index:9;right:12px;top:70px;width:min(760px,calc(100vw - 24px));max-height:calc(100vh - 84px);overflow:auto;background:var(--panel);border:1px solid #46505d;border-radius:12px;box-shadow:0 16px 55px #000b;padding:12px;display:none}
+.market-dash.open{display:block}.market-dash-head{display:flex;align-items:center;gap:8px;position:sticky;top:-12px;background:var(--panel);padding:2px 0 8px;z-index:1}.market-dash-tabs{display:flex;gap:4px;overflow:auto;padding:4px 0}.market-dash-tabs button{white-space:nowrap}.market-dash-content{max-height:calc(100vh - 170px);overflow:auto}
+.market-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px;margin:8px 0}.market-filter{display:flex;flex-direction:column;gap:3px;color:var(--muted);font-size:11px}.market-filter select,.market-filter input{min-width:0;background:#1b222b;color:#e6e9ee;border:1px solid #3a4452;border-radius:6px;padding:5px}.market-profile{margin:9px 0;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2)}.market-profile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px;margin:8px 0}.market-profile-grid span{font-size:12px;color:var(--muted)}
 .modal h2{margin:0 0 8px;font-size:19px}.modal h4{margin:12px 0 3px;color:var(--yellow);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
 .modal p,.modal li{color:#cfd4dc;line-height:1.5}.modal ul{margin:3px 0;padding-left:18px}
 .optrow{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}.optrow label{color:var(--muted);font-size:12px;display:flex;flex-direction:column;gap:3px}
@@ -235,7 +238,7 @@ table.res td,table.res th{padding:3px 6px;border-bottom:1px solid #1f242b;text-a
     <div class="cloud-account"><button class="ghost" id="rcCloudButton" type="button">Spielstände synchronisieren</button><span id="rcCloudState" role="status" aria-live="polite" data-state="local">Nur auf diesem Gerät</span></div>
     <div class="stat">Score <b id="score">0</b></div><div class="stat">Quote <b id="acc">–</b></div><div class="stat" title="Dein Ansehen bei Teams und FIA – fällt bei Fehlurteilen">Ansehen <b id="rep">–</b></div>
     <div class="seg" id="speedSeg"><button data-s="0">⏸</button><button data-s="1" class="on">1×</button><button data-s="2">2×</button><button data-s="4">4×</button><button data-s="8">8×</button><button data-s="16">16×</button></div>
-    <button class="ghost" id="sndBtn" title="Ton an/aus">🔊</button><button class="ghost" id="docBtn" title="Dokumente der Stewards">📄</button><button class="ghost" id="rulesBtn">📖 Regelbuch</button><button class="ghost" id="menuBtn">☰ Menü</button>
+    <button class="ghost" id="sndBtn" title="Ton an/aus">🔊</button><button class="ghost" id="docBtn" title="Dokumente der Stewards">📄</button><button class="ghost" id="rulesBtn">📖 Regelbuch</button><button class="ghost" id="driverMarketButton" aria-expanded="false">Driver Market</button><button class="ghost" id="menuBtn">☰ Menü</button>
   </header>
   <div class="alert" id="alert">Willkommen in der Rennleitung.</div>
   <div class="layout">
@@ -274,10 +277,11 @@ table.res td,table.res th{padding:3px 6px;border-bottom:1px solid #1f242b;text-a
   </div>
 </div>
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<aside class="market-dash" id="driverMarketPanel" aria-label="Driver Market" aria-hidden="true"><div class="market-dash-head"><b style="color:var(--yellow);font-size:15px">Driver Market</b><span class="spacer"></span><button class="ghost" id="driverMarketClose" aria-label="Schließen">✕</button></div><nav class="market-dash-tabs" id="driverMarketTabs"></nav><div class="market-dash-content" id="driverMarketContent"></div></aside>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="cloud-saves.js?v=202611180737" defer></script>
-<script src="tracks.js?v=202611180737"></script><script src="a.js?v=202611180737"></script><script src="b.js?v=202611180737"></script><script src="c.js?v=202611180737"></script><script src="d.js?v=202611180737"></script><script src="m.js?v=202611180737"></script><script src="x.js?v=202611180737"></script><script src="v.js?v=202611180737"></script><script src="k.js?v=202611180737"></script><script src="r.js?v=202611180737"></script><script src="e.js?v=202611180737"></script><script src="w.js?v=202611180737"></script><script src="s.js?v=202611180737"></script><script src="p.js?v=202611180737"></script><script src="t.js?v=202611180737"></script><script src="f.js?v=202611180737"></script><script src="u.js?v=202611180737"></script>
+<script src="tracks.js?v=202611180737"></script><script src="a.js?v=202611180737"></script><script src="b.js?v=202611180737"></script><script src="c.js?v=202611180737"></script><script src="d.js?v=202611180737"></script><script src="driver-pool-v4.js?v=202611180737"></script><script src="m.js?v=202611180737"></script><script src="x.js?v=202611180737"></script><script src="v.js?v=202611180737"></script><script src="k.js?v=202611180737"></script><script src="r.js?v=202611180737"></script><script src="e.js?v=202611180737"></script><script src="w.js?v=202611180737"></script><script src="s.js?v=202611180737"></script><script src="p.js?v=202611180737"></script><script src="t.js?v=202611180737"></script><script src="f.js?v=202611180737"></script><script src="u.js?v=202611180737"></script>
 </body>
 </html>
