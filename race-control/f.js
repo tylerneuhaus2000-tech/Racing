@@ -259,7 +259,7 @@ function snapshotSave(){const codes=a=>a.map(d=>d.code);
   W.snap=JSON.parse(JSON.stringify({v:1,opts:W.opts,track:TRACK.key,idx:W.idx,grid:codes(W.grid),sgrid:codes(W.sgrid||[]),q:codes(W.q),gridTail:codes(W.gridTail),drop:W.drop,score:W.score,dec:W.dec,career:W.career,review:W.review||[],qOut:W.qOut||[],docs:W.docs||[],preseasonTestState:W.preseasonTestState||null}));
   if(!W.wk)W.wk=JSON.parse(JSON.stringify(W.snap));W.snap.wk=W.wk;
   W.snapName=saveName();writeSave("auto",W.snap,W.snapName);}
-function liveSave(){if(!W||!W.snap)return;const lv=liveState();if(!lv)return;W.liveSnap=JSON.parse(JSON.stringify(Object.assign({},W.snap,{live:lv,score:W.score,dec:W.dec,career:W.career,review:W.review||[]})));
+function liveSave(){if(!W||!W.snap)return;const lv=liveState();if(!lv)return;W.liveSnap=JSON.parse(JSON.stringify(Object.assign({},W.snap,{live:lv,score:W.score,dec:W.dec,career:W.career,review:W.review||[],preseasonTestState:W.preseasonTestState||null})));
   W.liveName=saveName()+(S.type==="race"?` · Runde ${clamp(Math.floor((S.leader?S.leader.s:0)/L)+1,1,S.laps)}`:` · ${fmtClock(S.clock*W.cs)} Rest`);writeSave("auto",W.liveSnap,W.liveName);}
 function saveRoundPending(){const k=W.career;const data=JSON.parse(JSON.stringify({v:1,opts:W.opts,pending:true,career:k}));
   writeSave("auto",data,`Saison · vor Lauf ${k.round+1}/${k.cal.length} · ${TRACKS[k.cal[k.round]].name}`);}

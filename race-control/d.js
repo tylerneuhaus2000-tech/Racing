@@ -41,6 +41,7 @@ function startSession(d){
     }else{placeGarage(c);c.tyre="S";c.nextOut=S.wx.eta<90?rand(0,12):rand(0,Math.min(70,S.dur*0.22));
       if(d.type==="q"&&(W.qOut||[]).includes(c.drv.code)){c.retired=true;c.noStart=true;c.nextOut=Infinity;}}
   });
+  if(W.preseasonTestState&&d.type==="fp"){const code=W.preseasonTestState.rotationDrivers[W.preseasonTestState.rotationTeams[0]],off=S.cars.find(c=>c.drv.code===code);if(off)off.nextOut=Infinity;}
   S.leader=S.cars[0];
   if(typeof snapshotSave==="function")snapshotSave();
   recFrame();
@@ -54,6 +55,7 @@ function startSession(d){
 function simStep(dt){
   S.t+=dt;wxStep(S.wx,dt);
   if(S.type==="race")raceStep(dt);else timedStep(dt);
+  if(typeof preseasonRotationStep==="function")preseasonRotationStep();
   director(dt);moodStep(dt);debrisStep(dt);
   for(const c of S.cars){if(c.script)scriptStep(c,dt);if(c.impede||c.fakeImp)impedeStep(c,dt);}
   for(const c of S.cars)carStep(c,dt);
@@ -402,7 +404,7 @@ function hazardStep(dt){const h=S.hazard;
     else if(h.rain?(S.wx.rain<0.5&&S.t>=h.clearAt):S.t>=h.clearAt){
       const left=S.cars.filter(c=>!c.removed&&c.retired&&c.crash&&!c.pit&&!h.cars.includes(c));   // „Strecke frei“ nur, wenn wirklich kein Wrack mehr dasteht
       if(left.length){h.cars.push(...left);h.clearAt=S.t+rand(18,28)*left.length;addLog(`Bergung läuft weiter – auch ${left.map(c=>c.drv.code).join(", ")} muss noch weggeräumt werden`,"flag");}
-      else{h.cleared=true;h.clT=0;h.cars.forEach(c=>{if(W.preseasonTestState&&c.crash){c.removed=false;c.retired=false;c.crash=null;c.v=0;c.dmg=0;c.ignoreDmg=false;c.punct=false;c.wantPit=false;c.pit=null;placeGarage(c);c.nextOut=(S.dur-S.clock)+rand(45,100);addLog(`${c.drv.code} nach Unfall in die Box gebracht – Reparatur läuft`);}else c.removed=true;});addLog("TRACK CLEAR","good");}}
+      else{h.cleared=true;h.clT=0;h.cars.forEach(c=>{if(W.preseasonTestState&&c.crash){c.removed=false;c.retired=false;c.crash=null;c.v=0;c.dmg=0;c.ignoreDmg=false;c.punct=false;c.wantPit=false;c.pit=null;placeGarage(c);const off=W.preseasonTestState.rotationTeams[W.preseasonTestState.rotationSlot]===c.drv.team;c.nextOut=off?Infinity:(S.dur-S.clock)+rand(45,100);addLog(`${c.drv.code} nach Unfall in die Box gebracht – Reparatur läuft`);}else c.removed=true;});addLog("TRACK CLEAR","good");}}
     else setAlert("",`${h.rep?"Bergung und Reparatur der Barriere":"Bergung läuft"}${where} – ${h.rain?"warten bis der Regen nachlässt":"noch ca. "+Math.max(0,Math.ceil(h.clearAt-S.t))+"s"}. Empfehlung: aktuelle Maßnahme beibehalten.`);
   }else{h.clT+=dt;
     const back=r===0||(S.flag.mode==="sc"&&(S.restart||(S.sc&&S.sc.inLap)));
@@ -546,8 +548,8 @@ function applyLive(L_){if(!L_)return;const by=code=>S.cars.find(c=>c.drv.code===
   Object.assign(S.wx,L_.wx);S.wx.rain=0;S.wx.eta=Infinity;
   if(L_.kind==="timed"){S.clock=L_.clock;S.bestT=L_.bestT;S.started=true;S.pitExitOpen=true;
     for(const o of L_.cars){const c=by(o.code);if(!c)continue;c.laps=o.laps;c.del=new Set(o.del);c.lapId=o.lapId;c.runs=o.runs;c.gridPen=o.gridPen;c.dsq=o.dsq;c.lic=o.lic;
-      if(o.retired){c.retired=true;c.nextOut=Infinity;}else c.nextOut=S.dur-S.clock+rand(2,25);}
-    addLog("Spielstand geladen – Session läuft weiter, alle Autos starten aus der Garage","flag");}
+      if(o.retired){c.retired=true;c.nextOut=Infinity;}else if(W.preseasonTestState&&S.type==="fp"&&c.drv.team===W.preseasonTestState.rotationTeams[W.preseasonTestState.rotationSlot||0]){placeGarage(c);c.nextOut=Infinity;}else c.nextOut=S.dur-S.clock+rand(2,25);}
+    addLog(W.preseasonTestState&&S.type==="fp"?"Spielstand geladen – Testsession läuft weiter, höchstens zehn Autos fahren gleichzeitig":"Spielstand geladen – Session läuft weiter, alle Autos starten aus der Garage","flag");}
   else{S.phase="racing";S.started=true;S.raceT=L_.raceT;S.goT=L_.raceT-90;S.laps=L_.laps;S.om=L_.om;S.wetRace=L_.wetRace;S.lights=0;
     for(const o of L_.cars){const c=by(o.code);if(!c)continue;c.s=o.s;c.pos=mod(c.s);c.lat=0;c.v=T.prof[sidx(c.pos)]*0.8;c.mode="race";c.inPit=false;c.pit=null;c.onGrid=false;c.stopAt=null;
       c.tyre=o.tyre;c.wear=o.wear;c.stops=o.stops;c.used=new Set(o.used);c.plan=o.plan||[];c.penSec=o.penSec;c.penTot=o.penTot;c.strikes=o.strikes;c.warn=o.warn;c.dtPending=o.dt;c.sgPending=o.sg;
