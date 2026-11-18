@@ -35,7 +35,7 @@ const POOL=[
  ["UGO","Ugo Ugochukwu",57,"MCL","McLaren-Junior · F3",0.58,12,false,.55,.5,"F3-Spitze – max. 30 Punkte"]
 ];
 const DB={};
-const GUSTAV_BURTON="DRV0411";
+const GUSTAV_BURTON="GUS";
 DRIVERS.forEach(d=>{DB[d.code]={code:d.code,name:d.name,num:d.num,home:d.team,role:"Stammfahrer",skill:+(d.perf-TEAMS[d.team].pace).toFixed(3),sl:0,held:true,note:"F1-Stammfahrer",style:d.style}});
 POOL.forEach(p=>{DB[p[0]]={code:p[0],name:p[1],num:p[2],home:p[3],role:p[4],skill:p[5],sl:p[6],held:p[7],note:p[10],style:p[9]};if(AGG[p[0]]==null)AGG[p[0]]=p[8];WETSTYLE[p[0]]=p[9];});
 const DRIVER_CODE_BY_ID={};
@@ -49,11 +49,12 @@ function integrateDriverPool(){
   for(const row of DRIVER_POOL_V4){
     let code=byName.get(normDriverName(row.name));
     if(!code&&row.name==="Andrea Kimi Antonelli")code=byName.get("kimiantonelli");
+    if(row.name==="Gustav Burton")code=GUSTAV_BURTON;
     if(!code)code=row.driver_id;
     const prior=DB[code], home=prior&&prior.home||dataHomeTeam(row);
     const eligible=row.f1_entry_gate_game==="allow_existing_2026_racer_game_assumption";
     const role=String(row.development_tier_game||row.pool_groups||"Driver");
-    DB[code]=Object.assign({},prior,{code,id:row.driver_id,name:prior&&prior.name||row.name,
+    DB[code]=Object.assign({},prior,{code,id:code===GUSTAV_BURTON?GUSTAV_BURTON:row.driver_id,sourceDriverId:row.driver_id,name:prior&&prior.name||row.name,
       num:prior&&prior.num||((parseInt(row.driver_id.replace(/\D/g,""),10)||1)%99+1),home,
       role:prior&&prior.role||role,skill:prior?prior.skill:adaptDatasetSkill(row.f1_skill_game),
       sl:prior?prior.sl:0,held:prior?prior.held:eligible,note:prior&&prior.note||row.super_licence_evidence_status,
@@ -86,7 +87,8 @@ const slOk=(code,k)=>{const d=DB[code];if(!d)return false;if(code===GUSTAV_BURTO
 const slTxt=code=>{const d=DB[code];return d.held?"Superlizenz vorhanden":`${d.sl} Punkte`+(d.sl>=40?" – reicht":" – zu wenig (40 nötig)");};
 function seatOf(k,code){for(const t of TEAM_KEYS)if(k.roster[t]&&k.roster[t].includes(code))return t;return null;}
 function drvName(code){return DB[code]?DB[code].name:code;}
-function initMgmt(k){const fresh=!k.roster;if(fresh){resetDriverPoolForNewCareer();k.roster=JSON.parse(JSON.stringify(BASE_ROSTER));k.pace=Object.assign({},BASE_PACE);k.money={};k.tpoints={};k.pointLedger={schemaVersion:1,legacyDrivers:{},legacyConstructors:{},legacyStatus:"complete",events:[]};
+function migrateGustavDriverCode(k){if(!k||typeof k!=="object")return;const old="DRV0411",next=GUSTAV_BURTON;const walk=value=>{if(Array.isArray(value)){for(let i=0;i<value.length;i++){if(value[i]===old)value[i]=next;else if(value[i]&&typeof value[i]==="object")walk(value[i]);else if(typeof value[i]==="string"&&value[i].includes(old))value[i]=value[i].replaceAll(old,next);}return;}if(!value||typeof value!=="object")return;for(const key of Object.keys(value)){if(key==="sourceRecord")continue;const newKey=key===old?next:key.startsWith(old+":")?next+key.slice(old.length):key,item=value[key];if(newKey!==key){if(value[newKey]===undefined)value[newKey]=item;delete value[key];}const target=value[newKey];if(target===old)value[newKey]=next;else if(typeof target==="string"&&target.includes(old))value[newKey]=target.replaceAll(old,next);else if(target&&typeof target==="object")walk(target);}};walk(k);}
+function initMgmt(k){migrateGustavDriverCode(k);const fresh=!k.roster;if(fresh){resetDriverPoolForNewCareer();k.roster=JSON.parse(JSON.stringify(BASE_ROSTER));k.pace=Object.assign({},BASE_PACE);k.money={};k.tpoints={};k.pointLedger={schemaVersion:1,legacyDrivers:{},legacyConstructors:{},legacyStatus:"complete",events:[]};
     k.season=k.season||1;k.year=k.year||2026;k.licLog=k.licLog||[];k.drep={};k.revert=[];k.mevents={};k.reqLog=[];
     for(const c in DB)k.drep[c]=clamp(Math.round(78-DB[c].skill*110),20,95);
     k.drep.VER=96;k.drep.NOR=88;k.drep.LEC=88;k.drep.HAM=84;k.drep.ALO=82;k.drep.RUS=86;k.drep.PIA=86;k.drep.ANT=84;
