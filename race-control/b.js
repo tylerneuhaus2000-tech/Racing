@@ -190,7 +190,7 @@ function carStep(c,dt){
   else if(c.sLat!=null){tl=c.sLat;rate=c.sRate||16;free=c.sFree;}
   else{
     if(c.mode==="form")tl=(c.stopAt!=null&&c.stopAt-c.s<70)?c.gridLat:0;
-    else if(c.wantPit&&((PIT_ENTRY_S-c.pos+L)%L)<160)tl=-10;
+    else if(c.wantPit&&((PIT_ENTRY_S-c.pos+L)%L)<PIT_ROUTE.approach)tl=pitRouteApproachLatAt(c.pos)??-10;
     else if(c.holdT>0)tl=c.lat;
     else if(c.yieldT>0)tl=c.yieldSide*10.5;
     else if(c.defT>0&&c.defLat!=null)tl=c.defLat;
@@ -313,11 +313,20 @@ function startPit(c){
 function mateBusy(c){return S.cars.find(o=>o!==c&&o.drv.ti===c.drv.ti&&o.pit&&o.pit.goal==="service"&&(o.pit.ph==="in"||o.pit.ph==="svc")&&!o.pit.stack)||null;}
 function fastLaneCar(c,lo,hi){for(const o of S.cars){if(o===c||o.removed||!o.pit||o.lat<-35||o.lat>-22||o.v<3)continue;
   const d=delta(c,o);if(d>lo&&d<hi)return o;}return null;}
+function pitTrackMergeBlocked(c){const merge=mod(PIT_EXIT_S+PIT_ROUTE.rejoin),toMerge=(merge-c.pos+L)%L;
+  if(toMerge>PIT_ROUTE.rejoin+45||toMerge>L/2)return false;const tCar=toMerge/Math.max(10,c.v);
+  for(const o of S.cars){if(o===c||o.pit||o.removed||o.mode==="garage"||o.mode==="grid")continue;
+    if(o.v<4){let d=(o.pos-merge+L/2)%L;if(d<0)d+=L;d-=L/2;if(Math.abs(d)<90)return true;continue;}
+    const toTrack=(merge-o.pos+L)%L;
+    if(toTrack<=L/2){const tTrack=toTrack/Math.max(12,o.v);if(tTrack>=tCar-1.15&&tTrack<=tCar+1.5)return true;}
+    else{const ahead=L-toTrack;if(ahead<Math.max(28,32+(c.v-o.v)*0.5))return true;}}
+  return false;}
 function pitCtl(c,vT,dt){const p=c.pit;let tl=PLAT;
-  const inZone=c.pos>=PIT_IN_S||c.pos<=PIT_OUT_S, lim=PITV*(c.speeding||1);
+  const inZone=c.pos>=PIT_IN_S||c.pos<=PIT_OUT_S,lim=(TRACK.pitLim||PITV*KMH)/KMH*(c.speeding||1);
   if(inZone)vT=Math.min(vT,lim);
   else if(c.pos<PIT_IN_S&&c.pos>PIT_ENTRY_S-60)vT=Math.min(vT,Math.sqrt(lim*lim+2*BRK*0.8*(PIT_IN_S-c.pos)));
   if(p.ph==="in"){
+    tl=pitRouteEntryLatAt(c.pos);
     if(!p.trap&&inZone){p.trap=true;if(c.speeding>1)reportSpeed(c,lim*KMH);}
     if(c.stopAt!=null&&c.stopAt-c.s<18)tl=p.goal==="garage"||p.goal==="service"?BOXLAT:PLAT;
     if(p.goal==="through"&&c.pos>20&&c.pos<L/2)p.ph="exit";
@@ -330,17 +339,19 @@ function pitCtl(c,vT,dt){const p=c.pit;let tl=PLAT;
       else if(!fastLaneCar(c,-36,14)){go=true;const u=fastLaneCar(c,-54,-36);if(u&&S.type==="race"&&Math.random()<0.12)reportUnsafe(c,u,false);}
       if(go){p.ph="exit";c.stops++;c.tyreLaps=0;c.relT=1.6;c.stopAt=S.flag.mode==="red"&&S.type==="race"?absAhead(c,PIT_OUT_S-6):null;}}
   }else if(p.ph==="exit"){
+    tl=pitRouteExitLatAt(c.pos);
     if(c.lat<-35)vT=Math.min(vT,14);
+    if(c.pos>=PIT_EXIT_S-Math.min(35,PIT_ROUTE.rejoin*0.25)&&pitTrackMergeBlocked(c))vT=0;
     if(S.type!=="race"&&!p.gate&&c.stopAt==null&&c.pos>PIT_OUT_S-40&&c.pos<=PIT_OUT_S){ // Ampel am Boxenausgang: Abstand halten
       if(p.wait==null)p.wait=rand(2,3);
       if(!S.pitExitOpen||S.t-S.exitT<p.wait||S.cars.some(o=>o!==c&&o.pit&&o.pit.ph==="exit"&&!o.pit.gate&&delta(c,o)>0&&delta(c,o)<90))vT=Math.min(vT,Math.sqrt(2*BRK*0.7*Math.max(0,PIT_OUT_S-6-c.pos)));else{p.gate=true;S.exitT=S.t;}}
-    if(c.pos>PIT_OUT_S&&c.pos<L/2){   // Ausfahrtsspur: bis zum Ende der weißen Linie links davon bleiben, erst dann auf die Strecke
+    if(c.pos>PIT_OUT_S&&c.pos<L/2){   // Ausfahrtsspur: der Streckenlinie folgend bis zum Ende der weißen Linie
       if(p.xk==null){const r=Math.random()/memW("pitline",-1);p.xk=r<0.02?2:r<0.055?1:0;if(p.xk)memAdd("pitline",-1);p.xmax=-99;}
-      const u=clamp((c.pos-PIT_OUT_S)/(PIT_EXIT_S-PIT_OUT_S),0,1),end=p.xk===1?-23.4+rand(-0.25,0.35):-24.6;
-      tl=c.pos>=PIT_EXIT_S||(p.xk===2&&u>0.5)?-10.5:-34+(end+34)*u;
-      if(c.pos<PIT_EXIT_S)p.xmax=Math.max(p.xmax,c.lat+CAR_W/2);
-      else if(p.xk&&!p.xrep){p.xrep=true;reportPitLine(c,p.xmax>PITLINE);}
-      if((c.pos>=PIT_EXIT_S&&c.lat>-15)||c.pos>PIT_EXIT_S+110){c.pit=null;c.inPit=false;c.speeding=0;c.holdT=0.5;c.cold=14;}}
+      const lineEnd=PIT_EXIT_S+PIT_ROUTE.rejoin,u=clamp((c.pos-PIT_OUT_S)/Math.max(1,PIT_EXIT_S-PIT_OUT_S),0,1);
+      if(p.xk===1&&c.pos<PIT_EXIT_S)tl+=0.8;else if(p.xk===2&&u>0.5)tl+=7;
+      if(c.pos<=lineEnd)p.xmax=Math.max(p.xmax,c.lat+CAR_W/2-pitRouteExitBoundaryAt(c.pos));
+      else if(p.xk&&!p.xrep){p.xrep=true;reportPitLine(c,p.xmax>0);}
+      if((c.pos>=lineEnd&&c.lat>-17)||c.pos>lineEnd+20){c.pit=null;c.inPit=false;c.speeding=0;c.holdT=0.5;c.cold=14;}}
   }
   c._tl=tl;return vT;}
 function arrive(c){const p=c.pit;

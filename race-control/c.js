@@ -8,7 +8,9 @@ function recFrame(){const n=S.cars.length,a=new Float32Array(n*5),e=new Uint8Arr
     {const acc=(c.v-(c._pv==null?c.v:c._pv))/DT;c._pv=c.v;const pf=T.prof[sidx(c.pos)]||1;let th=c.brk?0:c.v>=pf*0.96?1:clamp(0.15+acc/22,0,1);if(c.pit)th=Math.min(th,0.35);
       e[i*5]=Math.round(clamp(c.soc==null?0.85:c.soc,0,1)*255);c._th=c._th==null||th===0?th:c._th+(th-c._th)*0.25;e[i*5+1]=Math.round(c._th*255);e[i*5+2]=c.clip?2:c.brk||c.wantSave?1:c.omOn?3:0;{const dpv=(c.dp||0)|(c.punct?DP.tyre:0);e[i*5+3]=dpv&255;e[i*5+4]=(dpv>>8)&255;}}
     a[o+4]=(c.removed?0:1)|(c.omOn?2:0)|(c.brk?4:0)|(c.sparks>0?8:0)|(c.crash?16:0)|(c.blueT>0?32:0)|(c.lockT>0?64:0)|(c.pit&&(c.pit.ph==="svc"||c.pit.ph==="hold")?128:0)|(c.relT>0?256:0)|(c.dustT>0?512:0)|(c.dmg?1024:0)|cw|(c.aquaT>0?1<<20:0)|(c.fire&&c.fire.t<c.fire.T?1<<21:0)|(c.punct?((c.punctW==null?(c.punctW=irand(2,3)):c.punctW)&3)<<22:0);if(c.fire&&c.fire.t<c.fire.T)c.fire.t+=DT;}
-  REC.push({a,e,db:debrisRec(),fm:S.flag.mode,sec:S.sec.slice(),li:S.lights,wet:S.wx.wet,rain:S.wx.rain,sc:S.sc&&S.sc.on?[S.sc.s,S.sc.lat]:S.rsSC?[S.rsSC.s,0]:null,px:(S.type!=="race"?!S.pitExitOpen:S.flag.mode==="red")?1:0,
+  const pitExitBusy=S.cars.some(c=>c.pit&&c.pit.ph==="exit"&&c.pos>=PIT_OUT_S-20&&c.pos<=PIT_EXIT_S+PIT_ROUTE.rejoin),
+    pitExitBlue=pitExitBusy&&S.cars.some(c=>!c.pit&&c.mode!=="garage"&&c.mode!=="grid"&&!c.removed&&(()=>{const d=(PIT_EXIT_S-c.pos+L)%L;return d<320&&d/Math.max(15,c.v)<4.2;})());
+  REC.push({a,e,db:debrisRec(),fm:S.flag.mode,sec:S.sec.slice(),li:S.lights,wet:S.wx.wet,rain:S.wx.rain,sc:S.sc&&S.sc.on?[S.sc.s,S.sc.lat]:S.rsSC?[S.rsSC.s,0]:null,px:(S.type!=="race"?!S.pitExitOpen:S.flag.mode==="red")?1:0,pb:pitExitBlue?1:0,
     nk:S.nuke?S.nuke.rec:null,hz:S.hazard&&!S.hazard.cleared&&S.hazard.pos>=0?[S.hazard.pos,S.hazard.deb?1:0,S.hazard.handled?1:0,S.hazard.cars&&S.hazard.cars[0]?S.hazard.cars[0].lat:0]:null,t:S.t});
   if(REC.length>2400){REC.splice(0,300);recBase+=300;}
   S.step++;}

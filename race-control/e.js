@@ -5,8 +5,8 @@ function mkPath(latFn,i0,i1,close,into){const p=into||new Path2D();
     const x=T.x[j]-Math.sin(T.ang[j])*lat,y=T.y[j]+Math.cos(T.ang[j])*lat;if(i===i0)p.moveTo(x,y);else p.lineTo(x,y);}
   if(close)p.closePath();return p;}
 let P;function buildPaths(){
-  const iE=sidx(PIT_ENTRY_S),iI=sidx(PIT_IN_S),iO=sidx(PIT_OUT_S)+NU,iX=sidx(PIT_EXIT_S)+NU;
-  const pl=i=>i<iI?-17-17*(i-iE)/(iI-iE):i>iO?-34+9.4*(i-iO)/(iX-iO):-34;
+  const iE=Math.ceil(PIT_ENTRY_S/DS),iI=sidx(PIT_IN_S),iO=sidx(PIT_OUT_S)+NU,iX=sidx(PIT_EXIT_S+PIT_ROUTE.rejoin)+NU;
+  const pl=i=>pitRouteRoadLatAt(i*DS),boundaryIn=i=>pitRouteEntryBoundaryAt(i*DS),boundaryOut=i=>pitRouteExitBoundaryAt(i*DS);
   const kerb=new Path2D();
   for(const c of CORNERS){if(c.s>PIT_ENTRY_S-40||c.s<PIT_EXIT_S)continue;mkPath(19,c.i0-6,c.i1+6,false,kerb);mkPath(-19,c.i0-6,c.i1+6,false,kerb);}
   // Umgebung: Kiesbetten außen an den Kurven, Tribünen, Boxengebäude, Bäume
@@ -19,9 +19,9 @@ let P;function buildPaths(){
   for(let k=0;k<420&&trees.length<230;k++){const j=Math.floor(rnd()*NU),lat=(rnd()<0.5?-1:1)*(52+rnd()*85),x=T.x[j]-Math.sin(T.ang[j])*lat,y=T.y[j]+Math.cos(T.ang[j])*lat;let ok=true;
     for(let i=0;i<NU;i+=3){const dx=T.x[i]-x,dy=T.y[i]+0-y;if(dx*dx+dy*dy<50*50){ok=false;break;}}
     if(ok)trees.push([x,y,3+rnd()*3.5,rnd()]);}
-  const pxLine=mkPath(PITLINE,iO+6,iX),peLine=mkPath(PITLINE,iE+8,iI-2);
-  return {runA,rwall,pxLine,peLine,gravel,stands,trees,bld:mkPath(-60,iI+10,iO-10),center:mkPath(0,0,NU-1,true),sec:[0,1,2].map(k=>mkPath(0,Math.floor(SECB[k]/DS),Math.floor(SECB[k+1]/DS)+1)),kerb,
-    pit:mkPath(pl,iE,iX),gar:mkPath(-51,iI+10,iO-10),wall:mkPath(-22.5,iI+4,iO-4),line:mkPath(i=>T.line[((i%NU)+NU)%NU],0,NU-1,true)};}
+  const pxLine=mkPath(boundaryOut,iO+2,iX),peLine=mkPath(boundaryIn,iE+1,iI-2),fastSep=mkPath(pl,iI+2,iO-2);
+  return {runA,rwall,pxLine,peLine,fastSep,gravel,stands,trees,bld:mkPath(i=>pitRouteRoadLatAt(i*DS)-25,iI+10,iO-10),center:mkPath(0,0,NU-1,true),sec:[0,1,2].map(k=>mkPath(0,Math.floor(SECB[k]/DS),Math.floor(SECB[k+1]/DS)+1)),kerb,
+    pit:mkPath(pl,iE,iX),gar:mkPath(i=>pitRouteRoadLatAt(i*DS)-17,iI+10,iO-10),wall:mkPath(i=>pitRouteRoadLatAt(i*DS)+11.5,iI+4,iO-4),line:mkPath(i=>T.line[((i%NU)+NU)%NU],0,NU-1,true)};}
 P=buildPaths();
 const NIGHT=new Set(["bahrain","jeddah","singapore","vegas","lusail","yas"]);
 const TEAM2={MER:"#101418",MCL:"#101418",FER:"#fff200",RBR:"#ffd000",HAA:"#e6002b",ALP:"#0093cc",WIL:"#ffffff",RCB:"#ffffff",AUD:"#111111",AMR:"#cedc00",CAD:"#ffffff"};
@@ -78,7 +78,7 @@ function drawScene(ctx,W,H,cam,fr,roster,opt){
   st(P.bld,13,"#565e6b");st(P.bld,9,"#3c434e");
   st(P.center,63,"#77808c");st(P.center,60,"#22343a");
   st(P.gravel,7.4,night?"#6e6247":"#8d7d58");st(P.runA,7.4,night?"#2c3742":"#46525f");st(P.rwall,1.6,"#d9dde3");
-  st(P.gar,11,"#4b525e");st(P.pit,21,"#30353d");
+  st(P.gar,11,"#4b525e");st(P.pit,29,"#30353d");
   st(P.kerb,3,"#d22");ctx.setLineDash([4,4]);st(P.kerb,3,"#f4f4f4");ctx.setLineDash([]);
   if(fr.fm!=="green")st(P.center,40,FLAGCOL[fr.fm]);
   else for(let k=0;k<3;k++)if(fr.sec[k])st(P.sec[k],40,fr.sec[k]>1?"#ffb000":"#ffd400");
@@ -101,10 +101,18 @@ function drawScene(ctx,W,H,cam,fr,roster,opt){
       const q=posXY(i*DS,25),wv=Math.sin(fr.t*10+i)*1.6;ctx.fillStyle="#e8e8e8";ctx.fillRect(q.x-0.7,q.y-0.7,1.4,1.4);
       ctx.fillStyle=stt===2?"#e10600":"#ffd400";ctx.beginPath();ctx.moveTo(q.x,q.y-0.6);ctx.lineTo(q.x+4.6,q.y-2.6+wv);ctx.lineTo(q.x+4.6,q.y+0.8+wv);ctx.lineTo(q.x,q.y+2.2);ctx.fill();
       if(stt===1&&fr.fm==="green"&&fr.sec[sk]>1){ctx.beginPath();ctx.moveTo(q.x,q.y-0.6);ctx.lineTo(q.x-4.6,q.y-2.6-wv);ctx.lineTo(q.x-4.6,q.y+0.8-wv);ctx.lineTo(q.x,q.y+2.2);ctx.fill();}}
-    st(P.pxLine,0.9,"#ffffff");st(P.peLine,0.9,"#ffffff");     // weiße Linien an Ein- und Ausfahrt
-    for(const s0 of [PIT_IN_S,PIT_OUT_S]){const a1=posXY(s0,-25),a2=posXY(s0,-43);ctx.strokeStyle="#ffd400";ctx.lineWidth=0.9;ctx.beginPath();ctx.moveTo(a1.x,a1.y);ctx.lineTo(a2.x,a2.y);ctx.stroke();}   // Beginn und Ende des Tempolimits
-    {const q=posXY(PIT_OUT_S-2,-27.5);ctx.fillStyle="#0c0c0c";ctx.fillRect(q.x-2,q.y-2,4,4);ctx.beginPath();ctx.arc(q.x,q.y,1.3,0,7);ctx.fillStyle=fr.px?"#ff2020":"#25e060";ctx.fill();   // Ampel am Boxenausgang
-      ctx.beginPath();ctx.arc(q.x,q.y,2.8,0,7);ctx.fillStyle=fr.px?"rgba(255,40,40,.25)":"rgba(40,230,100,.22)";ctx.fill();}
+    st(P.pxLine,1.0,"#ffffff");st(P.peLine,1.0,"#ffffff");st(P.fastSep,0.55,"rgba(238,241,244,.8)");
+    for(const s0 of [PIT_IN_S,PIT_OUT_S]){const mid=pitRouteRoadLatAt(s0),a1=posXY(s0,mid+11.5),a2=posXY(s0,mid-11.5);ctx.strokeStyle="#ffd400";ctx.lineWidth=1.1;ctx.beginPath();ctx.moveTo(a1.x,a1.y);ctx.lineTo(a2.x,a2.y);ctx.stroke();}
+    {const q=posXY(PIT_OUT_S-2,pitRouteRoadLatAt(PIT_OUT_S)+13);ctx.fillStyle="#0c0c0c";ctx.fillRect(q.x-2,q.y-2,4,4);
+      const col=fr.px?"#ff2020":"#25e060";ctx.beginPath();ctx.arc(q.x,q.y,1.3,0,7);ctx.fillStyle=col;ctx.fill();
+      ctx.beginPath();ctx.arc(q.x,q.y,2.8,0,7);ctx.fillStyle=fr.px?"rgba(255,40,40,.25)":"rgba(40,230,100,.22)";ctx.fill();
+      const blue=posXY(PIT_OUT_S-2,pitRouteRoadLatAt(PIT_OUT_S)+17);ctx.beginPath();ctx.arc(blue.x,blue.y,1.1,0,7);ctx.fillStyle=fr.pb&&Math.sin(fr.t*12)>0?"#4c9dff":"#10213b";ctx.fill();
+      if(fr.pb){ctx.beginPath();ctx.arc(blue.x,blue.y,2.6,0,7);ctx.fillStyle="rgba(50,135,255,.25)";ctx.fill();}}
+    if(cam.z>2){const q=posXY(PIT_IN_S+5,pitRouteRoadLatAt(PIT_IN_S)+15);ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.ang);
+      ctx.fillStyle="#f4f5f6";ctx.strokeStyle="#e10600";ctx.lineWidth=0.7;ctx.beginPath();ctx.arc(0,0,4.2,0,7);ctx.fill();ctx.stroke();
+      ctx.fillStyle="#121820";ctx.font="bold 3.2px ui-monospace,monospace";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(String(TRACK.pitLim||80),0,0);ctx.restore();
+      const f=posXY(PIT_IN_S+32,PLAT+5);ctx.save();ctx.translate(f.x,f.y);ctx.rotate(f.ang);ctx.fillStyle="rgba(255,255,255,.72)";
+      ctx.font="bold 2.2px sans-serif";ctx.textAlign="center";ctx.fillText("FAST LANE",0,0);ctx.restore();}
     for(let t=0;t<TEAM_KEYS.length;t++){const q=posXY(boxPos(t),BOXLAT);ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.ang);
       ctx.strokeStyle=TEAMS[TEAM_KEYS[t]].color;ctx.lineWidth=0.8;ctx.strokeRect(-9,-4.2,18,8.4);
       const pl=boxL[t]||0;ctx.fillStyle="#0c0c0c";ctx.fillRect(9.6,-2.6,3.4,5.2);       // Boxenampel
@@ -352,7 +360,8 @@ function drawTele(cl,pos){const cv=$("rpTele");if(!cv)return;const g=cv.getConte
   g.font="11px ui-monospace,monospace";g.fillStyle="#cfd8e3";const lines=[];
   const other=inc.cars.find(c=>c!==car);if(other){const oi=S.cars.indexOf(other);if(oi>=0){const ds=f.a[oi*5]-d.s,gap=ds/Math.max(5,d.v);lines.push(`Abstand zu ${other.drv.code}: ${ds>=0?"+":""}${ds.toFixed(1)} m`+(kmh>30&&Math.abs(gap)<20?` · ${gap>=0?"+":""}${gap.toFixed(2)} s`:""));}}
   lines.push(inPit?"Position: Boxengasse":`Querlage: ${Math.abs(d.lat).toFixed(1)} m von der Mitte ${Math.abs(d.lat)>TL_OFF?"⚠ alle vier Räder über der Linie":""}`);
-  if(f.a[ci*5+3]<0)lines.push(`Stopp in der Box: ${(-f.a[ci*5+3]).toFixed(1)} s Standzeit`);else if(inLim&&kmh>20)lines.push(`Tempolimit Boxengasse: ${Math.round(PITV*KMH)} km/h · Abweichung ${(kmh-PITV*KMH>=0?"+":"")}${(kmh-PITV*KMH).toFixed(1)} km/h`);else if(inc.kind==="speed")lines.push(`Noch vor der Limit-Linie – Tempolimit gilt ab Boxenlinie (${Math.round(PITV*KMH)} km/h)`);
+  const pitLimit=TRACK.pitLim||PITV*KMH;
+  if(f.a[ci*5+3]<0)lines.push(`Stopp in der Box: ${(-f.a[ci*5+3]).toFixed(1)} s Standzeit`);else if(inLim&&kmh>20)lines.push(`Tempolimit Boxengasse: ${Math.round(pitLimit)} km/h · Abweichung ${(kmh-pitLimit>=0?"+":"")}${(kmh-pitLimit).toFixed(1)} km/h`);else if(inc.kind==="speed")lines.push(`Noch vor der Limit-Linie – Tempolimit gilt ab Boxenlinie (${Math.round(pitLimit)} km/h)`);
   if(inc.kind==="delta"||f.fm==="vsc"||f.fm==="sc")lines.push(`Neutralisierung: ${f.fm.toUpperCase()} · Tempo ${Math.round(kmh)} km/h`);
   {const m=f.e&&f.e.length>=(ci+1)*5?f.e[ci*5+3]|(f.e[ci*5+4]<<8):0;if(m){const nm=Object.keys(DP).filter(k=>m&DP[k]).map(k=>DP_TXT[k].replace(" verloren"," weg").replace("Aufhängung","Aufh.").replace("Seitenkasten","Seitenk."));lines.push("Schaden: "+nm.slice(0,3).join(", ")+(nm.length>3?` +${nm.length-3}`:""));}}
   lines.forEach((l,k)=>g.fillText(l,14,116+k*15));

@@ -43,17 +43,70 @@ const RO_TXT={wall:"Mauer",gravel:"Kiesbett",asphalt:"Asphalt-Auslauf"};
 const PITDATA={melbourne:[260,230],shanghai:[380,330],suzuka:[230,300],bahrain:[280,330],jeddah:[300,260],miami:[270,300],montreal:[330,250],monaco:[180,330,60],
   barcelona:[270,300],rbr:[230,300],silverstone:[300,220],spa:[330,220],hungaroring:[300,260],zandvoort:[260,180],monza:[320,260],madrid:[260,260],
   singapore:[420,360],baku:[260,0,80,"T1"],austin:[260,250],mexico:[320,300],interlagos:[450,380],vegas:[260,260],lusail:[300,300],yas:[360,380],imola:[330,320]};
-function applyPitData(){const d=PITDATA[TRACK.key];TRACK.pitLim=d&&typeof d[2]==="number"&&d[3]!=="T1"?d[2]:80;if(!d||!TRACK.len)return;const r=L/TRACK.len;
+/* Streckenspezifische Pit-Road-Profile, in Metern: Anfahrt, Einfädeln, Ausfahrtsbogen,
+   Auslauf bis zur Safety-Car-Linie 2 sowie der Start-/Endpunkt der jeweiligen Kurve.
+   Abstände werden auf die im Spiel skalierte Streckenlänge umgerechnet. */
+const PITROUTES={
+  ring:{approach:185,entry:145,exit:115,rejoin:105,entryLat:-22.5,exitLat:-23.0},
+  melbourne:{approach:175,entry:135,exit:110,rejoin:115,entryLat:-23.5,exitLat:-24.5},
+  shanghai:{approach:205,entry:155,exit:145,rejoin:135,entryLat:-22.0,exitLat:-24.3},
+  suzuka:{approach:190,entry:150,exit:125,rejoin:125,entryLat:-22.0,exitLat:-24.5},
+  bahrain:{approach:175,entry:135,exit:125,rejoin:130,entryLat:-24.0,exitLat:-24.4},
+  jeddah:{approach:210,entry:160,exit:120,rejoin:130,entryLat:-21.5,exitLat:-24.1},
+  miami:{approach:170,entry:135,exit:120,rejoin:120,entryLat:-23.0,exitLat:-24.6},
+  montreal:{approach:180,entry:140,exit:95,rejoin:105,entryLat:-24.5,exitLat:-24.4},
+  monaco:{approach:150,entry:125,exit:150,rejoin:145,entryLat:-20.0,exitLat:-24.0},
+  barcelona:{approach:185,entry:145,exit:115,rejoin:120,entryLat:-23.0,exitLat:-24.4},
+  rbr:{approach:165,entry:130,exit:115,rejoin:110,entryLat:-24.5,exitLat:-24.5},
+  silverstone:{approach:190,entry:145,exit:150,rejoin:150,entryLat:-21.5,exitLat:-24.0},
+  spa:{approach:205,entry:155,exit:135,rejoin:90,entryLat:-22.5,exitLat:-24.2},
+  hungaroring:{approach:185,entry:145,exit:110,rejoin:115,entryLat:-23.0,exitLat:-24.6},
+  zandvoort:{approach:175,entry:140,exit:90,rejoin:100,entryLat:-21.5,exitLat:-24.2},
+  monza:{approach:185,entry:145,exit:105,rejoin:110,entryLat:-24.5,exitLat:-24.6},
+  madrid:{approach:175,entry:140,exit:105,rejoin:115,entryLat:-23.0,exitLat:-24.5},
+  baku:{approach:175,entry:140,exit:160,rejoin:155,entryLat:-19.5,exitLat:-23.8},
+  singapore:{approach:220,entry:170,exit:145,rejoin:145,entryLat:-19.5,exitLat:-23.8},
+  austin:{approach:180,entry:85,exit:110,rejoin:115,entryLat:-23.0,exitLat:-24.5},
+  mexico:{approach:190,entry:150,exit:125,rejoin:130,entryLat:-24.5,exitLat:-24.5},
+  interlagos:{approach:225,entry:175,exit:130,rejoin:135,entryLat:-21.5,exitLat:-24.2},
+  vegas:{approach:170,entry:135,exit:105,rejoin:110,entryLat:-22.5,exitLat:-24.4},
+  lusail:{approach:185,entry:145,exit:125,rejoin:130,entryLat:-23.0,exitLat:-24.5},
+  yas:{approach:210,entry:165,exit:150,rejoin:150,entryLat:-21.5,exitLat:-24.2},
+  imola:{approach:195,entry:150,exit:125,rejoin:130,entryLat:-22.5,exitLat:-24.3},
+  nuerburgring:{approach:180,entry:140,exit:110,rejoin:115,entryLat:-23.0,exitLat:-24.5},
+  hockenheim:{approach:190,entry:150,exit:120,rejoin:125,entryLat:-23.0,exitLat:-24.4}
+};
+let PIT_ROUTE=PITROUTES.ring;
+const pitEase=u=>{u=clamp(u,0,1);return u*u*(3-2*u);};
+const pitRouteLineAt=pos=>T.line[sidx(((pos%L)+L)%L)];
+function pitRouteApproachLatAt(pos){const r=PIT_ROUTE,d=(PIT_ENTRY_S-(((pos%L)+L)%L)+L)%L;if(d>r.approach)return null;
+  const u=pitEase((r.approach-d)/r.approach),line=pitRouteLineAt(pos);return line+(r.entryLat-line)*u;}
+function pitRouteEntryLatAt(pos){const s=((pos%L)+L)%L,along=(s-PIT_ENTRY_S+L)%L,span=Math.max(1,PIT_IN_S-PIT_ENTRY_S);
+  if(along>=span)return PLAT;return PIT_ROUTE.entryLat+(PLAT-PIT_ROUTE.entryLat)*pitEase(along/span);}
+function pitRouteExitLatAt(pos){const s=((pos%L)+L)%L,r=PIT_ROUTE;if(s>=PIT_ENTRY_S)return PLAT;
+  if(s<PIT_OUT_S)return PLAT;if(s<=PIT_EXIT_S)return PLAT+(r.exitLat-PLAT)*pitEase((s-PIT_OUT_S)/Math.max(1,PIT_EXIT_S-PIT_OUT_S));
+  if(s<=PIT_EXIT_S+r.rejoin)return r.exitLat+(pitRouteLineAt(s)-r.exitLat)*pitEase((s-PIT_EXIT_S)/Math.max(1,r.rejoin));return pitRouteLineAt(s);}
+function pitRouteRoadLatAt(pos){const s=((pos%L)+L)%L;return s>=PIT_ENTRY_S?pitRouteEntryLatAt(s)-4:pitRouteExitLatAt(s)-4;}
+function pitRouteEntryBoundaryAt(pos){return pitRouteEntryLatAt(pos)-4+10.5;}
+function pitRouteExitBoundaryAt(pos){return pitRouteExitLatAt(pos)-4+10.5;}
+function applyPitData(){const d=PITDATA[TRACK.key],base=PITROUTES[TRACK.key]||PITROUTES.ring,r=TRACK.len?L/TRACK.len:1,
+    route=PIT_ROUTE=Object.assign({},base,{approach:base.approach*r,entry:base.entry*r,exit:base.exit*r,rejoin:base.rejoin*r});TRACK.pitLim=d&&typeof d[2]==="number"&&d[3]!=="T1"?d[2]:80;
+  if(!d||!TRACK.len){PIT_IN_S=PIT_ENTRY_S+route.entry;PIT_OUT_S=Math.max(0,PIT_EXIT_S-route.exit);finalizePitRoute(route);return;}
   const last=CORNERS[CORNERS.length-1],first=CORNERS[0];
   const maxEn=last?Math.max(246,L-last.i1*DS-25):246,maxEx=first?Math.max(250,first.i0*DS-25):250;
   const en=clamp(d[0]*r,200,maxEn),ex=d[3]==="T1"&&first?first.i1*DS+60:clamp(d[1]*r,210,maxEx);   // Baku: Ausfahrtsspur läuft links durch Kurve 1
-  PIT_ENTRY_S=L-en;PIT_EXIT_S=ex;PIT_IN_S=Math.max(PIT_ENTRY_S+60,L-160);PIT_OUT_S=Math.min(PIT_EXIT_S-60,160);DEC_S=PIT_ENTRY_S-90;BOX0=-125;
-  const X=PITX[TRACK.key];if(!X)return;
+  PIT_ENTRY_S=L-en;PIT_EXIT_S=ex;PIT_IN_S=PIT_ENTRY_S+route.entry;PIT_OUT_S=Math.min(PIT_EXIT_S-route.exit,160);DEC_S=PIT_ENTRY_S-route.approach;BOX0=-125;
+  const X=PITX[TRACK.key];if(!X){finalizePitRoute(route);return;}
   if(X.enC){const c=CORNERS[CORNERS.length-X.enC];if(c)PIT_ENTRY_S=c.i0*DS-X.enPre*r;}
   if(X.en)PIT_ENTRY_S=L-X.en*r;
   if(X.ex==="T1"&&first)PIT_EXIT_S=first.i1*DS+X.exPost*r;
   if(X.box!=null){BOX0=X.box*r;PIT_IN_S=Math.min(PIT_IN_S,L+BOX0-40);}
-  DEC_S=PIT_ENTRY_S-90;}
+  PIT_IN_S=Math.min(PIT_IN_S,PIT_ENTRY_S+route.entry);
+  PIT_OUT_S=Math.max(0,Math.min(PIT_OUT_S,PIT_EXIT_S-30));finalizePitRoute(route);}
+function finalizePitRoute(route){const first=L+BOX0,last=first+24*(TEAM_KEYS.length-1);PIT_IN_S=Math.min(PIT_IN_S,first-70);
+  PIT_ENTRY_S=Math.min(PIT_ENTRY_S,PIT_IN_S-route.entry);route.entry=PIT_IN_S-PIT_ENTRY_S;
+  if(last>=L)PIT_OUT_S=Math.max(PIT_OUT_S,last-L+25);PIT_OUT_S=Math.max(0,Math.min(PIT_OUT_S,PIT_EXIT_S-30));
+  route.exit=PIT_EXIT_S-PIT_OUT_S;DEC_S=PIT_ENTRY_S-route.approach;}
 /* Sonderfälle: Monaco – Boxen auf der Geraden vor Ste Dévote; Silverstone – F1-Boxengasse (Wing): Einfahrt vor Vale, Ausfahrt außen an Farm */
 const PITX={monaco:{en:330,box:-280},silverstone:{enC:3,enPre:15,ex:"T1",exPost:25}};
 
