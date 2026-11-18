@@ -55,11 +55,12 @@ function grip(c,idx){
     if(Math.abs(T.k[idx])>0.008&&offl)g*=0.975; if(Math.abs(c.lat)>LINE_OUT+1)g*=0.95;
     if(offl&&wl>0.08&&wl<0.5&&S.wx.rain<0.05)g*=0.965; }  // abtrocknende Ideallinie
   return g;}
-function laneFree(c,tg,ex){const G0=grp(c),wreck=ex&&ex.crash;
-  for(const o of S.cars){if(o===c||o===ex||o.removed||o.mode==="garage"||grp(o)!==G0)continue;
-    const d=delta(c,o);if(wreck&&d<-2)continue;   // um ein Wrack herum zählt nur, wer vorn oder neben mir ist
-    if(Math.abs(d)<CAR_L+5&&Math.abs(o.lat-tg)<CAR_W+0.6)return false;}
-  return true;}
+function laneFree(c,tg,ex){const G0=grp(c),wreck=ex&&ex.crash,oldLat=c.lat;c.lat=tg;
+  try{for(const o of S.cars){if(o===c||o===ex||o.removed||o.mode==="garage"||grp(o)!==G0)continue;
+      const d=delta(c,o);if(wreck&&d<-2)continue;   // um ein Wrack herum zählt nur, wer vorn oder neben mir ist
+      if(obbMTV(c,o,0.8))return false;}
+    return true;
+  }finally{c.lat=oldLat;}}
 function isSlow(c,o){
   if(S.type==="race")return S.phase==="racing"&&S.flag.mode!=="sc"&&S.flag.mode!=="red"&&!c.finished&&o.s-c.s>L*0.6&&o.mode==="race";
   return (c.mode==="out"||c.mode==="in")&&o.mode==="push";}
@@ -207,8 +208,9 @@ function carStep(c,dt){
   else{/* Seitenführung mit Trägheit: Querbewegung baut sich auf und ab, statt von 0 auf volle Rate zu springen */
     const lv=c.latV||0,des=clamp((tl-c.lat)*3.2,-rate,rate),la=LATACC*(c.v<12?2:1);let v2=lv+clamp(des-lv,-la*dt,la*dt);
     nl=c.lat+v2*dt;if((tl-c.lat)*(tl-nl)<0&&Math.abs(tl-c.lat)<0.3)nl=tl;}
-  if(!free&&nl!==c.lat){for(const o of S.cars){if(o===c||o.removed||o.mode==="garage"||grp(o)!==G0)continue;
-    if(Math.abs(delta(c,o))<CAR_L+(G0===0?7:1.5)){const n=Math.abs(nl-o.lat);if(n<CAR_W+0.7&&n<Math.abs(c.lat-o.lat)){nl=c.lat;break;}}}}
+  if(!free&&nl!==c.lat){const oldLat=c.lat;c.lat=nl;for(const o of S.cars){if(o===c||o.removed||o.mode==="garage"||grp(o)!==G0)continue;
+      if(obbMTV(c,o,0.8)){nl=oldLat;break;}}
+    c.lat=oldLat;}
   c.latV=(nl-c.lat)/dt; c.lat=nl;
   c.yaw+=(clamp(c.v>8?Math.atan2(c.latV,c.v):0,-0.2,0.2)-c.yaw)*0.08;
   {const kk=T.k[idx],ak=Math.abs(kk),aL=c.v*c.v*ak/ALAT,j=(idx+4)%NU,exiting=Math.abs(T.k[j])<ak*0.92,wl_=wetAt(c.pos),wetF=(1+wl_*1.6)*(tyreClass(c.tyre)==="dry"?1+wl_*3:1);let tg=0;   // Reibkreis: Längs- und Querkraft teilen sich den Grip
@@ -380,9 +382,9 @@ function releaseFromGarage(c){c.mode="out";c.pit={ph:"exit",goal:"out",timer:0,t
 function pairFree(a,b){return a.hitT===b||b.hitT===a||(a.sFree&&(a.busy===b||(a.script&&a.script.B===b)))||(b.sFree&&(b.busy===a||(b.script&&b.script.B===a)))||a.wide||b.wide;}
 /* Minimaler Trennvektor zweier Autos (exakte Kollisionsbox 14,9 × 5,1, inkl. Drehung) */
 const BOX_HX=7.45,BOX_HY=2.55;
-function obbMTV(A,B){const a=carBox(A),b=carBox(B),dx=b.x-a.x,dy=b.y-a.y;if(dx*dx+dy*dy>300)return null;let best=1e9,bx=0,by=0;
+function obbMTV(A,B,pad=0){const a=carBox(A),b=carBox(B),dx=b.x-a.x,dy=b.y-a.y;if(dx*dx+dy*dy>300)return null;let best=1e9,bx=0,by=0;
   for(const [ux,uy] of [[a.c,a.s],[-a.s,a.c],[b.c,b.s],[-b.s,b.c]]){
-    const ra=BOX_HX*Math.abs(ux*a.c+uy*a.s)+BOX_HY*Math.abs(-ux*a.s+uy*a.c),rb=BOX_HX*Math.abs(ux*b.c+uy*b.s)+BOX_HY*Math.abs(-ux*b.s+uy*b.c);
+    const ra=(BOX_HX+pad/2)*Math.abs(ux*a.c+uy*a.s)+(BOX_HY+pad/2)*Math.abs(-ux*a.s+uy*a.c),rb=(BOX_HX+pad/2)*Math.abs(ux*b.c+uy*b.s)+(BOX_HY+pad/2)*Math.abs(-ux*b.s+uy*b.c);
     const p=dx*ux+dy*uy,o=ra+rb-Math.abs(p);if(o<=0)return null;if(o<best){best=o;const sg=p>=0?1:-1;bx=ux*sg;by=uy*sg;}}
   return best<50?{x:bx,y:by,d:best}:null;}        // B muss um d in Richtung (x,y) von A weg
 function pushCar(c,wx,wy){const q=posXY(c.s,c.lat),ca=Math.cos(q.ang),sa=Math.sin(q.ang);const ds=wx*ca+wy*sa,dl=(-wx*sa+wy*ca)*SIDE;c.s+=ds;c.pos=mod(c.s);c.lat+=dl;return ds;}
